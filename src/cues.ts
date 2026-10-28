@@ -1,0 +1,77 @@
+import * as Haptics from 'expo-haptics';
+import * as Speech from 'expo-speech';
+import type { CueMode } from './types';
+import { formatDuration, formatPace } from './geo';
+
+/**
+ * Cues never shout. Voice is a single calm sentence; haptic is a short pattern;
+ * silent is exactly that.
+ */
+
+let mode: CueMode = 'haptic';
+export function setCueMode(m: CueMode) {
+  mode = m;
+}
+
+async function buzz(pattern: Haptics.NotificationFeedbackType | 'double' | 'triple') {
+  try {
+    if (pattern === 'double') {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      await new Promise((r) => setTimeout(r, 180));
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    } else if (pattern === 'triple') {
+      for (let i = 0; i < 3; i++) {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        await new Promise((r) => setTimeout(r, 150));
+      }
+    } else {
+      await Haptics.notificationAsync(pattern);
+    }
+  } catch {
+    // haptics unavailable (simulator)
+  }
+}
+
+function say(text: string) {
+  try {
+    Speech.stop();
+    Speech.speak(text, { rate: 0.95, pitch: 1.0 });
+  } catch {
+    // speech unavailable
+  }
+}
+
+export async function cueKmSplit(km: number, splitDurationS: number, totalDurationS: number, unitsKm: boolean) {
+  if (mode === 'silent') return;
+  await buzz('double');
+  if (mode === 'voice') {
+    const unit = unitsKm ? 'kilometre' : 'mile';
+    const pace = formatPace(unitsKm ? 1000 : 1609.344, splitDurationS);
+    say(`${km} ${unit}${km === 1 ? '' : 's'}. ${pace.replace(':', ' ')} per ${unit}. ${formatDuration(totalDurationS).replace(':', ' ')} total.`);
+  }
+}
+
+export async function cueLap(lap: number, lapDurationS: number) {
+  if (mode === 'silent') return;
+  await buzz(Haptics.NotificationFeedbackType.Success);
+  if (mode === 'voice') say(`Lap ${lap}, ${formatDuration(lapDurationS).replace(':', ' ')}.`);
+}
+
+export async function cueAutoPause() {
+  if (mode === 'silent') return;
+  await buzz('triple');
+  if (mode === 'voice') say('Paused.');
+}
+
+export async function cueAutoResume() {
+  if (mode === 'silent') return;
+  await buzz(Haptics.NotificationFeedbackType.Success);
+  if (mode === 'voice') say('Resumed.');
+}
+
+export async function cueCountdown(n: number) {
+  // Countdown is always haptic-only unless voice is on; never jarring.
+  if (mode === 'silent') return;
+  await buzz(n === 0 ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning);
+  if (mode === 'voice') say(n === 0 ? 'Go.' : String(n));
+}

@@ -1,0 +1,42 @@
+{
+  "name": "runtrovert",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "@expo-google-fonts/dm-sans": "^0.4.2",
+    "@expo-google-fonts/fraunces": "^0.4.1",
+    "@maplibre/maplibre-react-native": "^11.5.0",
+    "expo": "~58.0.20",
+    "expo-font": "~58.0.10",
+    "expo-haptics": "~58.0.7",
+    "expo-keep-awake": "~58.0.3",
+    "expo-location": "~58.0.19",
+    "expo-notifications": "~58.1.6",
+    "expo-sensors": "~58.0.4",
+    "expo-speech": "~58.0.3",
+    "expo-splash-screen": "~58.0.11",
+    "expo-sqlite": "~58.0.14",
+    "expo-status-bar": "~58.0.4",
+    "expo-task-manager": "~58.0.12",
+    "expo-video": "~58.0.12",
+    "react": "19.3.0",
+    "react-native": "0.88.0",
+    "react-native-svg": "15.16.0"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^1.0.13",
+    "@types/react": "~19.3.0",
+    "sharp": "^0.35.5",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "sim:gps": "node --experimental-strip-types scripts/sim-gps.ts",
+    "icons": "node scripts/make-icons.mjs",
+    "bg": "node scripts/make-bg-video.mjs"
+  },
+  "private": true
+}

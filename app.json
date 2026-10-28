@@ -1,0 +1,81 @@
+{
+  "expo": {
+    "name": "Runtrovert",
+    "slug": "runtrovert",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/bg-dusk-poster.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#d9c9b8"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.runtrovert",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "location"
+        ],
+        "NSLocationWhenInUseUsageDescription": "Runtrovert uses your location to record your runs. Nothing leaves your phone.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Runtrovert needs background location so your run keeps recording with the screen off. Nothing leaves your phone.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "icon": {
+        "light": "./assets/icon.png",
+        "dark": "./assets/icon-dark.png",
+        "tinted": "./assets/icon-tinted.png"
+      }
+    },
+    "android": {
+      "package": "app.runtrovert",
+      "adaptiveIcon": {
+        "backgroundColor": "#f6f1ea",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION"
+      ],
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-sqlite",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Runtrovert needs background location so your run keeps recording with the screen off. Nothing leaves your phone.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#2b2733",
+          "defaultChannel": "runtrovert-quiet"
+        }
+      ],
+      "expo-font",
+      "@maplibre/maplibre-react-native",
+      "expo-video",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/bg-dusk-poster.png",
+          "resizeMode": "cover",
+          "backgroundColor": "#d9c9b8"
+        }
+      ]
+    ]
+  }
+}

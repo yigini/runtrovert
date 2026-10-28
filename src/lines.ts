@@ -1,0 +1,144 @@
+/**
+ * Notification lines. Every one is original. Tone: quiet, dry, kind.
+ * Never shame, never shout, never "streak". Rotated so nothing repeats for months.
+ *
+ * Moods:
+ *  nudge     – ordinary day, gentle invitation
+ *  rest      – ran yesterday or today; rest is the message
+ *  quiet     – 3–6 days since the last run
+ *  gap       – 7+ days; welcome back, no guilt
+ *  weather   – rain / cold / dark; introvert advantages
+ *  morning   – early slot
+ *  evening   – late slot
+ */
+export type Mood = 'nudge' | 'rest' | 'quiet' | 'gap' | 'weather' | 'morning' | 'evening';
+
+export const LINES: Record<Mood, string[]> = {
+  nudge: [
+    'Hi there. The park is empty at 7. Just saying.',
+    'No pressure. But your shoes looked at the door again.',
+    'Small run, small-talk-free. Twenty minutes?',
+    'Headphones optional. People optional. Run recommended.',
+    'The route you like is still there. It kept the spot.',
+    'A run is a meeting with one attendee. Attendance is great.',
+    'Nobody will ask how you are out there. That is the whole point.',
+    'Today could use a loop. Any loop. Even a small one.',
+    'You don’t have to talk to anyone to lace up.',
+    'Out, back, shower, quiet. A good afternoon, honestly.',
+    'The pavement has no opinions about your pace.',
+    'A run counts even if nobody knows about it. Especially then.',
+    'Quick one? The world will still be loud when you get back.',
+    'Legs: available. Weather: fine. Excuses: respectfully declined.',
+    'Thirty minutes where your phone only counts kilometres.',
+    'Running is the one hobby where leaving early is called finishing.',
+    'Your energy might say no. Your energy has been wrong before.',
+    'One run. Zero conversations. Infinite smugness. Reasonable deal.',
+    'The quiet streets are quietest right now. Take the hint.',
+    'The best part of a run is the bit where nobody can reach you.',
+    'A gentle reminder that you own a pair of running shoes.',
+    'Not a push. A nudge. The difference is about five minutes.',
+    'There is a version of today where you ran. It is slightly better.',
+    'If you need a reason: there isn’t one. That’s allowed.',
+    'A run is a long walk that’s in a hurry to be alone.',
+    'Your route misses you. Routes don’t say that often.',
+    'Twenty minutes outside beats twenty minutes of thinking about it.',
+    'It’s a good day to be a dot moving across a map.',
+    'The only group run that works: you, and your shadow at a distance.',
+    'Reminder: fresh air is free and asks no questions.',
+  ],
+  rest: [
+    'Yesterday’s run is still counting. Rest is part of the plan.',
+    'You ran. Today the job is sitting down and being pleased about it.',
+    'Rest day. Your legs are quietly rebuilding. Let them.',
+    'Nothing to do today. That was the point of yesterday.',
+    'Recovery is also running. Just the invisible kind.',
+    'Good run yesterday. Today, be mildly insufferable about it, privately.',
+    'The muscles are at work. You are not required to supervise.',
+    'A day off keeps the running from becoming a chore. Enjoy the sofa.',
+    'You earned a slow day. Collect it.',
+    'Post-run report: energy up, world still too loud. Both normal.',
+    'Nothing to prove today. Already done.',
+    'Your legs would like a word: thank you, and please, not today.',
+    'Rest well. The road is patient and so is this app.',
+    'Running yesterday was the hard part. Resting today is the smart part.',
+    'Two days in a row is allowed. So is one. You pick.',
+  ],
+  quiet: [
+    'It’s been a few days. The route didn’t go anywhere.',
+    'Quiet week? A short run is a good way to end it.',
+    'No run in a bit. No problem. One easy loop resets everything.',
+    'A few days off is normal. A few more is also normal. Either way, hello.',
+    'The shoes are getting suspicious. Reassure them.',
+    'If the week got loud, a run is the quietest room you own.',
+    'Gentle reminder: a bad short run is better than a great planned one.',
+    'Haven’t run this week? The week isn’t over, and nobody’s keeping score. Except, quietly, you.',
+    'A run would fix roughly one thing today. That’s a decent ratio.',
+    'Your pace from last week is unbothered. It’ll wait.',
+    'Restarting is just starting with better shoes.',
+    'The hardest kilometre is the one between the door and the pavement.',
+  ],
+  gap: [
+    'A week off happens. The road didn’t go anywhere.',
+    'Hi again. No lecture. Just a door, and a route past it.',
+    'Life got in the way. Life does that. A short run gets it back out.',
+    'Welcome back, whenever that is. There’s no form to fill in.',
+    'A long gap just means the first run back will feel like a discovery.',
+    'Nothing is lost. Fitness is loyal; it leaves slowly and comes back quickly.',
+    'No streak to rescue. Just a run to enjoy, if you fancy it.',
+    'Start small. The map doesn’t care how small.',
+    'Someone has to run around that lake. It might as well be the quiet one.',
+    'You don’t owe anyone a comeback. You can just go for a run.',
+    'If today is the day: lovely. If not: tomorrow is also a day.',
+    'The first run back is mostly about proving the shoes still fit.',
+  ],
+  weather: [
+    'It’s raining. Nobody will be out. You know what that means.',
+    'Cold out. Fewer people. Almost like the weather is on your side.',
+    'Grey skies clear the paths. Best time to have them to yourself.',
+    'Dark early. Headlamp on. The world shrinks to one quiet circle.',
+    'Drizzle is the introvert’s crowd control.',
+    'Wind in your face means the route is doing half the thinking.',
+    'Bad weather, empty park. Honestly, perfect.',
+    'Puddles don’t make conversation. Ideal running companions.',
+    'A run in the rain is a shower you take on the way to the shower.',
+    'The fog is in. Even the joggers who wave can’t see you.',
+  ],
+  morning: [
+    'Good morning. The only notification you’ll get from me today.',
+    'The streets are still asleep. Join them, moving.',
+    'Early run: the day hasn’t started asking things of you yet.',
+    'Morning. The park has roughly three people and a heron.',
+    'Sunrise runs: you’re out before anyone can suggest a group one.',
+    'Coffee, shoes, door. Conversation not required.',
+    'The quiet hour is open. Reservation for one.',
+    'Morning light and an empty towpath. Hard to improve on.',
+  ],
+  evening: [
+    'Evening. The day is done talking. Go somewhere it can’t follow.',
+    'A short run before dark. Then the sofa can have you.',
+    'Dusk run: everyone else is indoors being social. Enjoy the outdoors being not.',
+    'The last light is the best light. Also the emptiest.',
+    'A loop before dinner. Nobody at the table needs to know.',
+    'End the day as a dot on a map. Quiet, moving, yours.',
+    'Evening air, low sun, no crowd. Take the easy win.',
+    'Tomorrow can be loud. Tonight, a run and then nothing.',
+  ],
+};
+
+export const AFTER_RUN_TITLES = ['Run saved.', 'Done.', 'That’s one.', 'Logged, quietly.'];
+
+export const AFTER_RUN_LINES = [
+  'Nobody saw that. Which was the plan.',
+  'Energy check: probably up. Science, roughly.',
+  'That’s a run. No feed, no kudos, no notes. Just yours.',
+  'Shower, tea, silence. In that order.',
+  'The map has a new line on it. Only you can see it.',
+  'Good. Now go be unavailable for a while.',
+  'Legs did the talking. Everything else can stay quiet.',
+  'A run finished is a conversation you didn’t have to have.',
+];
+
+export const TITLES = ['Runtrovert', 'Hi there', 'A quiet word', 'Psst', 'Small thought', 'Just saying', 'Low-key', 'No pressure'];
+
+const ALL_MOODS: Mood[] = ['nudge', 'rest', 'quiet', 'gap', 'weather', 'morning', 'evening'];
+export const TOTAL_LINES = ALL_MOODS.reduce((n, m) => n + LINES[m].length, 0);
