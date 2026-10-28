@@ -1,5 +1,5 @@
-import { Camera, GeoJSONSource, Layer, Map as MapLibreMap, type CameraRef } from '@maplibre/maplibre-react-native';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Camera, GeoJSONSource, Layer, Map as MapLibreMap } from '@maplibre/maplibre-react-native';
+import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { colors, radius } from '../theme';
 import type { LatLon } from '../types';
@@ -32,9 +32,6 @@ function boundsFor(path: LatLon[]): [number, number, number, number] | null {
 }
 
 export function RouteMap({ path, here, follow, height = 220, offline = false }: { path: LatLon[]; here?: LatLon | null; follow?: boolean; height?: number; offline?: boolean }) {
-  const cam = useRef<CameraRef>(null);
-  const [ready, setReady] = useState(false);
-  const centred = useRef(false);
   const last = path[path.length - 1];
   // Live position wins over the route's end: we may be standing still, or the
   // filter may still be waiting for an accurate fix before it draws a line.
@@ -50,24 +47,22 @@ export function RouteMap({ path, here, follow, height = 220, offline = false }: 
     [path],
   );
 
-  // Camera calls made before the map has loaded are dropped, so wait for it.
-  useEffect(() => {
-    if (!ready || !cam.current) return;
-    if (follow && head) {
-      const center: [number, number] = [head.longitude, head.latitude];
-      if (!centred.current) cam.current.jumpTo({ center, zoom: 16 });
-      else cam.current.easeTo({ center, duration: 600 });
-      centred.current = true;
-    } else if (bounds) cam.current.fitBounds(bounds, { padding: { top: 28, right: 28, bottom: 28, left: 28 } });
-    else if (head) cam.current.jumpTo({ center: [head.longitude, head.latitude], zoom: 15 });
-  }, [ready, follow, head?.latitude, head?.longitude, bounds]);
-
-  const initial = head ? { center: [head.longitude, head.latitude] as [number, number], zoom: 15 } : { zoom: 1 };
+  // Declarative camera: MapLibre applies it once the map is ready, so there are
+  // no imperative calls to lose if they arrive before the style has loaded.
+  const padding = { top: 28, right: 28, bottom: 28, left: 28 };
+  const view =
+    follow && head
+      ? { center: [head.longitude, head.latitude] as [number, number], zoom: 16, duration: 600, easing: 'ease' as const }
+      : bounds
+        ? { bounds, padding, duration: 0 }
+        : head
+          ? { center: [head.longitude, head.latitude] as [number, number], zoom: 15, duration: 0 }
+          : null;
 
   return (
     <View style={[styles.wrap, { height }]}>
-      <MapLibreMap style={StyleSheet.absoluteFill} mapStyle={offline ? BLANK_STYLE : MAP_STYLE} logo={false} attribution={!offline} compass={false} onDidFinishLoadingMap={() => setReady(true)}>
-        <Camera ref={cam} initialViewState={initial} />
+      <MapLibreMap style={StyleSheet.absoluteFill} mapStyle={offline ? BLANK_STYLE : MAP_STYLE} logo={false} attribution={!offline} compass={false}>
+        {view ? <Camera {...view} /> : <Camera initialViewState={{ zoom: 1 }} />}
         {path.length > 1 && (
           <GeoJSONSource id="route" data={line}>
             <Layer id="route-casing" type="line" paint={{ 'line-color': colors.cream, 'line-width': 8, 'line-opacity': 0.9 }} layout={{ 'line-cap': 'round', 'line-join': 'round' }} />
