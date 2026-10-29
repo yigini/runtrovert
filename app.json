@@ -85,7 +85,8 @@
           "resizeMode": "cover",
           "backgroundColor": "#d9c9b8"
         }
-      ]
+      ],
+      "expo-sharing"
     ]
   }
 }

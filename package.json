@@ -8,6 +8,7 @@
     "@maplibre/maplibre-react-native": "^11.5.0",
     "expo": "~58.0.20",
     "expo-battery": "~58.0.3",
+    "expo-file-system": "~58.0.13",
     "expo-font": "~58.0.10",
     "expo-haptics": "~58.0.7",
     "expo-keep-awake": "~58.0.3",
@@ -38,13 +39,14 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "sim:gps": "node --experimental-strip-types scripts/sim-gps.ts",
-    "test:reminders": "node --experimental-strip-types scripts/test-reminders.ts",
     "test:mapfit": "node --experimental-strip-types scripts/test-map-fit.ts",
+    "test:reminders": "node --experimental-strip-types scripts/test-reminders.ts",
+    "test:plans": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-plans.ts",
     "icons": "node scripts/make-icons.mjs",
     "bg": "node scripts/make-bg-video.mjs",
-    "test:progress": "node --experimental-strip-types scripts/test-progress.ts",
     "shelf": "node scripts/build-shelf.mjs src/shelfBundled.json",
-    "test:shelf": "node --experimental-strip-types scripts/test-shelf.ts"
+    "test:shelf": "node --experimental-strip-types scripts/test-shelf.ts",
+    "test:progress": "node --experimental-strip-types scripts/test-progress.ts"
   },
   "private": true
 }

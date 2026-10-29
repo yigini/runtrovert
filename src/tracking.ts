@@ -107,6 +107,14 @@ let pendingPoints: Array<{ ts: number; lat: number; lon: number; alt: number | n
 type Listener = (s: TrackingState) => void;
 const listeners = new Set<Listener>();
 
+// A guided session (training plan) reads progress off every tick, screen on or
+// off, so its cues fire in the background where the snapshot listeners do not.
+type ProgressHook = (distanceM: number, durationS: number, status: TrackingStatus) => void;
+let progressHook: ProgressHook | null = null;
+export function setProgressHook(h: ProgressHook | null) {
+  progressHook = h;
+}
+
 function liveDuration(): number {
   return segmentStartedAt == null ? accumulatedS : accumulatedS + (Date.now() - segmentStartedAt) / 1000;
 }
@@ -328,6 +336,7 @@ async function tick() {
     await applyPowerProfile('tick');
   }
   await persist();
+  if (progressHook && state.status !== 'idle') progressHook(state.distanceM, liveDuration(), state.status);
   emit();
 }
 

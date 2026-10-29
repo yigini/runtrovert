@@ -7,6 +7,7 @@ import { Button } from '../components/Button';
 import { Face } from '../components/Mark';
 import { MoodPicker } from '../components/MoodPicker';
 import { MusicStrip } from '../components/MusicStrip';
+import { PainPicker } from '../components/PainPicker';
 import { QuietPicker } from '../components/QuietPicker';
 import { RouteMap } from '../components/RouteMap';
 import { SplitsTable } from '../components/SplitsTable';
@@ -21,8 +22,13 @@ import { useSettings } from '../settings';
 import { finishSurprise, type Surprise } from '../surprises';
 import { ensurePermissions, getState, lap, pauseRun, resumeRun, startRun, stopRun, subscribe, TrackingState, unsavedPoints } from '../tracking';
 import { colors, fonts, radius, spacing, type } from '../theme';
+import { applyEnergy, type PainLevel } from '../training/adapt';
+import { loadPlan, savePlan, todaySession } from '../training/store';
+import type { Session } from '../training/types';
+import { formatLeft, stepLine } from '../training/workout';
 import type { Mood, Quiet, Run } from '../types';
 import { cachedWeather } from '../weather';
+import { beginWorkout, endWorkout, subscribeWorkout, type GuidedRun } from '../workoutRun';
 import { liveFacts, recordRunFacts } from '../you';
 
 type Phase = 'idle' | 'countdown' | 'active' | 'finish';
@@ -30,7 +36,7 @@ type Phase = 'idle' | 'countdown' | 'active' | 'finish';
 /** Ids of the once-only finish lines already used (src/surprises.ts). */
 const SEEN_KEY = 'surprises.seen';
 
-export function RunScreen({ onSaved }: { onSaved: (runId: number, share?: boolean) => void }) {
+export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0 }: { onSaved: (runId: number, share?: boolean, extra?: { pain: PainLevel | null; sessionId: string | null }) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number }) {
   const { settings } = useSettings();
   const km = settings.unitsKm;
   const [track, setTrack] = useState<TrackingState>(getState());
@@ -53,6 +59,13 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number, share?: boolea
   const veil = useRef(new Animated.Value(1)).current;
   // Heights of the words and the numbers laid over the finish map, so the route is framed between them.
   const [finishPad, setFinishPad] = useState({ top: 140, bottom: 170 });
+  // The plan, when there is one: today's session (or the one opened from the
+  // Train tab), the guided steps during the run, and the pain line after.
+  const [hasPlan, setHasPlan] = useState(false);
+  const [planSession, setPlanSession] = useState<Session | null>(null);
+  const [pain, setPain] = useState<PainLevel | null>(null);
+  const [guided, setGuided] = useState<GuidedRun | null>(null);
+  const session = requested ?? planSession;
 
   // The screen is the second-biggest drain after GPS. Off by default: the lock
   // screen (and the watch) carry the live numbers instead.
@@ -68,11 +81,54 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number, share?: boolea
   useEffect(() => {
     if (phase === 'idle') listRuns().then(setRuns);
   }, [phase]);
+  useEffect(() => {
+    if (phase !== 'idle') return;
+    loadPlan()
+      .then((p) => {
+        const active = p && p.status === 'active' ? p : null;
+        setHasPlan(!!active);
+        setPlanSession(active ? todaySession(active) : null);
+      })
+      .catch(() => {});
+  }, [phase, planKey]);
+  useEffect(() => subscribeWorkout(setGuided), []);
   useEffect(() => () => {
     if (countdownRef.current) clearInterval(countdownRef.current);
   }, []);
 
   async function onStart() {
+    // A low face before a hard or long day: the plan gives way before the run, not after.
+    if (session && !session.done && !session.skipped && (session.hard || session.kind === 'long') && moodBefore != null && moodBefore <= 2) {
+      Alert.alert(`Low energy, and ${session.title} is on the plan.`, 'Easy days are allowed. Nothing is added elsewhere to make up for it.', [
+        { text: 'Make it easy', onPress: () => giveWay('easy') },
+        { text: 'Rest today', onPress: () => giveWay('rest') },
+        { text: 'Run it as planned', onPress: () => giveWay('planned') },
+      ]);
+      return;
+    }
+    await begin();
+  }
+
+  async function giveWay(choice: 'easy' | 'rest' | 'planned') {
+    if (!session || moodBefore == null) return;
+    try {
+      const plan = await loadPlan();
+      if (plan && plan.status === 'active') {
+        const r = applyEnergy(plan, session.date, moodBefore, choice);
+        await savePlan(r.plan);
+        if (r.fatigue === 'doctor') Alert.alert('Five low days in two weeks.', 'That is more than a plan can fix. Rest, eat, sleep, and if it goes on, see a doctor. Next week is lighter.');
+        else if (r.fatigue === 'lighter') Alert.alert('Three low days this week.', 'Next week is lighter. Nothing to make up.');
+        setPlanSession(todaySession(r.plan));
+        onRequestTaken?.();
+        if (choice === 'rest') return;
+      }
+    } catch {
+      // the run still happens
+    }
+    await begin();
+  }
+
+  async function begin() {
     const perm = await ensurePermissions();
     if (!perm.ok) {
       Alert.alert('Location needed', 'Runtrovert can only record a run with location access. Nothing leaves your phone.');
@@ -94,6 +150,7 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number, share?: boolea
           if (countdownRef.current) clearInterval(countdownRef.current);
           countdownRef.current = null;
           cueCountdown(0);
+          if (session && !session.done && !session.skipped) beginWorkout(session);
           await startRun(moodBefore);
           setPhase('active');
         } else {
@@ -102,6 +159,7 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number, share?: boolea
       }, 1000);
     } else {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      if (session && !session.done && !session.skipped) beginWorkout(session);
       await startRun(moodBefore);
       setPhase('active');
     }
@@ -132,25 +190,26 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number, share?: boolea
     const f = getState();
     setFinal(f);
     setPhase('finish');
+    setSurprise(await pickSurprise(f, runs, km));
     if (f.runId != null) {
       liveFacts({ runId: f.runId, startedAt: f.startedAt ?? Date.now(), distanceM: f.distanceM, durationS: f.durationS, elevationGainM: f.elevationGainM, unsaved: unsavedPoints() })
         .then(setLive)
         .catch(() => {});
     }
-    setSurprise(await pickSurprise(f, runs, km));
   }
 
   async function onSave(share = false) {
     const startedAt = final?.startedAt ?? Date.now();
     const durationS = final?.durationS ?? 0;
     const id = await stopRun({ moodAfter, quiet, note: note.trim() || null });
-    if (id != null) await recordRunFacts(id, startedAt, durationS).catch(() => {});
     if (id != null && surprise?.once) {
       const seen = (await loadValue<string[]>(SEEN_KEY).catch(() => null)) ?? [];
       saveValue(SEEN_KEY, [...seen, surprise.id]).catch(() => {});
     }
+    if (id != null) await recordRunFacts(id, startedAt, durationS).catch(() => {});
+    const extra = { pain, sessionId: guided?.session.id ?? null };
     reset();
-    if (id != null) onSaved(id, share);
+    if (id != null) onSaved(id, share, extra);
   }
 
   function onDiscard() {
@@ -169,21 +228,24 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number, share?: boolea
   }
 
   function reset() {
+    endWorkout();
+    onRequestTaken?.();
+    setPain(null);
     setPhase('idle');
     setMoodBefore(null);
     setMoodAfter(null);
     setQuiet(null);
     setNote('');
     setFinal(null);
-    setLive(null);
     setSurprise(null);
+    setLive(null);
     setMapFront(false);
     veil.setValue(1);
   }
 
   // ---- Idle ------------------------------------------------------------------
   if (phase === 'idle') {
-    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} />;
+    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} planToday={session} />;
   }
 
   // ---- Countdown -------------------------------------------------------------
@@ -234,6 +296,7 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number, share?: boolea
           <MoodPicker title="And your energy now?" value={moodAfter} onChange={setMoodAfter} />
           <QuietPicker value={quiet} onChange={setQuiet} />
           <TextInput style={styles.note} placeholder="A note, if you want one" placeholderTextColor={colors.inkMuted} value={note} onChangeText={setNote} multiline />
+          {hasPlan && <PainPicker value={pain} onChange={setPain} />}
           <SplitsTable title={`Splits per ${distanceUnit(km)}`} rows={final.splits} km={km} partial={partialKm} />
           {final.laps.length > 0 && <SplitsTable title="Laps" rows={final.laps} km={km} />}
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
@@ -286,7 +349,7 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number, share?: boolea
             <StripStat value={formatPace(track.distanceM, track.durationS, km)} label={`avg /${distanceUnit(km)}`} />
           </View>
         ) : (
-          <LiveNumbers km={km} t={track} />
+          <LiveNumbers km={km} t={track} guided={guided} />
         )}
 
         <View style={{ flex: 1 }} pointerEvents="none" />
@@ -315,10 +378,11 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number, share?: boolea
   );
 }
 
-function LiveNumbers({ km, t }: { km: boolean; t: TrackingState }) {
+function LiveNumbers({ km, t, guided }: { km: boolean; t: TrackingState; guided: GuidedRun | null }) {
   const cur = t.currentKm;
   return (
     <View style={{ gap: spacing.md }} pointerEvents="none">
+      {guided && <GuidedStrip g={guided} />}
       <View style={styles.hero}>
         <Text style={styles.heroValue} adjustsFontSizeToFit numberOfLines={1}>{formatDistanceNumber(t.distanceM, km)}</Text>
         <Text style={styles.heroUnit}>{km ? 'kilometres' : 'miles'}</Text>
@@ -330,6 +394,34 @@ function LiveNumbers({ km, t }: { km: boolean; t: TrackingState }) {
       </View>
       <Text style={styles.splitLine}>
         {km ? 'km' : 'mile'} {t.splits.length + 1} · {formatPace(cur.distanceM, cur.durationS, km)} · climb {formatElevation(t.elevationGainM, km)}
+      </Text>
+    </View>
+  );
+}
+
+/** The guided session, one line: which step, how it should feel, what is left. */
+function GuidedStrip({ g }: { g: GuidedRun }) {
+  const v = g.view;
+  const step = v.step;
+  const fill = v.finished ? colors.mint : step?.kind === 'hard' ? colors.peach : step?.kind === 'walk' ? colors.lilac : step?.kind === 'stride' ? colors.butter : colors.mint;
+  return (
+    <View style={styles.guided}>
+      <View style={styles.guidedTop}>
+        <View style={[styles.statDot, { backgroundColor: fill }]} />
+        <Text style={styles.guidedLabel} numberOfLines={1}>
+          {v.finished ? `${g.session.title} · done` : `Step ${v.index + 1} of ${v.total} · ${g.session.title}`}
+        </Text>
+      </View>
+      <Text style={styles.guidedStep} numberOfLines={2}>
+        {v.finished ? 'That is the session. Easy to the door.' : step ? stepLine(step) : ''}
+      </Text>
+      {!v.finished && (
+        <View style={styles.guidedBar}>
+          <View style={[styles.guidedFill, { backgroundColor: fill, width: `${Math.round(v.fraction * 100)}%` as `${number}%` }]} />
+        </View>
+      )}
+      <Text style={styles.guidedNext} numberOfLines={1}>
+        {v.finished ? '' : `${formatLeft(v)}${v.next ? ` · then ${stepLine(v.next)}` : ' · last step'}`}
       </Text>
     </View>
   );
@@ -450,6 +542,13 @@ const styles = StyleSheet.create({
   liveStatValue: { fontFamily: fonts.display, fontSize: 28, lineHeight: 32, color: colors.cream, fontVariant: ['tabular-nums'] },
   liveStatLabel: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.onInkMuted },
   statDot: { width: 6, height: 6, borderRadius: 3 },
+  guided: { backgroundColor: 'rgba(246,241,234,0.1)', borderRadius: radius.lg, padding: 12, gap: 6 },
+  guidedTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  guidedLabel: { flex: 1, fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase', color: colors.onInkMuted },
+  guidedStep: { fontFamily: fonts.display, fontSize: 20, lineHeight: 24, color: colors.cream },
+  guidedBar: { height: 4, borderRadius: 2, backgroundColor: 'rgba(246,241,234,0.15)', overflow: 'hidden' },
+  guidedFill: { height: 4, borderRadius: 2 },
+  guidedNext: { fontFamily: fonts.body, fontSize: 13, color: colors.onInkMuted, fontVariant: ['tabular-nums'] },
   splitLine: { textAlign: 'center', fontFamily: fonts.body, fontSize: 14, color: colors.onInkMuted, fontVariant: ['tabular-nums'] },
   strip: { flexDirection: 'row', backgroundColor: 'rgba(43,39,51,0.82)', borderRadius: radius.lg, paddingVertical: 12, paddingHorizontal: spacing.sm },
   stripValue: { fontFamily: fonts.display, fontSize: 24, lineHeight: 28, color: colors.cream, fontVariant: ['tabular-nums'] },

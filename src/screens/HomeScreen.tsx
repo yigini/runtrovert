@@ -6,12 +6,13 @@ import { Fade } from '../components/Fade';
 import { Mark } from '../components/Mark';
 import { MoodPicker } from '../components/MoodPicker';
 import { SkyGlyph } from '../components/SkyGlyph';
-import { homeFootage } from '../footage';
 import { TipLine } from '../components/TipLine';
+import { homeFootage } from '../footage';
 import { clock, formatTemp, headline, suggestions } from '../sky';
 import { useSettings } from '../settings';
 import { seasonalLine } from '../surprises';
 import { colors, fonts, spacing } from '../theme';
+import type { Session } from '../training/types';
 import type { Mood, Run } from '../types';
 import { NEWS } from '../whatsNew';
 import { cachedWeather, getWeather, type Weather, type WeatherResult } from '../weather';
@@ -20,7 +21,7 @@ import { cachedWeather, getWeather, type Weather, type WeatherResult } from '../
  * The first thing you see. Footage, the sky in a sentence, three plain
  * suggestions, and the start button. No cards: the words sit on the picture.
  */
-export function HomeScreen({ runs, mood, onMood, onStart }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void }) {
+export function HomeScreen({ runs, mood, onMood, onStart, planToday }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; planToday?: Session | null }) {
   const { settings, update } = useSettings();
   const metric = settings.unitsKm;
   const [sky, setSky] = useState<WeatherResult | null>(null);
@@ -51,7 +52,6 @@ export function HomeScreen({ runs, mood, onMood, onStart }: { runs: Run[]; mood:
   }, [refresh]);
 
   const weather = sky?.kind === 'ok' ? sky.weather : null;
-  // Dark text treatment for the tip line once the sun is low.
   const evening = weather ? !weather.isDay || (weather.sunset != null && weather.sunset - now < 60 * 60 * 1000) : new Date(now).getHours() >= 17 || new Date(now).getHours() < 6;
 
   return (
@@ -70,6 +70,13 @@ export function HomeScreen({ runs, mood, onMood, onStart }: { runs: Run[]; mood:
           {weather ? headline(weather, metric, now) : greeting(runs, now)}
         </Text>
         <Text style={styles.sub}>{seasonalLine(now) ?? subline(runs, now)}</Text>
+        {planToday ? (
+          <View style={styles.plan}>
+            <Text style={styles.planLabel}>{planToday.done ? 'Today’s session, done' : planToday.skipped ? 'Today’s session, set aside' : 'Today, from your plan'}</Text>
+            <Text style={styles.planText}>{planToday.title}</Text>
+            <Text style={styles.planHint}>{planToday.summary}</Text>
+          </View>
+        ) : null}
 
         {weather ? (
           <View style={styles.list}>
@@ -102,7 +109,7 @@ export function HomeScreen({ runs, mood, onMood, onStart }: { runs: Run[]; mood:
         )}
 
         <MoodPicker inline title="Energy right now" value={mood} onChange={onMood} />
-        <Button title="Start run" onPress={onStart} style={{ height: 62 }} />
+        <Button title={planToday && !planToday.done && !planToday.skipped ? 'Start today’s session' : 'Start run'} onPress={onStart} style={{ height: 62 }} />
         <Text style={styles.footer}>{footer(runs, now)}</Text>
       </View>
     </AmbientBackground>
@@ -187,4 +194,8 @@ const styles = StyleSheet.create({
   newsText: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 19, color: colors.ink },
   newsDismiss: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.inkSoft, textDecorationLine: 'underline' },
   footer: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1, color: colors.inkSoft, textAlign: 'center' },
+  plan: { gap: 2, paddingLeft: 14, borderLeftWidth: 2, borderLeftColor: colors.butterDeep },
+  planLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: colors.butterDeep },
+  planText: { fontFamily: fonts.bodyMedium, fontSize: 16, lineHeight: 21, color: colors.ink },
+  planHint: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.inkSoft },
 });

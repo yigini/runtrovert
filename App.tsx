@@ -13,16 +13,21 @@ import { ListenScreen } from './src/screens/ListenScreen';
 import { RunDetailScreen } from './src/screens/RunDetailScreen';
 import { RunScreen } from './src/screens/RunScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
+import { TrainScreen } from './src/screens/TrainScreen';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import { FEWER_ACTION, fewer, fewerMessage, notifyAfterRun, requestNotificationPermission, rescheduleReminders } from './src/notify';
 import { SettingsProvider, useSettings } from './src/settings';
 import { recoverRun, subscribe } from './src/tracking';
 import { colors, fonts, spacing } from './src/theme';
+import type { PainLevel } from './src/training/adapt';
+import { schedulePlanReminders } from './src/training/remind';
+import { onRunSaved } from './src/training/store';
+import type { Session } from './src/training/types';
 import { NEWS } from './src/whatsNew';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-type Tab = 'run' | 'history' | 'listen' | 'settings';
+type Tab = 'run' | 'train' | 'history' | 'listen' | 'settings';
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({ DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold, Fraunces_300Light, Fraunces_400Regular_Italic, Fraunces_600SemiBold });
@@ -47,6 +52,9 @@ function Shell() {
   const [shareOpen, setShareOpen] = useState(false); // open the share card on arrival ("Keep it and share")
   const [refreshKey, setRefreshKey] = useState(0);
   const [liveRun, setLiveRun] = useState(false);
+  // A session opened from the Train tab, waiting on the Run tab's start button.
+  const [sessionRequest, setSessionRequest] = useState<Session | null>(null);
+  const [planKey, setPlanKey] = useState(0);
   useEffect(() => subscribe((t) => setLiveRun(t.status !== 'idle')), []);
 
   useEffect(() => {
@@ -60,8 +68,12 @@ function Shell() {
 
   // Re-plan the next two weeks of reminders on open and whenever their settings change.
   useEffect(() => {
-    if (ready && settings.onboarded) rescheduleReminders(settings).catch(() => {});
-  }, [ready, settings.onboarded, settings.notifyPerWeek, settings.notifyHour, settings.notifyMinute, settings.notifyAuto, settings.weather]);
+    if (ready && settings.onboarded) {
+      rescheduleReminders(settings)
+        .then(() => schedulePlanReminders(settings))
+        .catch(() => {});
+    }
+  }, [ready, settings.onboarded, settings.notifyPerWeek, settings.notifyHour, settings.notifyMinute, settings.notifyAuto, settings.weather, planKey]);
 
   // Taps on notifications, including the one that launched the app.
   const response = Notifications.useLastNotificationResponse();
@@ -99,15 +111,29 @@ function Shell() {
     );
   }
 
-  function onSaved(runId: number, share = false) {
+  async function onSaved(runId: number, share = false, extra?: { pain: PainLevel | null; sessionId: string | null }) {
     setShareOpen(share);
     getRun(runId)
       .then((run) => notifyAfterRun(settings, runId, run?.moodAfter != null))
       .catch(() => {});
-    rescheduleReminders({ ...settings }).catch(() => {});
     setRefreshKey((k) => k + 1);
     setOpenRun(runId);
     setTab('history');
+    setSessionRequest(null);
+    // Tick the day's session off the plan, and let pain ease the days ahead.
+    try {
+      const run = await getRun(runId);
+      if (run) {
+        const r = await onRunSaved(run, extra?.pain ?? null, extra?.sessionId ?? null);
+        if (r.advice) Alert.alert('Noted', r.advice);
+      }
+    } catch {
+      // no plan, or nothing to change
+    }
+    setPlanKey((k) => k + 1);
+    rescheduleReminders({ ...settings })
+      .then(() => schedulePlanReminders(settings))
+      .catch(() => {});
   }
 
   const inkMode = liveRun && tab === 'run';
@@ -117,8 +143,18 @@ function Shell() {
       <View style={{ flex: 1 }}>
         {/* RunScreen stays mounted so a live run survives tab switches. */}
         <View style={[{ flex: 1 }, tab !== 'run' && styles.hidden]}>
-          <RunScreen onSaved={onSaved} />
+          <RunScreen onSaved={onSaved} requested={sessionRequest} onRequestTaken={() => setSessionRequest(null)} planKey={planKey} />
         </View>
+        {tab === 'train' && (
+          <TrainScreen
+            refreshKey={planKey + refreshKey}
+            onChanged={() => setPlanKey((k) => k + 1)}
+            onStartSession={(s) => {
+              setSessionRequest(s);
+              setTab('run');
+            }}
+          />
+        )}
         {tab === 'history' && openRun == null && (
           <HistoryScreen
             onOpen={(id) => {
@@ -149,6 +185,7 @@ function Shell() {
       {!liveRun && (
         <View style={styles.tabs}>
           <TabButton label="Run" color={colors.mint} active={tab === 'run'} onPress={() => setTab('run')} />
+          <TabButton label="Train" color={colors.butter} active={tab === 'train'} onPress={() => setTab('train')} />
           <TabButton
             label="History"
             color={colors.lilac}
