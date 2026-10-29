@@ -4,6 +4,7 @@ import { notificationStatus, rescheduleReminders, turnOnNotifications, type Noti
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing } from '../theme';
 import { schedulePlanReminders } from '../training/remind';
+import { ui } from '../i18n/ui';
 
 /**
  * Whether a plan will reach you outside the app, said plainly, with one tap to
@@ -52,15 +53,15 @@ export function reminderWords(state: PlanReminderState): { title: string; text: 
   switch (state.kind) {
     case 'on':
       return {
-        title: `A quiet note at ${state.at} on plan days.`,
-        text: 'It names the day’s session. Rest days stay silent, and the plan replaces your ordinary reminders while it runs. The time is set in Settings.',
+        title: ui().planReminders.aQuietNoteAtX(state.at),
+        text: ui().planReminders.itNamesTheDayS,
       };
     case 'paused':
-      return { title: 'Paused, so no plan notes.', text: 'Your ordinary reminders carry on as before. Resume and the plan’s notes come back.' };
+      return { title: ui().planReminders.pausedSoNoPlanNotes, text: ui().planReminders.yourOrdinaryRemindersCarryOn };
     case 'permission':
-      return { title: 'No reminders. Notifications are off.', text: 'The plan only shows here and on the Run screen. Turn them on and you get one quiet note on plan days, nothing on rest days.' };
+      return { title: ui().planReminders.noRemindersNotificationsAreOff, text: ui().planReminders.thePlanOnlyShowsHere };
     case 'none':
-      return { title: 'No reminders. You set them to none.', text: 'The plan only shows here and on the Run screen. Turn them on and you get one quiet note on plan days, nothing on rest days.' };
+      return { title: ui().planReminders.noRemindersYouSetThem, text: ui().planReminders.thePlanOnlyShowsHere };
   }
 }
 
@@ -79,7 +80,7 @@ export function PlanReminderCard({ paused = false }: { paused?: boolean }) {
       <Text style={styles.text}>{words.text}</Text>
       {off && (
         <Pressable onPress={turnOn} style={styles.btn} accessibilityRole="button">
-          <Text style={styles.btnText}>Turn on reminders</Text>
+          <Text style={styles.btnText}>{ui().planReminders.turnOnReminders}</Text>
         </Pressable>
       )}
     </View>
@@ -90,11 +91,11 @@ export function PlanReminderCard({ paused = false }: { paused?: boolean }) {
 export function PlanReminderLine({ paused = false }: { paused?: boolean }) {
   const { state, turnOn } = usePlanReminders(paused);
   if (!state || state.kind === 'paused') return null;
-  if (state.kind === 'on') return <Text style={styles.line}>A quiet note at {state.at} on plan days.</Text>;
+  if (state.kind === 'on') return <Text style={styles.line}>{ui().planReminders.aQuietNoteAtX2(state.at)}</Text>;
   return (
     <Pressable onPress={turnOn} accessibilityRole="button" hitSlop={6}>
       <Text style={styles.line}>
-        No reminders for the plan. <Text style={styles.lineLink}>Turn on</Text>
+        {ui().planReminders.noReminders}<Text style={styles.lineLink}>{ui().planReminders.turnOn}</Text>
       </Text>
     </Pressable>
   );

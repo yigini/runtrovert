@@ -7,6 +7,7 @@
 // Safety is not something a route memory can know, so nothing here says it.
 
 import type { Quiet } from './types';
+import { live, ui } from './i18n/ui';
 
 export interface RoutePt {
   lat: number;
@@ -33,10 +34,15 @@ export const MIN_ROUTE_M = 500;
 /** The prompt appears on the third run of the same loop: two earlier ones plus today. */
 export const OFFER_AFTER = 2;
 
+// Stored in English; tagLabel() shows them in the runner's language. Their own tags stay as typed.
 export const PLACE_TAGS = ['quiet', 'shaded', 'few crossings', 'familiar', 'lit after dark', 'soft ground', 'hilly'] as const;
 
 /** How busy, in the runner's words. 'empty' is shown as "hardly anyone": their note, not our promise. */
-export const BUSY_LABEL: Record<Quiet, string> = { empty: 'Hardly anyone', some: 'A few people', crowded: 'Busy' };
+export const BUSY_LABEL: Record<Quiet, string> = live(() => ui().places.busy);
+
+export function tagLabel(tag: string): string {
+  return (ui().places.tags as Record<string, string>)[tag] ?? tag;
+}
 
 // ---- Geometry ------------------------------------------------------------------
 
@@ -208,15 +214,15 @@ export function placeOffer(sig: RouteSig | null, past: Array<{ runId: number; si
 /** The line on the finish card. "Third time" only when it is the third. */
 export function offerLine(earlier: number): string {
   const n = earlier + 1;
-  if (n === 3) return 'Third time on this loop. Keep it as a place?';
-  return `${n} runs on this loop now. Keep it as a place?`;
+  if (n === 3) return ui().places.thirdTimeOnThisLoop;
+  return ui().places.xRunsOnThisLoop(n);
 }
 
 /** A name to start from; the runner will usually change it. */
 export function suggestName(startedAt: number): string {
   const h = new Date(startedAt).getHours();
-  const part = h < 11 ? 'Morning' : h < 14 ? 'Lunchtime' : h < 17 ? 'Afternoon' : h < 22 ? 'Evening' : 'Night';
-  return `${part} loop`;
+  const names = ui().places.loopName;
+  return h < 11 ? names.morning : h < 14 ? names.lunchtime : h < 17 ? names.afternoon : h < 22 ? names.evening : names.night;
 }
 
 /** Tidy a custom tag: lower case, one space, short. Empty means nothing to add. */
@@ -249,7 +255,7 @@ export function placeSummary(visits: VisitRun[], loopM: number): { count: number
   return { count: sorted.length, since: sorted.length ? sorted[sorted.length - 1].at : null, last: sorted[0] ?? null, bestPace };
 }
 
-type DayPart = 'early morning' | 'morning' | 'lunchtime' | 'afternoon' | 'evening' | 'night';
+export type DayPart = 'early morning' | 'morning' | 'lunchtime' | 'afternoon' | 'evening' | 'night';
 
 export function dayPart(at: number): DayPart {
   const h = new Date(at).getHours();
@@ -262,7 +268,6 @@ export function dayPart(at: number): DayPart {
   return 'night';
 }
 
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export interface PatternLine {
   text: string;
@@ -272,8 +277,6 @@ export interface PatternLine {
 
 /** Fewer rated notes than this in a group and we say nothing about it. */
 export const PATTERN_MIN = 3;
-const NUM = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
-const num = (n: number) => NUM[n] ?? String(n);
 
 /**
  * Part of Everything, once: what months of your own notes say about when a
@@ -295,8 +298,8 @@ export function quietPatterns(visits: Visit[], max = 3): PatternLine[] {
     const d = new Date(v.at).getDay();
     const part = dayPart(v.at);
     const weekend = d === 0 || d === 6;
-    add(`${DAYS[d]} ${part}s`, part, weekend, d, v);
-    add(`${weekend ? 'weekend' : 'weekday'} ${part}s`, part, weekend, null, v);
+    add(`${d} ${part}`, part, weekend, d, v);
+    add(`${weekend ? 'weekend' : 'weekday'} ${part}`, part, weekend, null, v);
   }
   type Line = PatternLine & { slot: Slot; quiet: boolean };
   const lines: Line[] = [];
@@ -304,11 +307,12 @@ export function quietPatterns(visits: Visit[], max = 3): PatternLine[] {
     const recent = slot.notes.slice(0, 6); // the last six notes in that slot: a place's old habits fade
     if (recent.length < PATTERN_MIN) continue;
     const of = recent.length;
-    const yours = of === slot.notes.length ? `your ${num(of)}` : `your last ${num(of)}`;
+    const every = of === slot.notes.length; // "your three" rather than "your last three"
+    const when = ui().places.slot(slot.part, slot.day, slot.weekend);
     const quiet = recent.filter((v) => v.busy === 'empty').length;
     const busy = recent.filter((v) => v.busy === 'crowded').length;
-    if (quiet / of >= 0.6) lines.push({ slot, quiet: true, count: quiet, of, text: `You noted hardly anyone on ${quiet === of ? 'all' : num(quiet)} of ${yours} ${slot.label} here.` });
-    else if (busy / of >= 0.6) lines.push({ slot, quiet: false, count: busy, of, text: `You found it busy on ${busy === of ? 'all' : num(busy)} of ${yours} ${slot.label} here.` });
+    if (quiet / of >= 0.6) lines.push({ slot, quiet: true, count: quiet, of, text: ui().places.quietLine(quiet, of, every, when) });
+    else if (busy / of >= 0.6) lines.push({ slot, quiet: false, count: busy, of, text: ui().places.busyLine(busy, of, every, when) });
   }
   // A line about one day ("Sunday mornings") says it better than the weekend line it is part of.
   const kept = lines.filter(

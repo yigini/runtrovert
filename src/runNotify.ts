@@ -13,6 +13,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { distanceUnit, formatDistanceNumber, formatDuration, formatPace } from './geo';
 import { hasNotificationPermission } from './notify';
+import { ui } from './i18n/ui';
 
 const LIVE_CHANNEL = 'runtrovert-live';
 const SPLIT_CHANNEL = 'runtrovert-splits';
@@ -34,8 +35,8 @@ export interface RunNoteState {
 async function ensureChannels() {
   if (Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync(LIVE_CHANNEL, {
-    name: 'Run in progress',
-    description: 'Distance and time on the lock screen while you run.',
+    name: ui().runNotify.liveChannel,
+    description: ui().runNotify.liveChannelHint,
     importance: Notifications.AndroidImportance.LOW, // no sound, no peek
     sound: null,
     enableVibrate: false,
@@ -43,8 +44,8 @@ async function ensureChannels() {
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
   });
   await Notifications.setNotificationChannelAsync(SPLIT_CHANNEL, {
-    name: 'Splits',
-    description: 'A short note at each km or mile. Your watch shows it too.',
+    name: ui().runNotify.splitChannel,
+    description: ui().runNotify.splitChannelHint,
     importance: Notifications.AndroidImportance.DEFAULT,
     sound: null,
     vibrationPattern: [0, 120, 90, 120],
@@ -70,7 +71,7 @@ export async function beginRunNotes(on: boolean): Promise<void> {
 }
 
 function statusWord(s: RunNoteState['status']) {
-  return s === 'running' ? 'Recording' : s === 'autopaused' ? 'Auto-paused' : 'Paused';
+  return s === 'running' ? ui().runNotify.recording : s === 'autopaused' ? ui().runNotify.autoPaused : ui().runNotify.paused;
 }
 
 /** Cheap to call every tick: only posts every 30 s or when the status changes. Android only. */
@@ -85,7 +86,7 @@ export function updateLiveNote(s: RunNoteState): void {
     identifier: LIVE_ID,
     content: {
       title: `${formatDistanceNumber(s.distanceM, s.unitsKm)} ${unit} · ${formatDuration(s.durationS)}`,
-      body: `${formatPace(s.distanceM, s.durationS, s.unitsKm)} /${unit} average · ${statusWord(s.status)}`,
+      body: ui().runNotify.liveBody(`${formatPace(s.distanceM, s.durationS, s.unitsKm)} /${unit}`, statusWord(s.status)),
       sound: false,
       sticky: true,
       autoDismiss: false,
@@ -103,8 +104,8 @@ export function splitNote(index: number, splitDurationS: number, totalDistanceM:
   void Notifications.scheduleNotificationAsync({
     identifier: SPLIT_ID,
     content: {
-      title: `${unitsKm ? 'Km' : 'Mile'} ${index} · ${formatPace(splitM, splitDurationS, unitsKm)} /${unit}`,
-      body: `${formatDistanceNumber(totalDistanceM, unitsKm)} ${unit} in ${formatDuration(totalDurationS)}.`,
+      title: `${unitsKm ? ui().runNotify.km : ui().runNotify.mile} ${index} · ${formatPace(splitM, splitDurationS, unitsKm)} /${unit}`,
+      body: ui().runNotify.xXInX(formatDistanceNumber(totalDistanceM, unitsKm), unit, formatDuration(totalDurationS)),
       sound: false,
       data: { kind: 'split' },
     },
@@ -117,8 +118,8 @@ export function batteryNote(levelPct: number | null): void {
   if (!enabled) return;
   void Notifications.scheduleNotificationAsync({
     content: {
-      title: 'Battery saver on',
-      body: levelPct != null ? `Battery at ${levelPct}%. GPS eased off so the run makes it home. Splits stay honest.` : 'Phone is in low-power mode. GPS eased off so the run makes it home.',
+      title: ui().runNotify.batterySaverOn,
+      body: levelPct != null ? ui().runNotify.batteryAtXGpsEased(levelPct) : ui().runNotify.phoneIsInLowPower,
       sound: false,
       data: { kind: 'battery' },
     },

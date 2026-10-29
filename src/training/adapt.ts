@@ -10,6 +10,7 @@ import { START_LADDER, generate } from './generate';
 import * as T from './sessions';
 import { paceSetFor, toSession, type PaceSet } from './sessions';
 import type { Plan, Session, Week } from './types';
+import { ui } from '../i18n/ui';
 
 export type MissedKind = 'none' | 'repeat' | 'stepback' | 'comeback';
 
@@ -23,7 +24,7 @@ const DAY = 86400000;
 
 function specOf(plan: Plan): PlanSpec {
   const spec = planById(plan.setup.planId);
-  if (!spec) throw new Error(`unknown plan ${plan.setup.planId}`);
+  if (!spec) throw new Error(ui().adapt.unknownPlanX(plan.setup.planId));
   return spec;
 }
 
@@ -110,7 +111,7 @@ function regenerateFrom(plan: Plan, spec: PlanSpec, firstDay: number, startKm: n
   for (const s of runSessions(p)) if (!s.done && s.date < today && !s.skipped) s.skipped = true;
   const firstWeekIndex = (frozen[frozen.length - 1]?.index ?? 0) + 1;
   const remaining = p.setup.raceDate != null ? undefined : Math.max(plan.weeks.length - frozen.length, 1);
-  if (p.setup.raceDate != null && firstDay > p.setup.raceDate) return { ok: false, message: 'The race has passed.' };
+  if (p.setup.raceDate != null && firstDay > p.setup.raceDate) return { ok: false, message: ui().adapt.theRaceHasPassed };
   // What the 30 days before the new start hold: runs done (at the distance run) and easy days still to come.
   const history = runSessions(p)
     .filter((s) => !s.skipped && s.kind !== 'race' && s.date < firstDay && daysBetween(s.date, firstDay) <= 30)
@@ -181,7 +182,7 @@ function ladderRung(plan: Plan, firstDay: number, step: number): number {
 export function rebuild(plan: Plan, spec: PlanSpec, today: number, runner: RunnerProfile, kind: 'repeat' | 'stepback' | 'none', reason?: string): { ok: true; plan: Plan } | { ok: false; message: string } {
   const lastKm = lastCompletedWeekKm(plan, mondayOf(today)) ?? volumeBefore(plan, today, spec);
   const startKm = kind === 'stepback' ? lastKm * 0.6 : lastKm;
-  const why = reason ?? (kind === 'stepback' ? 'Two weeks or more away: stepped back to 60% and rebuilt from there.' : kind === 'repeat' ? 'A week or more away: repeated the last completed week, then carried on.' : 'Rebuilt from today.');
+  const why = reason ?? (kind === 'stepback' ? ui().adapt.twoWeeksOrMoreAway : kind === 'repeat' ? ui().adapt.aWeekOrMoreAway : ui().adapt.rebuiltFromToday);
   return regenerateFrom(plan, spec, today, startKm, runner, kind === 'stepback' ? 2 : 1, why, today, kind === 'stepback' ? -1 : 0);
 }
 
@@ -217,16 +218,16 @@ export function applyEnergy(plan: Plan, date: number, mood: number, choice: Ener
   if (today && week && choice !== 'planned') {
     if (choice === 'rest') {
       today.skipped = true;
-      today.note = 'Rested: low energy. Nothing lost.';
+      today.note = ui().adapt.restedLowEnergy;
       gaveWay = today.hard || today.kind === 'long';
     } else if (today.hard || today.kind === 'long') {
       const original = { ...today, steps: today.steps.map((s) => ({ ...s })) };
       const later = week.sessions.filter((s) => s.kind !== 'strength' && s.date > date && !s.hard && s.kind !== 'long' && !s.done && !s.skipped);
       const slot = later.find((s) => canHoldHard(p, s.date, s.id, original.hard ? 'hard' : 'long'));
       const easy = toSession(T.easyRun(30), today.id, today.date, paces);
-      Object.assign(today, easy, { note: slot ? `Made easy: low energy. ${original.title} moved to ${dayName(slot.date)}.` : `Made easy: low energy. ${original.title} dropped this week.` });
+      Object.assign(today, easy, { note: slot ? ui().adapt.madeEasyLowEnergyX(original.title, dayName(slot.date)) : ui().adapt.madeEasyLowEnergyX2(original.title) });
       if (slot) {
-        Object.assign(slot, original, { id: slot.id, date: slot.date, note: `Moved here from ${dayName(date)}.` });
+        Object.assign(slot, original, { id: slot.id, date: slot.date, note: ui().adapt.movedHereFromX(dayName(date)) });
         moved = slot;
       }
       gaveWay = !slot;
@@ -241,15 +242,15 @@ export function applyEnergy(plan: Plan, date: number, mood: number, choice: Ener
   if (fatigue !== 'ok' && week) {
     const next = p.weeks.find((w) => w.start === addDays(week.start, 7));
     if (next && next.kind !== 'race' && next.kind !== 'light') {
-      lighten(next, paces, 'Lighter week: three low-energy days in a row.');
+      lighten(next, paces, ui().adapt.lighterWeekThreeLowEnergy);
       // The weeks after it carry on from the volume before it, so nothing jumps.
-      const r = relayout(p, addDays(next.start, 7), 'After a lighter week: the weeks ahead carry on from the volume before it.', date);
+      const r = relayout(p, addDays(next.start, 7), ui().adapt.afterALighterWeekThe, date);
       return { plan: r, moved, fatigue };
     }
   }
   if (gaveWay && week) {
     // Next week's long run is read off what was actually run, not what was planned.
-    return { plan: relayout(p, addDays(week.start, 7), 'A run gave way: the weeks ahead were laid out again from the same volume.', date), moved, fatigue };
+    return { plan: relayout(p, addDays(week.start, 7), ui().adapt.aRunGaveWayThe, date), moved, fatigue };
   }
   return { plan: p, moved, fatigue };
 }
@@ -289,19 +290,19 @@ export function applyPain(plan: Plan, date: number, level: PainLevel, runner?: R
   const again = level === 'pain' && p.log.some((e) => e.kind === 'pain' && e.level === 'pain' && date - e.at < 14 * DAY && e.at < date);
   p.log.push({ at: date, kind: 'pain', level });
   if (level === 'none') return { plan: p, advice: null, physio: false };
-  if (level === 'niggle') return { plan: p, advice: 'Noted. If it is still there after the next run, say so and the plan will ease off.', physio: false };
+  if (level === 'niggle') return { plan: p, advice: ui().adapt.notedIfItIsStill, physio: false };
   const spec = specOf(p);
   const paces = pacesOf(p);
   const easyUntil = addDays(date, again ? 30 : 9);
-  easeDays(p, addDays(date, 1), addDays(date, 2), 'rest', 'Rest: pain. Two days off.', paces);
-  easeDays(p, addDays(date, 3), easyUntil, 'easy', again ? 'Easy only: pain came back. Hard sessions paused for four weeks.' : 'Easy only: a week after pain.', paces);
-  const resumed = regenerateFrom(p, spec, addDays(easyUntil, 1), volumeBefore(p, date, spec), runner ?? p.runner, 0, 'After pain: the weeks ahead start again from the volume before it.', addDays(date, 1));
+  easeDays(p, addDays(date, 1), addDays(date, 2), 'rest', ui().adapt.restPainTwoDaysOff, paces);
+  easeDays(p, addDays(date, 3), easyUntil, 'easy', again ? ui().adapt.easyOnlyPainCameBack : ui().adapt.easyOnlyAWeekAfter, paces);
+  const resumed = regenerateFrom(p, spec, addDays(easyUntil, 1), volumeBefore(p, date, spec), runner ?? p.runner, 0, ui().adapt.afterPainTheWeeksAhead, addDays(date, 1));
   if (resumed.ok) p = resumed.plan;
   return {
     plan: p,
     advice: again
-      ? 'That is the second time in two weeks. Hard sessions are paused for four weeks. A physio can tell you what it is; the plan cannot.'
-      : 'Two days off, then easy running for a week. If it is still there after that, see a physio before the next hard session.',
+      ? ui().adapt.thatIsTheSecondTime
+      : ui().adapt.twoDaysOffThenEasy,
     physio: again,
   };
 }
@@ -313,11 +314,11 @@ export function applyIllness(plan: Plan, from: number, days: number, runner?: Ru
   p.log.push({ at: from, kind: 'ill', days: d });
   const spec = specOf(p);
   const paces = pacesOf(p);
-  easeDays(p, from, addDays(from, d - 1), 'rest', 'Rest: ill. No running with a fever or chest symptoms.', paces);
-  easeDays(p, addDays(from, d), addDays(from, 2 * d - 1), 'easy', 'Easy only: back from illness. Hard sessions return when the easy days are done.', paces);
+  easeDays(p, from, addDays(from, d - 1), 'rest', ui().adapt.restIllNoRunningWith, paces);
+  easeDays(p, addDays(from, d), addDays(from, 2 * d - 1), 'easy', ui().adapt.easyOnlyBackFromIllness, paces);
   const before = volumeBefore(p, from, spec);
   const startKm = d >= 14 ? before * 0.6 : before;
-  const resumed = regenerateFrom(p, spec, addDays(from, 2 * d), startKm, runner ?? p.runner, d >= 7 ? 1 : 0, d >= 14 ? 'After two weeks ill: stepped back to 60% and rebuilt.' : 'After illness: the weeks ahead start again from the volume before it.', from);
+  const resumed = regenerateFrom(p, spec, addDays(from, 2 * d), startKm, runner ?? p.runner, d >= 7 ? 1 : 0, d >= 14 ? ui().adapt.afterTwoWeeksIllStepped : ui().adapt.afterIllnessTheWeeksAhead, from);
   if (resumed.ok) p = resumed.plan;
   return { plan: p };
 }
@@ -333,14 +334,14 @@ export function applyHoliday(plan: Plan, from: number, to: number, today: number
   for (const s of runSessions(p)) {
     if (s.date >= from && s.date <= to && !s.done) {
       s.skipped = true;
-      s.note = 'Away. Planned rest, not a miss.';
+      s.note = ui().adapt.awayNote;
     }
   }
   const days = daysBetween(from, to) + 1;
   const spec = specOf(p);
   const back = addDays(to, 1);
   const before = volumeBefore(p, from, spec);
-  p = relayout(p, back, days >= 14 ? 'Back from two weeks or more away: stepped back to 60% and built up again.' : 'Back from a break: the weeks ahead carry on from the same volume.', today, days >= 14 ? before * 0.6 : before, days >= 14 ? 1 : 0, runner);
+  p = relayout(p, back, days >= 14 ? ui().adapt.backFromTwoWeeksOr : ui().adapt.backFromABreakThe, today, days >= 14 ? before * 0.6 : before, days >= 14 ? 1 : 0, runner);
   return { plan: p };
 }
 
@@ -373,27 +374,27 @@ function easeDays(p: Plan, from: number, to: number, mode: 'rest' | 'easy', note
 export function moveSession(plan: Plan, sessionId: string, toDate: number): { ok: true; plan: Plan } | { ok: false; reason: string } {
   const p = clone(plan);
   const s = runSessions(p).find((x) => x.id === sessionId);
-  if (!s) return { ok: false, reason: 'No such session.' };
+  if (!s) return { ok: false, reason: ui().adapt.noSuchSession };
   const week = weekOf(p, s.date);
-  if (!week || toDate < week.start || toDate >= addDays(week.start, 7)) return { ok: false, reason: 'Sessions move within their week.' };
-  if (s.done) return { ok: false, reason: 'Already done.' };
-  if (sessionOnDate(p, toDate)) return { ok: false, reason: `There is already a run on ${dayName(toDate)}.` };
+  if (!week || toDate < week.start || toDate >= addDays(week.start, 7)) return { ok: false, reason: ui().adapt.sessionsMoveWithinTheirWeek };
+  if (s.done) return { ok: false, reason: ui().adapt.alreadyDone };
+  if (sessionOnDate(p, toDate)) return { ok: false, reason: ui().adapt.thereIsAlreadyARun(dayName(toDate)) };
   if ((s.hard || s.kind === 'long') && !canHoldHard(p, toDate, s.id, s.hard ? 'hard' : 'long')) {
-    return { ok: false, reason: 'That would put two hard days together, or a hard day right before the long run.' };
+    return { ok: false, reason: ui().adapt.thatWouldPutTwoHard };
   }
   if (!s.hard && s.kind !== 'long') {
     const neighbour = [sessionOnDate(p, addDays(toDate, -1)), sessionOnDate(p, addDays(toDate, 1))];
     const hardAround = neighbour.some((n) => n && !n.skipped && (n.hard || n.kind === 'long'));
     const long = week.sessions.find((x) => x.kind === 'long' && !x.skipped);
-    if (hardAround && long && addDays(toDate, 1) === long.date && s.kind !== 'easy' && s.kind !== 'recovery') return { ok: false, reason: 'Keep the day before the long run easy.' };
+    if (hardAround && long && addDays(toDate, 1) === long.date && s.kind !== 'easy' && s.kind !== 'recovery') return { ok: false, reason: ui().adapt.keepTheDayBeforeThe };
   }
-  if (p.setup.raceDate != null && toDate >= p.setup.raceDate) return { ok: false, reason: 'Not after the race.' };
+  if (p.setup.raceDate != null && toDate >= p.setup.raceDate) return { ok: false, reason: ui().adapt.notAfterTheRace };
   s.date = toDate;
-  s.note = `Moved to ${dayName(toDate)}.`;
+  s.note = ui().adapt.movedToX(dayName(toDate));
   week.sessions.sort((a, b) => a.date - b.date);
   return { ok: true, plan: p };
 }
 
 export function dayName(date: number): string {
-  return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][weekdayOf(date)];
+  return [ui().adapt.sunday, ui().adapt.monday, ui().adapt.tuesday, ui().adapt.wednesday, ui().adapt.thursday, ui().adapt.friday, ui().adapt.saturday][weekdayOf(date)];
 }

@@ -7,12 +7,14 @@ import { colors, fonts, radius, spacing, type } from '../theme';
 import { useUnlocked } from '../unlockState';
 import { loadYou } from '../you';
 import { LockRow } from './LockRow';
+import { live, ui } from '../i18n/ui';
+import { decimal } from '../i18n/lang';
 
 // The top of History: your bests and how you're doing against your own last
 // six weeks. Nobody else is on this screen, and nothing here is ever sent anywhere.
 
 const DAY = 86400000;
-const LABEL: Record<string, string> = { ...Object.fromEntries(EFFORTS.map((e) => [e.key, e.label])), longest: 'Longest', climb: 'Most climb' };
+const LABEL: Record<string, string> = live(() => ({ ...Object.fromEntries(EFFORTS.map((e) => [e.key, e.label])), longest: ui().youSection.longest, climb: ui().youSection.mostClimb }));
 
 export function YouSection({ km, refreshKey }: { km: boolean; refreshKey: number }) {
   const [data, setData] = useState<{ all: Best[]; recent: Best[]; tr: Trends } | null>(null);
@@ -45,10 +47,10 @@ export function YouSection({ km, refreshKey }: { km: boolean; refreshKey: number
     const f = tr.fitness;
     const diff = f.before != null ? f.before - f.now : null;
     rows.push({
-      k: 'Fitness estimate',
+      k: ui().youSection.fitnessEstimate,
       v:
-        `5 km in about ${formatClock(f.now)}. ` +
-        (diff == null ? 'Your baseline is still forming.' : diff >= 5 ? `${formatClock(diff)} quicker than the six weeks before.` : diff <= -5 ? 'A little slower than the six weeks before. Weeks, not days.' : 'Holding steady.'),
+        ui().youSection.n5KmInAboutX(formatClock(f.now)) +
+        (diff == null ? ui().youSection.yourBaselineIsStillForming : diff >= 5 ? ui().youSection.xQuickerThanTheSix(formatClock(diff)) : diff <= -5 ? ui().youSection.aLittleSlowerThanThe : ui().youSection.holdingSteady),
       spark: <Line values={tr.fitness.series.map((x) => -x)} color={colors.mintDeep} />,
     });
   }
@@ -57,10 +59,10 @@ export function YouSection({ km, refreshKey }: { km: boolean; refreshKey: number
     const diff = p.before != null ? p.before - p.now : null;
     const per = km ? 1 : 1.609344;
     rows.push({
-      k: 'Usual pace',
+      k: ui().youSection.usualPace,
       v:
         `${perUnit(p.now)} /${unit}` +
-        (diff == null ? '.' : diff >= 3 ? `, ${Math.round(diff * per)} s quicker than six weeks ago.` : diff <= -3 ? `, ${Math.round(-diff * per)} s slower than six weeks ago.` : ', same as six weeks ago.'),
+        (diff == null ? '.' : diff >= 3 ? ui().youSection.xSQuickerThanSix(Math.round(diff * per)) : diff <= -3 ? ui().youSection.xSSlowerThanSix(Math.round(-diff * per)) : ui().youSection.sameAsSixWeeksAgo),
       spark: <Line values={p.series.map((x) => -x)} color={colors.peachDeep} />,
     });
   }
@@ -68,37 +70,37 @@ export function YouSection({ km, refreshKey }: { km: boolean; refreshKey: number
     const w = tr.week;
     const big = w.usual != null && w.usual > 0 && w.now > w.usual * 1.3;
     rows.push({
-      k: 'This week',
-      v: `${w.now > 0 ? formatDuration(w.now) : 'Nothing yet'}.` + (w.usual != null && w.usual > 0 ? ` Your usual is ${formatDuration(Math.round(w.usual))}.` : '') + (big ? ' A big week; an easy one next?' : ''),
+      k: ui().youSection.thisWeek,
+      v: `${w.now > 0 ? formatDuration(w.now) : ui().youSection.nothingYet}.` + (w.usual != null && w.usual > 0 ? ui().youSection.yourUsualIsX(formatDuration(Math.round(w.usual))) : '') + (big ? ui().youSection.aBigWeekAnEasy : ''),
       spark: <Bars values={w.bars} color={colors.butterDeep} />,
     });
   }
   if (tr.recharge) {
     const r = tr.recharge;
-    const faces = Math.abs(r.avg) < 0.05 ? 'no change' : `${r.avg > 0 ? '+' : ''}${r.avg.toFixed(1)} faces`;
+    const faces = Math.abs(r.avg) < 0.05 ? ui().youSection.noChange : ui().youSection.faces(`${r.avg > 0 ? '+' : ''}${decimal(r.avg.toFixed(1))}`);
     rows.push({
-      k: 'Recharge',
-      v: `On average a run moves your energy ${faces}.` + (r.best ? ` ${r.best === 'morning' ? 'Mornings' : r.best === 'midday' ? 'Middays' : 'Evenings'} lift you most.` : ''),
+      k: ui().youSection.recharge,
+      v: ui().youSection.onAverageARunMoves(faces) + (r.best ? ui().youSection.liftYouMost(r.best) : ''),
     });
   }
   const weeks = tr.rhythm.filter(Boolean).length;
-  if (unlocked) rows.push({ k: 'Rhythm', v: `Ran in ${weeks} of the last 12 weeks.`, spark: <Dots values={tr.rhythm} color={colors.skyDeep} /> });
+  if (unlocked) rows.push({ k: ui().youSection.rhythm, v: ui().youSection.ranInXOfThe(weeks), spark: <Dots values={tr.rhythm} color={colors.skyDeep} /> });
 
   return (
     <View style={{ gap: spacing.md }}>
       <View>
-        <Text style={type.eyebrow}>You vs you</Text>
-        <Text style={type.h2}>Only one name on this board.</Text>
+        <Text style={type.eyebrow}>{ui().youSection.youVsYou}</Text>
+        <Text style={type.h2}>{ui().youSection.onlyOneNameOnThis}</Text>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
         {all.map((b) => {
           const fresh = now - b.at < 14 * DAY;
           const r = recent.find((x) => x.key === b.key);
-          const lately = r && r.runId !== b.runId ? `${value(r)} lately` : null;
+          const lately = r && r.runId !== b.runId ? ui().youSection.lately(value(r)) : null;
           return (
             <View key={b.key} style={[styles.best, fresh && { backgroundColor: colors.mint }]}>
               <Text style={styles.bestValue}>{value(b)}</Text>
-              <Text style={styles.bestLabel}>{LABEL[b.key]}{fresh ? ' · new' : ''}</Text>
+              <Text style={styles.bestLabel}>{LABEL[b.key]}{fresh ? ui().youSection.new : ''}</Text>
               {lately && <Text style={styles.bestLately}>{lately}</Text>}
             </View>
           );
@@ -115,8 +117,8 @@ export function YouSection({ km, refreshKey }: { km: boolean; refreshKey: number
           </View>
         ))}
       </View>
-      <LockRow title="Trends over months" detail="Fitness, usual pace and rhythm. Comes with Everything, once" />
-      <Text style={type.small}>Only ever compared with your own runs. The 5 km estimate uses Riegel’s formula on your best efforts over 3 km; pace is a six-week median with hills allowed for.</Text>
+      <LockRow title={ui().youSection.trendsOverMonths} detail={ui().youSection.fitnessUsualPaceAndRhythm} />
+      <Text style={type.small}>{ui().youSection.onlyEverComparedWithYour}</Text>
     </View>
   );
 }

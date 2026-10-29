@@ -7,6 +7,7 @@ import { contextsFor, pickTip, type Tip } from '../tips';
 import { localTips } from '../i18n/voice';
 import type { Run } from '../types';
 import type { Weather } from '../weather';
+import { ui } from '../i18n/ui';
 
 const WET = new Set(['drizzle', 'rain', 'storm', 'snow']);
 
@@ -64,16 +65,16 @@ export function TipLine({ runs, weather, dark, waiting }: { runs: Run[]; weather
 
   return (
     <>
-      <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityHint="Opens all the tips" style={styles.wrap}>
+      <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityHint={ui().tipLine.opensAllTheTips} style={styles.wrap}>
         {tip && !hidden ? (
           <>
-            <Text style={styles.label}>Nobody tells you</Text>
+            <Text style={styles.label}>{ui().tipLine.nobodyTellsYou}</Text>
             <Text style={styles.text} numberOfLines={3}>
               {tip.text}
             </Text>
           </>
         ) : (
-          <Text style={styles.label}>Things nobody tells you →</Text>
+          <Text style={styles.label}>{ui().tipLine.thingsNobodyTellsYou}</Text>
         )}
       </Pressable>
       <TipsScreen visible={open} today={tip} hidden={hidden} onHidden={onHidden} onClose={() => setOpen(false)} />

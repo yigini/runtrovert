@@ -2,6 +2,8 @@
 // remembered, all free. Pure, so the Run tab, Settings and the run screen read
 // the same words and the same rules.
 
+import { live, ui } from './i18n/ui';
+
 export type RunPreset = 'clear' | 'just' | 'plan';
 
 export interface PresetInfo {
@@ -18,35 +20,7 @@ export interface PresetInfo {
   numbers: string;
 }
 
-export const PRESETS: PresetInfo[] = [
-  {
-    key: 'clear',
-    chip: 'Clear my head',
-    name: 'Clear my head',
-    line: 'Silent recording. The time if you tap for it. Every number waits for the finish.',
-    screen: 'Nothing, or just the time',
-    voice: 'Silent',
-    numbers: 'All of them, after',
-  },
-  {
-    key: 'just',
-    chip: 'Just run',
-    name: 'Just run',
-    line: 'Distance, time, pace and the map, with your usual cues.',
-    screen: 'Distance, time, pace, map',
-    voice: 'Your usual cues',
-    numbers: 'Live',
-  },
-  {
-    key: 'plan',
-    chip: 'My plan',
-    name: 'Follow my plan',
-    line: 'Today’s session, block by block. A voice when a block changes.',
-    screen: 'Today’s session, block by block',
-    voice: 'When a block changes',
-    numbers: 'Kept second',
-  },
-];
+export const PRESETS: PresetInfo[] = live(() => (['clear', 'just', 'plan'] as const).map((key) => ({ key, ...ui().presets[key] })));
 
 export function presetInfo(key: RunPreset): PresetInfo {
   return PRESETS.find((p) => p.key === key) ?? PRESETS[1];

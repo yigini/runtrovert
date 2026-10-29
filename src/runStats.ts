@@ -4,6 +4,7 @@
 // Pure, so `npm run test:stats` can check it under plain Node.
 
 import { track, type TimedPoint } from './progress';
+import { ui } from './i18n/ui';
 
 export interface StatPoint extends TimedPoint {
   alt: number | null;
@@ -188,7 +189,7 @@ function steadiness(pace: SeriesPoint[], kmSplitPaces: number[]): RunStats['stea
   const median = sorted[Math.floor(sorted.length / 2)];
   const dev = vals.map((v) => Math.abs(v - median)).sort((a, b) => a - b);
   const spread = Math.round(dev[Math.floor(dev.length / 2)]);
-  const word = spread <= 4 ? 'Metronome' : spread <= 10 ? 'Steady' : spread <= 25 ? 'Rolling' : 'Free-form';
+  const word = spread <= 4 ? ui().runStats.metronome : spread <= 10 ? ui().runStats.steady : spread <= 25 ? ui().runStats.rolling : ui().runStats.freeForm;
   return { spread, word };
 }
 
@@ -242,23 +243,23 @@ export function sunTimes(ms: number, lat: number, lon: number): Sun {
 
 function mins(ms: number): string {
   const m = Math.round(Math.abs(ms) / 60000);
-  if (m < 60) return `${m} min`;
+  if (m < 60) return ui().common.min(m);
   const h = Math.floor(m / 60);
   const r = m % 60;
-  return r ? `${h} h ${r} min` : `${h} h`;
+  return r ? ui().runStats.xHXMin(h, r) : `${h} h`;
 }
 
 export function sunLine(start: number, end: number, sun: { sunrise: number; sunset: number }): string {
   const { sunrise, sunset } = sun;
-  if (start < sunset && end > sunset) return 'You ran through the sunset. Lights came on halfway.';
-  if (start < sunrise && end > sunrise) return 'You ran through the sunrise. It got light on the way.';
-  if (end <= sunrise) return `Done ${mins(sunrise - end)} before sunrise. The day hadn't started.`;
-  if (start >= sunset) return `Out ${mins(start - sunset)} after sunset. Streetlights the whole way.`;
+  if (start < sunset && end > sunset) return ui().runStats.youRanThroughTheSunset;
+  if (start < sunrise && end > sunrise) return ui().runStats.youRanThroughTheSunrise;
+  if (end <= sunrise) return ui().runStats.doneXBeforeSunriseThe(mins(sunrise - end));
+  if (start >= sunset) return ui().runStats.outXAfterSunsetStreetlights(mins(start - sunset));
   const toSet = sunset - end;
   const fromRise = start - sunrise;
-  if (toSet <= 90 * 60000) return `Finished ${mins(toSet)} before sunset.`;
-  if (fromRise <= 90 * 60000) return `Out ${mins(fromRise)} after sunrise.`;
-  return `${mins(toSet)} of daylight left when you finished.`;
+  if (toSet <= 90 * 60000) return ui().runStats.finishedXBeforeSunset(mins(toSet));
+  if (fromRise <= 90 * 60000) return ui().runStats.outXAfterSunrise(mins(fromRise));
+  return ui().runStats.xOfDaylightLeftWhen(mins(toSet));
 }
 
 function dayLight(run: StatRun, points: TimedPoint[], sun: Sun | null): DayLight | null {

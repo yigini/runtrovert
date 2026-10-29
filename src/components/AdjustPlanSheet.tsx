@@ -6,6 +6,7 @@ import { dayStart } from '../training/dates';
 import { currentProfile, savePlan } from '../training/store';
 import type { Plan } from '../training/types';
 import { Button } from './Button';
+import { ui } from '../i18n/ui';
 
 /**
  * "Your plan, from here." Opened from Run home after a break. Up to four ways
@@ -42,7 +43,7 @@ export function AdjustPlanSheet({ open, plan, lastRunAt, onClose, onDone }: { op
       await savePlan(o.plan);
       onDone(o.plan, picked);
     } catch {
-      Alert.alert('Nothing changed', 'The plan could not be saved just now. It is as it was.');
+      Alert.alert(ui().adjustPlanSheet.nothingChanged, ui().adjustPlanSheet.thePlanCouldNotBe);
     } finally {
       setBusy(false);
     }
@@ -50,16 +51,14 @@ export function AdjustPlanSheet({ open, plan, lastRunAt, onClose, onDone }: { op
 
   return (
     <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Close" accessibilityRole="button">
+      <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel={ui().adjustPlanSheet.close} accessibilityRole="button">
         <Pressable style={styles.sheet} onPress={() => {}} accessible={false}>
           <View style={styles.grabber} />
           <ScrollView contentContainerStyle={{ gap: spacing.sm + 4 }} showsVerticalScrollIndicator={false}>
-            <Text style={styles.h2} accessibilityRole="header">
-              Your plan, from here
-            </Text>
-            <Text style={styles.small}>Nothing is overdue. Sessions you missed simply drop off.</Text>
+            <Text style={styles.h2} accessibilityRole="header">{ui().adjustPlanSheet.yourPlanFromHere}</Text>
+            <Text style={styles.small}>{ui().adjustPlanSheet.nothingIsOverdueSessionsYou}</Text>
             {checked?.note ? <Text style={styles.small}>{checked.note}</Text> : null}
-            <View accessibilityRole="radiogroup" accessibilityLabel="How to continue" style={{ gap: spacing.sm + 2 }}>
+            <View accessibilityRole="radiogroup" accessibilityLabel={ui().adjustPlanSheet.howToContinue} style={{ gap: spacing.sm + 2 }}>
               {options.map((o) => {
                 const on = o.key === picked;
                 return (
@@ -77,8 +76,8 @@ export function AdjustPlanSheet({ open, plan, lastRunAt, onClose, onDone }: { op
                 );
               })}
             </View>
-            <Text style={styles.small}>Reminders stay off until your next run either way.</Text>
-            <Button title={busy || !checked ? 'One moment' : 'Use this'} onPress={use} disabled={busy || !checked} style={{ marginTop: spacing.xs }} />
+            <Text style={styles.small}>{ui().adjustPlanSheet.remindersStayOffUntilYour}</Text>
+            <Button title={busy || !checked ? ui().adjustPlanSheet.oneMoment : ui().adjustPlanSheet.useThis} onPress={use} disabled={busy || !checked} style={{ marginTop: spacing.xs }} />
           </ScrollView>
         </Pressable>
       </Pressable>

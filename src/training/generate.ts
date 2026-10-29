@@ -15,6 +15,7 @@ import * as T from './sessions';
 import { measure, paceSetFor, toSession, type PaceSet } from './sessions';
 import { easyShare, hardWorkOver, minEasyShare } from './rules';
 import type { PlanSetup, Session, Week, WeekKind } from './types';
+import { ui } from '../i18n/ui';
 
 export interface GenerateOptions {
   spec: PlanSpec;
@@ -58,8 +59,8 @@ const round5 = (n: number) => Math.max(5, Math.round(n / 5) * 5);
 export function generate(o: GenerateOptions): GenerateResult {
   const { spec, setup, runner } = o;
   const days = setup.daysPerWeek;
-  if (!spec.daysOptions.includes(days)) return { ok: false, error: 'days', message: `${spec.name} runs on ${spec.daysOptions.join(', ')} days a week.` };
-  if (setup.runDays.length !== days || !setup.runDays.includes(setup.longRunDay)) return { ok: false, error: 'days', message: 'Pick as many run days as the plan has, and a long-run day among them.' };
+  if (!spec.daysOptions.includes(days)) return { ok: false, error: 'days', message: ui().generate.xRunsOnXDays(spec.name, spec.daysOptions.join(', ')) };
+  if (setup.runDays.length !== days || !setup.runDays.includes(setup.longRunDay)) return { ok: false, error: 'days', message: ui().generate.pickAsManyRunDays };
 
   const firstDay = o.firstDay ?? setup.startDate;
   const firstWeekIndex = o.firstWeekIndex ?? 1;
@@ -69,8 +70,8 @@ export function generate(o: GenerateOptions): GenerateResult {
   if (setup.raceDate != null) {
     nWeeks = Math.floor(daysBetween(firstMonday, setup.raceDate) / 7) + 1;
     const total = nWeeks + firstWeekIndex - 1;
-    if (total < spec.minWeeks) return { ok: false, error: 'too-short', message: `${spec.name} needs at least ${spec.minWeeks} weeks. A later race, or a shorter distance, would fit.` };
-    if (total > 30) return { ok: false, error: 'too-long', message: 'That race is more than 30 weeks away. Start the plan closer to it; Keep running will hold you until then.' };
+    if (total < spec.minWeeks) return { ok: false, error: 'too-short', message: ui().generate.xNeedsAtLeastX(spec.name, spec.minWeeks) };
+    if (total > 30) return { ok: false, error: 'too-long', message: ui().generate.thatRaceIsMoreThan };
   } else {
     nWeeks = o.weeks ?? spec.weeks;
   }
@@ -237,7 +238,7 @@ function buildWeekSessions(c: WeekCtx): Session[] {
       const gap = daysBetween(dateOf(d), setup.raceDate);
       if (d === sharp) {
         const rp = spec.goal === 'marathon' ? 15 : spec.goal === 'half' ? 12 : spec.goal === '10k' ? 10 : 8;
-        fixed.push(toSession(T.racePaceRun(rp, 'Race effort, to remember it', 'race', c.target < 25 ? 6 : 10), idOf(d), dateOf(d), paces));
+        fixed.push(toSession(T.racePaceRun(rp, ui().generate.raceEffortToRememberIt, 'race', c.target < 25 ? 6 : 10), idOf(d), dateOf(d), paces));
       }
       else if (gap === 1) {
         if (spec.tier !== 'finish') fixed.push(toSession(T.shakeout(15, 4), idOf(d), dateOf(d), paces));
@@ -275,7 +276,7 @@ function buildWeekSessions(c: WeekCtx): Session[] {
   const hasRacePace = (spec.tier === 'improve' || spec.tier === 'race') && spec.goal !== '5k' && c.buildPos >= 0.5 && c.kind !== 'light' && c.kind !== 'taper';
   const rpShare = spec.qualityDays >= 2 ? 0.25 : 0.2 + 0.15 * c.buildPos;
   const rpKm = hasRacePace ? Math.min(Math.round(longKm * rpShare), Math.floor(longKm * 0.4), spec.goal === 'marathon' ? 12 : spec.goal === 'half' ? 7 : 3) : 0;
-  const raceLabel = spec.goal === 'marathon' ? 'Marathon effort. Short sentences.' : spec.goal === 'half' ? 'Half-marathon effort. A few words.' : 'Steady. Short sentences.';
+  const raceLabel = spec.goal === 'marathon' ? ui().generate.marathonEffortShortSentences : spec.goal === 'half' ? ui().generate.halfMarathonEffortAFew : ui().generate.steadyShortSentences;
   const long = toSession(T.longRun(longKm, rpKm, raceLabel, spec.goal), idOf(longDay), longDate, paces);
   sessions.push(long);
 
@@ -471,7 +472,7 @@ function qualityDraft(kind: QualityKind, weekKm: number, scale: number, pos: num
       return T.fartlek(Math.max(4, Math.min(10, workMin)), 60, 60, false);
     }
     case 'racepace': {
-      const label = spec.goal === 'marathon' ? 'Marathon effort. Short sentences.' : spec.goal === 'half' ? 'Half-marathon effort. A few words.' : '10K effort';
+      const label = spec.goal === 'marathon' ? ui().generate.marathonEffortShortSentences : spec.goal === 'half' ? ui().generate.halfMarathonEffortAFew : ui().generate.n10kEffort;
       const minutes = scale < 0.7 ? 12 : Math.round(15 + 20 * pos);
       return T.racePaceRun(Math.min(minutes, spec.goal === 'marathon' ? 40 : 25), label, spec.goal === 'marathon' ? 'steady' : 'race');
     }
@@ -523,7 +524,7 @@ function timeBasedWeeks(o: GenerateOptions, nWeeks: number, firstMonday: number,
       const sessions = runDays.map((d, k) => {
         const date = addDays(start, offsetInWeek(d));
         const last = pos >= START_LADDER.length;
-        const draft = last ? T.continuous(k === runDays.length - 1 ? 30 : 25, k === runDays.length - 1 ? 'Run 30 min. The whole thing.' : undefined) : T.runWalk(rung.reps, rung.runS, rung.walkS);
+        const draft = last ? T.continuous(k === runDays.length - 1 ? 30 : 25, k === runDays.length - 1 ? ui().generate.run30MinTheWhole : undefined) : T.runWalk(rung.reps, rung.runS, rung.walkS);
         return toSession(draft, `w${index}d${offsetInWeek(d)}`, date, paces);
       });
       weeks.push({ index, start, kind: pos >= START_LADDER.length ? 'peak' : 'build', targetKm: r1(sessions.reduce((a, s) => a + s.km, 0)), sessions });
@@ -564,7 +565,7 @@ function timeBasedWeeks(o: GenerateOptions, nWeeks: number, firstMonday: number,
         if (date < firstDay) continue;
         const cap = capAt(date, local);
         const minutes = Math.max(10, Math.min(d === setup.longRunDay ? longMin : easyMin, cap));
-        const draft = index <= 2 ? T.continuous(minutes, `Run ${minutes} min, walk breaks welcome`) : T.continuous(minutes);
+        const draft = index <= 2 ? T.continuous(minutes, ui().generate.runXMinWalkBreaks(minutes)) : T.continuous(minutes);
         if (d === setup.longRunDay) draft.kind = 'long';
         out.push({ session: toSession(draft, `w${index}d${offsetInWeek(d)}`, date, paces), min: minutes });
         local.push({ date, min: minutes });

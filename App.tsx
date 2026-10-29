@@ -40,6 +40,8 @@ import { onRunSaved } from './src/training/store';
 import type { Session } from './src/training/types';
 import { loadUnlock } from './src/unlockState';
 import { NEWS } from './src/whatsNew';
+import { ui } from './src/i18n/ui';
+import { lang } from './src/i18n/lang';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -112,7 +114,7 @@ function Shell() {
       const now = Date.now();
       if (now - lastBack.current < 2000) return false;
       lastBack.current = now;
-      ToastAndroid.show('Back again to leave', ToastAndroid.SHORT);
+      ToastAndroid.show(ui().app.backAgainToLeave, ToastAndroid.SHORT);
       return true;
     });
     return () => sub.remove();
@@ -141,7 +143,7 @@ function Shell() {
         .then(() => schedulePlanReminders(settings))
         .catch(() => {});
     }
-  }, [ready, settings.onboarded, settings.notifyPerWeek, settings.notifyHour, settings.notifyMinute, settings.notifyAuto, settings.weather, planKey]);
+  }, [ready, settings.onboarded, settings.notifyPerWeek, settings.notifyHour, settings.notifyMinute, settings.notifyAuto, settings.weather, settings.language, planKey]);
 
   // Taps on notifications, including the one that launched the app.
   const response = Notifications.useLastNotificationResponse();
@@ -157,7 +159,7 @@ function Shell() {
     if (response.actionIdentifier === FEWER_ACTION) {
       const next = fewer(settingsRef.current.notifyPerWeek);
       update({ notifyPerWeek: next });
-      Alert.alert('Reminders', fewerMessage(next));
+      Alert.alert(ui().app.reminders, fewerMessage(next));
     } else if (data.kind === 'plan') {
       setSub(null);
       setTab('train');
@@ -198,7 +200,7 @@ function Shell() {
       const run = await getRun(runId);
       if (run) {
         const r = await onRunSaved(run, extra?.pain ?? null, extra?.sessionId ?? null);
-        if (r.advice) Alert.alert('Noted', r.advice);
+        if (r.advice) Alert.alert(ui().app.noted, r.advice);
       }
     } catch {
       // no plan, or nothing to change
@@ -225,7 +227,8 @@ function Shell() {
     <OpenSettings.Provider value={openSettings}>
       <SafeAreaView style={[styles.root, inkMode && styles.rootInk]}>
         <StatusBar style={inkMode ? 'light' : 'dark'} />
-        <View style={{ flex: 1 }}>
+        {/* A new language redraws every screen; Settings can't change it during a live run. */}
+        <View style={{ flex: 1 }} key={lang()}>
           {/* RunScreen stays mounted so a live run survives tab switches. */}
           <View style={[{ flex: 1 }, (tab !== 'run' || sub != null) && styles.hidden]}>
             <RunScreen
@@ -244,6 +247,7 @@ function Shell() {
           </View>
           {sub === 'settings' && (
             <SettingsScreen
+              runLive={liveRun}
               onBack={() => setSub(null)}
               onOpenListen={() => setSub('listen')}
               onOpenEverything={() => {
@@ -316,9 +320,9 @@ function Shell() {
         </View>
         {!liveRun && sub == null && (
           <View style={styles.tabs} accessibilityRole="tablist">
-            <TabButton label="Run" active={tab === 'run'} onPress={() => go('run')} />
+            <TabButton label={ui().app.run} active={tab === 'run'} onPress={() => go('run')} />
             <TabButton
-              label="Your runs"
+              label={ui().app.yourRuns}
               active={tab === 'runs'}
               onPress={() => {
                 setOpenRun(null);
@@ -327,7 +331,7 @@ function Shell() {
                 go('runs');
               }}
             />
-            <TabButton label="Train" active={tab === 'train'} onPress={() => go('train')} />
+            <TabButton label={ui().app.train} active={tab === 'train'} onPress={() => go('train')} />
           </View>
         )}
         <UnlockHost />

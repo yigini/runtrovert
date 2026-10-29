@@ -4,8 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { buyUnlock, restoreUnlock, storePrice } from '../billing';
 import { Button } from '../components/Button';
 import { colors, fonts, radius, spacing, type } from '../theme';
-import { BILLING_ON, PRICE_LINE, UNLOCKED_BUILD, UNLOCK_NAME, UNLOCK_PRICE, UNLOCK_PRICE_LATER } from '../unlock';
+import { BILLING_ON, priceLine, UNLOCKED_BUILD, unlockName, UNLOCK_PRICE, UNLOCK_PRICE_LATER } from '../unlock';
 import { closeUnlock, updateUnlock, useUnlockOpen, useUnlockState, useUnlocked } from '../unlockState';
+import { live, ui } from '../i18n/ui';
 
 /** Mounted once in App.tsx. Anything can call openUnlock(); this shows the screen over the app. */
 export function UnlockHost() {
@@ -17,13 +18,8 @@ export function UnlockHost() {
   );
 }
 
-const ADDS: Array<{ text: string; dot: string }> = [
-  { text: 'Full training plans, past week 1', dot: colors.mint },
-  { text: 'Trends and progress over months', dot: colors.peach },
-  { text: 'Patterns in your places and your energy', dot: colors.lilac },
-  { text: 'Backup, export of every run, Health Connect', dot: colors.sky },
-  { text: 'Themes and widgets', dot: colors.butter },
-];
+const DOTS = [colors.mint, colors.peach, colors.lilac, colors.sky, colors.butter];
+const ADDS: Array<{ text: string; dot: string }> = live(() => ui().unlock.adds.map((text, i) => ({ text, dot: DOTS[i] })));
 
 /** Everything, once: what it adds, what stays free, one price, one plain line. Nothing else. */
 export function UnlockScreen({ onClose }: { onClose: () => void }) {
@@ -37,32 +33,30 @@ export function UnlockScreen({ onClose }: { onClose: () => void }) {
   }, []);
 
   async function onBuy() {
-    const r = await buyUnlock((message) => Alert.alert('The store said no', message));
-    if (r.kind === 'off') Alert.alert('Not in this build', 'Purchases arrive with the store version. Test builds have everything unlocked.');
-    else if (r.kind === 'error') Alert.alert('The store said no', r.message);
+    const r = await buyUnlock((message) => Alert.alert(ui().unlock.theStoreSaidNo, message));
+    if (r.kind === 'off') Alert.alert(ui().unlock.notInThisBuild, ui().unlock.purchasesArriveWithTheStore);
+    else if (r.kind === 'error') Alert.alert(ui().unlock.theStoreSaidNo, r.message);
   }
 
   async function onRestore() {
     const owned = await restoreUnlock();
-    if (owned == null) Alert.alert('Could not reach the store', 'Try again with a connection. Nothing on this phone has changed.');
-    else if (!owned) Alert.alert('Nothing to restore', `This store account hasn't bought ${UNLOCK_NAME} yet.`);
+    if (owned == null) Alert.alert(ui().unlock.couldNotReachTheStore, ui().unlock.tryAgainWithAConnection);
+    else if (!owned) Alert.alert(ui().unlock.nothingToRestore, ui().unlock.thisStoreAccountHasnT(unlockName()));
   }
 
   // Store prices are local; the "becomes" line only reads right next to the euro price.
-  const line = price === UNLOCK_PRICE ? PRICE_LINE : `${price}, once. The price goes up when full training plans arrive.`;
+  const line = price === UNLOCK_PRICE ? priceLine() : ui().unlock.xOnceThePriceGoes(price);
 
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.screen}>
-      <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={10} style={styles.back}>
-        <Text style={styles.backText}>‹  Back</Text>
+      <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={ui().unlock.close} hitSlop={10} style={styles.back}>
+        <Text style={styles.backText}>{ui().unlock.back}</Text>
       </Pressable>
-      <Text style={styles.h1} accessibilityRole="header">
-        Everything, once.
-      </Text>
-      <Text style={styles.lede}>Free for every run. This is for the long run.</Text>
+      <Text style={styles.h1} accessibilityRole="header">{ui().unlock.everythingOnce}</Text>
+      <Text style={styles.lede}>{ui().unlock.freeForEveryRunThis}</Text>
 
       <View style={styles.card}>
-        <Text style={type.eyebrow}>What it adds</Text>
+        <Text style={type.eyebrow}>{ui().unlock.whatItAdds}</Text>
         {ADDS.map((a) => (
           <View key={a.text} style={styles.item}>
             <View style={[styles.dot, { backgroundColor: a.dot }]} />
@@ -72,27 +66,27 @@ export function UnlockScreen({ onClose }: { onClose: () => void }) {
       </View>
 
       <View style={{ gap: 6, paddingHorizontal: 4 }}>
-        <Text style={type.eyebrow}>Free, always</Text>
-        <Text style={styles.free}>Recording, every number from every run, Your places, Listen, quiet reminders, silent runs, the map, privacy. Nobody pays to be left alone.</Text>
+        <Text style={type.eyebrow}>{ui().unlock.freeAlways}</Text>
+        <Text style={styles.free}>{ui().unlock.recordingEveryNumberFromEvery}</Text>
       </View>
 
       <View style={{ flex: 1, minHeight: spacing.lg }} />
 
       {state.owned ? (
         <View style={[styles.card, { backgroundColor: colors.mint }]}>
-          <Text style={[styles.itemText, { fontFamily: fonts.bodySemi }]}>It's yours. Thank you.</Text>
-          <Text style={type.small}>One payment, kept by your store account. Nothing to renew, nothing to sign in to.</Text>
+          <Text style={[styles.itemText, { fontFamily: fonts.bodySemi }]}>{ui().unlock.itSYoursThankYou}</Text>
+          <Text style={type.small}>{ui().unlock.onePaymentKeptByYour}</Text>
         </View>
       ) : (
         <View style={{ gap: spacing.sm }}>
           <Text style={[type.small, { textAlign: 'center' }]}>{line}</Text>
-          <Button title={unlocked && UNLOCKED_BUILD ? 'Unlocked in this test build' : `Unlock for ${price}`} disabled={unlocked && UNLOCKED_BUILD} onPress={onBuy} />
+          <Button title={unlocked && UNLOCKED_BUILD ? ui().unlock.unlockedInThisTestBuild : ui().unlock.unlockForX(price)} disabled={unlocked && UNLOCKED_BUILD} onPress={onBuy} />
           <Pressable onPress={onClose} accessibilityRole="button" style={styles.quiet}>
-            <Text style={styles.quietText}>Not now</Text>
+            <Text style={styles.quietText}>{ui().unlock.notNow}</Text>
           </Pressable>
           {BILLING_ON && (
             <Pressable onPress={onRestore} accessibilityRole="button" style={styles.quiet}>
-              <Text style={[styles.quietText, { color: colors.muted, fontFamily: fonts.body }]}>Bought it before? Restore</Text>
+              <Text style={[styles.quietText, { color: colors.muted, fontFamily: fonts.body }]}>{ui().unlock.boughtItBeforeRestore}</Text>
             </Pressable>
           )}
         </View>
@@ -100,20 +94,16 @@ export function UnlockScreen({ onClose }: { onClose: () => void }) {
 
       {UNLOCKED_BUILD && !state.owned && (
         <View style={[styles.card, { backgroundColor: colors.butter }]}>
-          <Text style={[type.eyebrow, { color: colors.butterDeep }]}>Test build</Text>
-          <Text style={styles.free}>
-            Everything is unlocked here. The store version charges {UNLOCK_PRICE}, then {UNLOCK_PRICE_LATER} once full plans arrive. Switch this on to see the app the way a new store user does.
-          </Text>
+          <Text style={[type.eyebrow, { color: colors.butterDeep }]}>{ui().unlock.testBuild}</Text>
+          <Text style={styles.free}>{ui().unlock.everythingIsUnlockedHereThe(UNLOCK_PRICE, UNLOCK_PRICE_LATER)}</Text>
           <View style={styles.switchRow}>
-            <Text style={[styles.itemText, { flex: 1 }]} importantForAccessibility="no" accessibilityElementsHidden>
-              Show the locks
-            </Text>
+            <Text style={[styles.itemText, { flex: 1 }]} importantForAccessibility="no" accessibilityElementsHidden>{ui().unlock.showTheLocks}</Text>
             <Switch
               value={state.previewLocks}
               onValueChange={(v) => updateUnlock({ previewLocks: v, ...(v ? { nudge: 'unseen' as const } : {}) })}
               trackColor={{ true: colors.ink }}
-              accessibilityLabel="Show the locks"
-              accessibilityHint="Previews the store version's locks in this test build"
+              accessibilityLabel={ui().unlock.showTheLocks}
+              accessibilityHint={ui().unlock.previewsTheStoreVersionS}
             />
           </View>
         </View>

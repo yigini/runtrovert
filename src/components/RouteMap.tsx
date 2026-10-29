@@ -6,6 +6,7 @@ import { useLastPlace } from '../place';
 import { colors, radius } from '../theme';
 import type { LatLon } from '../types';
 import { useSettings } from '../settings';
+import { ui } from '../i18n/ui';
 
 /**
  * MapLibre: open source, no API key, no Google. Tiles come from a public
@@ -189,11 +190,11 @@ function askAboutTiles(update: (patch: { plainMap?: boolean; mapNoticeSeen?: boo
   if (asked) return;
   asked = true;
   Alert.alert(
-    'Street map?',
-    'The streets come from OpenFreeMap. While a map is on screen it sees which area it shows and your IP address, like any website. Your route is saved on this phone and never sent. Plain keeps your route and the live dot on a plain ground and fetches nothing.',
+    ui().routeMap.streetMap,
+    ui().routeMap.theStreetsComeFromOpenfreemap,
     [
-      { text: 'Plain', onPress: () => update({ plainMap: true, mapNoticeSeen: true }) },
-      { text: 'Show streets', onPress: () => update({ mapNoticeSeen: true }) },
+      { text: ui().routeMap.plain, onPress: () => update({ plainMap: true, mapNoticeSeen: true }) },
+      { text: ui().routeMap.showStreets, onPress: () => update({ mapNoticeSeen: true }) },
     ],
     { cancelable: false },
   );

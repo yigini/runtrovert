@@ -9,6 +9,8 @@
 
 import { weekStart } from './progress';
 import type { Mood } from './types';
+import { lang, monthName, upperFirst } from './i18n/lang';
+import { live, ui } from './i18n/ui';
 
 export interface PatternRun {
   id: number;
@@ -71,10 +73,10 @@ export function groupRuns<T extends { startedAt: number }>(runs: T[], now = Date
     let title: string;
     if (r.startedAt >= thisWeek) {
       key = 'this-week';
-      title = 'This week';
+      title = ui().patterns.thisWeek;
     } else if (r.startedAt >= lastWeek) {
       key = 'last-week';
-      title = 'Last week';
+      title = ui().patterns.lastWeek;
     } else {
       const d = new Date(r.startedAt);
       const first = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
@@ -88,9 +90,8 @@ export function groupRuns<T extends { startedAt: number }>(runs: T[], now = Date
   return out;
 }
 
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 function defaultMonth(t: number): string {
-  return MONTHS[new Date(t).getMonth()];
+  return upperFirst(monthName(t));
 }
 
 // ---- Energy patterns ---------------------------------------------------------------
@@ -104,7 +105,7 @@ export interface PatternFormat {
 const PLAIN: PatternFormat = {
   date: (t) => {
     const d = new Date(t);
-    return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}`;
+    return lang() === 'en' ? `${d.getDate()} ${monthName(t).slice(0, 3)}` : d.toLocaleDateString(lang() === 'pt' ? 'pt-BR' : lang(), { day: 'numeric', month: 'short' });
   },
   distance: (m) => `${(m / 1000).toFixed(1)} km`,
 };
@@ -136,12 +137,7 @@ export interface Patterns {
   more: Insight[];
 }
 
-export const TITLES: Record<PatternKey, string> = {
-  lift: 'Your energy, before and after',
-  shortWeekday: 'Shorter weekday runs and your energy',
-  places: 'Places you most often go back to',
-  timeOfDay: 'The time of day you finish happiest',
-};
+export const TITLES: Record<PatternKey, string> = live(() => ui().patterns.titles);
 
 /** Runs with both check-ins counted for "lift". */
 export const LIFT_RUNS = 10;
@@ -166,25 +162,21 @@ export function change(r: { moodBefore: Mood; moodAfter: Mood }): Change {
   return r.moodAfter > r.moodBefore ? 'up' : r.moodAfter < r.moodBefore ? 'down' : 'same';
 }
 
-function plural(n: number, one: string, many = `${one}s`): string {
-  return `${n} ${n === 1 ? one : many}`;
-}
-
 function span(fmt: PatternFormat, list: Array<{ startedAt: number }>): string {
   const ts = list.map((r) => r.startedAt);
   const from = Math.min(...ts);
   const to = Math.max(...ts);
   const a = fmt.date(from);
   const b = fmt.date(to);
-  return a === b ? a : `${a} to ${b}`;
+  return a === b ? a : ui().patterns.span(a, b);
 }
 
-function waiting(key: PatternKey, need: string, have: number, one: string, many?: string): Insight {
+function waiting(key: PatternKey, need: string, have: number, counted: (n: number) => string): Insight {
   return {
     key,
     title: TITLES[key],
     line: need,
-    detail: have === 0 ? `None yet.` : `${plural(have, one, many)} so far.`,
+    detail: have === 0 ? ui().patterns.noneYet : ui().patterns.xSoFar(counted(have)),
     ready: false,
   };
 }
@@ -195,7 +187,7 @@ export function lift(runs: PatternRun[], fmt: PatternFormat = PLAIN): Insight {
     .sort((a, b) => b.startedAt - a.startedAt)
     .slice(0, LIFT_RUNS);
   if (last.length < LIFT_MIN) {
-    return waiting('lift', `Shows up after ${LIFT_MIN} runs where you answered both energy questions.`, last.length, 'run');
+    return waiting('lift', ui().patterns.showsUpAfterXRuns(LIFT_MIN), last.length, ui().patterns.runs);
   }
   const changes = last.map(change).reverse();
   const n = changes.length;
@@ -205,15 +197,15 @@ export function lift(runs: PatternRun[], fmt: PatternFormat = PLAIN): Insight {
   // Lead with whatever happened most; ties go to "more", then "the same".
   const line =
     up >= same && up >= down
-      ? `You had more energy after ${up} of your last ${n} runs.`
+      ? ui().patterns.youHadMoreEnergyAfter(up, n)
       : same >= down
-        ? `Your energy stayed the same after ${same} of your last ${n} runs.`
-        : `You had less energy after ${down} of your last ${n} runs.`;
+        ? ui().patterns.yourEnergyStayedTheSame(same, n)
+        : ui().patterns.youHadLessEnergyAfter(down, n);
   return {
     key: 'lift',
     title: TITLES.lift,
     line,
-    detail: `${up} more, ${same} the same, ${down} less. From your before and after check-ins, ${span(fmt, last)}. No score, just your answers counted.`,
+    detail: ui().patterns.xMoreXTheSame(up, same, down, span(fmt, last)),
     ready: true,
     changes,
   };
@@ -236,13 +228,13 @@ export function shortWeekday(runs: PatternRun[], now = Date.now(), fmt: PatternF
     return d >= 1 && d <= 5;
   });
   if (week.length < WEEKDAY_MIN) {
-    return waiting('shortWeekday', `Shows up after ${WEEKDAY_MIN} weekday runs where you answered both energy questions.`, week.length, 'weekday run');
+    return waiting('shortWeekday', ui().patterns.showsUpAfterXWeekday(WEEKDAY_MIN), week.length, ui().patterns.weekdayRuns);
   }
   const mid = median(week.map((r) => r.distanceM));
   const short = week.filter((r) => r.distanceM < mid);
   const long = week.filter((r) => r.distanceM >= mid);
   if (short.length < WEEKDAY_SIDE_MIN || long.length < WEEKDAY_SIDE_MIN) {
-    return waiting('shortWeekday', 'Your weekday runs are mostly the same length, so there is nothing to compare yet.', week.length, 'weekday run');
+    return waiting('shortWeekday', ui().patterns.yourWeekdayRunsAreMostly, week.length, ui().patterns.weekdayRuns);
   }
   const su = short.filter((r) => change(r) === 'up').length;
   const lu = long.filter((r) => change(r) === 'up').length;
@@ -250,20 +242,20 @@ export function shortWeekday(runs: PatternRun[], now = Date.now(), fmt: PatternF
   const rl = lu / long.length;
   const line =
     rs - rl >= CLEAR
-      ? 'Your shorter weekday runs more often ended with more energy.'
+      ? ui().patterns.yourShorterWeekdayRunsMore
       : rl - rs >= CLEAR
-        ? 'Your longer weekday runs more often ended with more energy.'
-        : 'Shorter and longer weekday runs ended with more energy about as often.';
+        ? ui().patterns.yourLongerWeekdayRunsMore
+        : ui().patterns.shorterAndLongerWeekdayRuns;
   const d = fmt.distance(mid);
   return {
     key: 'shortWeekday',
     title: TITLES.shortWeekday,
     line,
-    detail: `Weekday runs with both check-ins, ${span(fmt, week)}. Split at ${d}, the middle of your own distances.`,
+    detail: ui().patterns.weekdayRunsWithBothCheck(span(fmt, week), d),
     ready: true,
     rows: [
-      { label: `Under ${d}`, value: `more energy after ${su} of ${short.length}` },
-      { label: `${d} or more`, value: `more energy after ${lu} of ${long.length}` },
+      { label: ui().patterns.underX(d), value: ui().patterns.moreEnergyAfterXOf(su, short.length) },
+      { label: ui().patterns.xOrMore(d), value: ui().patterns.moreEnergyAfterXOf2(lu, long.length) },
     ],
   };
 }
@@ -284,29 +276,29 @@ export function placesBack(runs: PatternRun[], places: PatternPlace[], now = Dat
     .slice(0, 3);
   if (top.length === 0) {
     const most = Math.max(0, ...[...byPlace.values()].map((l) => l.length));
-    return waiting('places', `Shows up once you have run one of your places ${PLACE_MIN} times.`, most, 'run in one place', 'runs in one place');
+    return waiting('places', ui().patterns.showsUpOnceYouHave(PLACE_MIN), most, ui().patterns.runsInOnePlace);
   }
   const [firstId, firstRuns] = top[0];
   const all = top.flatMap(([, l]) => l);
   return {
     key: 'places',
     title: TITLES.places,
-    line: `You went back to ${names.get(firstId)} most: ${plural(firstRuns.length, 'run')} since ${fmt.date(Math.min(...firstRuns.map((r) => r.startedAt)))}.`,
-    detail: `Runs logged in your places, ${span(fmt, all)}.`,
+    line: ui().patterns.youWentBackToX(names.get(firstId) ?? '', firstRuns.length, fmt.date(Math.min(...firstRuns.map((r) => r.startedAt)))),
+    detail: ui().patterns.runsLoggedInYourPlaces(span(fmt, all)),
     ready: true,
     rows: top.map(([id, list]) => {
       const r = rated(list);
       const up = r.filter((x) => change(x) === 'up').length;
       return {
         label: names.get(id)!,
-        value: `${plural(list.length, 'run')}` + (r.length >= PLACE_MIN ? `, more energy after ${up} of ${r.length}` : ''),
+        value: ui().patterns.runs(list.length) + (r.length >= PLACE_MIN ? ui().patterns.moreEnergyAfterXOf3(up, r.length) : ''),
       };
     }),
   };
 }
 
 export type DayPart = 'morning' | 'midday' | 'evening';
-const PART_LABEL: Record<DayPart, string> = { morning: 'Morning', midday: 'Midday', evening: 'Evening' };
+const PART_LABEL: Record<DayPart, string> = live(() => ui().patterns.part);
 
 export function dayPart(t: number): DayPart {
   const h = new Date(t).getHours();
@@ -324,22 +316,22 @@ export function timeOfDay(runs: PatternRun[], now = Date.now(), fmt: PatternForm
     })
     .filter((x) => x.n >= TIME_MIN);
   if (parts.length < 2) {
-    return waiting('timeOfDay', `Shows up after ${TIME_MIN} runs at two different times of day, with both energy questions answered.`, list.length, 'run');
+    return waiting('timeOfDay', ui().patterns.showsUpAfterXRuns2(TIME_MIN), list.length, ui().patterns.runs);
   }
   const sorted = [...parts].sort((a, b) => b.share - a.share);
   const best = sorted[0];
   const line =
     best.share - sorted[1].share >= CLEAR
-      ? `Your ${best.p} runs most often ended on Good or Recharged: ${best.high} of ${best.n}.`
-      : `Your runs ended on Good or Recharged about as often at any time of day.`;
+      ? ui().patterns.yourXRunsMostOften(best.p, best.high, best.n)
+      : ui().patterns.yourRunsEndedOnGood;
   const counted = list.filter((r) => parts.some((x) => x.p === dayPart(r.startedAt)));
   return {
     key: 'timeOfDay',
     title: TITLES.timeOfDay,
     line,
-    detail: `Morning is before 11:00, evening from 16:00. Your after-run answers, ${span(fmt, counted)}.`,
+    detail: ui().patterns.morningIsBefore1100(span(fmt, counted)),
     ready: true,
-    rows: parts.map((x) => ({ label: PART_LABEL[x.p], value: `Good or Recharged after ${x.high} of ${x.n}` })),
+    rows: parts.map((x) => ({ label: PART_LABEL[x.p], value: ui().patterns.goodOrRechargedAfterX(x.high, x.n) })),
   };
 }
 

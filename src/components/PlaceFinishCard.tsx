@@ -4,6 +4,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { offerLine } from '../places';
 import type { FinishPlace, PlaceDraft } from '../placeStore';
 import { colors, fonts, radius, spacing } from '../theme';
+import { ui } from '../i18n/ui';
 
 /**
  * Where you ran, on the finish screen. A loop you've kept says so and takes
@@ -14,11 +15,11 @@ export function PlaceFinishCard({ found, draft, onOffer, onNotNow }: { found: Fi
   if (!found) return null;
   if (found.offer.kind === 'place' && found.place) {
     return (
-      <View style={[styles.card, styles.known]} accessible accessibilityLabel={`On ${found.place.name}. Today's busyness and note go in its log when you keep this run.`}>
+      <View style={[styles.card, styles.known]} accessible accessibilityLabel={ui().placeFinishCard.onXTodaySBusyness(found.place.name)}>
         <Pin color={colors.mintDeep} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.title}>On {found.place.name}</Text>
-          <Text style={styles.small}>Today’s busyness and note go in its log.</Text>
+          <Text style={styles.title}>{ui().placeFinishCard.onX(found.place.name)}</Text>
+          <Text style={styles.small}>{ui().placeFinishCard.todaySBusynessAndNote}</Text>
         </View>
       </View>
     );
@@ -26,11 +27,11 @@ export function PlaceFinishCard({ found, draft, onOffer, onNotNow }: { found: Fi
   if (found.offer.kind !== 'offer') return null;
   if (draft) {
     return (
-      <Pressable onPress={onOffer} accessibilityRole="button" accessibilityHint="Change the name or notes" style={({ pressed }) => [styles.card, styles.offer, styles.rowCard, pressed && { opacity: 0.9 }]}>
+      <Pressable onPress={onOffer} accessibilityRole="button" accessibilityHint={ui().placeFinishCard.changeTheNameOrNotes} style={({ pressed }) => [styles.card, styles.offer, styles.rowCard, pressed && { opacity: 0.9 }]}>
         <Pin color={colors.mintDeep} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.title}>Kept as “{draft.name}”</Text>
-          <Text style={styles.small}>Saved with this run when you press Keep it. Only on this phone.</Text>
+          <Text style={styles.title}>{ui().placeFinishCard.keptAsX(draft.name)}</Text>
+          <Text style={styles.small}>{ui().placeFinishCard.savedWithThisRunWhen}</Text>
         </View>
       </Pressable>
     );
@@ -41,11 +42,11 @@ export function PlaceFinishCard({ found, draft, onOffer, onNotNow }: { found: Fi
         <Pin color={colors.mintDeep} />
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>{offerLine(found.offer.earlier.length)}</Text>
-          <Text style={styles.small}>Name it, note how busy it was. Only on this phone.</Text>
+          <Text style={styles.small}>{ui().placeFinishCard.nameItNoteHowBusy}</Text>
         </View>
       </Pressable>
-      <Pressable onPress={onNotNow} accessibilityRole="button" accessibilityLabel="Not now. This loop won't be offered again." hitSlop={6} style={styles.notNow}>
-        <Text style={styles.notNowText}>Not now</Text>
+      <Pressable onPress={onNotNow} accessibilityRole="button" accessibilityLabel={ui().placeFinishCard.notNowThisLoopWon} hitSlop={6} style={styles.notNow}>
+        <Text style={styles.notNowText}>{ui().placeFinishCard.notNow}</Text>
       </Pressable>
     </View>
   );

@@ -2,27 +2,17 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, radius, spacing } from '../theme';
 import type { PainLevel } from '../training/adapt';
+import { live, ui } from '../i18n/ui';
 
-const OPTIONS: Array<{ key: PainLevel; label: string }> = [
-  { key: 'none', label: 'Nothing' },
-  { key: 'niggle', label: 'A niggle' },
-  { key: 'pain', label: 'Pain' },
-];
-
-const HINT: Record<PainLevel, string> = {
-  none: ' ',
-  niggle: 'Noted. If it is still there next run, say so.',
-  pain: 'Pain that changes how you run, or gets worse as you go. Two days off, then an easy week; the plan adjusts itself.',
-};
-
-const TITLE = 'Anything hurt?';
+const OPTIONS: Array<{ key: PainLevel; label: string }> = live(() => (['none', 'niggle', 'pain'] as const).map((key) => ({ key, label: ui().painPicker.label[key] })));
+const HINT: Record<PainLevel, string> = live(() => ui().painPicker.hint);
 
 /** One line after a run, only while a plan is active. The answer stays on the phone. */
 export function PainPicker({ value, onChange }: { value: PainLevel | null; onChange: (p: PainLevel) => void }) {
   return (
     <View style={styles.wrap}>
-      <Text style={styles.title}>{TITLE}</Text>
-      <View style={styles.row} accessibilityRole="radiogroup" accessibilityLabel={TITLE}>
+      <Text style={styles.title}>{ui().painPicker.title}</Text>
+      <View style={styles.row} accessibilityRole="radiogroup" accessibilityLabel={ui().painPicker.title}>
         {OPTIONS.map((o) => {
           const on = value === o.key;
           return (

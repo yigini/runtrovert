@@ -14,6 +14,8 @@ import type { Place } from '../placeStore';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import type { Quiet, Run } from '../types';
+import { ui } from '../i18n/ui';
+import { dateLocale, monthName, upperFirst } from '../i18n/lang';
 
 const QUIET_BG: Record<Quiet, string> = { crowded: colors.peach, some: colors.butter, empty: colors.mint };
 const QUIET_FG: Record<Quiet, string> = { crowded: colors.peachDeep, some: colors.butterDeep, empty: colors.mintDeep };
@@ -48,15 +50,13 @@ export function HistoryScreen({
   const now = Date.now();
   const runs = data?.runs ?? [];
   const names = useMemo(() => new Map((data?.places ?? []).map((p) => [p.id, p.name])), [data]);
-  const groups = useMemo(() => groupRuns(runs, now, (t) => new Date(t).toLocaleDateString(undefined, { month: 'long' })), [runs]);
+  const groups = useMemo(() => groupRuns(runs, now), [runs]);
   const patterns = useMemo(() => (data ? energyPatterns(patternRuns(data), data.places, now, patternFormat(km)) : null), [data, km]);
 
   const title = (
     <View style={{ gap: spacing.sm + 4 }}>
       <View style={styles.topRow}>
-        <Text style={type.h1} accessibilityRole="header">
-          Your runs
-        </Text>
+        <Text style={type.h1} accessibilityRole="header">{ui().history.yourRuns}</Text>
         <SettingsGear />
       </View>
       {onSection ? <Sections value={section} onChange={onSection} /> : null}
@@ -83,19 +83,19 @@ export function HistoryScreen({
   }
 
   const month = monthSummary(runs, now);
-  const monthName = new Date(now).toLocaleDateString(undefined, { month: 'long' });
+  const thisMonth = upperFirst(monthName(now));
   const header = (
     <View style={{ gap: spacing.md, marginBottom: spacing.sm }}>
       {title}
       <View
         style={styles.month}
         accessible
-        accessibilityLabel={`${monthName} so far: ${month.runs} ${month.runs === 1 ? 'run' : 'runs'}, ${spokenDistance(month.distanceM, km)}, ${spokenDuration(month.durationS)} running.`}
+        accessibilityLabel={ui().history.monthSoFarSpoken(thisMonth, month.runs, spokenDistance(month.distanceM, km), spokenDuration(month.durationS))}
       >
-        <Text style={[type.eyebrow, styles.monthTitle]}>{monthName} so far</Text>
-        <Stat value={String(month.runs)} label={month.runs === 1 ? 'run' : 'runs'} />
+        <Text style={[type.eyebrow, styles.monthTitle]}>{ui().history.monthSoFar(thisMonth)}</Text>
+        <Stat value={String(month.runs)} label={ui().history.runsLabel(month.runs)} />
         <Stat value={month.runs ? formatDistanceNumber(month.distanceM, km) : '0'} label={distanceUnit(km)} />
-        <Stat value={hoursMinutes(month.durationS)} label="running" />
+        <Stat value={hoursMinutes(month.durationS)} label={ui().history.running} />
       </View>
       <YouSection km={km} refreshKey={refreshKey} />
     </View>
@@ -106,11 +106,11 @@ export function HistoryScreen({
       <View style={styles.screen}>
         {header}
         <View style={styles.empty}>
-          <Text style={type.h2}>No runs yet.</Text>
-          <Text style={[type.body, { color: colors.muted, textAlign: 'center' }]}>Your runs will stay on this phone. Nobody else sees them.</Text>
+          <Text style={type.h2}>{ui().history.noRunsYet}</Text>
+          <Text style={[type.body, { color: colors.muted, textAlign: 'center' }]}>{ui().history.yourRunsWillStayOn}</Text>
           {onBringIn ? (
             <Pressable onPress={onBringIn} accessibilityRole="button" hitSlop={8} style={({ pressed }) => [styles.bringIn, pressed && { opacity: 0.8 }]}>
-              <Text style={styles.bringInText}>Bring runs in from a watch or another app</Text>
+              <Text style={styles.bringInText}>{ui().history.bringRunsInFromA}</Text>
             </Pressable>
           ) : null}
         </View>
@@ -146,14 +146,14 @@ export function HistoryScreen({
 function hoursMinutes(s: number): string {
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
-  return h > 0 ? `${h} h ${String(m).padStart(2, '0')}` : `${m} min`;
+  return h > 0 ? ui().history.hoursMinutes(h, String(m).padStart(2, '0')) : ui().common.min(m);
 }
 
 function Sections({ value, onChange }: { value: RunsSection; onChange: (s: RunsSection) => void }) {
   const items: Array<{ key: RunsSection; label: string }> = [
-    { key: 'runs', label: 'Runs' },
-    { key: 'places', label: 'Places' },
-    { key: 'patterns', label: 'Patterns' },
+    { key: 'runs', label: ui().history.runs },
+    { key: 'places', label: ui().history.places },
+    { key: 'patterns', label: ui().history.patterns },
   ];
   return (
     <View style={styles.seg} accessibilityRole="tablist">
@@ -180,8 +180,8 @@ function Stat({ value, label }: { value: string; label: string }) {
 
 function RunRow({ run, km, place, onPress }: { run: Run; km: boolean; place: string | null; onPress: () => void }) {
   const d = new Date(run.startedAt);
-  const date = d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' });
-  const time = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  const date = d.toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric' });
+  const time = d.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' });
   const delta = run.moodBefore != null && run.moodAfter != null ? run.moodAfter - run.moodBefore : null;
   const q = run.quiet;
   const busy = q ? BUSY_LABEL[q].toLowerCase() : null;
@@ -192,13 +192,13 @@ function RunRow({ run, km, place, onPress }: { run: Run; km: boolean; place: str
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityHint="Opens this run"
+      accessibilityHint={ui().history.opensThisRun}
       accessibilityLabel={[
-        `${d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}, ${time}`,
+        `${d.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}, ${time}`,
         place,
-        `${spokenDistance(run.distanceM, km)} in ${spokenDuration(run.durationS)}`,
+        ui().history.distanceIn(spokenDistance(run.distanceM, km), spokenDuration(run.durationS)),
         spokenPace(run.distanceM, run.durationS, km),
-        delta != null ? `energy ${delta > 0 ? 'up' : delta < 0 ? 'down' : 'steady'}${delta ? ` ${Math.abs(delta)}` : ''}` : null,
+        delta != null ? ui().history.energySpoken(delta) : null,
         busy,
       ]
         .filter(Boolean)
@@ -220,7 +220,7 @@ function RunRow({ run, km, place, onPress }: { run: Run; km: boolean; place: str
         </Text>
         <Text style={styles.rowSub}>
           {formatPace(run.distanceM, run.durationS, km)} /{km ? 'km' : 'mi'}
-          {delta != null ? ` · energy ${delta > 0 ? '+' : ''}${delta}` : ''}
+          {delta != null ? ui().history.energy(delta) : ''}
         </Text>
       </View>
     </Pressable>

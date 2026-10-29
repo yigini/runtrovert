@@ -1,4 +1,5 @@
 import type { PodcastApp } from './types';
+import { live, ui } from './i18n/ui';
 
 // The Listen tab's rules, kept free of React Native so `npm run test:shelf` can
 // check them in Node. The data comes from scripts/build-shelf.mjs.
@@ -46,14 +47,14 @@ export interface Shelf {
   offers: Offer[];
 }
 
-export const GROUPS: Array<{ key: Group; label: string; hint: string }> = [
-  { key: 'quiet', label: 'Quiet company', hint: 'For easy runs. Company that asks nothing back.' },
-  { key: 'stories', label: 'Stories', hint: 'For long runs. People who went somewhere, inside or out.' },
-  { key: 'learn', label: 'Learn something', hint: 'Science and training, told without shouting.' },
-  { key: 'start', label: 'First steps', hint: "For people who don't call themselves runners yet." },
-];
+export const GROUPS: Array<{ key: Group; label: string; hint: string }> = live(() => (['quiet', 'stories', 'learn', 'start'] as const).map((key) => ({ key, ...ui().shelfLogic.group[key] })));
 
+// Ids that offers in the shelf file are tagged with; topicLabel() shows them in the runner's language.
 export const OFFER_TOPICS = ['Road shoes', 'Trail', 'Anti-chafe', 'Night running', 'Rain', 'Watches'];
+
+export function topicLabel(topic: string): string {
+  return (ui().shelfLogic.topic as Record<string, string>)[topic] ?? topic;
+}
 
 /** "tr-TR" → { lang: 'tr', region: 'tr' }. Some phones report only a language. */
 export function parseLocale(locale: string): { lang: string; region: string | null } {
@@ -118,14 +119,14 @@ export function filterOffers(offers: Offer[], topics: string[]): Offer[] {
 }
 
 /** pkg: the Android package, used only to tell which apps are on the phone. */
-export const PODCAST_APPS: Array<{ key: PodcastApp; label: string; ios: boolean; android: boolean; pkg?: string }> = [
+export const PODCAST_APPS: Array<{ key: PodcastApp; label: string; ios: boolean; android: boolean; pkg?: string }> = live(() => [
   { key: 'apple', label: 'Apple Podcasts', ios: true, android: false },
   { key: 'spotify', label: 'Spotify', ios: true, android: true, pkg: 'com.spotify.music' },
   { key: 'youtube', label: 'YouTube Music', ios: true, android: true, pkg: 'com.google.android.apps.youtube.music' },
   { key: 'pocketcasts', label: 'Pocket Casts', ios: true, android: true, pkg: 'au.com.shiftyjelly.pocketcasts' },
   { key: 'antennapod', label: 'AntennaPod', ios: false, android: true, pkg: 'de.danoeh.antennapod' },
-  { key: 'share', label: 'Another app (share the feed)', ios: true, android: true },
-];
+  { key: 'share', label: ui().shelfLogic.shareFeed, ios: true, android: true },
+]);
 
 export interface Fresh {
   show: Show;
@@ -156,7 +157,7 @@ export function whenLabel(date: string, today: string): string {
   const d = Math.round((Date.parse(today) - Date.parse(date)) / 86400000);
   if (d <= 0) return 'today';
   if (d === 1) return 'yesterday';
-  if (d < 7) return `${d} days ago`;
+  if (d < 7) return ui().shelfLogic.xDaysAgo(d);
   return date;
 }
 

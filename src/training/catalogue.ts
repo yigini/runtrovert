@@ -1,3 +1,5 @@
+import { live, type Strings, ui } from '../i18n/ui';
+import { decimal } from '../i18n/lang';
 // The fourteen plans. Each row is a shape (weeks, days, caps, taper) that the
 // generator fills from the runner's own starting point. No React Native
 // imports: `npm run test:plans` checks everything here under plain Node.
@@ -42,18 +44,18 @@ export interface PlanSpec {
 const HALF = 21.0975;
 const MARATHON = 42.195;
 
-export const PLANS: PlanSpec[] = [
+type SpecData = Omit<PlanSpec, 'name' | 'blurb' | 'gate'> & { gate: Omit<PlanSpec['gate'], 'text'> };
+
+const SPECS: Array<SpecData> = [
   // ---- No race --------------------------------------------------------------
   {
     id: 'start',
     goal: 'none',
     tier: 'start',
-    name: 'Start running',
-    blurb: 'Nine weeks from a 30-minute walk to 30 minutes of running. Walk breaks shrink; nothing else changes.',
     weeks: 9,
     minWeeks: 9,
     daysOptions: [3],
-    gate: { text: 'Can walk for 30 minutes.' },
+    gate: {},
     startKm: 0,
     peakKm: { 3: 15 },
     longCapKm: null,
@@ -68,12 +70,10 @@ export const PLANS: PlanSpec[] = [
     id: 'keep',
     goal: 'none',
     tier: 'keep',
-    name: 'Keep running',
-    blurb: 'Rolling four-week blocks that hold a steady habit. Three build weeks, one lighter. No race, no clock.',
     weeks: 4,
     minWeeks: 4,
     daysOptions: [2, 3, 4, 5],
-    gate: { runsPerWeek: 1, text: 'Already running, however little.' },
+    gate: { runsPerWeek: 1 },
     startKm: 10,
     peakKm: { 2: 20, 3: 30, 4: 40, 5: 50 },
     longCapKm: 16,
@@ -88,12 +88,10 @@ export const PLANS: PlanSpec[] = [
     id: 'comeback',
     goal: 'none',
     tier: 'comeback',
-    name: 'Come back',
-    blurb: 'Six weeks back to about 80% of where you were, after four or more weeks off, illness, or a healed injury.',
     weeks: 6,
     minWeeks: 6,
     daysOptions: [3],
-    gate: { text: 'Four or more weeks off. If it was an injury, cleared to run by a clinician.' },
+    gate: {},
     startKm: 0,
     peakKm: { 3: 30 },
     longCapKm: null,
@@ -110,12 +108,10 @@ export const PLANS: PlanSpec[] = [
     id: '5k-finish',
     goal: '5k',
     tier: 'finish',
-    name: '5K Finish',
-    blurb: 'Eight weeks to run five kilometres without stopping. Strides from week three, nothing harder.',
     weeks: 8,
     minWeeks: 6,
     daysOptions: [3],
-    gate: { longestKm: 2, text: 'Can run or run/walk for 20 minutes, or finished Start running.' },
+    gate: { longestKm: 2 },
     startKm: 10,
     peakKm: { 3: 22 },
     longCapKm: 7,
@@ -130,12 +126,10 @@ export const PLANS: PlanSpec[] = [
     id: '5k-improve',
     goal: '5k',
     tier: 'improve',
-    name: '5K Improve',
-    blurb: 'Eight weeks with one quality session a week: threshold early, intervals at 5K effort later.',
     weeks: 8,
     minWeeks: 6,
     daysOptions: [4, 5],
-    gate: { weeklyKm: 15, longestKm: 5, text: 'Has run a 5K, about 15 km a week.' },
+    gate: { weeklyKm: 15, longestKm: 5 },
     startKm: 15,
     peakKm: { 4: 35, 5: 42 },
     longCapKm: 11,
@@ -152,12 +146,10 @@ export const PLANS: PlanSpec[] = [
     id: '10k-finish',
     goal: '10k',
     tier: 'finish',
-    name: '10K Finish',
-    blurb: 'Ten weeks from thirty continuous minutes to ten kilometres. The long run does the work.',
     weeks: 10,
     minWeeks: 6,
     daysOptions: [3, 4],
-    gate: { longestKm: 4, text: 'Can run 30 minutes without stopping.' },
+    gate: { longestKm: 4 },
     startKm: 15,
     peakKm: { 3: 28, 4: 34 },
     longCapKm: 11,
@@ -172,12 +164,10 @@ export const PLANS: PlanSpec[] = [
     id: '10k-improve',
     goal: '10k',
     tier: 'improve',
-    name: '10K Improve',
-    blurb: 'Ten weeks, one quality session a week, race-pace stretches inside the long run from the halfway point.',
     weeks: 10,
     minWeeks: 6,
     daysOptions: [4, 5],
-    gate: { weeklyKm: 20, longestKm: 8, text: 'Has run a 10K, about 20 km a week.' },
+    gate: { weeklyKm: 20, longestKm: 8 },
     startKm: 20,
     peakKm: { 4: 42, 5: 50 },
     longCapKm: 14,
@@ -192,12 +182,10 @@ export const PLANS: PlanSpec[] = [
     id: '10k-race',
     goal: '10k',
     tier: 'race',
-    name: '5K/10K Race',
-    blurb: 'Ten weeks, two quality sessions a week: threshold and either intervals or fast repetitions. Competitive.',
     weeks: 10,
     minWeeks: 6,
     daysOptions: [5, 6],
-    gate: { weeklyKm: 35, longestKm: 10, runsPerWeek: 4, text: 'Six months of steady running, 35+ km a week.' },
+    gate: { weeklyKm: 35, longestKm: 10, runsPerWeek: 4 },
     startKm: 35,
     peakKm: { 5: 60, 6: 70 },
     longCapKm: 16,
@@ -214,12 +202,10 @@ export const PLANS: PlanSpec[] = [
     id: 'half-finish',
     goal: 'half',
     tier: 'finish',
-    name: 'Half Finish',
-    blurb: 'Twelve weeks, mostly easy, long run to 18 km. Strides and a little fartlek, nothing you would call a workout.',
     weeks: 12,
     minWeeks: 10,
     daysOptions: [3, 4],
-    gate: { weeklyKm: 15, longestKm: 7, text: '10K done, or 60 minutes continuous. 15 to 20 km a week.' },
+    gate: { weeklyKm: 15, longestKm: 7 },
     startKm: 18,
     peakKm: { 3: 36, 4: 42 },
     longCapKm: 18,
@@ -234,12 +220,10 @@ export const PLANS: PlanSpec[] = [
     id: 'half-improve',
     goal: 'half',
     tier: 'improve',
-    name: 'Half Improve',
-    blurb: 'Twelve weeks, one quality session a week, long runs that finish at race effort from week nine.',
     weeks: 12,
     minWeeks: 10,
     daysOptions: [4, 5],
-    gate: { weeklyKm: 25, longestKm: 12, text: 'Half done, or a long run of 15 km+. 25 km a week.' },
+    gate: { weeklyKm: 25, longestKm: 12 },
     startKm: 25,
     peakKm: { 4: 48, 5: 56 },
     longCapKm: 19,
@@ -254,12 +238,10 @@ export const PLANS: PlanSpec[] = [
     id: 'half-race',
     goal: 'half',
     tier: 'race',
-    name: 'Half Race',
-    blurb: 'Fourteen weeks, two quality sessions a week, long run to 22 km with race-pace blocks. Competitive.',
     weeks: 14,
     minWeeks: 10,
     daysOptions: [5, 6],
-    gate: { weeklyKm: 40, longestKm: 14, runsPerWeek: 4, text: 'Six months of steady running, 40+ km a week.' },
+    gate: { weeklyKm: 40, longestKm: 14, runsPerWeek: 4 },
     startKm: 40,
     peakKm: { 5: 70, 6: 85 },
     longCapKm: 22,
@@ -276,12 +258,10 @@ export const PLANS: PlanSpec[] = [
     id: 'marathon-finish',
     goal: 'marathon',
     tier: 'finish',
-    name: 'Marathon Finish',
-    blurb: 'Eighteen weeks, four days, long run to 32 km or three hours, whichever comes first. Three-week taper.',
     weeks: 18,
     minWeeks: 14,
     daysOptions: [4],
-    gate: { weeklyKm: 25, longestKm: 13, text: '25+ km a week for a month, a long run of 13 km+ in the last 30 days. A half done helps.' },
+    gate: { weeklyKm: 25, longestKm: 13 },
     startKm: 28,
     peakKm: { 4: 64 },
     longCapKm: 32,
@@ -296,12 +276,10 @@ export const PLANS: PlanSpec[] = [
     id: 'marathon-improve',
     goal: 'marathon',
     tier: 'improve',
-    name: 'Marathon Improve',
-    blurb: 'Eighteen weeks, five days, one quality session a week, marathon-pace blocks inside the long run.',
     weeks: 18,
     minWeeks: 14,
     daysOptions: [5],
-    gate: { weeklyKm: 40, longestKm: 18, text: 'Marathon done, 40+ km a week, a long run of 18 km+.' },
+    gate: { weeklyKm: 40, longestKm: 18 },
     startKm: 40,
     peakKm: { 5: 80 },
     longCapKm: 32,
@@ -316,12 +294,10 @@ export const PLANS: PlanSpec[] = [
     id: 'marathon-race',
     goal: 'marathon',
     tier: 'race',
-    name: 'Marathon Race',
-    blurb: 'Eighteen weeks, five or six days, two quality sessions, long run to 35 km. Competitive.',
     weeks: 18,
     minWeeks: 14,
     daysOptions: [5, 6],
-    gate: { weeklyKm: 55, longestKm: 20, runsPerWeek: 5, text: 'Six months of steady running, 55+ km a week, marathon done.' },
+    gate: { weeklyKm: 55, longestKm: 20, runsPerWeek: 5 },
     startKm: 55,
     peakKm: { 5: 100, 6: 115 },
     longCapKm: 35,
@@ -334,7 +310,15 @@ export const PLANS: PlanSpec[] = [
   },
 ];
 
-export const GOAL_LABEL: Record<Goal, string> = { none: 'Just running', '5k': '5K', '10k': '10K', half: 'Half marathon', marathon: 'Marathon' };
+// Names, lines and who-it-suits come from the interface text, in the runner's language.
+export const PLANS: PlanSpec[] = live(() =>
+  SPECS.map((d) => {
+    const t = ui().plans[d.id as Exclude<keyof Strings['plans'], 'goal'>];
+    return { ...d, name: t.name, blurb: t.blurb, gate: { ...d.gate, text: t.who } };
+  }),
+);
+
+export const GOAL_LABEL: Record<Goal, string> = live(() => ui().plans.goal);
 
 export function planById(id: string): PlanSpec | undefined {
   return PLANS.find((p) => p.id === id);
@@ -358,11 +342,11 @@ export type GateResult = { ok: true } | { ok: false; reason: string; bridge: str
 export function checkGate(spec: PlanSpec, r: RunnerProfile): GateResult {
   const g = spec.gate;
   const short: string[] = [];
-  if (g.weeklyKm != null && r.weeklyKm < g.weeklyKm * 0.8) short.push(`about ${g.weeklyKm} km a week (you: ${Math.round(r.weeklyKm)})`);
-  if (g.longestKm != null && r.longestKm30 < g.longestKm * 0.8) short.push(`a recent run of ${g.longestKm} km (you: ${r.longestKm30.toFixed(1)})`);
-  if (g.runsPerWeek != null && r.runsPerWeek < g.runsPerWeek - 0.5) short.push(`${g.runsPerWeek} runs a week (you: ${r.runsPerWeek.toFixed(1)})`);
+  if (g.weeklyKm != null && r.weeklyKm < g.weeklyKm * 0.8) short.push(ui().catalogue.aboutXKmAWeek(g.weeklyKm, Math.round(r.weeklyKm)));
+  if (g.longestKm != null && r.longestKm30 < g.longestKm * 0.8) short.push(ui().catalogue.aRecentRunOfX(g.longestKm, decimal(r.longestKm30.toFixed(1))));
+  if (g.runsPerWeek != null && r.runsPerWeek < g.runsPerWeek - 0.5) short.push(ui().catalogue.xRunsAWeekYou(g.runsPerWeek, decimal(r.runsPerWeek.toFixed(1))));
   if (!short.length) return { ok: true };
-  return { ok: false, reason: `This plan expects ${short.join(', ')}.`, bridge: bridgeFor(spec) };
+  return { ok: false, reason: ui().catalogue.thisPlanExpectsX(short.join(', ')), bridge: bridgeFor(spec) };
 }
 
 /** Days a week that make sense for this volume: about 4 km a run at least, unless the plan is time-based. */
@@ -374,7 +358,7 @@ export function daysFit(spec: PlanSpec, r: RunnerProfile, days: number): boolean
 
 function bridgeFor(spec: PlanSpec): string | null {
   if (spec.tier === 'race') return spec.goal === 'marathon' ? 'marathon-improve' : spec.goal === 'half' ? 'half-improve' : '10k-improve';
-  if (spec.tier === 'improve') return `${spec.goal}-finish`;
+  if (spec.tier === 'improve') return ui().catalogue.xFinish(spec.goal);
   if (spec.goal === 'marathon') return 'half-finish';
   if (spec.goal === 'half') return '10k-finish';
   if (spec.goal === '10k') return '5k-finish';

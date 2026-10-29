@@ -7,6 +7,7 @@
 // under plain Node. Saving the state and the React hook live in unlockState.ts.
 
 import type { Plan } from './training/types';
+import { ui } from './i18n/ui';
 
 /**
  * GitHub test APKs have everything unlocked. Store builds set
@@ -20,11 +21,16 @@ export const BILLING_ON = false;
 /** The one non-consumable product, the same id on Google Play and the App Store. */
 export const UNLOCK_SKU = 'app.runtrovert.everything';
 
-export const UNLOCK_NAME = 'Everything, once';
+/** The unlock's name, in the runner's language ("Everything, once"). */
+export function unlockName(): string {
+  return ui().unlock.name;
+}
 export const UNLOCK_PRICE = '€4.99';
 export const UNLOCK_PRICE_LATER = '€6.99';
 /** The one plain line under the price. */
-export const PRICE_LINE = `${UNLOCK_PRICE}, once. It becomes ${UNLOCK_PRICE_LATER} when full training plans arrive.`;
+export function priceLine(): string {
+  return ui().unlock.priceLine(UNLOCK_PRICE, UNLOCK_PRICE_LATER);
+}
 
 /** The proactive line on the finish screen waits for this many saved runs. */
 export const NUDGE_AFTER_RUNS = 10;
@@ -95,6 +101,6 @@ export function openWeeks(plan: Plan): Plan {
 
 /** The Train line, for a plan of `weeks` weeks (null for an ongoing plan). */
 export function trainLine(weeks: number | null): string {
-  const rest = weeks && weeks > 1 ? `Weeks 2 to ${weeks}` : 'The weeks after';
-  return `Week 1 is yours to try. ${rest} come with ${UNLOCK_NAME}, whenever you're ready. Free runs never stop.`;
+  const rest = weeks && weeks > 1 ? ui().unlock.weeks2ToX(weeks) : ui().unlock.theWeeksAfter;
+  return ui().unlock.week1IsYoursTo(rest, unlockName());
 }

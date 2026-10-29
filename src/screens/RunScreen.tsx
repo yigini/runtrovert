@@ -41,6 +41,7 @@ import { planSessionOpen } from '../unlock';
 import { cachedWeather } from '../weather';
 import { beginWorkout, endWorkout, subscribeWorkout, type GuidedRun } from '../workoutRun';
 import { liveFacts, recordRunFacts } from '../you';
+import { ui } from '../i18n/ui';
 
 type Phase = 'idle' | 'countdown' | 'active' | 'finish';
 
@@ -191,10 +192,10 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   async function onStart() {
     // A low face before a hard or long day: the plan gives way before the run, not after.
     if (session && sessionOpen && preset === 'plan' && (session.hard || session.kind === 'long') && moodBefore != null && moodBefore <= 2) {
-      Alert.alert(`Low energy, and ${session.title} is on the plan.`, 'Easy days are allowed. Nothing is added elsewhere to make up for it.', [
-        { text: 'Make it easy', onPress: () => giveWay('easy') },
-        { text: 'Rest today', onPress: () => giveWay('rest') },
-        { text: 'Run it as planned', onPress: () => giveWay('planned') },
+      Alert.alert(ui().run.lowEnergyAndXIs(session.title), ui().run.easyDaysAreAllowedNothing, [
+        { text: ui().run.makeItEasy, onPress: () => giveWay('easy') },
+        { text: ui().run.restToday, onPress: () => giveWay('rest') },
+        { text: ui().run.runItAsPlanned, onPress: () => giveWay('planned') },
       ]);
       return;
     }
@@ -213,8 +214,8 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
       if (plan && plan.status === 'active') {
         const r = applyEnergy(plan, session.date, moodBefore, choice);
         await savePlan(r.plan);
-        if (r.fatigue === 'doctor') Alert.alert('Five low days in two weeks.', 'That is more than a plan can fix. Rest, eat, sleep, and if it goes on, see a doctor. Next week is lighter.');
-        else if (r.fatigue === 'lighter') Alert.alert('Three low days this week.', 'Next week is lighter. Nothing to make up.');
+        if (r.fatigue === 'doctor') Alert.alert(ui().run.fiveLowDaysInTwo, ui().run.thatIsMoreThanA);
+        else if (r.fatigue === 'lighter') Alert.alert(ui().run.threeLowDaysThisWeek, ui().run.nextWeekIsLighterNothing);
         setPlanSession(todaySession(r.plan));
         onRequestTaken?.();
         if (choice === 'rest') return;
@@ -229,11 +230,11 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     const perm = await ensurePermissions();
     if (!perm.ok) {
       setGhostRun(null);
-      Alert.alert('Location needed', 'Runtrovert can only record a run with location access. Your runs are saved on this phone, not on a server of ours.');
+      Alert.alert(ui().run.locationNeeded, ui().run.runtrovertCanOnlyRecordA);
       return;
     }
     if (!perm.background) {
-      Alert.alert('Background location', 'Without "Always" location the run may stop recording when the screen is off. You can change this in Settings later.');
+      Alert.alert(ui().run.backgroundLocation, ui().run.withoutAlwaysLocationTheRun);
     }
     setLayout(as);
     setShowTime(false);
@@ -270,7 +271,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     } catch {
       endWorkout();
       await discardNow();
-      Alert.alert('Couldn’t start recording.', 'Location didn’t answer. Try again in a moment.');
+      Alert.alert(ui().run.couldnTStartRecording, ui().run.locationDidnTAnswerTry);
     }
   }
 
@@ -300,15 +301,15 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     if (phase === 'countdown') {
       cancelCountdown();
     } else if (phase === 'active') {
-      Alert.alert('Still recording.', 'The run keeps going until you stop it.', [
-        { text: 'Keep running', style: 'cancel' },
-        { text: 'Finish run', onPress: () => void onStop() },
+      Alert.alert(ui().run.stillRecording, ui().run.theRunKeepsGoingUntil, [
+        { text: ui().run.keepRunning, style: 'cancel' },
+        { text: ui().run.finishRun, onPress: () => void onStop() },
       ]);
     } else if (phase === 'finish') {
-      Alert.alert('Keep this run?', 'Pick one before you go.', [
-        { text: 'Not yet', style: 'cancel' },
-        { text: 'Discard', style: 'destructive', onPress: () => void discardNow() },
-        { text: 'Keep it', onPress: () => void onSave() },
+      Alert.alert(ui().run.keepThisRun, ui().run.pickOneBeforeYouGo, [
+        { text: ui().run.notYet, style: 'cancel' },
+        { text: ui().run.discard, style: 'destructive', onPress: () => void discardNow() },
+        { text: ui().run.keepIt, onPress: () => void onSave() },
       ]);
     }
     return true;
@@ -320,12 +321,12 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     const f = getState();
     if (f.distanceM < TINY_RUN_M) {
       Alert.alert(
-        'Barely moved.',
-        `${formatDuration(f.durationS)} and ${formatDistance(f.distanceM, km)}. Keep it anyway?`,
+        ui().run.barelyMoved,
+        ui().run.xAndXKeepIt(formatDuration(f.durationS), formatDistance(f.distanceM, km)),
         [
-          { text: 'Carry on', style: 'cancel', onPress: () => void continueRun() },
-          { text: 'Discard', style: 'destructive', onPress: () => void discardNow() },
-          { text: 'Keep it', onPress: () => void showFinish(f) },
+          { text: ui().run.carryOn, style: 'cancel', onPress: () => void continueRun() },
+          { text: ui().run.discard, style: 'destructive', onPress: () => void discardNow() },
+          { text: ui().run.keepIt, onPress: () => void showFinish(f) },
         ],
         { cancelable: false },
       );
@@ -374,9 +375,9 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   }
 
   function onDiscard() {
-    Alert.alert('Discard run?', 'This cannot be undone.', [
-      { text: 'Keep', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: () => void discardNow() },
+    Alert.alert(ui().run.discardRun, ui().run.thisCannotBeUndone, [
+      { text: ui().run.keep, style: 'cancel' },
+      { text: ui().run.discard, style: 'destructive', onPress: () => void discardNow() },
     ]);
   }
 
@@ -435,7 +436,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(43,39,51,0.55)' }]} />
         <View style={[styles.center, { flex: 1, padding: spacing.md }]}>
           <Text style={styles.countdown}>{count}</Text>
-          <Button title="Cancel" variant="onInk" onPress={cancelCountdown} style={{ marginTop: spacing.xl, width: 160 }} />
+          <Button title={ui().run.cancel} variant="onInk" onPress={cancelCountdown} style={{ marginTop: spacing.xl, width: 160 }} />
         </View>
       </AmbientBackground>
     );
@@ -459,9 +460,9 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
           />
           <View style={styles.finishTop} pointerEvents="box-none" onLayout={(e) => setFinishPad((p) => ({ ...p, top: e.nativeEvent.layout.y + e.nativeEvent.layout.height }))}>
             <View style={styles.finishTopRow} pointerEvents="box-none">
-              <Text style={[type.eyebrow, { color: colors.mintDeep, flex: 1 }]} accessibilityRole="header">Run done</Text>
-              <Pressable onPress={() => void onResumeRun()} accessibilityRole="button" accessibilityLabel="Resume run" accessibilityHint="Not finished? Goes back to recording this run." hitSlop={8} style={({ pressed }) => [styles.resumePill, pressed && { opacity: 0.85 }]}>
-                <Text style={styles.resumeText}>▶  Resume run</Text>
+              <Text style={[type.eyebrow, { color: colors.mintDeep, flex: 1 }]} accessibilityRole="header">{ui().run.runDone}</Text>
+              <Pressable onPress={() => void onResumeRun()} accessibilityRole="button" accessibilityLabel={ui().run.resumeRun} accessibilityHint={ui().run.notFinishedGoesBackTo} hitSlop={8} style={({ pressed }) => [styles.resumePill, pressed && { opacity: 0.85 }]}>
+                <Text style={styles.resumeText}>{ui().run.resumeRun2}</Text>
               </Pressable>
             </View>
             <Text style={styles.finishTitle} maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>{surprise?.line ?? finishLine()}</Text>
@@ -474,11 +475,11 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
               setFinishCardH(height);
             }}
           >
-            <View style={styles.statRow} accessible accessibilityLabel={`${spokenDistance(final.distanceM, km)} in ${spokenDuration(final.durationS)}, average ${spokenPace(final.distanceM, final.durationS, km)}, climb ${formatElevation(final.elevationGainM, km)}`}>
+            <View style={styles.statRow} accessible accessibilityLabel={ui().run.xInXAverageX(spokenDistance(final.distanceM, km), spokenDuration(final.durationS), spokenPace(final.distanceM, final.durationS, km), formatElevation(final.elevationGainM, km))}>
               <Stat value={formatDistanceNumber(final.distanceM, km)} label={distanceUnit(km)} big />
-              <Stat value={formatDuration(final.durationS)} label="time" />
+              <Stat value={formatDuration(final.durationS)} label={ui().run.time} />
               <Stat value={formatPace(final.distanceM, final.durationS, km)} label={`/${distanceUnit(km)}`} />
-              <Stat value={formatElevation(final.elevationGainM, km)} label="climb" />
+              <Stat value={formatElevation(final.elevationGainM, km)} label={ui().run.climb} />
             </View>
             <Recharge before={moodBefore} after={moodAfter} />
           </View>
@@ -487,9 +488,9 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
           {you && <YouLine title={you.title} detail={you.detail} />}
           <PlaceFinishCard found={found} draft={placeDraft} onOffer={() => setPlaceSheet(true)} onNotNow={placeNotNow} />
           <UnlockNudge />
-          <MoodPicker title="And your energy now?" value={moodAfter} onChange={setMoodAfter} />
+          <MoodPicker title={ui().run.andYourEnergyNow} value={moodAfter} onChange={setMoodAfter} />
           <QuietPicker value={quiet} onChange={setQuiet} />
-          <TextInput style={styles.note} placeholder="A note, if you want one" placeholderTextColor={colors.inkMuted} value={note} onChangeText={setNote} multiline />
+          <TextInput style={styles.note} placeholder={ui().run.aNoteIfYouWant} placeholderTextColor={colors.inkMuted} value={note} onChangeText={setNote} multiline />
           {hasPlan && <PainPicker value={pain} onChange={setPain} />}
           <RunStatsView
             run={{ startedAt: final.startedAt ?? Date.now(), endedAt: finishPoints.length ? finishPoints[finishPoints.length - 1].ts : null, distanceM: final.distanceM, durationS: final.durationS, elevationGainM: final.elevationGainM, quiet, moodBefore, moodAfter }}
@@ -501,10 +502,10 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
             hero={false}
           />
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-            <Button title="Discard" variant="danger" onPress={onDiscard} style={{ flex: 0, paddingHorizontal: 22 }} />
-            <Button title="Keep it" onPress={() => onSave()} style={{ flex: 1 }} />
+            <Button title={ui().run.discard} variant="danger" onPress={onDiscard} style={{ flex: 0, paddingHorizontal: 22 }} />
+            <Button title={ui().run.keepIt} onPress={() => onSave()} style={{ flex: 1 }} />
           </View>
-          <Button title="Keep it and share with someone" variant="secondary" onPress={() => onSave(true)} style={{ marginTop: -spacing.sm }} />
+          <Button title={ui().run.keepItAndShareWith} variant="secondary" onPress={() => onSave(true)} style={{ marginTop: -spacing.sm }} />
         </View>
         <SavePlaceSheet
           open={placeSheet}
@@ -530,10 +531,10 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   const autoPaused = track.status === 'autopaused';
   const halted = paused || autoPaused;
   const H = Dimensions.get('window').height;
-  const statusLine = `${autoPaused ? 'Auto-paused' : paused ? 'Paused' : 'Recording'}${track.gps === 'lost' ? ' · GPS lost' : ''}`;
+  const statusLine = `${autoPaused ? ui().run.autoPaused : paused ? ui().run.paused : ui().run.recording}${track.gps === 'lost' ? ui().run.gpsLost : ''}`;
   const lightControls = (
     <View style={styles.controls}>
-      <Pressable onPress={onPauseResume} accessibilityRole="button" accessibilityLabel={paused ? 'Resume' : 'Pause'} style={({ pressed }) => [styles.roundBtn, styles.roundLight, pressed && { opacity: 0.85 }]}>
+      <Pressable onPress={onPauseResume} accessibilityRole="button" accessibilityLabel={paused ? ui().run.resume : ui().run.pause} style={({ pressed }) => [styles.roundBtn, styles.roundLight, pressed && { opacity: 0.85 }]}>
         <Text style={[styles.roundGlyph, { color: colors.ink }]}>{paused ? '▶' : '❚❚'}</Text>
       </Pressable>
       <StopButton wide onStop={() => void onStop()} />
@@ -545,7 +546,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     return (
       <View style={styles.calm}>
         <View style={styles.calmTop}>
-          <Text style={type.eyebrow}>Clear my head</Text>
+          <Text style={type.eyebrow}>{ui().run.clearMyHead}</Text>
           <View style={styles.calmStatus} accessible accessibilityLabel={statusLine}>
             <View style={[styles.dot, { backgroundColor: halted ? colors.butterDeep : colors.mintDeep }]} />
             <Text style={styles.calmStatusText}>{statusLine}</Text>
@@ -553,13 +554,11 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         </View>
         <View style={styles.calmMiddle}>
           <CalmGlyph />
-          <Text style={styles.calmLine} maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>
-            Nothing to look at.{'\n'}Just run.
-          </Text>
+          <Text style={styles.calmLine} maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>{ui().run.nothingToLookAtJust}</Text>
           <Pressable
             onPress={() => setShowTime((v) => !v)}
             accessibilityRole="button"
-            accessibilityLabel={showTime ? `${spokenDuration(track.durationS)} so far. Hide the time` : 'Show the time'}
+            accessibilityLabel={showTime ? ui().run.xSoFarHideThe(spokenDuration(track.durationS)) : ui().run.showTheTime}
             style={styles.calmTime}
           >
             {showTime ? (
@@ -567,10 +566,10 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
                 {formatDuration(track.durationS)}
               </Text>
             ) : null}
-            <Text style={styles.calmTap}>{showTime ? 'so far · tap to hide' : 'Tap to show the time'}</Text>
+            <Text style={styles.calmTap}>{showTime ? ui().run.soFarTapToHide : ui().run.tapToShowTheTime}</Text>
           </Pressable>
         </View>
-        <Text style={styles.calmNote}>{halted ? (autoPaused ? 'Auto-paused. It carries on when you do.' : 'Paused. Nothing is recording.') : 'No voice, no buzz. Your music still plays.'}</Text>
+        <Text style={styles.calmNote}>{halted ? (autoPaused ? ui().run.autoPausedItCarriesOn : ui().run.pausedNothingIsRecording) : ui().run.noVoiceNoBuzzYour}</Text>
         {lightControls}
       </View>
     );
@@ -582,7 +581,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     const step = v.step;
     const tint = blockTint(v.finished ? null : step);
     const blocks = createWorkout(guided.session.steps).steps;
-    const spoken = v.finished ? 'That is the session.' : step ? `Block ${v.index + 1} of ${v.total}, ${stepName(step)}, ${formatLeft(v)}.${v.next ? ` Then ${stepLine(v.next)}.` : ' Last block.'}` : '';
+    const spoken = v.finished ? ui().run.thatIsTheSession : step ? ui().run.blockXOfXX(v.index + 1, v.total, stepName(step), formatLeft(v), v.next ? ui().run.thenSpoken(stepLine(v.next)) : ui().run.lastBlockSpoken) : '';
     return (
       <View style={[styles.calm, { gap: spacing.md + 2 }]}>
         <View style={styles.calmTop}>
@@ -595,19 +594,19 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
           </View>
         </View>
         <View style={[styles.block, { backgroundColor: tint.bg }]} accessible accessibilityLabel={spoken} accessibilityLiveRegion="polite">
-          <Text style={[styles.blockEyebrow, { color: tint.fg }]}>{v.finished ? 'All blocks done' : `Block ${v.index + 1} of ${v.total}`}</Text>
+          <Text style={[styles.blockEyebrow, { color: tint.fg }]}>{v.finished ? ui().run.allBlocksDone : ui().run.blockXOfX(v.index + 1, v.total)}</Text>
           <Text style={[styles.blockName, { color: tint.fg }]} maxFontSizeMultiplier={DISPLAY_MAX_SCALE} numberOfLines={2} adjustsFontSizeToFit>
-            {v.finished ? 'That is the session.' : step ? stepName(step) : ''}
+            {v.finished ? ui().run.thatIsTheSession : step ? stepName(step) : ''}
           </Text>
           {!v.finished ? (
             <>
               <Text style={styles.blockLeft} maxFontSizeMultiplier={DISPLAY_MAX_SCALE} numberOfLines={1} adjustsFontSizeToFit>
                 {leftClock(v)}
               </Text>
-              <Text style={[styles.blockFeel, { color: tint.fg }]}>left in this block.{step && stepFeel(step) ? ` ${stepFeel(step)}` : ''}</Text>
+              <Text style={[styles.blockFeel, { color: tint.fg }]}>{ui().run.leftInThisBlock}{step && stepFeel(step) ? ` ${stepFeel(step)}` : ''}</Text>
             </>
           ) : (
-            <Text style={[styles.blockFeel, { color: tint.fg }]}>Easy to the door. Hold Stop when you get there.</Text>
+            <Text style={[styles.blockFeel, { color: tint.fg }]}>{ui().run.easyToTheDoorHold}</Text>
           )}
         </View>
         <View style={styles.segments} importantForAccessibility="no-hide-descendants">
@@ -626,18 +625,18 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
           <Text style={styles.blockNext} importantForAccessibility="no">
             {v.next ? (
               <>
-                Then <Text style={{ fontFamily: fonts.bodySemi }}>{stepLine(v.next)}</Text>.{settings.cueMode === 'voice' ? ' A voice tells you when.' : ''}
+                {ui().run.thenBefore}<Text style={{ fontFamily: fonts.bodySemi }}>{stepLine(v.next)}</Text>{ui().run.thenAfter}{settings.cueMode === 'voice' ? ui().run.aVoiceTellsYouWhen : ''}
               </>
             ) : (
-              'Last block.'
+              ui().run.lastBlock
             )}
           </Text>
         ) : null}
         <View style={{ flex: 1 }} />
         <View style={styles.planNums} accessible accessibilityLabel={spokenRun(track, km)}>
           <PlanNum value={formatDistanceNumber(track.distanceM, km)} label={distanceUnit(km)} />
-          <PlanNum value={formatDuration(track.durationS)} label="total" />
-          <PlanNum value={formatPace(track.distanceM, track.durationS, km)} label={`pace /${distanceUnit(km)}`} />
+          <PlanNum value={formatDuration(track.durationS)} label={ui().run.total} />
+          <PlanNum value={formatPace(track.distanceM, track.durationS, km)} label={ui().run.paceX(distanceUnit(km))} />
         </View>
         {lightControls}
       </View>
@@ -662,7 +661,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         <View style={styles.liveTop}>
           <View style={styles.statusPill}>
             <View style={[styles.dot, { backgroundColor: halted ? colors.butter : colors.mint }]} />
-            <Text style={[styles.statusText, { color: halted ? colors.butter : colors.mint }]}>{autoPaused ? 'Auto-paused' : paused ? 'Paused' : 'Recording'}</Text>
+            <Text style={[styles.statusText, { color: halted ? colors.butter : colors.mint }]}>{autoPaused ? ui().run.autoPaused : paused ? ui().run.paused : ui().run.recording}</Text>
           </View>
           <View style={styles.statusPill}>
             <Text style={[styles.statusText, { color: colors.onInkMuted }]}>{gpsLabel(track.gps)}</Text>
@@ -672,8 +671,8 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         {mapFront ? (
           <View style={styles.strip}>
             <StripStat value={formatDistanceNumber(track.distanceM, km)} label={distanceUnit(km)} />
-            <StripStat value={formatDuration(track.durationS)} label="time" />
-            <StripStat value={formatPace(track.distanceM, track.durationS, km)} label={`avg /${distanceUnit(km)}`} />
+            <StripStat value={formatDuration(track.durationS)} label={ui().run.time} />
+            <StripStat value={formatPace(track.distanceM, track.durationS, km)} label={ui().run.avgX(distanceUnit(km))} />
           </View>
         ) : (
           <LiveNumbers km={km} t={track} guided={guided} />
@@ -684,17 +683,17 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         {settings.musicStrip && <MusicStrip appKey={settings.musicApp} />}
 
         <View style={{ alignItems: 'center' }}>
-          <Pressable onPress={toggleMap} accessibilityRole="button" accessibilityLabel={mapFront ? 'Show numbers' : 'Show map'} style={({ pressed }) => [styles.mapToggle, pressed && { opacity: 0.85 }]}>
-            <Text style={styles.mapToggleText}>{mapFront ? 'Numbers' : 'Map'}</Text>
+          <Pressable onPress={toggleMap} accessibilityRole="button" accessibilityLabel={mapFront ? ui().run.showNumbers : ui().run.showMap} style={({ pressed }) => [styles.mapToggle, pressed && { opacity: 0.85 }]}>
+            <Text style={styles.mapToggleText}>{mapFront ? ui().run.numbers : ui().run.map}</Text>
           </Pressable>
         </View>
 
         <View style={styles.controls}>
-          <Pressable onPress={onPauseResume} accessibilityRole="button" accessibilityLabel={paused ? 'Resume' : 'Pause'} style={styles.roundBtn}>
+          <Pressable onPress={onPauseResume} accessibilityRole="button" accessibilityLabel={paused ? ui().run.resume : ui().run.pause} style={styles.roundBtn}>
             <Text style={styles.roundGlyph}>{paused ? '▶' : '❚❚'}</Text>
           </Pressable>
           <Pressable onPress={() => lap()} disabled={paused} accessibilityRole="button" style={({ pressed }) => [styles.lapBtn, pressed && { opacity: 0.85 }, paused && { opacity: 0.4 }]}>
-            <Text style={styles.lapText}>Lap</Text>
+            <Text style={styles.lapText}>{ui().run.lap}</Text>
           </Pressable>
           <StopButton onStop={() => void onStop()} />
         </View>
@@ -748,9 +747,9 @@ function StopButton({ onStop, wide }: { onStop: () => void; wide?: boolean }) {
 
   function press() {
     if (!reader) return;
-    Alert.alert('Stop the run?', undefined, [
-      { text: 'Keep running', style: 'cancel' },
-      { text: 'Stop', onPress: onStop },
+    Alert.alert(ui().run.stopTheRun, undefined, [
+      { text: ui().run.keepRunning, style: 'cancel' },
+      { text: ui().run.stop, onPress: onStop },
     ]);
   }
 
@@ -758,7 +757,7 @@ function StopButton({ onStop, wide }: { onStop: () => void; wide?: boolean }) {
     <View style={wide && { flex: 1 }}>
       {hint && (
         <View style={styles.holdHint} pointerEvents="none">
-          <Text style={styles.holdHintText}>Hold to stop</Text>
+          <Text style={styles.holdHintText}>{ui().run.holdToStop}</Text>
         </View>
       )}
       <Pressable
@@ -766,15 +765,15 @@ function StopButton({ onStop, wide }: { onStop: () => void; wide?: boolean }) {
         onPressOut={pressOut}
         onPress={press}
         accessibilityRole="button"
-        accessibilityLabel="Stop run"
-        accessibilityHint={reader ? 'Asks before ending the run.' : 'Hold for a second to end the run.'}
+        accessibilityLabel={ui().run.stopRun}
+        accessibilityHint={reader ? ui().run.asksBeforeEndingTheRun : ui().run.holdForASecondTo}
         style={[wide ? styles.stopWide : styles.roundBtn, { backgroundColor: colors.peach, overflow: 'hidden' }]}
       >
         {wide ? (
           <>
             {/* The pill fills from the left as you hold. */}
             <Animated.View pointerEvents="none" style={[styles.stopFillWide, { transform: [{ scaleX: fill }] }]} />
-            <Text style={styles.stopWideText}>Hold to stop</Text>
+            <Text style={styles.stopWideText}>{ui().run.holdToStop}</Text>
           </>
         ) : (
           <>
@@ -821,23 +820,23 @@ function CalmGlyph() {
 function LiveNumbers({ km, t, guided }: { km: boolean; t: TrackingState; guided: GuidedRun | null }) {
   const cur = t.currentKm;
   // One sentence for a screen reader instead of seven loose numbers.
-  const now = t.speedMps >= 0.5 ? spokenPace(1000, 1000 / t.speedMps, km) : 'no pace';
+  const now = t.speedMps >= 0.5 ? spokenPace(1000, 1000 / t.speedMps, km) : ui().run.noPace;
   const step = guided && !guided.view.finished && guided.view.step ? `${stepLine(guided.view.step)}, ${formatLeft(guided.view)}. ` : '';
-  const spoken = `${step}${spokenRun(t, km)}, right now ${now}, climb ${formatElevation(t.elevationGainM, km)}`;
+  const spoken = ui().run.xXRightNowX(step, spokenRun(t, km), now, formatElevation(t.elevationGainM, km));
   return (
     <View style={{ gap: spacing.md }} pointerEvents="none" accessible accessibilityLabel={spoken}>
       {guided && <GuidedStrip g={guided} />}
       <View style={styles.hero}>
         <Text style={styles.heroValue} adjustsFontSizeToFit numberOfLines={1} maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>{formatDistanceNumber(t.distanceM, km)}</Text>
-        <Text style={styles.heroUnit}>{km ? 'kilometres' : 'miles'}</Text>
+        <Text style={styles.heroUnit}>{ui().run.unitWord(km)}</Text>
       </View>
       <View style={styles.numRow}>
-        <LiveStat value={formatDuration(t.durationS)} label="time" color={colors.mint} />
-        <LiveStat value={formatPace(t.distanceM, t.durationS, km)} label={`avg /${distanceUnit(km)}`} color={colors.peach} />
-        <LiveStat value={formatSpeedAsPace(t.speedMps, km)} label="right now" color={colors.lilac} />
+        <LiveStat value={formatDuration(t.durationS)} label={ui().run.time} color={colors.mint} />
+        <LiveStat value={formatPace(t.distanceM, t.durationS, km)} label={ui().run.avgX(distanceUnit(km))} color={colors.peach} />
+        <LiveStat value={formatSpeedAsPace(t.speedMps, km)} label={ui().run.rightNow} color={colors.lilac} />
       </View>
       <Text style={styles.splitLine} numberOfLines={1} adjustsFontSizeToFit>
-        {km ? 'km' : 'mile'} {t.splits.length + 1} · {formatPace(cur.distanceM, cur.durationS, km)} · climb {formatElevation(t.elevationGainM, km)}
+        {ui().run.splitLine(km, t.splits.length + 1, formatPace(cur.distanceM, cur.durationS, km), formatElevation(t.elevationGainM, km))}
       </Text>
     </View>
   );
@@ -853,11 +852,11 @@ function GuidedStrip({ g }: { g: GuidedRun }) {
       <View style={styles.guidedTop}>
         <View style={[styles.statDot, { backgroundColor: fill }]} />
         <Text style={styles.guidedLabel} numberOfLines={1}>
-          {v.finished ? `${g.session.title} · done` : `Step ${v.index + 1} of ${v.total} · ${g.session.title}`}
+          {v.finished ? ui().run.xDone(g.session.title) : ui().run.stepXOfXX(v.index + 1, v.total, g.session.title)}
         </Text>
       </View>
       <Text style={styles.guidedStep} numberOfLines={2}>
-        {v.finished ? 'That is the session. Easy to the door.' : step ? stepLine(step) : ''}
+        {v.finished ? ui().run.thatIsTheSessionEasy : step ? stepLine(step) : ''}
       </Text>
       {!v.finished && (
         <View style={styles.guidedBar}>
@@ -865,7 +864,7 @@ function GuidedStrip({ g }: { g: GuidedRun }) {
         </View>
       )}
       <Text style={styles.guidedNext} numberOfLines={1}>
-        {v.finished ? '' : `${formatLeft(v)}${v.next ? ` · then ${stepLine(v.next)}` : ' · last step'}`}
+        {v.finished ? '' : `${formatLeft(v)}${v.next ? ui().run.thenX(stepLine(v.next)) : ui().run.lastStep}`}
       </Text>
     </View>
   );
@@ -893,9 +892,9 @@ function StripStat({ value, label }: { value: string; label: string }) {
 }
 
 function gpsLabel(q: TrackingState['gps']): string {
-  if (q === 'searching') return 'Finding you…';
-  if (q === 'lost') return 'GPS lost';
-  return `GPS ${q}`;
+  if (q === 'searching') return ui().run.findingYou;
+  if (q === 'lost') return ui().run.gpsLost2;
+  return ui().run.gps[q] ?? `GPS ${q}`;
 }
 
 function Tile({ bg, fg, value, label, small }: { bg: string; fg: string; value: string; label: string; small?: boolean }) {
@@ -919,11 +918,11 @@ function Stat({ value, label, big }: { value: string; label: string; big?: boole
 /** Energy before → after, the run's recharge. Fills in as you pick below. */
 function Recharge({ before, after }: { before: Mood | null; after: Mood | null }) {
   if (before == null && after == null) {
-    return <Text style={styles.rechargeText}>How’s your energy now? Pick it below.</Text>;
+    return <Text style={styles.rechargeText}>{ui().run.howSYourEnergyNow}</Text>;
   }
   const d = before != null && after != null ? after - before : null;
   const verdict =
-    d == null ? (after == null ? 'and now? Pick it below.' : '') : d > 0 ? `Recharged +${d}` : d === 0 ? 'Held steady' : 'Spent. That counts too.';
+    d == null ? (after == null ? ui().run.andNowPickItBelow : '') : d > 0 ? ui().run.rechargedX(d) : d === 0 ? ui().run.heldSteady : ui().run.spentThatCountsToo;
   return (
     <View style={styles.recharge}>
       <View style={styles.rechargeFaces}>
@@ -937,7 +936,7 @@ function Recharge({ before, after }: { before: Mood | null; after: Mood | null }
 }
 
 function finishLine(): string {
-  const lines = ['Nobody saw that.\nWhich was the plan.', 'That’s one.\nQuietly logged.', 'Done.\nGo be unavailable.', 'Legs did the talking.'];
+  const lines = [ui().run.nobodySawThatWhichWas, ui().run.thatSOneQuietlyLogged, ui().run.doneGoBeUnavailable, ui().run.legsDidTheTalking];
   return lines[Math.floor(Date.now() / 60000) % lines.length];
 }
 

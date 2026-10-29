@@ -2,12 +2,13 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, type ViewStyle } from 'react-native';
 import { useBack } from '../back';
 import { colors, fonts, radius } from '../theme';
+import { ui } from '../i18n/ui';
 
 /**
  * The way out of a sub-screen: a pill you can find with a thumb, and the
  * phone's back gesture does the same thing while it's on screen.
  */
-export function BackButton({ label = 'Back', onPress, onInk, style }: { label?: string; onPress: () => void; onInk?: boolean; style?: ViewStyle }) {
+export function BackButton({ label = ui().backButton.back, onPress, onInk, style }: { label?: string; onPress: () => void; onInk?: boolean; style?: ViewStyle }) {
   useBack(() => {
     onPress();
     return true;
@@ -16,7 +17,7 @@ export function BackButton({ label = 'Back', onPress, onInk, style }: { label?: 
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`Back to ${label}`}
+      accessibilityLabel={ui().backButton.backToX(label)}
       hitSlop={10}
       style={({ pressed }) => [styles.pill, onInk && styles.pillInk, pressed && { opacity: 0.8 }, style]}
     >

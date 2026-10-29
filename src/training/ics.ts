@@ -1,6 +1,7 @@
 // A plan as an iCalendar file: one all-day event per session, so any calendar
 // app can show the week. No calendar permission needed; the file is shared.
 
+import { ui } from '../i18n/ui';
 import type { Plan, Session } from './types';
 
 function ymd(day: number): string {
@@ -43,8 +44,8 @@ function utf8Len(ch: string): number {
 function event(plan: Plan, s: Session, now: number): string[] {
   const next = new Date(s.date);
   next.setDate(next.getDate() + 1);
-  const title = s.kind === 'strength' ? `Runtrovert: ${s.title} (optional)` : `Runtrovert: ${s.title}`;
-  const desc = `${s.summary}\n\n${s.why}\n\n${plan.name}, week ${s.id.match(/^w(\d+)/)?.[1] ?? ''}.`;
+  const title = s.kind === 'strength' ? ui().ics.titleOptional(s.title) : ui().ics.title(s.title);
+  const desc = `${s.summary}\n\n${s.why}\n\n${ui().ics.planWeek(plan.name, s.id.match(/^w(\d+)/)?.[1] ?? '')}`;
   return [
     'BEGIN:VEVENT',
     `UID:runtrovert-plan${plan.id}-${s.id}@local`,

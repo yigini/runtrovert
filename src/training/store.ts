@@ -10,6 +10,7 @@ import { generate } from './generate';
 import type { Paces } from './paces';
 import { profileFrom } from './profile';
 import type { Plan, PlanSetup, Session, Week } from './types';
+import { ui } from '../i18n/ui';
 
 const KEY = 'trainingPlan';
 
@@ -60,7 +61,7 @@ export function createPlan(spec: PlanSpec, setup: PlanSetup, runner: RunnerProfi
 
 export function planSpec(plan: Plan): PlanSpec {
   const spec = planById(plan.setup.planId);
-  if (!spec) throw new Error(`unknown plan ${plan.setup.planId}`);
+  if (!spec) throw new Error(ui().planStore.unknownPlanX(plan.setup.planId));
   return spec;
 }
 
@@ -197,7 +198,7 @@ export function markDone(plan: Plan, sessionId: string, now = Date.now()): Plan 
   if (s && !s.done) {
     s.done = { runId: 0, distanceM: s.km * 1000, durationS: s.minutes * 60, at: dayStart(now) };
     s.skipped = false;
-    s.note = s.note ?? 'Done without the app.';
+    s.note = s.note ?? ui().planStore.doneWithoutTheApp;
   }
   return p;
 }
@@ -207,7 +208,7 @@ export function skipSession(plan: Plan, sessionId: string): Plan {
   const s = sessionById(p, sessionId);
   if (s && !s.done) {
     s.skipped = true;
-    s.note = 'Skipped. Nothing lost.';
+    s.note = ui().planStore.skippedNothingLost;
   }
   return p;
 }

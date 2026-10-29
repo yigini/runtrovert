@@ -7,17 +7,19 @@
 
 import { finish, monthName } from './i18n/lang';
 import { voice } from './i18n/voice';
+import { live } from './i18n/ui';
 
 export type EffortKey = '1k' | 'mile' | '5k' | '10k' | 'half' | 'full';
 
-export const EFFORTS: Array<{ key: EffortKey; m: number; label: string }> = [
-  { key: '1k', m: 1000, label: '1 km' },
-  { key: 'mile', m: 1609.344, label: '1 mile' },
-  { key: '5k', m: 5000, label: '5 km' },
-  { key: '10k', m: 10000, label: '10 km' },
-  { key: 'half', m: 21097.5, label: 'half marathon' },
-  { key: 'full', m: 42195, label: 'marathon' },
-];
+// Labels come from the voice pack, in the runner's language.
+export const EFFORTS: Array<{ key: EffortKey; m: number; label: string }> = live(() => [
+  { key: '1k', m: 1000, label: voice().effort['1k'] },
+  { key: 'mile', m: 1609.344, label: voice().effort.mile },
+  { key: '5k', m: 5000, label: voice().effort['5k'] },
+  { key: '10k', m: 10000, label: voice().effort['10k'] },
+  { key: 'half', m: 21097.5, label: voice().effort.half },
+  { key: 'full', m: 42195, label: voice().effort.full },
+]);
 
 /** Fastest seconds over each distance, found anywhere inside one run. */
 export type Efforts = Partial<Record<EffortKey, number>>;

@@ -4,6 +4,7 @@ import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { appByKey, canControl, isPlaying, openMusicApp, press } from '../music';
 import { colors, fonts, radius } from '../theme';
+import { ui } from '../i18n/ui';
 
 /**
  * One quiet row on the run screen: your music app on the left, and on Android
@@ -41,28 +42,28 @@ export function MusicStrip({ appKey }: { appKey: string | null }) {
     setTimeout(() => setPlaying(isPlaying()), 700);
   }
 
-  const name = app?.name ?? 'Music';
+  const name = app?.name ?? ui().musicStrip.music;
   return (
     <View style={styles.row}>
       <Pressable
         onPress={() => openMusicApp(appKey)}
         accessibilityRole="button"
-        accessibilityLabel={`Open ${name}`}
+        accessibilityLabel={ui().musicStrip.openX(name)}
         style={({ pressed }) => [styles.app, !canControl && { flex: 1 }, pressed && { opacity: 0.8 }]}
       >
         <NoteGlyph />
-        <Text style={styles.appText} numberOfLines={1}>{canControl ? name : `Open ${name}`}</Text>
+        <Text style={styles.appText} numberOfLines={1}>{canControl ? name : ui().musicStrip.openX(name)}</Text>
         <ArrowGlyph />
       </Pressable>
       {canControl && (
         <View style={styles.buttons}>
-          <Btn label="Previous track" onPress={() => onPress('previous')}>
+          <Btn label={ui().musicStrip.previousTrack} onPress={() => onPress('previous')}>
             <SkipGlyph flip />
           </Btn>
-          <Btn label={playing ? 'Pause music' : 'Play music'} onPress={() => onPress('toggle')} main>
+          <Btn label={playing ? ui().musicStrip.pauseMusic : ui().musicStrip.playMusic} onPress={() => onPress('toggle')} main>
             {playing ? <PauseGlyph /> : <PlayGlyph />}
           </Btn>
-          <Btn label="Next track" onPress={() => onPress('next')}>
+          <Btn label={ui().musicStrip.nextTrack} onPress={() => onPress('next')}>
             <SkipGlyph />
           </Btn>
         </View>

@@ -7,6 +7,7 @@ import { parseGpx, writeGpx } from './gpx';
 import { EMPTY_TALLY, runFileName, sameRun, shapeRun, sniff, tallySkips, type ImportTally, type KnownRun } from './shape';
 import type { ParseResult, SourceKind } from './types';
 import { ZipWriter } from './zip';
+import { ui } from '../i18n/ui';
 
 // The glue between files and stored runs. Files only arrive through the
 // system file picker and only leave through the share sheet: no storage
@@ -66,7 +67,7 @@ export async function pickAndImport(onProgress?: (done: number, total: number) =
 }
 
 async function share(file: File, mimeType: string, UTI: string, dialogTitle: string): Promise<void> {
-  if (!(await Sharing.isAvailableAsync())) throw new Error(`Sharing isn't available here. The file is at ${file.uri}.`);
+  if (!(await Sharing.isAvailableAsync())) throw new Error(ui().store.sharingIsnTAvailableHere(file.uri));
   await Sharing.shareAsync(file.uri, { mimeType, UTI, dialogTitle });
 }
 
@@ -81,10 +82,10 @@ export async function shareRunGpx(runId: number): Promise<void> {
   const run = await getRun(runId);
   if (!run) return;
   const points = await getPoints(runId);
-  if (!points.length) throw new Error('This run has no route to save, only its numbers.');
+  if (!points.length) throw new Error(ui().store.thisRunHasNoRoute);
   const file = fresh(runFileName(run.startedAt, 'gpx'));
   await file.write(writeGpx({ startedAt: run.startedAt, points }));
-  await share(file, 'application/gpx+xml', 'com.topografix.gpx', 'Save the run as GPX');
+  await share(file, 'application/gpx+xml', 'com.topografix.gpx', ui().store.saveTheRunAsGpx);
 }
 
 /**
@@ -128,6 +129,6 @@ export async function shareAllRuns(format: 'gpx' | 'fit', onProgress?: (done: nu
     handle.close();
   }
   onProgress?.(runs.length, runs.length);
-  await share(file, 'application/zip', 'public.zip-archive', format === 'gpx' ? 'All your runs as GPX' : 'All your runs as FIT');
+  await share(file, 'application/zip', 'public.zip-archive', format === 'gpx' ? ui().store.allYourRunsAsGpx : ui().store.allYourRunsAsFit);
   return { files, skipped };
 }

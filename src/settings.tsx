@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import { loadSettings, saveSettings } from './db';
 import { applySettings } from './tracking';
 import { DEFAULT_SETTINGS, type Settings } from './types';
+import { setLang } from './i18n/lang';
 
 interface Ctx {
   settings: Settings;
@@ -17,6 +18,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     loadSettings().then((s) => {
+      setLang(s.language);
       setSettings(s);
       applySettings(s);
       setReady(true);
@@ -26,6 +28,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const update = useCallback((patch: Partial<Settings>) => {
     setSettings((prev) => {
       const next = { ...prev, ...patch };
+      setLang(next.language);
       applySettings(next);
       saveSettings(next);
       return next;

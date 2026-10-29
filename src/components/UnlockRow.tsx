@@ -1,18 +1,19 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, radius, spacing, type } from '../theme';
-import { UNLOCKED_BUILD, UNLOCK_NAME, UNLOCK_PRICE } from '../unlock';
+import { UNLOCKED_BUILD, unlockName, UNLOCK_PRICE } from '../unlock';
 import { openUnlock, useUnlockState, useUnlocked } from '../unlockState';
+import { ui } from '../i18n/ui';
 
 /** The top row of Settings, always there: the one permanent place the unlock lives. */
 export function UnlockSettingsRow() {
   const unlocked = useUnlocked();
   const { owned } = useUnlockState();
-  const detail = owned ? "It's yours. Thank you." : unlocked && UNLOCKED_BUILD ? 'Unlocked in this test build.' : `Plans, months of trends, backup. ${UNLOCK_PRICE}, one time.`;
+  const detail = owned ? ui().unlockRow.itSYoursThankYou : unlocked && UNLOCKED_BUILD ? ui().unlockRow.unlockedInThisTestBuild : ui().unlockRow.plansMonthsOfTrendsBackup(UNLOCK_PRICE);
   return (
-    <Pressable onPress={openUnlock} accessibilityRole="button" accessibilityLabel={`${UNLOCK_NAME}. ${detail}`} style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]}>
+    <Pressable onPress={openUnlock} accessibilityRole="button" accessibilityLabel={`${unlockName()}. ${detail}`} style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]}>
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={styles.title}>{UNLOCK_NAME}</Text>
+        <Text style={styles.title}>{unlockName()}</Text>
         <Text style={styles.detail}>{detail}</Text>
       </View>
       <Text style={styles.chev} importantForAccessibility="no" accessibilityElementsHidden>
@@ -26,15 +27,13 @@ export function UnlockSettingsRow() {
 export function MoneyNote() {
   return (
     <View style={styles.money}>
-      <Text style={[type.eyebrow, { color: colors.butterDeep }]} accessibilityRole="header">
-        How this app makes money
-      </Text>
+      <Text style={[type.eyebrow, { color: colors.butterDeep }]} accessibilityRole="header">{ui().unlockRow.howThisAppMakesMoney}</Text>
       <Text style={styles.moneyText}>
-        One optional payment,{' '}
+        {ui().unlockRow.moneyBefore}
         <Text style={styles.link} onPress={openUnlock} accessibilityRole="link">
-          {UNLOCK_NAME}
+          {unlockName()}
         </Text>
-        . No subscription, no data sold, no annoying or intrusive ads. The sponsor shelf in Listen is labelled, and it can't see you.
+        {ui().unlockRow.moneyAfter}
       </Text>
     </View>
   );

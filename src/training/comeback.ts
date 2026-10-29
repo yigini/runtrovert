@@ -11,6 +11,7 @@ import { addDays, dayStart, daysBetween, mondayOf } from './dates';
 import { generate } from './generate';
 import { validatePlan } from './rules';
 import type { Plan, Week } from './types';
+import { ui } from '../i18n/ui';
 
 /** Days without a run before Run home says welcome back. Reminders go quiet at the same point. */
 export const WELCOME_BACK_DAYS = AWAY_QUIET_DAYS;
@@ -55,11 +56,11 @@ export function stoppedWeek(plan: Plan, lastRunAt: number | null, today: number)
 export function comebackOptions(plan: Plan, today: number, lastRunAt: number | null): { options: ComebackOption[]; recommended: ComebackChoice } {
   const gap = missedState(plan, today, lastRunAt).gapDays;
   const options: ComebackOption[] = [
-    { key: 'ease', title: 'Ease back in', hint: gap >= 14 ? 'Gentler after more than two weeks off: about 60% of your last full week, then it builds again.' : 'About 60% of your last full week, then it builds again.' },
+    { key: 'ease', title: ui().comeback.easeBackIn, hint: gap >= 14 ? ui().comeback.gentlerAfterMoreThanTwo : ui().comeback.about60OfYourLast },
   ];
-  if (gap < 28) options.push({ key: 'pickup', title: 'Pick up where you stopped', hint: 'Where you stopped. The same amount as your last full week, on new dates.' });
-  options.push({ key: 'restart', title: 'Start the plan again', hint: 'Back to week 1, from today.' });
-  options.push({ key: 'pause', title: 'Leave it paused', hint: 'Run freely. The plan stays where it is.' });
+  if (gap < 28) options.push({ key: 'pickup', title: ui().comeback.pickUpWhereYouStopped, hint: ui().comeback.whereYouStoppedTheSame });
+  options.push({ key: 'restart', title: ui().comeback.startThePlanAgain, hint: ui().comeback.backToWeek1From });
+  options.push({ key: 'pause', title: ui().comeback.leaveItPaused, hint: ui().comeback.runFreelyThePlanStays });
   return { options, recommended: gap >= 14 ? 'ease' : 'pickup' };
 }
 
@@ -82,7 +83,7 @@ export function checkedOptions(plan: Plan, today: number, lastRunAt: number | nu
   }
   const pick = out.find((o) => o.key === recommended) ?? out.find((o) => o.key !== 'pause') ?? out[out.length - 1];
   // Nothing but pause passed: say why, and where the gentler plan is.
-  const note = pick.key === 'pause' ? 'After this long, this plan cannot pick up again within its own rules. Run freely for now, or start Come back in Train: it is made for this.' : null;
+  const note = pick.key === 'pause' ? ui().comeback.afterThisLongThisPlan : null;
   return { options: out, recommended: pick.key, note };
 }
 
@@ -97,13 +98,13 @@ export function keepsRules(plan: Plan, spec: PlanSpec, today: number): boolean {
 export function choiceLine(choice: ComebackChoice): string {
   switch (choice) {
     case 'ease':
-      return 'Easing back in from today';
+      return ui().comeback.easingBackInFromToday;
     case 'pickup':
-      return 'Picked up from today';
+      return ui().comeback.pickedUpFromToday;
     case 'restart':
-      return 'Started again at week 1';
+      return ui().comeback.startedAgainAtWeek1;
     case 'pause':
-      return 'Paused for now';
+      return ui().comeback.pausedForNow;
   }
 }
 
@@ -122,7 +123,7 @@ export function applyComeback(plan: Plan, choice: ComebackChoice, today: number,
     return { ok: true, plan: withStatus(plan, 'paused', day) };
   }
   const spec = planById(plan.setup.planId);
-  if (!spec) return { ok: false, message: 'This plan is no longer in the catalogue.' };
+  if (!spec) return { ok: false, message: ui().comeback.thisPlanIsNoLonger };
   const base = plan.status === 'paused' ? withStatus(plan, 'active', day) : plan;
   if (choice === 'restart') {
     const setup = { ...base.setup, startDate: day };
@@ -136,11 +137,11 @@ export function applyComeback(plan: Plan, choice: ComebackChoice, today: number,
       setup,
       weeks: res.weeks,
       runner: { ...from, longestKm30: from.longestKm30 > 0 ? from.longestKm30 : res.assumedLongestKm },
-      log: [...base.log, { at: day, kind: 'rebuilt', reason: 'Back after a break: started the plan again at week 1.' }],
+      log: [...base.log, { at: day, kind: 'rebuilt', reason: ui().comeback.backAfterABreakStarted }],
     };
     return { ok: true, plan: p };
   }
-  const reason = choice === 'ease' ? 'Back after a break: eased back in at about 60% of the last full week.' : 'Back after a break: picked up at the volume of the last full week.';
+  const reason = choice === 'ease' ? ui().comeback.backAfterABreakEased : ui().comeback.backAfterABreakPicked;
   return rebuild(base, spec, day, runner, choice === 'ease' ? 'stepback' : 'repeat', reason);
 }
 

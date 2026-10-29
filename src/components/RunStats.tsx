@@ -7,13 +7,14 @@ import { clock } from '../sky';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import { BUSY_LABEL } from '../places';
 import { SplitsTable, type SplitRow } from './SplitsTable';
+import { live, ui } from '../i18n/ui';
 
 // The stats page for one run: the four numbers first, big and plain, then the
 // run drawn out (pace and hills along the way, splits, halves, the sun), then a
 // handful of odd little facts. Everything comes from the stored fixes.
 
 const QUIET = BUSY_LABEL;
-const MOOD = ['', 'Drained', 'Low', 'Okay', 'Good', 'Recharged'];
+const MOOD: Record<number, string> = live(() => ui().common.mood);
 
 export interface RunStatsProps {
   run: StatRun & { quiet?: 'crowded' | 'some' | 'empty' | null; moodBefore?: number | null; moodAfter?: number | null };
@@ -44,7 +45,7 @@ export function RunStatsView({ run, points, splits, laps = [], partial, sun, km,
           <SeriesChart series={stats.pace} kind="pace" stats={stats} at={at} onAt={setAt} km={km} />
           {stats.elevation.length > 0 && (
             <>
-              <Text style={[styles.eyebrow, { marginTop: spacing.sm }]}>Up and down</Text>
+              <Text style={[styles.eyebrow, { marginTop: spacing.sm }]}>{ui().runStats.upAndDown}</Text>
               <SeriesChart series={stats.elevation} kind="elevation" stats={stats} at={at} onAt={setAt} km={km} />
             </>
           )}
@@ -52,12 +53,12 @@ export function RunStatsView({ run, points, splits, laps = [], partial, sun, km,
         </View>
       ) : (
         <View style={[styles.card, { backgroundColor: colors.lilacSoft }]}>
-          <Text style={styles.emptyTitle}>Too short to draw.</Text>
-          <Text style={type.small}>Charts start after about 400 m. The next one will have them.</Text>
+          <Text style={styles.emptyTitle}>{ui().runStats.tooShortToDraw}</Text>
+          <Text style={type.small}>{ui().runStats.chartsStartAfterAbout400}</Text>
         </View>
       )}
-      <SplitsTable title={`Splits per ${distanceUnit(km)}`} rows={splits} km={km} partial={partial} />
-      {laps.length > 0 && <SplitsTable title="Laps" rows={laps} km={km} />}
+      <SplitsTable title={ui().runStats.splitsPerX(distanceUnit(km))} rows={splits} km={km} partial={partial} />
+      {laps.length > 0 && <SplitsTable title={ui().runStats.laps} rows={laps} km={km} />}
       {stats.halves && <HalvesBar halves={stats.halves} />}
       {stats.light && <DayArc light={stats.light} />}
       <Facts run={run} stats={stats} km={km} />
@@ -75,9 +76,9 @@ function Hero({ run, km }: { run: StatRun; km: boolean }) {
         <Text style={styles.heroUnit}>{run.distanceM < 1000 && km ? 'm' : distanceUnit(km)}</Text>
       </View>
       <View style={styles.heroRow}>
-        <HeroStat value={formatDuration(run.durationS)} label="Time" tone={colors.mint} />
-        <HeroStat value={formatPace(run.distanceM, run.durationS, km)} label={`Pace /${distanceUnit(km)}`} tone={colors.peach} />
-        <HeroStat value={formatElevation(run.elevationGainM, km)} label="Climb" tone={colors.sky} />
+        <HeroStat value={formatDuration(run.durationS)} label={ui().runStats.time} tone={colors.mint} />
+        <HeroStat value={formatPace(run.distanceM, run.durationS, km)} label={ui().runStats.paceX(distanceUnit(km))} tone={colors.peach} />
+        <HeroStat value={formatElevation(run.elevationGainM, km)} label={ui().runStats.climb} tone={colors.sky} />
       </View>
     </View>
   );
@@ -113,8 +114,8 @@ function Readout({ stats, at, km }: { stats: Stats; at: number | null; km: boole
   if (at == null) {
     return (
       <View style={styles.readout}>
-        <Text style={styles.eyebrow}>Pace along the way</Text>
-        <Text style={type.small}>{stats.fastest ? `Quickest stretch ${paceText(stats.fastest.pace, km)} /${unit}. Hold a finger on it to look closer.` : 'Hold a finger on it to look closer.'}</Text>
+        <Text style={styles.eyebrow}>{ui().runStats.paceAlongTheWay}</Text>
+        <Text style={type.small}>{stats.fastest ? ui().runStats.quickestStretchXXHold(paceText(stats.fastest.pace, km), unit) : ui().runStats.holdAFingerOnIt}</Text>
       </View>
     );
   }
@@ -123,10 +124,10 @@ function Readout({ stats, at, km }: { stats: Stats; at: number | null; km: boole
   const up = e && stats.lowM != null ? e.v - stats.lowM : null;
   return (
     <View style={styles.readout}>
-      <Text style={styles.eyebrow}>At {formatDistance(p.d, km)}</Text>
+      <Text style={styles.eyebrow}>{ui().runStats.atX(formatDistance(p.d, km))}</Text>
       <Text style={styles.readoutValue}>
         {paceText(p.v, km)} /{unit}
-        {up != null ? `  ·  ${formatElevation(up, km)} above the lowest point` : ''}
+        {up != null ? ui().runStats.xAboveTheLowestPoint(formatElevation(up, km)) : ''}
       </Text>
     </View>
   );
@@ -185,8 +186,8 @@ function SeriesChart({ series, kind, stats, at, onAt, km }: { series: SeriesPoin
       accessible
       accessibilityLabel={
         kind === 'pace'
-          ? `Pace along the run. Average ${stats.avgPace ? paceText(stats.avgPace, km) : 'unknown'} per ${distanceUnit(km)}.`
-          : `Elevation along the run, from ${formatElevation(stats.lowM ?? 0, km)} to ${formatElevation(stats.highM ?? 0, km)}.`
+          ? ui().runStats.paceAlongTheRunAverage(stats.avgPace ? paceText(stats.avgPace, km) : ui().runStats.unknown, distanceUnit(km))
+          : ui().runStats.elevationAlongTheRunFrom(formatElevation(stats.lowM ?? 0, km), formatElevation(stats.highM ?? 0, km))
       }
     >
       {w > 0 && (
@@ -204,10 +205,10 @@ function SeriesChart({ series, kind, stats, at, onAt, km }: { series: SeriesPoin
         </Svg>
       )}
       {kind === 'pace' && avgY != null && w > 0 && (
-        <Text style={[styles.axisNote, { top: Math.max(0, Math.min(h - 16, avgY - 16)), right: 0 }]}>avg {paceText(stats.avgPace!, km)}</Text>
+        <Text style={[styles.axisNote, { top: Math.max(0, Math.min(h - 16, avgY - 16)), right: 0 }]}>{ui().runStats.avgX(paceText(stats.avgPace!, km))}</Text>
       )}
       {kind === 'elevation' && stats.highM != null && stats.lowM != null && (
-        <Text style={[styles.axisNote, { top: 0, right: 0 }]}>{Math.round(stats.highM - stats.lowM) <= 3 ? 'flat as a table' : `${formatElevation(stats.highM - stats.lowM, km)} top to bottom`}</Text>
+        <Text style={[styles.axisNote, { top: 0, right: 0 }]}>{Math.round(stats.highM - stats.lowM) <= 3 ? ui().runStats.flatAsATable : ui().runStats.xTopToBottom(formatElevation(stats.highM - stats.lowM, km))}</Text>
       )}
     </View>
   );
@@ -239,13 +240,13 @@ function HalvesBar({ halves }: { halves: NonNullable<Stats['halves']> }) {
   const diff = secondS - firstS;
   const pct = Math.abs(diff) / Math.max(firstS, 1);
   const verdict =
-    pct < 0.02 ? 'Even halves. Very composed.' : diff < 0 ? `Negative split, ${formatDuration(-diff)} quicker on the way home.` : `Second half ${formatDuration(diff)} slower. The first half was the fun one.`;
+    pct < 0.02 ? ui().runStats.evenHalvesVeryComposed : diff < 0 ? ui().runStats.negativeSplitXQuickerOn(formatDuration(-diff)) : ui().runStats.secondHalfXSlowerThe(formatDuration(diff));
   return (
     <View style={styles.card}>
-      <Text style={styles.eyebrow}>Halves</Text>
+      <Text style={styles.eyebrow}>{ui().runStats.halves}</Text>
       {[
-        { label: 'First half', s: firstS, tone: colors.lilac },
-        { label: 'Second half', s: secondS, tone: diff < 0 && pct >= 0.02 ? colors.mint : colors.lilac },
+        { label: ui().runStats.firstHalf, s: firstS, tone: colors.lilac },
+        { label: ui().runStats.secondHalf, s: secondS, tone: diff < 0 && pct >= 0.02 ? colors.mint : colors.lilac },
       ].map((r) => (
         <View key={r.label} style={{ gap: 4 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -299,7 +300,7 @@ function DayArc({ light }: { light: NonNullable<Stats['light']> }) {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.eyebrow}>The light</Text>
+      <Text style={styles.eyebrow}>{ui().runStats.theLight}</Text>
       <View style={{ height: h }} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
         {w > 0 && (
           <Svg width={w} height={h}>
@@ -314,7 +315,7 @@ function DayArc({ light }: { light: NonNullable<Stats['light']> }) {
         <Text style={[styles.tick, { right: 0, top: h - 14 }]}>{clock(sunset)} ↓</Text>
       </View>
       <Text style={styles.sunLine}>{light.line}</Text>
-      {darkS >= 60 && end - start > 0 && <Text style={type.small}>{Math.round(darkS / 60)} min of it under streetlights.</Text>}
+      {darkS >= 60 && end - start > 0 && <Text style={type.small}>{ui().runStats.xMinOfItUnder(Math.round(darkS / 60))}</Text>}
     </View>
   );
 }
@@ -330,24 +331,24 @@ function Facts({ run, stats, km }: { run: RunStatsProps['run']; stats: Stats; km
   const tiles: Array<{ value: string; label: string; tone: string; deep: string }> = [];
   const add = (value: string, label: string, tone: string, deep: string) => tiles.push({ value, label, tone, deep });
 
-  if (stats.steadiness) add(stats.steadiness.word, `pace within ±${stats.steadiness.spread} s most of the way`, colors.lilacSoft, colors.lilacDeep);
-  if (stats.fastest) add(`${paceText(stats.fastest.pace, km)} /${unit}`, `your quickest 200 m, around ${formatDistance(stats.fastest.d, km)} in`, colors.peach, colors.peachDeep);
-  if (stats.light && stats.light.darkS >= 60) add(`${Math.round(stats.light.darkS / 60)} min`, 'under streetlights', colors.butter, colors.butterDeep);
-  if (stats.steps) add(`≈ ${thousands(stats.steps)}`, 'steps, roughly', colors.mintSoft, colors.mintDeep);
-  if (stats.floors) add(String(stats.floors), 'floors of stairs, in climbing', colors.sky, colors.skyDeep);
-  if (stats.highM != null && stats.lowM != null && stats.highM - stats.lowM > 3) add(formatElevation(stats.highM - stats.lowM, km), 'from the lowest point to the highest', colors.sky, colors.skyDeep);
-  if (stats.corners != null && stats.corners > 0) add(String(stats.corners), stats.corners === 1 ? 'corner taken' : 'corners taken', colors.mintSoft, colors.mintDeep);
-  if (stats.furthestM) add(formatDistance(stats.furthestM, km), 'furthest from the start, as the crow flies', colors.lilacSoft, colors.lilacDeep);
-  if (stats.loopM != null) add(formatDistance(stats.loopM, km), 'from where you began. A proper loop.', colors.mintSoft, colors.mintDeep);
-  if (stats.stoppedS) add(formatDuration(stats.stoppedS), 'standing still. Lights, laces, a view.', colors.butter, colors.butterDeep);
-  if (run.quiet) add(QUIET[run.quiet], 'how busy it was out there', colors.lilacSoft, colors.lilacDeep);
-  if (run.moodBefore && run.moodAfter) add(`${MOOD[run.moodBefore]} → ${MOOD[run.moodAfter]}`, 'your energy, before and after', colors.lilac, colors.lilacDeep);
-  if (run.distanceM >= 200) add(`${estimateCalories(run.distanceM)} kcal`, 'burned, a rough estimate', colors.peach, colors.peachDeep);
+  if (stats.steadiness) add(stats.steadiness.word, ui().runStats.paceWithinXSMost(stats.steadiness.spread), colors.lilacSoft, colors.lilacDeep);
+  if (stats.fastest) add(`${paceText(stats.fastest.pace, km)} /${unit}`, ui().runStats.yourQuickest200MAround(formatDistance(stats.fastest.d, km)), colors.peach, colors.peachDeep);
+  if (stats.light && stats.light.darkS >= 60) add(ui().common.min(Math.round(stats.light.darkS / 60)), ui().runStats.underStreetlights, colors.butter, colors.butterDeep);
+  if (stats.steps) add(`≈ ${thousands(stats.steps)}`, ui().runStats.stepsRoughly, colors.mintSoft, colors.mintDeep);
+  if (stats.floors) add(String(stats.floors), ui().runStats.floorsOfStairsInClimbing, colors.sky, colors.skyDeep);
+  if (stats.highM != null && stats.lowM != null && stats.highM - stats.lowM > 3) add(formatElevation(stats.highM - stats.lowM, km), ui().runStats.fromTheLowestPointTo, colors.sky, colors.skyDeep);
+  if (stats.corners != null && stats.corners > 0) add(String(stats.corners), stats.corners === 1 ? ui().runStats.cornerTaken : ui().runStats.cornersTaken, colors.mintSoft, colors.mintDeep);
+  if (stats.furthestM) add(formatDistance(stats.furthestM, km), ui().runStats.furthestFromTheStartAs, colors.lilacSoft, colors.lilacDeep);
+  if (stats.loopM != null) add(formatDistance(stats.loopM, km), ui().runStats.fromWhereYouBeganA, colors.mintSoft, colors.mintDeep);
+  if (stats.stoppedS) add(formatDuration(stats.stoppedS), ui().runStats.standingStillLightsLacesA, colors.butter, colors.butterDeep);
+  if (run.quiet) add(QUIET[run.quiet], ui().runStats.howBusyItWasOut, colors.lilacSoft, colors.lilacDeep);
+  if (run.moodBefore && run.moodAfter) add(`${MOOD[run.moodBefore]} → ${MOOD[run.moodAfter]}`, ui().runStats.yourEnergyBeforeAndAfter, colors.lilac, colors.lilacDeep);
+  if (run.distanceM >= 200) add(`${estimateCalories(run.distanceM)} kcal`, ui().runStats.burnedARoughEstimate, colors.peach, colors.peachDeep);
 
   if (!tiles.length) return null;
   return (
     <View style={{ gap: spacing.sm }}>
-      <Text style={[styles.eyebrow, { marginTop: spacing.sm }]}>Things nobody else would tell you</Text>
+      <Text style={[styles.eyebrow, { marginTop: spacing.sm }]}>{ui().runStats.thingsNobodyElseWouldTell}</Text>
       <View style={styles.grid}>
         {tiles.map((t) => (
           <View key={t.label} style={[styles.tile, { backgroundColor: t.tone }]}>

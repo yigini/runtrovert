@@ -21,6 +21,8 @@ import type { Plan, PlanSetup, Session, Step, Week } from '../training/types';
 import { LockRow } from '../components/LockRow';
 import { isUnlocked, openWeeks, planSessionOpen, planWeekOpen, trainLine } from '../unlock';
 import { openUnlock, useUnlocked } from '../unlockState';
+import { live, ui } from '../i18n/ui';
+import { dateLocale, decimal } from '../i18n/lang';
 
 /**
  * The Train tab. Without a plan: the catalogue, a plan's page, its setup and a
@@ -39,7 +41,7 @@ type Page =
   | { kind: 'away' }
   | { kind: 'ill' };
 
-const TIER_LABEL: Record<Tier, string> = { start: 'First steps', keep: 'Ongoing', comeback: 'Come back', finish: 'Finish', improve: 'Improve', race: 'Race' };
+const TIER_LABEL: Record<Tier, string> = live(() => ui().train.tier);
 const TIER_FILL: Record<Tier, string> = { start: colors.sky, keep: colors.mint, comeback: colors.lilac, finish: colors.mint, improve: colors.butter, race: colors.peach };
 const DEFAULT_DAYS: Record<number, number[]> = { 2: [2, 6], 3: [2, 4, 6], 4: [2, 4, 6, 0], 5: [1, 2, 4, 6, 0], 6: [1, 2, 3, 4, 6, 0] };
 const KM_IN_MI = 1.609344;
@@ -87,7 +89,7 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
           onStart={async () => {
             const made = createPlan(view.spec, view.setup, view.runner, view.paces);
             if (!made.ok) {
-              Alert.alert('That does not fit', made.message);
+              Alert.alert(ui().train.thatDoesNotFit, made.message);
               return;
             }
             await commit(made.plan);
@@ -118,7 +120,7 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
         onSkip={() => commit(skipSession(active, s.id))}
         onMove={(date) => {
           const r = moveSession(active, s.id, date);
-          if (!r.ok) Alert.alert('Not that day', r.reason);
+          if (!r.ok) Alert.alert(ui().train.notThatDay, r.reason);
           else commit(r.plan);
         }}
       />
@@ -168,15 +170,15 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
       onIll={() => setView({ kind: 'ill' })}
       onRebuild={async (kind) => {
         const r = rebuild(active, spec, today, profile, kind);
-        if (!r.ok) Alert.alert('Could not rebuild', r.message);
+        if (!r.ok) Alert.alert(ui().train.couldNotRebuild, r.message);
         else await commit(r.plan);
       }}
       onPause={() => commit(setStatus(active, active.status === 'paused' ? 'active' : 'paused'))}
       onStop={() => {
-        Alert.alert('Stop this plan?', 'The weeks stay in your history. You can start another any time.', [
-          { text: 'Keep going', style: 'cancel' },
+        Alert.alert(ui().train.stopThisPlan, ui().train.theWeeksStayInYour, [
+          { text: ui().train.keepGoing, style: 'cancel' },
           {
-            text: 'Stop plan',
+            text: ui().train.stopPlan,
             style: 'destructive',
             onPress: async () => {
               await commit(setStatus(active, 'stopped'));
@@ -198,12 +200,12 @@ function Catalogue({ profile, historyN, lastPlan, onPick, onRules }: { profile: 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.screen}>
       <View style={styles.topRow}>
-        <Text style={type.eyebrow}>Train</Text>
+        <Text style={type.eyebrow}>{ui().train.train}</Text>
         <SettingsGear />
       </View>
-      <Text style={styles.h1}>Structure,{'\n'}without the shouting.</Text>
-      <Text style={styles.lede}>Fourteen plans, from a first run to a marathon. Every one builds gradually, with lighter weeks for recovery, and gives way when life does. Everyone responds differently, so listen to your legs before the plan.</Text>
-      {lastPlan?.status === 'done' && <Text style={styles.note}>{lastPlan.name} is done. {planProgress(lastPlan).done} runs, {fmtKm(planProgress(lastPlan).kmDone, true)}. Quietly logged.</Text>}
+      <Text style={styles.h1}>{ui().train.structureWithoutTheShouting}</Text>
+      <Text style={styles.lede}>{ui().train.fourteenPlansFromAFirst}</Text>
+      {lastPlan?.status === 'done' && <Text style={styles.note}>{ui().train.xIsDoneXRuns(lastPlan.name, planProgress(lastPlan).done, fmtKm(planProgress(lastPlan).kmDone, true))}</Text>}
       <View style={styles.chips}>
         {goals.map((g) => (
           <Chip key={g} label={GOAL_LABEL[g]} on={goal === g} onPress={() => setGoal(g)} />
@@ -213,9 +215,9 @@ function Catalogue({ profile, historyN, lastPlan, onPick, onRules }: { profile: 
         <PlanCard key={spec.id} spec={spec} profile={profile} historyN={historyN} onPress={() => onPick(spec)} />
       ))}
       <Pressable onPress={onRules} style={{ paddingVertical: spacing.sm }} accessibilityRole="button">
-        <Text style={styles.link}>The nine rules every plan keeps →</Text>
+        <Text style={styles.link}>{ui().train.theNineRulesEveryPlan}</Text>
       </Pressable>
-      <Text style={styles.foot}>No account, no server. A plan is a file on your phone.</Text>
+      <Text style={styles.foot}>{ui().train.noAccountNoServerA}</Text>
     </ScrollView>
   );
 }
@@ -224,7 +226,7 @@ function PlanCard({ spec, profile, historyN, onPress }: { spec: PlanSpec; profil
   const gate = checkGate(spec, profile);
   const thin = historyN < 4;
   const days = spec.daysOptions.length > 1 ? `${spec.daysOptions[0]}–${spec.daysOptions[spec.daysOptions.length - 1]}` : `${spec.daysOptions[0]}`;
-  const fit = thin ? (spec.gate.text ? `Expects ${lower(spec.gate.text)}` : 'No history needed.') : gate.ok ? 'Fits where you are now.' : `${gate.reason}${gate.bridge ? ` Start with ${planById(gate.bridge)?.name ?? gate.bridge}.` : ''}`;
+  const fit = thin ? (spec.gate.text ? ui().train.expectsX(lower(spec.gate.text)) : ui().train.noHistoryNeeded) : gate.ok ? ui().train.fitsWhereYouAreNow : `${gate.reason}${gate.bridge ? ui().train.startWithX(planById(gate.bridge)?.name ?? gate.bridge) : ''}`;
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]} accessibilityRole="button">
       <View style={styles.cardTop}>
@@ -235,7 +237,7 @@ function PlanCard({ spec, profile, historyN, onPress }: { spec: PlanSpec; profil
       </View>
       <Text style={styles.cardBlurb}>{spec.blurb}</Text>
       <Text style={styles.cardMeta}>
-        {spec.tier === 'keep' ? 'Ongoing' : `${spec.weeks} weeks`} · {days} {spec.daysOptions[spec.daysOptions.length - 1] > 1 ? 'runs' : 'run'} a week
+        {ui().train.cardMeta(spec.tier === 'keep' ? null : spec.weeks, days)}
       </Text>
       <Text style={[styles.cardFit, { color: thin ? colors.muted : gate.ok ? colors.mintDeep : colors.peachDeep }]}>{fit}</Text>
     </Pressable>
@@ -296,41 +298,41 @@ function DetailView({ spec, profile, historyN, unitsKm, onBack, onRules, onStart
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
-      <Back onPress={onBack} label="All plans" />
+      <Back onPress={onBack} label={ui().train.allPlans} />
       <Text style={type.eyebrow}>{GOAL_LABEL[spec.goal]} · {TIER_LABEL[spec.tier]}</Text>
       <Text style={styles.h1}>{spec.name}</Text>
       <Text style={styles.lede}>{spec.blurb}</Text>
       <Text style={styles.body}>
-        {spec.tier === 'keep' ? 'Four weeks at a time, for as long as you like.' : `${spec.weeks} weeks.`} {spec.timeBased ? 'Measured in minutes, not kilometres.' : `Long runs up to ${fmtKm(spec.longCapKm ?? 0, unitsKm)}.`} {spec.qualityDays === 0 ? 'Nothing hard: easy running, with a few strides later on.' : spec.qualityDays === 1 ? 'One harder session a week from week three.' : 'Two harder sessions a week from week three.'}
+        {spec.tier === 'keep' ? ui().train.fourWeeksAtATime : ui().train.weeksSentence(spec.weeks)} {spec.timeBased ? ui().train.measuredInMinutesNotKilometres : ui().train.longRunsUpToX(fmtKm(spec.longCapKm ?? 0, unitsKm))} {spec.qualityDays === 0 ? ui().train.nothingHardEasyRunningWith : spec.qualityDays === 1 ? ui().train.oneHarderSessionAWeek : ui().train.twoHarderSessionsAWeek}
       </Text>
 
-      <Section title="Where you are">
+      <Section title={ui().train.whereYouAre}>
         {thin ? (
           <>
-            <Text style={styles.hint}>Fewer than four runs here in the last month, so say it yourself. Honest numbers make a safe plan.</Text>
-            <Stepper label={unitsKm ? 'Kilometres a week, lately' : 'Miles a week, lately'} value={weekly} onChange={setWeekly} min={0} max={150} step={unitsKm ? 5 : 5 * KM_IN_MI} format={(v) => fmtKm(v, unitsKm, 0)} />
-            <Stepper label="Longest run in the last month" value={longest} onChange={setLongest} min={0} max={45} step={unitsKm ? 1 : KM_IN_MI} format={(v) => fmtKm(v, unitsKm, 0)} />
+            <Text style={styles.hint}>{ui().train.fewerThanFourRunsHere}</Text>
+            <Stepper label={unitsKm ? ui().train.kilometresAWeekLately : ui().train.milesAWeekLately} value={weekly} onChange={setWeekly} min={0} max={150} step={unitsKm ? 5 : 5 * KM_IN_MI} format={(v) => fmtKm(v, unitsKm, 0)} />
+            <Stepper label={ui().train.longestRunInTheLast} value={longest} onChange={setLongest} min={0} max={45} step={unitsKm ? 1 : KM_IN_MI} format={(v) => fmtKm(v, unitsKm, 0)} />
           </>
         ) : (
-          <Text style={styles.hint}>From your last four weeks: about {fmtKm(profile.weeklyKm, unitsKm, 0)} a week over {profile.runsPerWeek.toFixed(1)} runs, longest {fmtKm(profile.longestKm30, unitsKm)}.</Text>
+          <Text style={styles.hint}>{ui().train.fromYourLastFourWeeks(fmtKm(profile.weeklyKm, unitsKm, 0), profile.runsPerWeek.toFixed(1), fmtKm(profile.longestKm30, unitsKm))}</Text>
         )}
-        {!gate.ok && <Text style={[styles.hint, { color: colors.peachDeep }]}>{gate.reason}{gate.bridge ? ` ${planById(gate.bridge)?.name ?? ''} is the bridge to this one.` : ''}</Text>}
+        {!gate.ok && <Text style={[styles.hint, { color: colors.peachDeep }]}>{gate.reason}{gate.bridge ? ui().train.xIsTheBridgeTo(planById(gate.bridge)?.name ?? '') : ''}</Text>}
       </Section>
 
-      <Section title="Runs a week">
+      <Section title={ui().train.runsAWeek}>
         <View style={styles.chips}>
           {spec.daysOptions.map((n) => (
             <Chip key={n} label={String(n)} on={days === n} onPress={() => pickDays(n)} />
           ))}
         </View>
-        <Text style={styles.hint}>Which days</Text>
+        <Text style={styles.hint}>{ui().train.whichDays}</Text>
         <View style={styles.chips}>
           {[1, 2, 3, 4, 5, 6, 0].map((d) => (
             <Chip key={d} label={WEEKDAY_SHORT[d]} on={runDays.includes(d)} onPress={() => toggleDay(d)} small />
           ))}
         </View>
-        {!daysOk && <Text style={[styles.hint, { color: colors.peachDeep }]}>This plan runs {spec.daysOptions.join(' or ')} days a week.</Text>}
-        <Text style={styles.hint}>Long run on</Text>
+        {!daysOk && <Text style={[styles.hint, { color: colors.peachDeep }]}>{ui().train.thisPlanRunsXDays(spec.daysOptions)}</Text>}
+        <Text style={styles.hint}>{ui().train.longRunOn}</Text>
         <View style={styles.chips}>
           {runDays.map((d) => (
             <Chip key={d} label={WEEKDAY_SHORT[d]} on={longDay === d} onPress={() => setLongDay(d)} small />
@@ -339,28 +341,28 @@ function DetailView({ spec, profile, historyN, unitsKm, onBack, onRules, onStart
       </Section>
 
       {spec.raceKm != null && (
-        <Section title="Race day">
+        <Section title={ui().train.raceDay}>
           <Text style={styles.big}>{formatDay(raceDate)}</Text>
-          <Text style={styles.hint}>{weeksToRace} weeks from now. The plan is {spec.weeks} weeks and shortens to {spec.minWeeks} at most.</Text>
+          <Text style={styles.hint}>{ui().train.xWeeksFromNowThe(weeksToRace, spec.weeks, spec.minWeeks)}</Text>
           <View style={styles.chips}>
-            <Chip label="− week" onPress={() => setRaceDate((d) => addDays(d, -7))} />
-            <Chip label="+ week" onPress={() => setRaceDate((d) => addDays(d, 7))} />
-            <Chip label="− day" onPress={() => setRaceDate((d) => addDays(d, -1))} />
-            <Chip label="+ day" onPress={() => setRaceDate((d) => addDays(d, 1))} />
+            <Chip label={ui().train.week} onPress={() => setRaceDate((d) => addDays(d, -7))} />
+            <Chip label={ui().train.week2} onPress={() => setRaceDate((d) => addDays(d, 7))} />
+            <Chip label={ui().train.day} onPress={() => setRaceDate((d) => addDays(d, -1))} />
+            <Chip label={ui().train.day2} onPress={() => setRaceDate((d) => addDays(d, 1))} />
           </View>
         </Section>
       )}
 
-      <Section title="Extra recovery">
-        <Toggle value={extra} onChange={setExtra} label="A lighter week every third week instead of every fourth" hint="For over-50s, a return from injury, or a life that is already tiring." />
+      <Section title={ui().train.extraRecovery}>
+        <Toggle value={extra} onChange={setExtra} label={ui().train.aLighterWeekEveryThird} hint={ui().train.forOver50sAReturn} />
       </Section>
 
       {spec.qualityDays > 0 && (
-        <Section title="A recent race, if you have one">
-          <Text style={styles.hint}>Optional. Without it, every session is described by effort and the talk test. With it, each gets a pace too.</Text>
+        <Section title={ui().train.aRecentRaceIfYou}>
+          <Text style={styles.hint}>{ui().train.optionalWithoutItEverySession}</Text>
           <View style={styles.chips}>
             {[5, 10, 21.0975, 42.195].map((d) => (
-              <Chip key={d} label={d === 5 ? '5K' : d === 10 ? '10K' : d < 22 ? 'Half' : 'Marathon'} on={raceKm === d} onPress={() => setRaceKm(raceKm === d ? null : d)} small />
+              <Chip key={d} label={d === 5 ? '5K' : d === 10 ? '10K' : d < 22 ? ui().train.half : ui().train.marathon} on={raceKm === d} onPress={() => setRaceKm(raceKm === d ? null : d)} small />
             ))}
           </View>
           {raceKm != null && (
@@ -371,14 +373,12 @@ function DetailView({ spec, profile, historyN, unitsKm, onBack, onRules, onStart
             </View>
           )}
           {paces && (
-            <Text style={styles.hint}>
-              Easy {formatSPerKm(paces.easy[0], unitsKm)}–{formatSPerKm(paces.easy[1], unitsKm)} · threshold {formatSPerKm(paces.threshold, unitsKm)} · intervals {formatSPerKm(paces.interval, unitsKm)}. On that form, a {GOAL_LABEL[spec.goal === 'none' ? '10k' : spec.goal].toLowerCase()} in about {formatRaceTime(spec.goal === 'half' ? paces.predicted.half : spec.goal === 'marathon' ? paces.predicted.marathon : spec.goal === '5k' ? paces.predicted['5k'] : paces.predicted['10k'])}.
-            </Text>
+            <Text style={styles.hint}>{ui().train.easyXXThresholdX(formatSPerKm(paces.easy[0], unitsKm), formatSPerKm(paces.easy[1], unitsKm), formatSPerKm(paces.threshold, unitsKm), formatSPerKm(paces.interval, unitsKm), GOAL_LABEL[spec.goal === 'none' ? '10k' : spec.goal].toLowerCase(), formatRaceTime(spec.goal === 'half' ? paces.predicted.half : spec.goal === 'marathon' ? paces.predicted.marathon : spec.goal === '5k' ? paces.predicted['5k'] : paces.predicted['10k']))}</Text>
           )}
         </Section>
       )}
 
-      <Section title="Week one">
+      <Section title={ui().train.weekOne}>
         {preview.ok ? (
           <>
             {preview.weeks[0].sessions.map((s) => (
@@ -389,7 +389,7 @@ function DetailView({ spec, profile, historyN, unitsKm, onBack, onRules, onStart
               </View>
             ))}
             <Text style={styles.hint}>
-              {spec.timeBased ? 'Run and walk, in minutes.' : `Week one about ${fmtKm(preview.weeks[0].targetKm, unitsKm, 0)}, peak week about ${fmtKm(preview.peakKm, unitsKm, 0)}.`} Every week is checked against the nine rules before you see it.
+              {spec.timeBased ? ui().train.runAndWalkInMinutes : ui().train.weekOneAboutXPeak(fmtKm(preview.weeks[0].targetKm, unitsKm, 0), fmtKm(preview.peakKm, unitsKm, 0))} {ui().train.everyWeekIsChecked}
             </Text>
           </>
         ) : (
@@ -398,11 +398,11 @@ function DetailView({ spec, profile, historyN, unitsKm, onBack, onRules, onStart
       </Section>
 
       <Pressable onPress={onRules} style={{ paddingVertical: spacing.xs }} accessibilityRole="button">
-        <Text style={styles.link}>The nine rules →</Text>
+        <Text style={styles.link}>{ui().train.theNineRules}</Text>
       </Pressable>
-      <Button title="Start this plan" disabled={!preview.ok || !daysOk} onPress={() => onStart(setup, runner, paces)} />
+      <Button title={ui().train.startThisPlan} disabled={!preview.ok || !daysOk} onPress={() => onStart(setup, runner, paces)} />
       {!isUnlocked() && <TrainLockLine weeks={spec.tier === 'keep' ? null : spec.weeks} />}
-      {!gate.ok && preview.ok && <Text style={styles.hint}>You can start anyway. The plan begins from the numbers above, not from where it would like you to be.</Text>}
+      {!gate.ok && preview.ok && <Text style={styles.hint}>{ui().train.youCanStartAnywayThe}</Text>}
     </ScrollView>
   );
 }
@@ -411,7 +411,7 @@ function DetailView({ spec, profile, historyN, unitsKm, onBack, onRules, onStart
 function TrainLockLine({ weeks }: { weeks: number | null }) {
   const line = trainLine(weeks);
   return (
-    <Pressable onPress={openUnlock} accessibilityRole="button" accessibilityLabel={line} accessibilityHint="Opens Everything, once" style={({ pressed }) => [styles.lockLine, pressed && { opacity: 0.85 }]}>
+    <Pressable onPress={openUnlock} accessibilityRole="button" accessibilityLabel={line} accessibilityHint={ui().train.opensEverythingOnce} style={({ pressed }) => [styles.lockLine, pressed && { opacity: 0.85 }]}>
       <Text style={styles.lockLineText}>{line}</Text>
     </Pressable>
   );
@@ -419,15 +419,7 @@ function TrainLockLine({ weeks }: { weeks: number | null }) {
 
 // ---- Health check ----------------------------------------------------------------
 
-const HEALTH_QUESTIONS = [
-  'Has a doctor ever said you have a heart condition, or that you should only exercise under medical supervision?',
-  'Do you feel pain in your chest when you exercise, or have you had chest pain at rest in the past month?',
-  'Do you lose your balance because of dizziness, or have you lost consciousness in the past year?',
-  'Do you have a bone, joint or tendon problem that running could make worse?',
-  'Do you take medication for blood pressure, a heart condition or diabetes?',
-  'Are you pregnant, or have you given birth in the last six months?',
-  'Is there any other reason you should not run, or an injury from the last three months that still bothers you?',
-];
+const HEALTH_QUESTIONS: string[] = live(() => ui().train.healthQuestions);
 
 function HealthView({ onBack, onStart }: { onBack: () => void; onStart: () => void }) {
   const [answers, setAnswers] = useState<Array<boolean | null>>(HEALTH_QUESTIONS.map(() => null));
@@ -435,27 +427,27 @@ function HealthView({ onBack, onStart }: { onBack: () => void; onStart: () => vo
   const complete = answers.every((a) => a !== null);
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.screen}>
-      <Back onPress={onBack} label="Setup" />
-      <Text style={type.eyebrow}>Before the first week</Text>
-      <Text style={styles.h1}>Seven questions.</Text>
-      <Text style={styles.lede}>The ones a physio would ask. Only the date you answered is kept, never the answers.</Text>
+      <Back onPress={onBack} label={ui().train.setup} />
+      <Text style={type.eyebrow}>{ui().train.beforeTheFirstWeek}</Text>
+      <Text style={styles.h1}>{ui().train.sevenQuestions}</Text>
+      <Text style={styles.lede}>{ui().train.theOnesAPhysioWould}</Text>
       {HEALTH_QUESTIONS.map((q, i) => (
         <View key={q} style={styles.question}>
           <Text style={styles.body}>{q}</Text>
           <View style={styles.chips}>
-            <Chip label="No" on={answers[i] === false} onPress={() => setAnswers((a) => a.map((x, j) => (j === i ? false : x)))} small />
-            <Chip label="Yes" on={answers[i] === true} onPress={() => setAnswers((a) => a.map((x, j) => (j === i ? true : x)))} small />
+            <Chip label={ui().train.no} on={answers[i] === false} onPress={() => setAnswers((a) => a.map((x, j) => (j === i ? false : x)))} small />
+            <Chip label={ui().train.yes} on={answers[i] === true} onPress={() => setAnswers((a) => a.map((x, j) => (j === i ? true : x)))} small />
           </View>
         </View>
       ))}
       {complete && anyYes && (
         <View style={styles.warn}>
-          <Text style={styles.warnTitle}>Talk to a doctor first.</Text>
-          <Text style={styles.body}>A yes up there is a reason to check before a structured plan, not a reason never to run. Bring the questions along. The plan will wait.</Text>
+          <Text style={styles.warnTitle}>{ui().train.talkToADoctorFirst}</Text>
+          <Text style={styles.body}>{ui().train.aYesUpThereIs}</Text>
         </View>
       )}
-      <Button title={anyYes ? 'A doctor has cleared me. Start' : 'Start the plan'} disabled={!complete} onPress={onStart} />
-      {complete && anyYes && <Button title="Not now" variant="secondary" onPress={onBack} />}
+      <Button title={anyYes ? ui().train.aDoctorHasClearedMe : ui().train.startThePlan} disabled={!complete} onPress={onStart} />
+      {complete && anyYes && <Button title={ui().train.notNow} variant="secondary" onPress={onBack} />}
     </ScrollView>
   );
 }
@@ -496,7 +488,7 @@ function WeekView(props: {
     <ScrollView style={styles.scroll} contentContainerStyle={styles.screen}>
       <View style={styles.topRow}>
         <Text style={[type.eyebrow, { flex: 1 }]}>
-          {plan.name} · week {current.index} of {spec.tier === 'keep' ? '∞' : weeks[weeks.length - 1].index}
+          {plan.name} · {ui().train.weekOf(current.index, spec.tier === 'keep' ? '∞' : weeks[weeks.length - 1].index)}
         </Text>
         <SettingsGear />
       </View>
@@ -504,8 +496,8 @@ function WeekView(props: {
 
       {paused ? (
         <View style={styles.banner}>
-          <Text style={styles.bannerTitle}>Paused.</Text>
-          <Text style={styles.body}>Nothing counts as missed while it is. Resume when you like; a long pause gets a gentle restart.</Text>
+          <Text style={styles.bannerTitle}>{ui().train.paused}</Text>
+          <Text style={styles.body}>{ui().train.nothingCountsAsMissedWhile}</Text>
         </View>
       ) : (
         <TodayCard plan={plan} spec={spec} today={today} unitsKm={unitsKm} onOpen={props.onOpen} onStart={props.onStart} />
@@ -516,36 +508,34 @@ function WeekView(props: {
           <Text style={styles.bannerTitle}>{missedTitle(missed)}</Text>
           <Text style={styles.body}>{missedText(missed)}</Text>
           <View style={styles.chips}>
-            <Chip label={missed.kind === 'repeat' ? 'Repeat last week' : 'Step back and rebuild'} on onPress={() => props.onRebuild(missed.kind === 'repeat' ? 'repeat' : 'stepback')} />
+            <Chip label={missed.kind === 'repeat' ? ui().train.repeatLastWeek : ui().train.stepBackAndRebuild} on onPress={() => props.onRebuild(missed.kind === 'repeat' ? 'repeat' : 'stepback')} />
           </View>
         </View>
       )}
 
-      <Section title={week === current ? 'This week' : `Week ${week.index}`}>
+      <Section title={week === current ? ui().train.thisWeek : ui().train.weekX(week.index)}>
         <Text style={styles.weekLede}>{week === current ? weekLede(week, spec, unitsKm) : `${weekHeadline(week, current, today, raceIn)} ${weekLede(week, spec, unitsKm)}`}</Text>
         <View style={styles.progress}>
           <View style={[styles.progressFill, { width: `${Math.min(100, Math.round((prog.kmDone / Math.max(prog.kmTarget, 0.1)) * 100))}%` as `${number}%` }]} />
         </View>
-        <Text style={styles.hint}>
-          {prog.done} of {prog.total} runs · {fmtKm(prog.kmDone, unitsKm)} of {fmtKm(prog.kmTarget, unitsKm)}
-        </Text>
+        <Text style={styles.hint}>{ui().train.xOfXRunsX(prog.done, prog.total, fmtKm(prog.kmDone, unitsKm), fmtKm(prog.kmTarget, unitsKm))}</Text>
 
         <View style={styles.weekNav}>
-          <Pressable disabled={i <= 0} onPress={() => props.onWeek(weeks[i - 1].index)} accessibilityRole="button" accessibilityLabel={i > 0 ? `Previous week, week ${weeks[i - 1].index}` : 'Previous week'} accessibilityState={{ disabled: i <= 0 }} style={[styles.navBtn, i <= 0 && { opacity: 0.3 }]} hitSlop={8}>
-            <Text style={styles.navText}>‹ Week {i > 0 ? weeks[i - 1].index : ''}</Text>
+          <Pressable disabled={i <= 0} onPress={() => props.onWeek(weeks[i - 1].index)} accessibilityRole="button" accessibilityLabel={i > 0 ? ui().train.previousWeekWeekX(weeks[i - 1].index) : ui().train.previousWeek} accessibilityState={{ disabled: i <= 0 }} style={[styles.navBtn, i <= 0 && { opacity: 0.3 }]} hitSlop={8}>
+            <Text style={styles.navText}>‹ {ui().train.weekX(i > 0 ? weeks[i - 1].index : '')}</Text>
           </Pressable>
           {week !== current && (
-            <Pressable onPress={() => props.onWeek(current.index)} accessibilityRole="button" accessibilityLabel="Back to this week" hitSlop={8}>
-              <Text style={styles.link}>Back to this week</Text>
+            <Pressable onPress={() => props.onWeek(current.index)} accessibilityRole="button" accessibilityLabel={ui().train.backToThisWeek} hitSlop={8}>
+              <Text style={styles.link}>{ui().train.backToThisWeek}</Text>
             </Pressable>
           )}
-          <Pressable disabled={i >= weeks.length - 1} onPress={() => props.onWeek(weeks[i + 1].index)} accessibilityRole="button" accessibilityLabel={i < weeks.length - 1 ? `Next week, week ${weeks[i + 1].index}` : 'Next week'} accessibilityState={{ disabled: i >= weeks.length - 1 }} style={[styles.navBtn, i >= weeks.length - 1 && { opacity: 0.3 }]} hitSlop={8}>
-            <Text style={styles.navText}>Week {i < weeks.length - 1 ? weeks[i + 1].index : ''} ›</Text>
+          <Pressable disabled={i >= weeks.length - 1} onPress={() => props.onWeek(weeks[i + 1].index)} accessibilityRole="button" accessibilityLabel={i < weeks.length - 1 ? ui().train.nextWeekWeekX(weeks[i + 1].index) : ui().train.nextWeek} accessibilityState={{ disabled: i >= weeks.length - 1 }} style={[styles.navBtn, i >= weeks.length - 1 && { opacity: 0.3 }]} hitSlop={8}>
+            <Text style={styles.navText}>{ui().train.weekX(i < weeks.length - 1 ? weeks[i + 1].index : '')} ›</Text>
           </Pressable>
         </View>
 
         {!planWeekOpen(plan, week.index) ? (
-          <LockRow title={`Week ${week.index}`} />
+          <LockRow title={ui().train.weekX(week.index)} />
         ) : (
         <View style={styles.days}>
           {[0, 1, 2, 3, 4, 5, 6].map((d) => {
@@ -558,29 +548,29 @@ function WeekView(props: {
         </View>
         )}
         <Legend />
-        <Text style={styles.hint}>Tap a day for its steps, to move it within the week, or to skip it.</Text>
+        <Text style={styles.hint}>{ui().train.tapADayForIts}</Text>
       </Section>
 
-      <Section title="The whole plan">
+      <Section title={ui().train.theWholePlan}>
         <WeekStrip weeks={weeks} current={current} shown={week} keep={spec.tier === 'keep'} onWeek={props.onWeek} />
         <Text style={styles.hint}>{planLine(plan, spec, current, total, today)}</Text>
       </Section>
 
-      <Section title="Reminders">
+      <Section title={ui().train.reminders}>
         <PlanReminderCard paused={paused} />
       </Section>
 
-      <Section title="When life happens">
-        <Row label="How a plan works" hint="Today, this week, reminders, and what happens when you miss a day." onPress={props.onHow} />
-        <Row label="Add the plan to a calendar" hint="An .ics file: Apple, Google, Outlook. Nothing syncs back." onPress={props.onCalendar} />
-        <Row label="I’m away for a few days" hint="Planned rest, not a miss." onPress={props.onAway} />
-        <Row label="I’m ill" hint="Rest until better, then as many easy days as you were ill." onPress={props.onIll} />
-        <Row label={paused ? 'Resume the plan' : 'Pause the plan'} hint={paused ? 'Pick up from this week.' : 'Nothing is counted as missed while paused.'} onPress={props.onPause} />
-        <Row label="The nine rules" hint="What the plan will never ask of you." onPress={props.onRules} />
-        <Row label="Stop this plan" hint="The weeks stay in your history." onPress={props.onStop} danger />
+      <Section title={ui().train.whenLifeHappens}>
+        <Row label={ui().train.howAPlanWorks} hint={ui().train.todayThisWeekRemindersAnd} onPress={props.onHow} />
+        <Row label={ui().train.addThePlanToA} hint={ui().train.anIcsFileAppleGoogle} onPress={props.onCalendar} />
+        <Row label={ui().train.iMAwayForA} hint={ui().train.plannedRestNotAMiss} onPress={props.onAway} />
+        <Row label={ui().train.iMIll} hint={ui().train.restUntilBetterThenAs} onPress={props.onIll} />
+        <Row label={paused ? ui().train.resumeThePlan : ui().train.pauseThePlan} hint={paused ? ui().train.pickUpFromThisWeek : ui().train.nothingIsCountedAsMissed} onPress={props.onPause} />
+        <Row label={ui().train.theNineRules2} hint={ui().train.whatThePlanWillNever} onPress={props.onRules} />
+        <Row label={ui().train.stopThisPlan2} hint={ui().train.theWeeksStayInYour2} onPress={props.onStop} danger />
       </Section>
       {plan.log.length > 0 && (
-        <Section title="What changed along the way">
+        <Section title={ui().train.whatChangedAlongTheWay}>
           {plan.log
             .slice(-5)
             .reverse()
@@ -599,20 +589,20 @@ function DayRow({ date, today, session, strength, spec, unitsKm, onPress }: { da
   const isToday = date === today;
   const past = date < today;
   const s = session;
-  const state = !s ? (strength ? 'Strength, optional' : 'Rest') : s.done ? 'Done' : s.skipped ? 'Skipped' : isToday ? 'Today' : past ? 'Missed' : '';
+  const state = !s ? (strength ? ui().train.strengthOptional : ui().train.rest) : s.done ? ui().train.done : s.skipped ? ui().train.skipped : isToday ? ui().train.today : past ? ui().train.missed : '';
   const dot = !s ? colors.cream : s.kind === 'race' ? colors.peach : s.hard ? colors.peach : s.kind === 'long' ? colors.butter : colors.mint;
   return (
     <Pressable
       onPress={onPress}
       disabled={!onPress}
       accessibilityRole={onPress ? 'button' : 'text'}
-      accessibilityHint={onPress ? 'Opens the session' : undefined}
+      accessibilityHint={onPress ? ui().train.opensTheSession : undefined}
       accessibilityLabel={[
-        `${isToday ? 'Today, ' : ''}${new Date(date).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}`,
-        s ? s.title : strength ? 'Strength, if you like' : 'Rest',
-        s ? (s.done ? `${fmtKm(s.done.distanceM / 1000, unitsKm)} in ${fmtDur(s.done.durationS)}` : sizeOf(s, spec, unitsKm)) : null,
+        `${isToday ? ui().train.today2 : ''}${new Date(date).toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}`,
+        s ? s.title : strength ? ui().train.strengthIfYouLike : ui().train.rest,
+        s ? (s.done ? doneText(s.done, unitsKm) : sizeOf(s, spec, unitsKm)) : null,
         s?.note ?? null,
-        state && state !== 'Today' && state !== 'Rest' ? state : null,
+        state && state !== ui().train.today && state !== ui().train.rest ? state : null,
       ]
         .filter(Boolean)
         .join('. ')}
@@ -625,7 +615,7 @@ function DayRow({ date, today, session, strength, spec, unitsKm, onPress }: { da
       <View style={[styles.dayDot, { backgroundColor: dot }, !s && { borderWidth: 1, borderColor: colors.lilac }]} />
       <View style={{ flex: 1 }}>
         <Text style={[styles.dayTitle, isToday && { color: colors.cream }, s?.skipped && { textDecorationLine: 'line-through' }]} numberOfLines={1}>
-          {s ? s.title : strength ? 'Strength, if you like' : 'Rest'}
+          {s ? s.title : strength ? ui().train.strengthIfYouLike : ui().train.rest}
         </Text>
         {s && (
           <Text style={[styles.daySub, isToday && { color: colors.onInkMuted }]} numberOfLines={1}>
@@ -645,37 +635,37 @@ function DayRow({ date, today, session, strength, spec, unitsKm, onPress }: { da
 function TodayCard({ plan, spec, today, unitsKm, onOpen, onStart }: { plan: Plan; spec: PlanSpec; today: number; unitsKm: boolean; onOpen: (id: string) => void; onStart: (s: Session) => void }) {
   const s = todaySession(plan, today);
   const next = nextSession(plan, addDays(today, 1));
-  const nextLine = next ? `Next: ${WEEKDAY_LONG[weekdayOf(next.date)]}${daysBetween(today, next.date) > 6 ? ` ${new Date(next.date).getDate()}` : ''}, ${lower(next.title)} · ${sizeOf(next, spec, unitsKm)}.` : 'That was the last session of the plan.';
+  const nextLine = next ? ui().train.nextXXXX(WEEKDAY_LONG[weekdayOf(next.date)], daysBetween(today, next.date) > 6 ? ` ${new Date(next.date).getDate()}` : '', lower(next.title), sizeOf(next, spec, unitsKm)) : ui().train.thatWasTheLastSession;
   const notStarted = today < plan.weeks[0].start || (!s && runSessions(plan).every((x) => x.date > today && !x.done));
 
   if (s && !s.done && !s.skipped) {
     return (
       <View style={styles.today}>
-        <Text style={styles.todayLabel}>Today</Text>
+        <Text style={styles.todayLabel}>{ui().train.today}</Text>
         <Text style={styles.todayTitle}>{s.title}</Text>
         <Text style={styles.body}>{s.summary}</Text>
         <Text style={styles.hint}>
-          {sizeOf(s, spec, unitsKm)} · {s.hard ? 'a harder day' : s.kind === 'long' ? 'the long run, slow' : 'easy, you can talk the whole way'}
+          {sizeOf(s, spec, unitsKm)} · {s.hard ? ui().train.aHarderDay : s.kind === 'long' ? ui().train.theLongRunSlow : ui().train.easyYouCanTalkThe}
         </Text>
-        {planSessionOpen(plan, s.id) ? <Button title="Start today’s session" onPress={() => onStart(s)} style={{ marginTop: 6 }} /> : <LockRow title="Guided sessions after week 1" style={{ marginTop: 6 }} />}
+        {planSessionOpen(plan, s.id) ? <Button title={ui().train.startTodaySSession} onPress={() => onStart(s)} style={{ marginTop: 6 }} /> : <LockRow title={ui().train.guidedSessionsAfterWeek1} style={{ marginTop: 6 }} />}
         <Pressable onPress={() => onOpen(s.id)} hitSlop={8} style={{ alignSelf: 'center', paddingVertical: 4 }}>
-          <Text style={styles.link}>See the steps, move or skip it</Text>
+          <Text style={styles.link}>{ui().train.seeTheStepsMoveOr}</Text>
         </Pressable>
-        <Text style={styles.hint}>Any run today counts for it, even one started from the Run tab.</Text>
+        <Text style={styles.hint}>{ui().train.anyRunTodayCountsFor}</Text>
       </View>
     );
   }
-  const title = s?.done ? 'Done for today.' : s?.skipped ? 'Set aside today.' : notStarted ? 'The plan starts soon.' : 'Rest today.';
+  const title = s?.done ? ui().train.doneForToday : s?.skipped ? ui().train.setAsideToday : notStarted ? ui().train.thePlanStartsSoon : ui().train.restToday;
   const text = s?.done
-    ? `${s.done.distanceM > 0 || s.done.durationS > 0 ? `${doneText(s.done, unitsKm)}. ` : ''}Logged against the plan.`
+    ? ui().train.xLoggedAgainstThePlan(s.done.distanceM > 0 || s.done.durationS > 0 ? `${doneText(s.done, unitsKm)}. ` : '')
     : s?.skipped
-      ? 'Nothing lost, and nothing added elsewhere to make up for it.'
+      ? ui().train.nothingLostAndNothingAdded
       : notStarted
-        ? 'Nothing to do until the first session.'
-        : 'Rest is part of the plan, not a gap in it. A walk is fine.';
+        ? ui().train.nothingToDoUntilThe
+        : ui().train.restIsPartOfThe;
   return (
     <View style={[styles.today, styles.todayQuiet]}>
-      <Text style={styles.todayLabel}>Today</Text>
+      <Text style={styles.todayLabel}>{ui().train.today}</Text>
       <Text style={styles.todayTitle}>{title}</Text>
       <Text style={styles.body}>{text}</Text>
       {next ? (
@@ -691,9 +681,9 @@ function TodayCard({ plan, spec, today, unitsKm, onOpen, onStart }: { plan: Plan
 
 function Legend() {
   const items: Array<[string, string]> = [
-    [colors.mint, 'Easy'],
-    [colors.butter, 'Long'],
-    [colors.peach, 'Harder'],
+    [colors.mint, ui().train.easy],
+    [colors.butter, ui().train.long],
+    [colors.peach, ui().train.harder],
   ];
   return (
     <View style={styles.legend}>
@@ -705,7 +695,7 @@ function Legend() {
       ))}
       <View style={styles.legendItem}>
         <View style={[styles.dayDot, { backgroundColor: colors.cream, borderWidth: 1, borderColor: colors.lilac }]} />
-        <Text style={styles.hint}>Rest</Text>
+        <Text style={styles.hint}>{ui().train.rest}</Text>
       </View>
     </View>
   );
@@ -721,29 +711,29 @@ function WeekStrip({ weeks, current, shown, keep, onWeek }: { weeks: Week[]; cur
           const past = w.start < current.start;
           const fill = w === current ? colors.ink : w.kind === 'light' ? colors.lilac : w.kind === 'race' || w.kind === 'taper' ? colors.peach : past ? colors.mintDeep : colors.mint;
           return (
-            <Pressable key={w.index} onPress={() => onWeek(w.index)} style={styles.stripCol} accessibilityLabel={`Week ${w.index}`} hitSlop={4}>
+            <Pressable key={w.index} onPress={() => onWeek(w.index)} style={styles.stripCol} accessibilityLabel={ui().train.weekX(w.index)} hitSlop={4}>
               <View style={[styles.stripBar, { height: 8 + Math.round((w.targetKm / max) * 56), backgroundColor: fill }, w === shown && w !== current && styles.stripShown]} />
             </Pressable>
           );
         })}
       </View>
       <View style={styles.stripFoot}>
-        <Text style={styles.stripLabel}>Week {weeks[0].index}</Text>
-        <Text style={styles.stripLabel}>{keep ? 'then four more' : weeks[weeks.length - 1].kind === 'race' ? 'Race' : `Week ${weeks[weeks.length - 1].index}`}</Text>
+        <Text style={styles.stripLabel}>{ui().train.weekX(weeks[0].index)}</Text>
+        <Text style={styles.stripLabel}>{keep ? ui().train.thenFourMore : weeks[weeks.length - 1].kind === 'race' ? ui().train.race : ui().train.weekX(weeks[weeks.length - 1].index)}</Text>
       </View>
       <View style={styles.legend}>
         <View style={styles.legendItem}>
           <View style={[styles.dayDot, { backgroundColor: colors.ink }]} />
-          <Text style={styles.hint}>Now</Text>
+          <Text style={styles.hint}>{ui().train.now}</Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.dayDot, { backgroundColor: colors.lilac }]} />
-          <Text style={styles.hint}>Lighter week</Text>
+          <Text style={styles.hint}>{ui().train.lighterWeek}</Text>
         </View>
         {weeks.some((w) => w.kind === 'taper' || w.kind === 'race') && (
           <View style={styles.legendItem}>
             <View style={[styles.dayDot, { backgroundColor: colors.peach }]} />
-            <Text style={styles.hint}>Taper and race</Text>
+            <Text style={styles.hint}>{ui().train.taperAndRace}</Text>
           </View>
         )}
       </View>
@@ -754,25 +744,25 @@ function WeekStrip({ weeks, current, shown, keep, onWeek }: { weeks: Week[]; cur
 function planLine(plan: Plan, spec: PlanSpec, current: Week, total: { done: number; total: number }, today: number): string {
   const end = plan.setup.raceDate ?? planEnd(plan);
   const left = Math.max(0, daysBetween(today, end));
-  const when = plan.setup.raceDate != null ? `Race on ${formatDay(plan.setup.raceDate)}, ${left} ${left === 1 ? 'day' : 'days'} away.` : spec.tier === 'keep' ? 'A new block of four weeks follows this one.' : `Ends ${formatDay(end)}.`;
-  return `${total.done} of ${total.total} runs done. ${when} Taller bars are bigger weeks; tap one to look ahead.`;
+  const when = plan.setup.raceDate != null ? ui().train.raceOn(formatDay(plan.setup.raceDate), left) : spec.tier === 'keep' ? ui().train.aNewBlockOfFour : ui().train.endsX(formatDay(end));
+  return ui().train.xOfXRunsDone(total.done, total.total, when);
 }
 
 // ---- How a plan works --------------------------------------------------------------
 
 function HowView({ plan, spec, first, onDone }: { plan: Plan; spec: PlanSpec; first: boolean; onDone: () => void }) {
-  const light = plan.setup.extraRecovery ? 'third' : 'fourth';
+  const light = plan.setup.extraRecovery ? 3 : 4;
   const points: Array<[string, string]> = [
-    ['Today', 'Each day has one thing: a session or rest. It sits at the top of Train and on the Run screen, where the button becomes “Start today’s session” and talks you through the steps, screen off too.'],
-    ['This week', `${plan.setup.daysPerWeek} runs, on the days you picked. Green is easy, yellow is the long run, peach is harder. Tap a day to see the steps, move it to a free day in the same week, or skip it.`],
-    [spec.tier === 'keep' ? 'The blocks' : 'The plan', `The weeks build slowly, with a lighter one every ${light}${plan.setup.raceDate != null ? ' and a taper before the race' : ''}. Any run you do on a plan day counts for it.`],
-    ['When you miss days', 'Nothing is doubled up to catch up. A missed day stays missed; a week or more away and the plan repeats a week or steps back. Away, ill or pause, below the week.'],
+    [ui().train.today, ui().train.eachDayHasOneThing],
+    [ui().train.thisWeek, ui().train.xRunsOnTheDays(plan.setup.daysPerWeek)],
+    [spec.tier === 'keep' ? ui().train.theBlocks : ui().train.thePlan, ui().train.theWeeksBuildSlowly(light, plan.setup.raceDate != null)],
+    [ui().train.whenYouMissDays, ui().train.nothingIsDoubledUpTo],
   ];
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.screen}>
-      {!first && <Back onPress={onDone} label="This week" />}
-      <Text style={type.eyebrow}>{first ? plan.name : 'How a plan works'}</Text>
-      <Text style={styles.h1}>{first ? 'Your plan is set.\nHere is how it goes.' : 'Four things,\nthen just run.'}</Text>
+      {!first && <Back onPress={onDone} label={ui().train.thisWeek} />}
+      <Text style={type.eyebrow}>{first ? plan.name : ui().train.howAPlanWorks}</Text>
+      <Text style={styles.h1}>{first ? ui().train.yourPlanIsSetHere : ui().train.fourThingsThenJustRun}</Text>
       {points.map(([t, b], k) => (
         <View key={t} style={styles.rule}>
           <Text style={styles.ruleN}>{k + 1}</Text>
@@ -782,10 +772,10 @@ function HowView({ plan, spec, first, onDone }: { plan: Plan; spec: PlanSpec; fi
           </View>
         </View>
       ))}
-      <Section title="Reminders">
+      <Section title={ui().train.reminders}>
         <PlanReminderCard paused={plan.status === 'paused'} />
       </Section>
-      <Button title={first ? 'See this week' : 'Back to this week'} onPress={onDone} />
+      <Button title={first ? ui().train.seeThisWeek : ui().train.backToThisWeek} onPress={onDone} />
     </ScrollView>
   );
 }
@@ -798,10 +788,10 @@ function SessionView({ plan, spec, session: s, unitsKm, today, onBack, onStart, 
   const free = week ? [0, 1, 2, 3, 4, 5, 6].map((d) => addDays(week.start, d)).filter((d) => d >= today && d !== s.date && !week.sessions.some((x) => x.date === d && x.kind !== 'strength')) : [];
   const [moving, setMoving] = useState(false);
   const open = !s.done && !s.skipped && s.kind !== 'strength';
-  const heat = s.hard || s.kind === 'long' ? 'On a hot day, slow down or move it. The plan is about the effort, not the number.' : null;
+  const heat = s.hard || s.kind === 'long' ? ui().train.onAHotDaySlow : null;
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.screen}>
-      <Back onPress={onBack} label={`Week ${week?.index ?? ''}`} />
+      <Back onPress={onBack} label={ui().train.weekX(week?.index ?? '')} />
       <Text style={type.eyebrow}>
         {WEEKDAY_LONG[weekdayOf(s.date)]} · {formatDay(s.date)}
       </Text>
@@ -811,27 +801,27 @@ function SessionView({ plan, spec, session: s, unitsKm, today, onBack, onStart, 
       {s.note && <Text style={[styles.body, { color: colors.lilacDeep }]}>{s.note}</Text>}
       {s.done && (
         <Text style={[styles.body, { color: colors.mintDeep }]}>
-          {s.done.distanceM > 0 || s.done.durationS > 0 ? `Done: ${doneText(s.done, unitsKm)}.` : 'Done. The run itself was deleted, so only the tick is kept.'}
+          {s.done.distanceM > 0 || s.done.durationS > 0 ? ui().train.doneX(doneText(s.done, unitsKm)) : ui().train.doneTheRunItselfWas}
         </Text>
       )}
-      {s.skipped && <Text style={[styles.body, { color: colors.muted }]}>Skipped. Nothing lost.</Text>}
+      {s.skipped && <Text style={[styles.body, { color: colors.muted }]}>{ui().train.skippedNothingLost}</Text>}
 
       {s.steps.length > 0 && (
-        <Section title={`${s.minutes} min · about ${fmtKm(s.km, unitsKm)}`}>
+        <Section title={ui().train.xMinAboutX(s.minutes, fmtKm(s.km, unitsKm))}>
           {s.steps.map((st, k) => (
             <StepRow key={k} step={st} pace={plan.paces ? paceFor(st.effort, paces) : null} unitsKm={unitsKm} />
           ))}
-          {!plan.paces && s.hard && <Text style={styles.hint}>No paces, on purpose: you did not give a race time. The talk test is the measure.</Text>}
+          {!plan.paces && s.hard && <Text style={styles.hint}>{ui().train.noPacesOnPurposeYou}</Text>}
           {heat && <Text style={styles.hint}>{heat}</Text>}
         </Section>
       )}
 
-      {open && s.kind !== 'rest' && (planSessionOpen(plan, s.id) ? <Button title={s.date === today ? 'Start this session' : s.date < today ? 'Do it today instead' : 'Start it now anyway'} onPress={onStart} /> : <LockRow title="Guided sessions after week 1" />)}
+      {open && s.kind !== 'rest' && (planSessionOpen(plan, s.id) ? <Button title={s.date === today ? ui().train.startThisSession : s.date < today ? ui().train.doItTodayInstead : ui().train.startItNowAnyway} onPress={onStart} /> : <LockRow title={ui().train.guidedSessionsAfterWeek1} />)}
       {open && (
         <View style={styles.chips}>
-          {free.length > 0 && <Chip label={moving ? 'Pick a day' : 'Move it'} on={moving} onPress={() => setMoving((v) => !v)} small />}
-          <Chip label="Did it without the app" onPress={() => Alert.alert('Mark as done?', 'At the planned distance and time.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Done', onPress: onDone }])} small />
-          <Chip label="Skip it" onPress={() => Alert.alert('Skip this session?', 'The week carries on. Nothing is added elsewhere.', [{ text: 'Keep', style: 'cancel' }, { text: 'Skip', onPress: onSkip }])} small />
+          {free.length > 0 && <Chip label={moving ? ui().train.pickADay : ui().train.moveIt} on={moving} onPress={() => setMoving((v) => !v)} small />}
+          <Chip label={ui().train.didItWithoutTheApp} onPress={() => Alert.alert(ui().train.markAsDone, ui().train.atThePlannedDistanceAnd, [{ text: ui().train.cancel, style: 'cancel' }, { text: ui().train.done, onPress: onDone }])} small />
+          <Chip label={ui().train.skipIt} onPress={() => Alert.alert(ui().train.skipThisSession, ui().train.theWeekCarriesOnNothing, [{ text: ui().train.keep, style: 'cancel' }, { text: ui().train.skip, onPress: onSkip }])} small />
         </View>
       )}
       {open && moving && (
@@ -855,7 +845,7 @@ function StepRow({ step, pace, unitsKm }: { step: Step; pace: number | null; uni
         <Text style={styles.stepLabel}>{step.label || EFFORT_LABEL[step.effort]}</Text>
         <Text style={styles.hint}>
           {size}
-          {pace != null && step.effort !== 'walk' ? ` · about ${formatSPerKm(pace, unitsKm)}` : ''}
+          {pace != null && step.effort !== 'walk' ? ui().train.aboutX(formatSPerKm(pace, unitsKm)) : ''}
         </Text>
       </View>
     </View>
@@ -871,13 +861,13 @@ function AwayView({ today, onBack, onConfirm }: { today: number; onBack: () => v
   const b = addDays(a, len - 1);
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.screen}>
-      <Back onPress={onBack} label="This week" />
-      <Text style={type.eyebrow}>Away</Text>
-      <Text style={styles.h1}>Planned rest,{'\n'}not a miss.</Text>
-      <Text style={styles.lede}>The runs on those days are set aside. Two weeks or more away and the plan comes back at 60% and builds up again.</Text>
-      <Stepper label="From" value={from} onChange={setFrom} min={0} max={90} step={1} format={(v) => (v === 0 ? 'Today' : formatDay(addDays(today, v)))} />
-      <Stepper label="For" value={len} onChange={setLen} min={1} max={60} step={1} format={(v) => `${v} ${v === 1 ? 'day' : 'days'} · back ${formatDay(addDays(b, 1))}`} />
-      <Button title={`Away ${formatDay(a)} to ${formatDay(b)}`} onPress={() => onConfirm(a, b)} />
+      <Back onPress={onBack} label={ui().train.thisWeek} />
+      <Text style={type.eyebrow}>{ui().train.away}</Text>
+      <Text style={styles.h1}>{ui().train.plannedRestNotAMiss2}</Text>
+      <Text style={styles.lede}>{ui().train.theRunsOnThoseDays}</Text>
+      <Stepper label={ui().train.from} value={from} onChange={setFrom} min={0} max={90} step={1} format={(v) => (v === 0 ? ui().train.today : formatDay(addDays(today, v)))} />
+      <Stepper label={ui().train.for} value={len} onChange={setLen} min={1} max={60} step={1} format={(v) => ui().train.daysBack(v, formatDay(addDays(b, 1)))} />
+      <Button title={ui().train.awayXToX(formatDay(a), formatDay(b))} onPress={() => onConfirm(a, b)} />
     </ScrollView>
   );
 }
@@ -886,13 +876,13 @@ function IllView({ onBack, onConfirm }: { onBack: () => void; onConfirm: (days: 
   const [days, setDays] = useState(3);
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.screen}>
-      <Back onPress={onBack} label="This week" />
-      <Text style={type.eyebrow}>Ill</Text>
-      <Text style={styles.h1}>Nothing until{'\n'}you are better.</Text>
-      <Text style={styles.lede}>No running with a fever or anything in the chest. Then as many easy days as you were ill, and the plan starts again from where it was. A fortnight or more, and it steps back to 60%.</Text>
-      <Stepper label="Ill for about" value={days} onChange={setDays} min={1} max={28} step={1} format={(v) => `${v} ${v === 1 ? 'day' : 'days'}`} />
-      <Text style={styles.hint}>A guess is fine. If it runs longer, come back here.</Text>
-      <Button title={`Rest ${days} ${days === 1 ? 'day' : 'days'}, then easy`} onPress={() => onConfirm(days)} />
+      <Back onPress={onBack} label={ui().train.thisWeek} />
+      <Text style={type.eyebrow}>{ui().train.ill}</Text>
+      <Text style={styles.h1}>{ui().train.nothingUntilYouAreBetter}</Text>
+      <Text style={styles.lede}>{ui().train.noRunningWithAFever}</Text>
+      <Stepper label={ui().train.illForAbout} value={days} onChange={setDays} min={1} max={28} step={1} format={(v) => ui().common.days(v)} />
+      <Text style={styles.hint}>{ui().train.aGuessIsFineIf}</Text>
+      <Button title={ui().train.restThenEasy(days)} onPress={() => onConfirm(days)} />
     </ScrollView>
   );
 }
@@ -900,10 +890,10 @@ function IllView({ onBack, onConfirm }: { onBack: () => void; onConfirm: (days: 
 function RulesView({ onBack }: { onBack: () => void }) {
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.screen}>
-      <Back onPress={onBack} label="Back" />
-      <Text style={type.eyebrow}>The nine rules</Text>
-      <Text style={styles.h1}>What a plan{'\n'}will never ask.</Text>
-      <Text style={styles.lede}>Every plan is generated, then checked against these before you see it. Every change along the way goes through the same checks.</Text>
+      <Back onPress={onBack} label={ui().train.back} />
+      <Text style={type.eyebrow}>{ui().train.theNineRules2}</Text>
+      <Text style={styles.h1}>{ui().train.whatAPlanWillNever}</Text>
+      <Text style={styles.lede}>{ui().train.everyPlanIsGeneratedThen}</Text>
       {RULES.map((r) => (
         <View key={r.n} style={styles.rule}>
           <Text style={styles.ruleN}>{r.n}</Text>
@@ -911,12 +901,12 @@ function RulesView({ onBack }: { onBack: () => void }) {
             <Text style={styles.ruleTitle}>{r.title}</Text>
             <Text style={styles.body}>{r.text}</Text>
             <Text style={styles.hint}>
-              {r.evidence === 'strong' ? 'Strong evidence' : r.evidence === 'moderate' ? 'Moderate evidence' : 'Coaching practice'} · {r.source}
+              {r.evidence === 'strong' ? ui().train.strongEvidence : r.evidence === 'moderate' ? ui().train.moderateEvidence : ui().train.coachingPractice} · {r.source}
             </Text>
           </View>
         </View>
       ))}
-      <Text style={styles.foot}>A plan is not medical advice. Pain that changes how you run is a reason to stop and ask someone who can look at you.</Text>
+      <Text style={styles.foot}>{ui().train.aPlanIsNotMedical}</Text>
     </ScrollView>
   );
 }
@@ -969,10 +959,10 @@ function Stepper({ label, value, onChange, min, max, step, format }: { label: st
         <Text style={styles.stepperLabel}>{label}</Text>
         <Text style={styles.stepperValue}>{format(value)}</Text>
       </View>
-      <Pressable onPress={() => onChange(Math.max(min, value - step))} style={styles.stepBtn} accessibilityLabel={`Less ${label}`}>
+      <Pressable onPress={() => onChange(Math.max(min, value - step))} style={styles.stepBtn} accessibilityLabel={ui().train.lessX(label)}>
         <Text style={styles.stepBtnText}>−</Text>
       </Pressable>
-      <Pressable onPress={() => onChange(Math.min(max, value + step))} style={styles.stepBtn} accessibilityLabel={`More ${label}`}>
+      <Pressable onPress={() => onChange(Math.min(max, value + step))} style={styles.stepBtn} accessibilityLabel={ui().train.moreX(label)}>
         <Text style={styles.stepBtnText}>+</Text>
       </Pressable>
     </View>
@@ -993,13 +983,13 @@ function Toggle({ value, onChange, label, hint }: { value: boolean; onChange: (v
   );
 }
 
-const TIME_WORD: Record<string, string> = { h: 'Hours', min: 'Minutes', s: 'Seconds' };
+const TIME_WORD: Record<string, string> = live(() => ui().train.timeWord);
 
 function TimeBox({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
   return (
     <View style={{ alignItems: 'center', gap: 2 }}>
       <TextInput value={value} onChangeText={(t) => onChange(t.replace(/[^0-9]/g, '').slice(0, 2))} accessibilityLabel={TIME_WORD[label] ?? label} keyboardType="number-pad" placeholder="00" placeholderTextColor={colors.inkMuted} style={styles.timeBox} maxLength={2} />
-      <Text style={styles.hint}>{label}</Text>
+      <Text style={styles.hint}>{ui().train.timeUnit[label] ?? label}</Text>
     </View>
   );
 }
@@ -1007,25 +997,25 @@ function TimeBox({ value, onChange, label }: { value: string; onChange: (v: stri
 // ---- Words and numbers ---------------------------------------------------------
 
 function fmtKm(km: number, unitsKm: boolean, digits = 1): string {
-  return unitsKm ? `${km.toFixed(digits)} km` : `${(km / KM_IN_MI).toFixed(digits)} mi`;
+  return unitsKm ? `${decimal(km.toFixed(digits))} km` : `${decimal((km / KM_IN_MI).toFixed(digits))} mi`;
 }
 
 /** What a done session shows; a deleted run leaves only the tick. */
 function doneText(done: NonNullable<Session['done']>, unitsKm: boolean): string {
-  if (done.distanceM <= 0 && done.durationS <= 0) return 'Done';
-  return `${fmtKm(done.distanceM / 1000, unitsKm)} in ${fmtDur(done.durationS)}`;
+  if (done.distanceM <= 0 && done.durationS <= 0) return ui().train.done;
+  return ui().train.distanceIn(fmtKm(done.distanceM / 1000, unitsKm), fmtDur(done.durationS));
 }
 
 function fmtDur(s: number, short = false): string {
   const m = Math.round(s / 60);
-  if (short) return s < 60 ? `${Math.round(s)} s` : s % 60 === 0 ? `${m} min` : `${Math.floor(s / 60)} min ${Math.round(s % 60)} s`;
+  if (short) return s < 60 ? ui().common.sec(Math.round(s)) : s % 60 === 0 ? ui().common.min(m) : ui().train.xMinXS(Math.floor(s / 60), Math.round(s % 60));
   const h = Math.floor(m / 60);
-  return h ? `${h} h ${String(m % 60).padStart(2, '0')} min` : `${m} min`;
+  return h ? ui().train.xHXMin(h, String(m % 60).padStart(2, '0')) : ui().common.min(m);
 }
 
 function sizeOf(s: Session, spec: PlanSpec, unitsKm: boolean): string {
   if (s.kind === 'race') return `${fmtKm(s.km, unitsKm)}`;
-  return spec.timeBased || s.kind === 'runwalk' ? `${s.minutes} min` : `${s.minutes} min · ${fmtKm(s.km, unitsKm)}`;
+  return spec.timeBased || s.kind === 'runwalk' ? ui().common.min(s.minutes) : ui().train.xMinX(s.minutes, fmtKm(s.km, unitsKm));
 }
 
 function lower(s: string): string {
@@ -1049,56 +1039,56 @@ function safePaces(distanceKm: number, timeS: number): Paces | null {
 }
 
 function weekHeadline(week: Week, current: Week, today: number, raceIn: number | null): string {
-  if (week.kind === 'race') return raceIn != null && raceIn >= 0 && week === current ? (raceIn === 0 ? 'Race day.' : `Race in ${raceIn} ${raceIn === 1 ? 'day' : 'days'}.`) : 'Race week.';
-  if (week.kind === 'taper') return 'Taper. Less, not slower.';
-  if (week.kind === 'light') return 'A lighter week. On purpose.';
-  if (week.kind === 'peak') return 'The biggest week.';
-  if (week.kind === 'base') return 'Building the base.';
-  if (week.partial && week.start <= today) return 'Picking up from here.';
-  return 'Building, slowly.';
+  if (week.kind === 'race') return raceIn != null && raceIn >= 0 && week === current ? (raceIn === 0 ? ui().train.raceDay2 : ui().train.raceIn(raceIn)) : ui().train.raceWeek;
+  if (week.kind === 'taper') return ui().train.taperLessNotSlower;
+  if (week.kind === 'light') return ui().train.aLighterWeekOnPurpose;
+  if (week.kind === 'peak') return ui().train.theBiggestWeek;
+  if (week.kind === 'base') return ui().train.buildingTheBase;
+  if (week.partial && week.start <= today) return ui().train.pickingUpFromHere;
+  return ui().train.buildingSlowly;
 }
 
 function weekLede(week: Week, spec: PlanSpec, unitsKm: boolean): string {
   const runs = week.sessions.filter((s) => s.kind !== 'strength' && !s.skipped);
   const hard = runs.filter((s) => s.hard).length;
   const long = runs.find((s) => s.kind === 'long');
-  const parts = [`${runs.length} ${runs.length === 1 ? 'run' : 'runs'}`];
-  if (!spec.timeBased) parts.push(`about ${fmtKm(week.targetKm, unitsKm, 0)}`);
-  if (long) parts.push(`long run ${spec.timeBased ? `${long.minutes} min` : fmtKm(long.km, unitsKm)}`);
-  parts.push(hard === 0 ? 'nothing hard' : hard === 1 ? 'one harder day' : `${hard} harder days`);
+  const parts = [ui().common.runs(runs.length)];
+  if (!spec.timeBased) parts.push(ui().train.about(fmtKm(week.targetKm, unitsKm, 0)));
+  if (long) parts.push(ui().train.longRunX(spec.timeBased ? ui().common.min(long.minutes) : fmtKm(long.km, unitsKm)));
+  parts.push(hard === 0 ? ui().train.nothingHard : hard === 1 ? ui().train.oneHarderDay : ui().train.xHarderDays(hard));
   return parts.join(' · ') + '.';
 }
 
 function missedTitle(m: MissedState): string {
-  return m.kind === 'repeat' ? `${m.gapDays} days without a run.` : m.kind === 'stepback' ? `${m.gapDays} days away.` : `${m.gapDays} days. A fresh start.`;
+  return m.kind === 'repeat' ? ui().train.xDaysWithoutARun(m.gapDays) : m.kind === 'stepback' ? ui().train.xDaysAway(m.gapDays) : ui().train.xDaysAFreshStart(m.gapDays);
 }
 
 function missedText(m: MissedState): string {
-  if (m.kind === 'repeat') return 'No catching up. The last completed week is repeated, then the plan carries on as it was.';
-  if (m.kind === 'stepback') return 'Fitness keeps better than you fear. The plan steps back to 60% of where it was and builds up again, no hard sessions for two weeks.';
-  return 'After a month or more, the plan steps back to 60% and goes gently. If it was illness or injury, Come back may suit better: stop this plan and pick it from the catalogue.';
+  if (m.kind === 'repeat') return ui().train.noCatchingUpTheLast;
+  if (m.kind === 'stepback') return ui().train.fitnessKeepsBetterThanYou;
+  return ui().train.afterAMonthOrMore;
 }
 
 function logLine(e: Plan['log'][number]): string {
   switch (e.kind) {
     case 'energy':
-      return e.choice === 'rest' ? 'Low energy: rested.' : e.choice === 'easy' ? 'Low energy: made the day easy.' : 'Low energy: ran it as planned.';
+      return e.choice === 'rest' ? ui().train.lowEnergyRested : e.choice === 'easy' ? ui().train.lowEnergyMadeTheDay : ui().train.lowEnergyRanItAs;
     case 'pain':
-      return e.level === 'pain' ? 'Pain: two days off, then easy.' : e.level === 'niggle' ? 'A niggle, noted.' : 'Nothing hurt.';
+      return e.level === 'pain' ? ui().train.painTwoDaysOffThen : e.level === 'niggle' ? ui().train.aNiggleNoted : ui().train.nothingHurt;
     case 'ill':
-      return `Ill for ${e.days} ${e.days === 1 ? 'day' : 'days'}.`;
+      return ui().train.illFor(e.days);
     case 'holiday':
-      return `Away ${formatDay(e.from)} to ${formatDay(e.to)}.`;
+      return ui().train.awayXToX2(formatDay(e.from), formatDay(e.to));
     case 'rebuilt':
       return e.reason;
     case 'paused':
-      return 'Paused.';
+      return ui().train.paused;
     case 'resumed':
-      return 'Resumed.';
+      return ui().train.resumed;
     case 'stopped':
-      return 'Stopped.';
+      return ui().train.stopped;
     case 'finished':
-      return 'Finished.';
+      return ui().train.finished;
   }
 }
 
@@ -1107,12 +1097,12 @@ async function exportCalendar(plan: Plan) {
     const file = new File(Paths.cache, `runtrovert-${plan.setup.planId}.ics`);
     await file.write(planToIcs(plan));
     if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(file.uri, { mimeType: 'text/calendar', UTI: 'com.apple.ical.ics', dialogTitle: 'Add the plan to a calendar' });
+      await Sharing.shareAsync(file.uri, { mimeType: 'text/calendar', UTI: 'com.apple.ical.ics', dialogTitle: ui().train.addThePlanToA });
     } else {
-      Alert.alert('No way to share from here', `The calendar file is at ${file.uri}.`);
+      Alert.alert(ui().train.noWayToShareFrom, ui().train.theCalendarFileIsAt(file.uri));
     }
   } catch (e) {
-    Alert.alert('Could not make the calendar file', String(e));
+    Alert.alert(ui().train.couldNotMakeTheCalendar, String(e));
   }
 }
 

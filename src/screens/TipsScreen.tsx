@@ -3,8 +3,9 @@ import { Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, V
 import { colors, fonts, radius, spacing } from '../theme';
 import { type Tip } from '../tips';
 import { localTips, localTipsByTopic } from '../i18n/voice';
+import { live, ui } from '../i18n/ui';
 
-const GROUPS = localTipsByTopic();
+const GROUPS = live(() => localTipsByTopic());
 const COUNT = localTips().length;
 const TINT = [colors.mint, colors.peach, colors.lilac, colors.butter, colors.sky];
 
@@ -15,20 +16,16 @@ export function TipsScreen({ visible, today, hidden, onHidden, onClose }: { visi
       <SafeAreaView style={styles.root}>
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.top}>
-            <Text style={styles.h1} accessibilityRole="header">
-              Things nobody tells you
-            </Text>
-            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={12} style={styles.close}>
-              <Text style={styles.closeText}>Done</Text>
+            <Text style={styles.h1} accessibilityRole="header">{ui().tips.thingsNobodyTellsYou}</Text>
+            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={ui().tips.close} hitSlop={12} style={styles.close}>
+              <Text style={styles.closeText}>{ui().tips.done}</Text>
             </Pressable>
           </View>
-          <Text style={styles.sub}>
-            {COUNT} small things about running, from nipples to Pheidippides. Sources where it is medical. All of it lives on the phone.
-          </Text>
+          <Text style={styles.sub}>{ui().tips.xSmallThingsAboutRunning(COUNT)}</Text>
 
           {today ? (
             <View style={[styles.today]}>
-              <Text style={styles.todayLabel}>Today</Text>
+              <Text style={styles.todayLabel}>{ui().tips.today}</Text>
               <Text style={styles.todayText}>{today.text}</Text>
               {today.source ? <Text style={styles.sourceOnInk}>{today.source}</Text> : null}
             </View>
@@ -48,12 +45,12 @@ export function TipsScreen({ visible, today, hidden, onHidden, onClose }: { visi
 
           <View style={styles.row}>
             <View style={{ flex: 1, paddingRight: spacing.md }}>
-              <Text style={styles.rowLabel}>One on the home screen</Text>
-              <Text style={styles.rowHint}>A new one each day, picked for the weather and your runs. Off leaves just a small link.</Text>
+              <Text style={styles.rowLabel}>{ui().tips.oneOnTheHomeScreen}</Text>
+              <Text style={styles.rowHint}>{ui().tips.aNewOneEachDay}</Text>
             </View>
             <Switch value={!hidden} onValueChange={(v) => onHidden(!v)} trackColor={{ true: colors.ink }} />
           </View>
-          <Text style={styles.small}>Tips, not medical advice. If something hurts in a way that worries you, a doctor or physio beats any app.</Text>
+          <Text style={styles.small}>{ui().tips.tipsNotMedicalAdviceIf}</Text>
         </ScrollView>
       </SafeAreaView>
     </Modal>

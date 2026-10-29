@@ -1,5 +1,6 @@
 import type { RunPreset } from './presets';
 import type { ComebackChoice } from './training/comeback';
+import { type Lang } from './i18n/lang';
 
 export type Mood = 1 | 2 | 3 | 4 | 5; // 1 = drained, 5 = recharged
 export type Quiet = 'crowded' | 'some' | 'empty';
@@ -87,6 +88,7 @@ export interface Settings {
   plainMap: boolean; // no street tiles: route and dot on a plain ground, nothing fetched
   mapNoticeSeen: boolean; // told once what the tile service sees, before any tile loads
   runPreset: RunPreset | null; // Today's run, last choice; null = never picked
+  language: Lang | null; // null = follow the phone
   silentDay: string | null; // "Run in silence today" from the Listen sheet, as a dayKey
   comeback: { since: number; choice: ComebackChoice } | null; // what was done with the plan after a break; `since` = the last run then
   onboarded: boolean;
@@ -118,6 +120,7 @@ export const DEFAULT_SETTINGS: Settings = {
   plainMap: false,
   mapNoticeSeen: false,
   runPreset: null,
+  language: null,
   silentDay: null,
   comeback: null,
   onboarded: false,

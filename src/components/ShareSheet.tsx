@@ -12,6 +12,8 @@ import { colors, fonts, radius, spacing, type } from '../theme';
 import type { LatLon, Mood, Quiet } from '../types';
 import { Button } from './Button';
 import { Face, Mark } from './Mark';
+import { ui } from '../i18n/ui';
+import { dateLocale } from '../i18n/lang';
 
 // "Share with someone": a card drawn on the phone and handed to the phone's
 // own share sheet. Runtrovert never sees where it goes. The route is off by
@@ -36,7 +38,7 @@ const CARD_RATIO = 1350 / 1080;
 
 function roughTime(ms: number): string {
   const h = new Date(ms).getHours();
-  return h < 7 ? 'early morning' : h < 11 ? 'morning' : h < 14 ? 'midday' : h < 17 ? 'afternoon' : h < 21 ? 'evening' : 'night';
+  return h < 7 ? ui().shareSheet.earlyMorning : h < 11 ? 'morning' : h < 14 ? 'midday' : h < 17 ? 'afternoon' : h < 21 ? 'evening' : 'night';
 }
 
 export function ShareSheet({
@@ -79,24 +81,24 @@ export function ShareSheet({
   const d = useMemo(() => (showRoute ? routePath(path, routeBox.w, routeBox.h, 8 * u) : null), [path, showRoute, routeBox.w, routeBox.h, u]);
 
   const options: Array<{ key: StatKind; label: string }> = [
-    ...(cmp.best ? [{ key: 'best' as const, label: 'Best' }] : []),
-    { key: 'distance', label: 'Distance' },
-    { key: 'time', label: 'Time' },
-    { key: 'pace', label: 'Pace' },
-    ...(recharge != null ? [{ key: 'energy' as const, label: 'Energy' }] : []),
+    ...(cmp.best ? [{ key: 'best' as const, label: ui().shareSheet.best }] : []),
+    { key: 'distance', label: ui().shareSheet.distance },
+    { key: 'time', label: ui().shareSheet.time },
+    { key: 'pace', label: ui().shareSheet.pace },
+    ...(recharge != null ? [{ key: 'energy' as const, label: ui().shareSheet.energy }] : []),
   ];
 
   const big = (() => {
     const unit = distanceUnit(km);
-    if (stat === 'best' && cmp.best) return { value: formatClock(cmp.best.seconds), sub: cmp.best.marginS == null ? `First ${cmp.best.label}` : `New ${cmp.best.label} best` };
+    if (stat === 'best' && cmp.best) return { value: formatClock(cmp.best.seconds), sub: cmp.best.marginS == null ? ui().shareSheet.firstX(cmp.best.label) : ui().shareSheet.newXBest(cmp.best.label) };
     if (stat === 'time') return { value: formatDuration(run.durationS), sub: `${formatDistanceNumber(run.distanceM, km)} ${unit}` };
-    if (stat === 'pace') return { value: formatPace(run.distanceM, run.durationS, km), sub: `per ${unit} · ${formatDistanceNumber(run.distanceM, km)} ${unit}` };
-    if (stat === 'energy') return { value: '', sub: `${formatDistanceNumber(run.distanceM, km)} ${unit} · energy before and after` };
+    if (stat === 'pace') return { value: formatPace(run.distanceM, run.durationS, km), sub: ui().shareSheet.perXXX(unit, formatDistanceNumber(run.distanceM, km), unit) };
+    if (stat === 'energy') return { value: '', sub: ui().shareSheet.xXEnergyBeforeAnd(formatDistanceNumber(run.distanceM, km), unit) };
     return { value: `${formatDistanceNumber(run.distanceM, km)} ${unit}`, sub: `${formatDuration(run.durationS)} · ${formatPace(run.distanceM, run.durationS, km)} /${unit}` };
   })();
 
   const faces = stat === 'energy' && run.moodBefore != null && run.moodAfter != null ? { before: run.moodBefore, after: run.moodAfter } : null;
-  const when = `${new Date(run.startedAt).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })} · ${roughTime(run.startedAt)}`;
+  const when = `${new Date(run.startedAt).toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric', month: 'short' })} · ${roughTime(run.startedAt)}`;
 
   async function onShare() {
     if (!card.current || busy) return;
@@ -104,12 +106,12 @@ export function ShareSheet({
     try {
       const uri = await captureRef(card.current as never /* view-shot's types predate RN 0.88's element refs */, { format: 'png', quality: 1, width: 1080, height: 1350, result: 'tmpfile' });
       if (!(await Sharing.isAvailableAsync())) {
-        Alert.alert('Sharing isn’t available', 'This phone has no share sheet we can hand the card to.');
+        Alert.alert(ui().shareSheet.sharingIsnTAvailable, ui().shareSheet.thisPhoneHasNoShare);
         return;
       }
-      await Sharing.shareAsync(uri, { mimeType: 'image/png', UTI: 'public.png', dialogTitle: 'Share with someone' });
+      await Sharing.shareAsync(uri, { mimeType: 'image/png', UTI: 'public.png', dialogTitle: ui().shareSheet.shareWithSomeone });
     } catch (e) {
-      Alert.alert('Couldn’t make the card', String((e as Error)?.message ?? e));
+      Alert.alert(ui().shareSheet.couldnTMakeTheCard, String((e as Error)?.message ?? e));
     } finally {
       setBusy(false);
     }
@@ -119,8 +121,8 @@ export function ShareSheet({
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="pageSheet">
       <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={styles.sheet}>
         <View style={{ gap: 4 }}>
-          <Text style={type.eyebrow}>Share with someone</Text>
-          <Text style={styles.lede}>Made on this phone. You pick who gets it; we never find out.</Text>
+          <Text style={type.eyebrow}>{ui().shareSheet.shareWithSomeone}</Text>
+          <Text style={styles.lede}>{ui().shareSheet.madeOnThisPhoneYou}</Text>
         </View>
 
         <View ref={card} collapsable={false} style={[styles.card, { width: W, height: H, backgroundColor: TONE[picked.tone], padding: 28 * u, borderRadius: 26 * u }]}>
@@ -151,19 +153,19 @@ export function ShareSheet({
         </View>
 
         <View style={styles.row}>
-          <Chip label="Another line" onPress={() => { Haptics.selectionAsync(); setTurn((t) => t + 1); }} strong />
-          <Chip label={showRoute ? 'Route on' : 'Route off'} on={showRoute} onPress={() => setShowRoute((s) => !s)} />
+          <Chip label={ui().shareSheet.anotherLine} onPress={() => { Haptics.selectionAsync(); setTurn((t) => t + 1); }} strong />
+          <Chip label={showRoute ? ui().shareSheet.routeOn : ui().shareSheet.routeOff} on={showRoute} onPress={() => setShowRoute((s) => !s)} />
         </View>
         <View style={styles.row}>
           {options.map((o) => (
             <Chip key={o.key} label={o.label} on={stat === o.key} onPress={() => setStat(o.key)} />
           ))}
         </View>
-        <Text style={type.small}>Route is off unless you turn it on. It’s drawn without a map and with the first and last 300 m left off, but its shape can still show where you run, and a loop can pass your door again.</Text>
+        <Text style={type.small}>{ui().shareSheet.routeIsOffUnlessYou}</Text>
 
         <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
-          <Button title="Not now" variant="secondary" onPress={onClose} style={{ flex: 0, paddingHorizontal: 22 }} />
-          <Button title={busy ? 'One moment…' : 'Share'} onPress={onShare} disabled={busy} style={{ flex: 1 }} />
+          <Button title={ui().shareSheet.notNow} variant="secondary" onPress={onClose} style={{ flex: 0, paddingHorizontal: 22 }} />
+          <Button title={busy ? ui().shareSheet.oneMoment : ui().shareSheet.share} onPress={onShare} disabled={busy} style={{ flex: 1 }} />
         </View>
       </ScrollView>
     </Modal>

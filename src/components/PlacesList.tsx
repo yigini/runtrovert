@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatDistance } from '../geo';
-import { BUSY_LABEL } from '../places';
+import { BUSY_LABEL, tagLabel } from '../places';
 import { listPlaces, recentVisits, type Place, type PlaceVisit } from '../placeStore';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import type { Quiet } from '../types';
 import { RouteShape } from './RouteShape';
+import { ui } from '../i18n/ui';
+import { dateLocale } from '../i18n/lang';
 
 const BAR: Record<Quiet, number> = { empty: 6, some: 12, crowded: 20 };
 
@@ -34,16 +36,14 @@ export function PlacesList({ km, refreshKey, header, onOpen, onRunAgain }: { km:
       ListHeaderComponent={
         <View style={{ gap: spacing.sm, marginBottom: spacing.xs }}>
           {header}
-          <Text style={type.small}>Places you chose to keep, with your own notes. Only on this phone.</Text>
+          <Text style={type.small}>{ui().placesList.placesYouChoseToKeep}</Text>
         </View>
       }
       ListEmptyComponent={
         places ? (
           <View style={styles.empty}>
-            <Text style={type.h2}>No places yet.</Text>
-            <Text style={[type.body, { color: colors.muted, textAlign: 'center' }]}>
-              Run the same loop a third time and the finish screen asks if you’d like to keep it, with a name and your own notes.
-            </Text>
+            <Text style={type.h2}>{ui().placesList.noPlacesYet}</Text>
+            <Text style={[type.body, { color: colors.muted, textAlign: 'center' }]}>{ui().placesList.runTheSameLoopA}</Text>
           </View>
         ) : undefined
       }
@@ -56,11 +56,11 @@ export function PlacesList({ km, refreshKey, header, onOpen, onRunAgain }: { km:
 
 function PlaceRow({ place, visits, km, onOpen, onRunAgain }: { place: Place; visits: PlaceVisit[]; km: boolean; onOpen: () => void; onRunAgain: () => void }) {
   const last = visits[0];
-  const lastLine = last ? `Last run ${lastWhen(last.at)}${last.busy ? ` · ${BUSY_LABEL[last.busy].toLowerCase()}` : ''}` : 'Not run since you kept it';
+  const lastLine = last ? ui().placesList.lastRunXX(lastWhen(last.at), last.busy ? ` · ${BUSY_LABEL[last.busy].toLowerCase()}` : '') : ui().placesList.notRunSinceYouKept;
   const rated = visits.filter((v) => v.busy).reverse(); // oldest first, left to right
   return (
     <View style={styles.card}>
-      <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={`${place.name}, ${formatDistance(place.distanceM, km)}. ${place.tags.join(', ')}. ${lastLine}.`} accessibilityHint="Opens this place" style={({ pressed }) => [styles.top, pressed && { opacity: 0.85 }]}>
+      <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={`${place.name}, ${formatDistance(place.distanceM, km)}. ${place.tags.map(tagLabel).join(', ')}. ${lastLine}.`} accessibilityHint={ui().placesList.opensThisPlace} style={({ pressed }) => [styles.top, pressed && { opacity: 0.85 }]}>
         <RouteShape sig={place.sig} size={48} />
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={styles.name}>{place.name}</Text>
@@ -71,7 +71,7 @@ function PlaceRow({ place, visits, km, onOpen, onRunAgain }: { place: Place; vis
         <View style={styles.tags}>
           {place.tags.map((t) => (
             <Text key={t} style={styles.tag}>
-              {t}
+              {tagLabel(t)}
             </Text>
           ))}
         </View>
@@ -80,15 +80,15 @@ function PlaceRow({ place, visits, km, onOpen, onRunAgain }: { place: Place; vis
         <View style={{ flex: 1 }}>
           <Text style={type.small}>{lastLine}</Text>
           {rated.length > 1 ? (
-            <View style={styles.bars} accessible accessibilityLabel={`How busy you found it, last ${rated.length} runs: ${rated.map((v) => BUSY_LABEL[v.busy as Quiet].toLowerCase()).join(', ')}`}>
+            <View style={styles.bars} accessible accessibilityLabel={ui().placesList.howBusyYouFoundIt(rated.length, rated.map((v) => BUSY_LABEL[v.busy as Quiet].toLowerCase()).join(', '))}>
               {rated.map((v) => (
                 <View key={v.id} style={[styles.bar, { height: BAR[v.busy as Quiet], backgroundColor: v.busy === 'crowded' ? colors.skyDeep : colors.sky }]} />
               ))}
             </View>
           ) : null}
         </View>
-        <Pressable onPress={onRunAgain} accessibilityRole="button" accessibilityLabel={`Run ${place.name} again`} style={({ pressed }) => [styles.again, pressed && { opacity: 0.85 }]}>
-          <Text style={styles.againText}>Run this again</Text>
+        <Pressable onPress={onRunAgain} accessibilityRole="button" accessibilityLabel={ui().placesList.runXAgain(place.name)} style={({ pressed }) => [styles.again, pressed && { opacity: 0.85 }]}>
+          <Text style={styles.againText}>{ui().placesList.runThisAgain}</Text>
         </Pressable>
       </View>
     </View>
@@ -98,9 +98,9 @@ function PlaceRow({ place, visits, km, onOpen, onRunAgain }: { place: Place; vis
 export function lastWhen(at: number): string {
   const d = new Date(at);
   const days = (Date.now() - at) / 86400000;
-  const time = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-  if (days < 6.5) return `${d.toLocaleDateString(undefined, { weekday: 'short' })} ${time}`;
-  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  const time = d.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' });
+  if (days < 6.5) return `${d.toLocaleDateString(dateLocale(), { weekday: 'short' })} ${time}`;
+  return d.toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' });
 }
 
 const styles = StyleSheet.create({
