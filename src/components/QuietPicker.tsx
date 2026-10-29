@@ -9,16 +9,18 @@ const OPTIONS: Array<{ key: Quiet; label: string }> = [
   { key: 'empty', label: 'Empty' },
 ];
 
+const TITLE = 'How busy was it out there?';
+
 export function QuietPicker({ value, onChange }: { value: Quiet | null; onChange: (q: Quiet) => void }) {
   return (
     <View style={styles.wrap}>
-      <Text style={styles.title}>How busy was it out there?</Text>
-      <View style={styles.row}>
+      <Text style={styles.title}>{TITLE}</Text>
+      <View style={styles.row} accessibilityRole="radiogroup" accessibilityLabel={TITLE}>
         {OPTIONS.map((o) => {
           const on = value === o.key;
           return (
-            <Pressable key={o.key} onPress={() => onChange(o.key)} accessibilityState={{ selected: on }} style={[styles.pill, on && styles.pillOn]}>
-              <Text style={[styles.label, on && styles.labelOn]}>{o.label}</Text>
+            <Pressable key={o.key} onPress={() => onChange(o.key)} accessibilityRole="radio" accessibilityState={{ checked: on }} style={[styles.pill, on && styles.pillOn]}>
+              <Text style={[styles.label, on && styles.labelOn, { textAlign: 'center' }]}>{o.label}</Text>
             </Pressable>
           );
         })}
@@ -31,7 +33,7 @@ const styles = StyleSheet.create({
   wrap: { gap: spacing.sm },
   title: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
   row: { flexDirection: 'row', gap: spacing.sm },
-  pill: { flex: 1, height: 44, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: colors.ink },
+  pill: { flex: 1, minHeight: 44, paddingVertical: 6, paddingHorizontal: 4, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: colors.ink },
   pillOn: { backgroundColor: colors.ink },
   label: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.inkSoft },
   labelOn: { color: colors.cream },

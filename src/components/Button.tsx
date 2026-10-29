@@ -6,14 +6,15 @@ type Variant = 'primary' | 'secondary' | 'danger' | 'onInk';
 
 export function Button({ title, onPress, variant = 'primary', disabled, style }: { title: string; onPress: () => void; variant?: Variant; disabled?: boolean; style?: ViewStyle }) {
   return (
-    <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" style={({ pressed }) => [styles.base, styles[variant], pressed && styles.pressed, disabled && styles.disabled, style]}>
-      <Text style={[styles.text, textStyles[variant]]}>{title}</Text>
+    <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityState={{ disabled: !!disabled }} style={({ pressed }) => [styles.base, styles[variant], pressed && styles.pressed, disabled && styles.disabled, style]}>
+      <Text style={[styles.text, textStyles[variant], { textAlign: 'center' }]}>{title}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  base: { height: 58, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
+  // minHeight, not height: with a large system font the label wraps instead of being clipped.
+  base: { minHeight: 58, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 10 },
   primary: { backgroundColor: colors.ink },
   secondary: { backgroundColor: colors.lilacSoft },
   danger: { backgroundColor: colors.peach },

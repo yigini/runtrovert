@@ -46,13 +46,13 @@ export function SettingsScreen({ onOpenListen }: { onOpenListen: () => void }) {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ gap: spacing.lg, paddingBottom: spacing.xl }}>
-      <Text style={styles.h1}>Settings</Text>
+      <Text style={styles.h1} accessibilityRole="header">Settings</Text>
 
       <Section title="Cues" bg={colors.lilac} fg={colors.lilacDeep}>
         {CUES.map((c) => {
           const on = settings.cueMode === c.key;
           return (
-            <Pressable key={c.key} onPress={() => update({ cueMode: c.key })} style={[styles.option, on && styles.optionOn]}>
+            <Pressable key={c.key} onPress={() => update({ cueMode: c.key })} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${c.label}. ${c.hint}`} style={[styles.option, on && styles.optionOn]}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.optionLabel, on && styles.optionLabelOn]}>{c.label}</Text>
                 <Text style={[styles.optionHint, on && { color: colors.onInkMuted }]}>{c.hint}</Text>
@@ -95,7 +95,7 @@ export function SettingsScreen({ onOpenListen }: { onOpenListen: () => void }) {
         {BATTERY.map((b) => {
           const on = settings.batteryMode === b.key;
           return (
-            <Pressable key={b.key} onPress={() => update({ batteryMode: b.key })} style={[styles.option, on && styles.optionOn]}>
+            <Pressable key={b.key} onPress={() => update({ batteryMode: b.key })} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${b.label}. ${b.hint}`} style={[styles.option, on && styles.optionOn]}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.optionLabel, on && styles.optionLabelOn]}>{b.label}</Text>
                 <Text style={[styles.optionHint, on && { color: colors.onInkMuted }]}>{b.hint}</Text>
@@ -118,6 +118,7 @@ export function SettingsScreen({ onOpenListen }: { onOpenListen: () => void }) {
               }}
               style={styles.turnOn}
               accessibilityRole="button"
+              accessibilityLabel="Turn on notifications"
             >
               <Text style={styles.turnOnText}>Turn on</Text>
             </Pressable>
@@ -143,12 +144,12 @@ export function SettingsScreen({ onOpenListen }: { onOpenListen: () => void }) {
         <Row label="After a run" hint="One quiet note fifteen minutes after you save, or a nudge to log your energy if you skipped it. Never after 21:00.">
           <Switch value={settings.afterRunNote} onValueChange={(v) => update({ afterRunNote: v })} trackColor={{ true: colors.ink }} />
         </Row>
-        <Pressable onPress={() => setPreview(previewLine())} style={styles.preview}>
+        <Pressable onPress={() => setPreview(previewLine())} style={styles.preview} accessibilityRole="button" accessibilityLabel={`Sounds like: ${preview}`} accessibilityHint="Shows another example">
           <Text style={styles.previewLabel}>Sounds like</Text>
           <Text style={styles.previewText}>{preview}</Text>
           <Text style={styles.previewHint}>tap for another</Text>
         </Pressable>
-        <Pressable onPress={onSendNow} style={styles.sendNow}>
+        <Pressable onPress={onSendNow} style={styles.sendNow} accessibilityRole="button">
           <Text style={styles.sendNowText}>Send me one now</Text>
         </Pressable>
       </Section>
@@ -199,31 +200,39 @@ export function SettingsScreen({ onOpenListen }: { onOpenListen: () => void }) {
 function Section({ title, bg, fg, children }: { title: string; bg: string; fg: string; children: React.ReactNode }) {
   return (
     <View style={[styles.section, { backgroundColor: bg }]}>
-      <Text style={[styles.sectionTitle, { color: fg }]}>{title}</Text>
+      <Text style={[styles.sectionTitle, { color: fg }]} accessibilityRole="header">{title}</Text>
       {children}
     </View>
   );
 }
 
+/**
+ * A setting and its control. The control is handed the row's words, so a
+ * screen reader says "Auto-pause, switch, on" rather than just "switch, on".
+ * The words themselves are hidden from it to avoid reading them twice.
+ */
 function Row({ label, hint, stack, children }: { label: string; hint?: string; stack?: boolean; children: React.ReactNode }) {
+  const named = React.Children.map(children, (c) =>
+    React.isValidElement<{ accessibilityLabel?: string; accessibilityHint?: string }>(c) && !c.props.accessibilityLabel ? React.cloneElement(c, { accessibilityLabel: label, accessibilityHint: hint }) : c,
+  );
   return (
     <View style={[styles.row, stack && styles.rowStack]}>
-      <View style={stack ? undefined : { flex: 1, paddingRight: spacing.md }}>
+      <View style={stack ? undefined : { flex: 1, paddingRight: spacing.md }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
         <Text style={styles.optionLabel}>{label}</Text>
         {hint ? <Text style={styles.optionHint}>{hint}</Text> : null}
       </View>
-      {children}
+      {named}
     </View>
   );
 }
 
-function Segmented({ value, options, onChange }: { value: string; options: string[]; onChange: (v: string) => void }) {
+function Segmented({ value, options, onChange, accessibilityLabel, accessibilityHint }: { value: string; options: string[]; onChange: (v: string) => void; accessibilityLabel?: string; accessibilityHint?: string }) {
   return (
-    <View style={styles.seg}>
+    <View style={[styles.seg, { flexWrap: 'wrap' }]} accessibilityRole="radiogroup" accessibilityLabel={accessibilityLabel} accessibilityHint={accessibilityHint}>
       {options.map((o) => {
         const on = o === value;
         return (
-          <Pressable key={o} onPress={() => onChange(o)} style={[styles.segItem, on && styles.segItemOn]}>
+          <Pressable key={o} onPress={() => onChange(o)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={accessibilityLabel ? `${accessibilityLabel}: ${o}` : o} style={[styles.segItem, on && styles.segItemOn]}>
             <Text style={[styles.segText, on && styles.segTextOn]}>{o}</Text>
           </Pressable>
         );

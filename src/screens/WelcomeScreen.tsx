@@ -35,7 +35,7 @@ export function WelcomeScreen({ onDone }: { onDone: (reminders: boolean) => void
           <Item title="No subscription" text="Tracking and history are free for good." />
         </View>
 
-        <Button title="I like that" onPress={() => setStep('ask')} style={{ height: 62, marginTop: spacing.md }} />
+        <Button title="I like that" onPress={() => setStep('ask')} style={{ minHeight: 62, marginTop: spacing.md }} />
         <Text style={styles.footer}>Delete the app and it’s gone from this phone.</Text>
       </ScrollView>
     </AmbientBackground>
@@ -62,8 +62,8 @@ function AskStep({ onAnswer }: { onAnswer: (yes: boolean) => void }) {
           <Item title="Written on this phone" text="Not sent from anywhere. No server knows you exist. Also puts distance and time on your lock screen while you run." />
         </View>
 
-        <Button title="Yes, quietly" onPress={() => onAnswer(true)} style={{ height: 62, marginTop: spacing.md }} />
-        <Button title="Not now" variant="secondary" onPress={() => onAnswer(false)} style={{ height: 52 }} />
+        <Button title="Yes, quietly" onPress={() => onAnswer(true)} style={{ minHeight: 62, marginTop: spacing.md }} />
+        <Button title="Not now" variant="secondary" onPress={() => onAnswer(false)} style={{ minHeight: 52 }} />
         <Text style={styles.footer}>If one ever annoys you, that’s a bug. Settings has the switch.</Text>
       </ScrollView>
     </AmbientBackground>
