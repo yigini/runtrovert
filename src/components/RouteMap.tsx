@@ -1,15 +1,19 @@
 import { Camera, GeoJSONSource, Layer, Map as MapLibreMap } from '@maplibre/maplibre-react-native';
-import React, { useMemo, useState } from 'react';
-import { type LayoutChangeEvent, StyleSheet, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Alert, type LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import { boundsFor, fitBounds } from '../mapFit';
+import { useSettings } from '../settings';
 import { colors, radius } from '../theme';
 import type { LatLon } from '../types';
 
 /**
  * MapLibre: open source, no API key, no Google. Tiles come from a public
  * OpenFreeMap style (free, no key); swap MAP_STYLE for your own host later.
- * Offline/private mode: set MAP_STYLE to the blank style below — the route
- * still draws on a plain mint ground with no tile requests at all.
+ * The tile host sees the area on screen and the phone's IP, so nothing is
+ * fetched until the runner has been told once (welcome screen, or the alert
+ * below for people who onboarded before it). Settings > Plain map, or the
+ * `offline` prop, keeps the blank style: the route still draws on a plain mint
+ * ground with no tile requests at all.
  */
 const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
 
@@ -52,6 +56,11 @@ export function RouteMap({
   /** Cap the frame rate; a map behind the numbers doesn't need 60 fps. */
   fps?: number;
 }) {
+  const { settings, ready, update } = useSettings();
+  const plain = offline || settings.plainMap || !settings.mapNoticeSeen;
+  useEffect(() => {
+    if (ready && !offline && !settings.plainMap && !settings.mapNoticeSeen) askAboutTiles(update);
+  }, [ready, offline, settings.plainMap, settings.mapNoticeSeen]);
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   const onLayout = (e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
@@ -96,9 +105,9 @@ export function RouteMap({
     <View style={fill ? styles.fill : [styles.wrap, { height }]} pointerEvents={interactive ? 'auto' : 'none'} onLayout={onLayout}>
       <MapLibreMap
         style={StyleSheet.absoluteFill}
-        mapStyle={offline ? BLANK_STYLE : MAP_STYLE}
+        mapStyle={plain ? BLANK_STYLE : MAP_STYLE}
         logo={false}
-        attribution={!offline}
+        attribution={!plain}
         attributionPosition={fill ? { top: 60, right: 12 } : undefined}
         compass={false}
         dragPan={interactive}
@@ -146,6 +155,23 @@ export function RouteMap({
         )}
       </MapLibreMap>
     </View>
+  );
+}
+
+// One question, once per app run at most, for people who never saw the welcome
+// line about maps. Until they answer, the map stays plain.
+let asked = false;
+function askAboutTiles(update: (patch: { plainMap?: boolean; mapNoticeSeen?: boolean }) => void) {
+  if (asked) return;
+  asked = true;
+  Alert.alert(
+    'Street map?',
+    'The streets come from OpenFreeMap. While a map is on screen it sees which area it shows and your IP address, like any website. Your route is saved on this phone and never sent. Plain keeps your route and the live dot on a plain ground and fetches nothing.',
+    [
+      { text: 'Plain', onPress: () => update({ plainMap: true, mapNoticeSeen: true }) },
+      { text: 'Show streets', onPress: () => update({ mapNoticeSeen: true }) },
+    ],
+    { cancelable: false },
   );
 }
 

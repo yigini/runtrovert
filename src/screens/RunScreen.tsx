@@ -131,7 +131,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   async function begin() {
     const perm = await ensurePermissions();
     if (!perm.ok) {
-      Alert.alert('Location needed', 'Runtrovert can only record a run with location access. Nothing leaves your phone.');
+      Alert.alert('Location needed', 'Runtrovert can only record a run with location access. Your runs are saved on this phone, not on a server of ours.');
       return;
     }
     if (!perm.background) {

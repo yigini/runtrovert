@@ -18,8 +18,8 @@
         "UIBackgroundModes": [
           "location"
         ],
-        "NSLocationWhenInUseUsageDescription": "Runtrovert uses your location to record your runs. Nothing leaves your phone.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Runtrovert needs background location so your run keeps recording with the screen off. Nothing leaves your phone.",
+        "NSLocationWhenInUseUsageDescription": "Runtrovert uses your location to record your runs. Your runs are saved on this phone, not on a server of ours. While a map is on screen, the map service sees which area it shows. With weather on, the forecast service gets a location rounded to about 1 km.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Runtrovert uses background location so your run keeps recording with the screen off. Your runs are saved on this phone, not on a server of ours.",
         "ITSAppUsesNonExemptEncryption": false,
         "LSApplicationQueriesSchemes": [
           "spotify",
@@ -63,7 +63,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Runtrovert needs background location so your run keeps recording with the screen off. Nothing leaves your phone.",
+          "locationAlwaysAndWhenInUsePermission": "Runtrovert uses background location so your run keeps recording with the screen off. Your runs are saved on this phone, not on a server of ours.",
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }

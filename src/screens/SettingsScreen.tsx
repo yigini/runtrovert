@@ -169,6 +169,15 @@ export function SettingsScreen() {
         </Pressable>
       </Section>
 
+      <Section title="Map" bg={colors.mint} fg={colors.mintDeep}>
+        <Row
+          label="Plain map"
+          hint="Your route, the live dot and the zoom work the same on a plain ground. No streets or names, and nothing is fetched. Off, the streets come from OpenFreeMap, which sees the area on screen and your IP address."
+        >
+          <Switch value={settings.plainMap} onValueChange={(v) => update({ plainMap: v, mapNoticeSeen: true })} trackColor={{ true: colors.ink }} />
+        </Row>
+      </Section>
+
       <Section title="The sky" bg={colors.sky} fg={colors.skyDeep}>
         <Row label="Local weather on the home screen" hint="A location rounded to about 1 km goes to Open-Meteo and a forecast comes back. No key, no account, no cookies. Besides map tiles and the Listen list, it is the only thing the app fetches.">
           <Switch value={settings.weather} onValueChange={(v) => update({ weather: v })} trackColor={{ true: colors.ink }} />
@@ -199,11 +208,13 @@ export function SettingsScreen() {
 
       <Section title="Privacy" bg={colors.white} fg={colors.muted}>
         <Text style={styles.privacy}>
-          Runtrovert has no server. Your runs, routes, notes and settings live only here. We can't see them even if we wanted to.
-          Reminders are written and scheduled on the phone. No push service, no server, nothing that knows when or whether you ran. The app fetches three
-          things: map tiles, the weather if you leave it on, and the Listen list if you said yes, which is one file that's the same for everyone. Podcasts
+          Runtrovert has no server. Your runs, routes, notes and settings are saved on this phone, and in the phone's own backup to your Google or Apple
+          account if you have backups on. We can't see them even if we wanted to. Reminders are written and scheduled on the phone. No push service, no
+          server, nothing that knows when or whether you ran. The app fetches three things: map tiles unless you chose Plain map, the weather if you leave it
+          on, and the Listen list if you said yes, which is one file that's the same for everyone. Like any website, each of those sees your IP address. The
+          map service also sees which area is on screen, and the weather service a location rounded to about 1 km. Your route itself is never sent. Podcasts
           play in your own podcast app; we never see what you play. Sponsors pay a flat fee for a place on the Kit & offers shelf and never learn who opened
-          it or what was tapped. Delete the app and it's all gone.
+          it or what was tapped. Delete the app and it's gone from this phone; a phone backup keeps a copy until it's replaced.
         </Text>
       </Section>
     </ScrollView>

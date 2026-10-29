@@ -81,6 +81,8 @@ export interface Settings {
   offerTopics: string[]; // what the runner wants to see there; stays on the phone
   musicStrip: boolean; // previous / play / next on the run screen
   musicApp: string | null; // MUSIC_APPS key; null = the phone's default music app
+  plainMap: boolean; // no street tiles: route and dot on a plain ground, nothing fetched
+  mapNoticeSeen: boolean; // told once what the tile service sees, before any tile loads
   onboarded: boolean;
 }
 
@@ -107,5 +109,7 @@ export const DEFAULT_SETTINGS: Settings = {
   offerTopics: [],
   musicStrip: true,
   musicApp: null,
+  plainMap: false,
+  mapNoticeSeen: false,
   onboarded: false,
 };
