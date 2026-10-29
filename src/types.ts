@@ -1,3 +1,5 @@
+import type { RunPreset } from './presets';
+
 export type Mood = 1 | 2 | 3 | 4 | 5; // 1 = drained, 5 = recharged
 export type Quiet = 'crowded' | 'some' | 'empty';
 
@@ -83,6 +85,8 @@ export interface Settings {
   musicApp: string | null; // MUSIC_APPS key; null = the phone's default music app
   plainMap: boolean; // no street tiles: route and dot on a plain ground, nothing fetched
   mapNoticeSeen: boolean; // told once what the tile service sees, before any tile loads
+  runPreset: RunPreset | null; // Today's run, last choice; null = never picked
+  silentDay: string | null; // "Run in silence today" from the Listen sheet, as a dayKey
   onboarded: boolean;
 }
 
@@ -111,5 +115,7 @@ export const DEFAULT_SETTINGS: Settings = {
   musicApp: null,
   plainMap: false,
   mapNoticeSeen: false,
+  runPreset: null,
+  silentDay: null,
   onboarded: false,
 };

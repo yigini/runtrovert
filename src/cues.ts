@@ -9,9 +9,24 @@ import { duck } from './music';
  * silent is exactly that.
  */
 
+let chosen: CueMode = 'haptic';
+// A quiet run (Clear my head, or "Run in silence today") holds cues at silent
+// until it ends, whatever the settings say meanwhile.
+let hush = false;
 let mode: CueMode = 'haptic';
 export function setCueMode(m: CueMode) {
-  mode = m;
+  chosen = m;
+  mode = hush ? 'silent' : m;
+}
+
+export function setRunSilent(on: boolean) {
+  hush = on;
+  mode = on ? 'silent' : chosen;
+}
+
+/** True while a quiet run holds everything still: the km notes that buzz stay off too. */
+export function runSilent(): boolean {
+  return hush;
 }
 
 async function buzz(pattern: Haptics.NotificationFeedbackType | 'double' | 'triple') {

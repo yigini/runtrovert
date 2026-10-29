@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { spokenDistance, spokenDuration, spokenPace } from '../a11y';
+import { SettingsGear } from '../components/SettingsGear';
 import { YouSection } from '../components/YouSection';
 import { listRuns } from '../db';
 import { formatDistance, formatDuration, formatPace } from '../geo';
@@ -30,7 +31,10 @@ export function HistoryScreen({ onOpen, refreshKey }: { onOpen: (runId: number) 
   const header = (
     <View style={{ gap: spacing.md, marginBottom: spacing.sm }}>
       <View>
-        <Text style={type.eyebrow}>{now.toLocaleDateString(undefined, { month: 'long' })}</Text>
+        <View style={styles.topRow}>
+          <Text style={type.eyebrow}>{now.toLocaleDateString(undefined, { month: 'long' })}</Text>
+          <SettingsGear />
+        </View>
         <Text style={type.h1} accessibilityRole="header">Your runs.</Text>
       </View>
       <View style={styles.tiles}>
@@ -137,6 +141,7 @@ function shapeFor(id: number): string {
 }
 
 const styles = StyleSheet.create({
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: -10, marginRight: -10 },
   screen: { flex: 1, backgroundColor: colors.cream, padding: spacing.md, paddingTop: spacing.lg },
   tiles: { flexDirection: 'row', gap: spacing.sm + 2 },
   stat: { flex: 1, backgroundColor: colors.white, borderRadius: radius.md, padding: 12 },

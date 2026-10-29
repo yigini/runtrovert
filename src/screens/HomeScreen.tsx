@@ -1,19 +1,23 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { DISPLAY_MAX_SCALE } from '../a11y';
 import { AmbientBackground } from '../components/AmbientBackground';
 import { Button } from '../components/Button';
 import { Fade } from '../components/Fade';
-import { Mark } from '../components/Mark';
 import { MoodPicker } from '../components/MoodPicker';
+import { PresetSheet } from '../components/PresetSheet';
+import { SettingsGear } from '../components/SettingsGear';
 import { PlanReminderLine } from '../components/PlanReminders';
 import { SkyGlyph } from '../components/SkyGlyph';
 import { TipLine } from '../components/TipLine';
+import { ListenSheet } from './ListenScreen';
 import { homeFootage } from '../footage';
+import { PRESETS, effectivePreset, presetInfo } from '../presets';
 import { clock, formatTemp, headline, suggestions } from '../sky';
 import { useSettings } from '../settings';
 import { seasonalLine } from '../surprises';
-import { colors, fonts, spacing } from '../theme';
+import { colors, fonts, radius, spacing } from '../theme';
 import { WEEKDAY_LONG, weekdayOf } from '../training/dates';
 import type { Session } from '../training/types';
 import type { Mood, Run } from '../types';
@@ -22,10 +26,17 @@ import { cachedWeather, getWeather, type Weather, type WeatherResult } from '../
 
 /**
  * The first thing you see. Footage, the sky in a sentence, three plain
- * suggestions, and the start button. No cards: the words sit on the picture.
+ * suggestions, then today's run: how much comes with you, Start, and Listen
+ * beside it. No cards: the words sit on the picture.
  */
-export function HomeScreen({ runs, mood, onMood, onStart, planToday, planNext, onOpenPlan }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; planToday?: Session | null; planNext?: Session | null; onOpenPlan?: () => void }) {
+export function HomeScreen({ runs, mood, onMood, onStart, planToday, planNext, onOpenPlan, onBrowseListen }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; planToday?: Session | null; planNext?: Session | null; onOpenPlan?: () => void; onBrowseListen?: () => void }) {
   const { settings, update } = useSettings();
+  const [presetSheet, setPresetSheet] = useState(false);
+  const [listen, setListen] = useState(false);
+  const sessionToday = !!planToday && !planToday.done && !planToday.skipped;
+  const preset = effectivePreset(settings.runPreset, sessionToday);
+  // The chip shows what was picked, even on a day My plan has nothing to follow.
+  const picked = settings.runPreset ?? preset;
   const metric = settings.unitsKm;
   const [sky, setSky] = useState<WeatherResult | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -66,7 +77,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, planToday, planNext, o
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.screen} showsVerticalScrollIndicator={false}>
         <View style={styles.top}>
           <Text style={styles.eyebrow}>{dateLine(now)}</Text>
-          <Mark size={30} tile={false} />
+          <SettingsGear onPhoto />
         </View>
 
         {weather ? <SkyRow w={weather} metric={metric} /> : null}
@@ -124,11 +135,66 @@ export function HomeScreen({ runs, mood, onMood, onStart, planToday, planNext, o
       </ScrollView>
 
       <View style={styles.dock}>
+        <View style={styles.todayHead}>
+          <Text style={styles.todayLabel} accessibilityRole="header">Today’s run</Text>
+          <Pressable onPress={() => setPresetSheet(true)} accessibilityRole="button" hitSlop={10}>
+            <Text style={styles.todayLink}>What each one shows</Text>
+          </Pressable>
+        </View>
+        <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel="Today’s run">
+          {PRESETS.map((p) => {
+            const on = p.key === picked;
+            return (
+              <Pressable
+                key={p.key}
+                onPress={() => update({ runPreset: p.key })}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: on }}
+                accessibilityLabel={p.name}
+                style={({ pressed }) => [styles.chip, on && styles.chipOn, pressed && { opacity: 0.85 }]}
+              >
+                <Text style={[styles.chipText, on && styles.chipTextOn]} numberOfLines={1}>
+                  {p.chip}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Text style={styles.todayLine}>{presetLine(picked, preset, sessionToday, settings.runPreset != null)}</Text>
         <MoodPicker inline title="Energy right now" value={mood} onChange={onMood} />
-        <Button title={planToday && !planToday.done && !planToday.skipped ? 'Start today’s session' : 'Start run'} onPress={onStart} style={{ minHeight: 62 }} />
+        <View style={styles.startRow}>
+          <Button title={preset === 'plan' ? 'Start today’s session' : 'Start'} onPress={onStart} style={{ minHeight: 62, flex: 1 }} />
+          <Pressable onPress={() => setListen(true)} accessibilityRole="button" accessibilityLabel="Listen" accessibilityHint="Music, podcasts, or a silent run" style={({ pressed }) => [styles.listen, pressed && { opacity: 0.85 }]}>
+            <HeadphonesGlyph />
+          </Pressable>
+        </View>
         <Text style={styles.footer}>{footer(runs, now)}</Text>
       </View>
+      <PresetSheet open={presetSheet} value={picked} onPick={(p) => update({ runPreset: p })} onClose={() => setPresetSheet(false)} />
+      <ListenSheet
+        open={listen}
+        onClose={() => setListen(false)}
+        onBrowse={() => {
+          setListen(false);
+          onBrowseListen?.();
+        }}
+      />
     </AmbientBackground>
+  );
+}
+
+/** The line under the chips: what the pick brings, and that it's remembered. */
+function presetLine(picked: ReturnType<typeof effectivePreset>, preset: ReturnType<typeof effectivePreset>, sessionToday: boolean, remembered: boolean): string {
+  if (picked === 'plan' && !sessionToday) return 'Nothing on the plan today, so this one runs as Just run. Plans live in Train.';
+  return `${presetInfo(preset).line}${remembered ? ' Same as last time.' : ''}`;
+}
+
+function HeadphonesGlyph() {
+  return (
+    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={colors.lilacDeep} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+      <Path d="M21 19a2 2 0 0 1-2 2h-1v-6h3zM3 19a2 2 0 0 0 2 2h1v-6H3z" />
+    </Svg>
   );
 }
 
@@ -211,6 +277,17 @@ const styles = StyleSheet.create({
   newsText: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 19, color: colors.ink },
   newsDismiss: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.inkSoft, textDecorationLine: 'underline' },
   footer: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1, color: colors.inkSoft, textAlign: 'center' },
+  todayHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: spacing.sm },
+  todayLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 2.5, textTransform: 'uppercase', color: colors.inkSoft },
+  todayLink: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.ink, textDecorationLine: 'underline' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  chip: { minHeight: 44, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  chipOn: { backgroundColor: colors.lilac },
+  chipText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.ink },
+  chipTextOn: { fontFamily: fonts.bodySemi, color: colors.lilacDeep },
+  todayLine: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.inkSoft },
+  startRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 2 },
+  listen: { width: 62, height: 62, borderRadius: 31, backgroundColor: colors.lilac, alignItems: 'center', justifyContent: 'center' },
   plan: { gap: 2, paddingLeft: 14, borderLeftWidth: 2, borderLeftColor: colors.butterDeep },
   planLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: colors.butterDeep },
   planText: { fontFamily: fonts.bodyMedium, fontSize: 16, lineHeight: 21, color: colors.ink },
