@@ -3,19 +3,21 @@ import { Fraunces_300Light, Fraunces_400Regular_Italic, Fraunces_600SemiBold } f
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useState } from 'react';
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import * as Notifications from 'expo-notifications';
+import React, { useEffect, useRef, useState } from 'react';
+import { Alert, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
-import { discardUnfinishedRuns } from './src/db';
+import { discardUnfinishedRuns, getRun } from './src/db';
 import { HistoryScreen } from './src/screens/HistoryScreen';
 import { RunDetailScreen } from './src/screens/RunDetailScreen';
 import { RunScreen } from './src/screens/RunScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
-import { notifyAfterRun, rescheduleReminders } from './src/notify';
+import { FEWER_ACTION, fewer, fewerMessage, notifyAfterRun, requestNotificationPermission, rescheduleReminders } from './src/notify';
 import { SettingsProvider, useSettings } from './src/settings';
 import { recoverRun, subscribe } from './src/tracking';
 import { colors, fonts, spacing } from './src/theme';
+import { NEWS } from './src/whatsNew';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -54,24 +56,52 @@ function Shell() {
       .catch(() => {});
   }, []);
 
-  // Lay out the next weeks of reminders each time the app opens (context may have changed).
+  // Re-plan the next two weeks of reminders on open and whenever their settings change.
   useEffect(() => {
     if (ready && settings.onboarded) rescheduleReminders(settings).catch(() => {});
-  }, [ready, settings.onboarded]);
+  }, [ready, settings.onboarded, settings.notifyPerWeek, settings.notifyHour, settings.notifyMinute, settings.notifyAuto, settings.weather]);
+
+  // Taps on notifications, including the one that launched the app.
+  const response = Notifications.useLastNotificationResponse();
+  const handled = useRef<string | null>(null);
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+  useEffect(() => {
+    if (!ready || !response) return;
+    const key = `${response.notification.request.identifier}:${response.actionIdentifier}`;
+    if (handled.current === key) return;
+    handled.current = key;
+    const data = response.notification.request.content.data ?? {};
+    if (response.actionIdentifier === FEWER_ACTION) {
+      const next = fewer(settingsRef.current.notifyPerWeek);
+      update({ notifyPerWeek: next });
+      Alert.alert('Reminders', fewerMessage(next));
+    } else if (data.kind === 'after-run' && typeof data.runId === 'number') {
+      setOpenRun(data.runId);
+      setTab('history');
+    }
+  }, [ready, response]);
 
   if (!ready) return <SafeAreaView style={styles.root} />;
   if (!settings.onboarded) {
     return (
       <SafeAreaView style={styles.root}>
         <StatusBar style="dark" />
-        <WelcomeScreen onDone={() => update({ onboarded: true })} />
+        <WelcomeScreen
+          onDone={async (yes) => {
+            if (yes) await requestNotificationPermission().catch(() => false);
+            update({ onboarded: true, notifyAsk: yes ? 'yes' : 'no', seenNews: NEWS.id });
+          }}
+        />
       </SafeAreaView>
     );
   }
 
   function onSaved(runId: number) {
-    notifyAfterRun(settings);
-    rescheduleReminders({ ...settings });
+    getRun(runId)
+      .then((run) => notifyAfterRun(settings, runId, run?.moodAfter != null))
+      .catch(() => {});
+    rescheduleReminders({ ...settings }).catch(() => {});
     setRefreshKey((k) => k + 1);
     setOpenRun(runId);
     setTab('history');
