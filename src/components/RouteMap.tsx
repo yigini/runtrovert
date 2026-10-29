@@ -2,6 +2,7 @@ import { Camera, GeoJSONSource, Layer, Map as MapLibreMap } from '@maplibre/mapl
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, type LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import { boundsFor, fitBounds } from '../mapFit';
+import { useLastPlace } from '../place';
 import { colors, radius } from '../theme';
 import type { LatLon } from '../types';
 import { useSettings } from '../settings';
@@ -69,7 +70,10 @@ export function RouteMap({
   const last = path[path.length - 1];
   // Live position wins over the route's end: we may be standing still, or the
   // filter may still be waiting for an accurate fix before it draws a line.
-  const head = here ?? last;
+  // With neither (a 0 m run, the seconds before the first fix), the last place
+  // we knew you were: never the whole world.
+  const place = useLastPlace(!here && !last);
+  const head = here ?? last ?? place;
   const bounds = useMemo(() => boundsFor(path), [path.length]);
 
   const line = useMemo(
@@ -94,10 +98,15 @@ export function RouteMap({
       ? { center: [head.longitude, head.latitude] as [number, number], zoom: 16, padding: focusPadding, duration: 600, easing: 'ease' as const }
       : fit
         ? { center: fit.center, zoom: fit.zoom, duration: 0 }
-        : null;
-  // Until we can fit, start near the run rather than at zoom 1 over the globe.
+        : head
+          ? { center: [head.longitude, head.latitude] as [number, number], zoom: 15.5, duration: 0 }
+          : null;
+  // Until we can fit, start near the run rather than over the globe.
   const start = path[0] ?? head;
-  const initial = start ? { center: [start.longitude, start.latitude] as [number, number], zoom: 14 } : { zoom: 1 };
+  const ground = <View style={fill ? styles.fill : [styles.wrap, { height }]} onLayout={onLayout} />;
+  // Nowhere to put the camera yet: plain ground until we know, not a world map.
+  if (!start) return ground;
+  const initial = { center: [start.longitude, start.latitude] as [number, number], zoom: 14 };
   const showMarkers = (markers ?? !follow) && path.length > 1;
   const first = path[0];
 

@@ -27,6 +27,7 @@ export class ElevationTracker {
   gainM = 0;
 
   async start() {
+    this.stop(); // never two listeners
     try {
       this.available = await Barometer.isAvailableAsync();
       if (!this.available) return;
@@ -100,10 +101,20 @@ export class StepFusion {
   filledM = 0; // distance credited from steps
 
   async start() {
+    this.stop(); // never two listeners
     this.startedAt = Date.now();
+    // A fresh watch counts from zero again.
+    this.stepsSinceStart = 0;
+    this.stepsAtLastGps = 0;
     try {
       this.available = await Pedometer.isAvailableAsync();
       if (!this.available) return;
+      // Android asks for "physical activity". Without it, no step fill: GPS alone, no error.
+      const perm = await Pedometer.getPermissionsAsync();
+      if (!perm.granted) {
+        this.available = false;
+        return;
+      }
       this.sub = Pedometer.watchStepCount((r) => {
         this.stepsSinceStart = r.steps;
       });
