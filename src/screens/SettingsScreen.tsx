@@ -12,12 +12,13 @@ import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import type { BatteryMode, CueMode, ListenDownload, NotifyPerWeek } from '../types';
 import { live, ui } from '../i18n/ui';
+import { LANGS, langFor, phoneLocale, SHIPPED, type Lang } from '../i18n/lang';
 
 const BATTERY: Array<{ key: BatteryMode; label: string; hint: string }> = live(() => (['auto', 'best', 'saver'] as const).map((key) => ({ key, ...ui().settings.battery[key] })));
 
 const CUES: Array<{ key: CueMode; label: string; hint: string }> = live(() => (['silent', 'haptic', 'voice'] as const).map((key) => ({ key, ...ui().settings.cue[key] })));
 
-export function SettingsScreen({ onOpenListen, onOpenEverything, onBack }: { onOpenListen: () => void; onOpenEverything: () => void; onBack?: () => void }) {
+export function SettingsScreen({ onOpenListen, onOpenEverything, onBack, runLive }: { onOpenListen: () => void; onOpenEverything: () => void; onBack?: () => void; runLive?: boolean }) {
   const { settings, update } = useSettings();
   const [presets, setPresets] = useState(false);
   const preset = settings.runPreset ? presetInfo(settings.runPreset) : null;
@@ -202,12 +203,43 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onBack }: { onO
         </Pressable>
       </Section>
 
+      <LanguageSection value={settings.language} locked={!!runLive} onPick={(language) => update({ language })} />
+
       <Section title={ui().settings.privacy} bg={colors.white} fg={colors.muted}>
         <Text style={styles.privacy}>{ui().settings.runtrovertHasNoServerYour}</Text>
         <MoneyNote />
       </Section>
       <PresetSheet open={presets} value={settings.runPreset ?? 'just'} onPick={(p) => update({ runPreset: p })} onClose={() => setPresets(false)} />
     </ScrollView>
+  );
+}
+
+/** The phone's language by default; any language the whole app speaks can be picked instead. Names are in their own language. */
+function LanguageSection({ value, locked, onPick }: { value: Lang | null; locked: boolean; onPick: (l: Lang | null) => void }) {
+  const [open, setOpen] = useState(false);
+  const phone = langFor(phoneLocale());
+  const nameOf = (l: Lang) => LANGS.find((x) => x.code === l)?.name ?? l;
+  const choices: Array<{ key: Lang | null; label: string }> = [{ key: null, label: ui().settings.phoneLanguage(nameOf(phone)) }, ...LANGS.filter((l) => SHIPPED.includes(l.code)).map((l) => ({ key: l.code, label: l.name }))];
+  return (
+    <Section title={ui().settings.language} bg={colors.sky} fg={colors.skyDeep}>
+      <Pressable onPress={() => setOpen(!open)} disabled={locked} accessibilityRole="button" accessibilityState={{ expanded: open, disabled: locked }} style={({ pressed }) => [styles.option, pressed && { opacity: 0.85 }]}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.optionLabel}>{value ? nameOf(value) : ui().settings.phoneLanguage(nameOf(phone))}</Text>
+          <Text style={styles.optionHint}>{locked ? ui().settings.languageAfterRun : ui().settings.languageHint}</Text>
+        </View>
+        <Text style={styles.chev} importantForAccessibility="no">{open ? '⌄' : '›'}</Text>
+      </Pressable>
+      {open && !locked
+        ? choices.map((c) => {
+            const on = c.key === value;
+            return (
+              <Pressable key={c.key ?? 'phone'} onPress={() => { setOpen(false); onPick(c.key); }} accessibilityRole="radio" accessibilityState={{ checked: on }} style={[styles.option, on && styles.optionOn]}>
+                <Text style={[styles.optionLabel, on && styles.optionLabelOn]}>{c.label}</Text>
+              </Pressable>
+            );
+          })
+        : null}
+    </Section>
   );
 }
 

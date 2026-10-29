@@ -34,6 +34,7 @@ import type { Session } from './src/training/types';
 import { loadUnlock } from './src/unlockState';
 import { NEWS } from './src/whatsNew';
 import { ui } from './src/i18n/ui';
+import { lang } from './src/i18n/lang';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -135,7 +136,7 @@ function Shell() {
         .then(() => schedulePlanReminders(settings))
         .catch(() => {});
     }
-  }, [ready, settings.onboarded, settings.notifyPerWeek, settings.notifyHour, settings.notifyMinute, settings.notifyAuto, settings.weather, planKey]);
+  }, [ready, settings.onboarded, settings.notifyPerWeek, settings.notifyHour, settings.notifyMinute, settings.notifyAuto, settings.weather, settings.language, planKey]);
 
   // Taps on notifications, including the one that launched the app.
   const response = Notifications.useLastNotificationResponse();
@@ -219,7 +220,8 @@ function Shell() {
     <OpenSettings.Provider value={openSettings}>
       <SafeAreaView style={[styles.root, inkMode && styles.rootInk]}>
         <StatusBar style={inkMode ? 'light' : 'dark'} />
-        <View style={{ flex: 1 }}>
+        {/* A new language redraws every screen; Settings can't change it during a live run. */}
+        <View style={{ flex: 1 }} key={lang()}>
           {/* RunScreen stays mounted so a live run survives tab switches. */}
           <View style={[{ flex: 1 }, (tab !== 'run' || sub != null) && styles.hidden]}>
             <RunScreen
@@ -238,6 +240,7 @@ function Shell() {
           </View>
           {sub === 'settings' && (
             <SettingsScreen
+              runLive={liveRun}
               onBack={() => setSub(null)}
               onOpenListen={() => setSub('listen')}
               onOpenEverything={() => {

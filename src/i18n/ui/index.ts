@@ -3,7 +3,8 @@
 import { lang, type Lang } from '../lang';
 import { en, type Strings } from './en';
 
-const UI: Partial<Record<Lang, Strings>> = { en };
+/** Every interface language. A language listed in SHIPPED (lang.ts) must be here. */
+export const UI: Partial<Record<Lang, Strings>> = { en };
 
 export function ui(): Strings {
   return UI[lang()] ?? en;

@@ -588,6 +588,10 @@ export const en = {
     legsDidTheTalking: 'Legs did the talking.',
   },
   settings: {
+    language: 'Language',
+    phoneLanguage: (name: string) => `Phone’s language (${name})`,
+    languageHint: 'Everything in the app, reminders included. Your notes, and a plan already started, keep their words.',
+    languageAfterRun: 'You can change it after this run.',
     battery: {
       auto: { label: 'Auto', hint: 'Full GPS until the battery drops to 25% or the phone is in low-power mode, then eases off.' },
       best: { label: 'Best accuracy', hint: 'A fix every second. Most precise splits, most battery.' },
