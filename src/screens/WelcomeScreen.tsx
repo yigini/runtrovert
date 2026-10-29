@@ -46,17 +46,24 @@ function AskStep({ onAnswer }: { onAnswer: (yes: boolean) => void }) {
     <AmbientBackground>
       <Fade from="bottom" height="68%" strength={0.98} />
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-        <View style={{ flex: 1, minHeight: 260 }} />
+        <View style={{ flex: 1, minHeight: 160 }} />
         <Text style={styles.h2} accessibilityRole="header">
           A nudge now{'\n'}and then?
         </Text>
         <Text style={styles.lede}>
-          Three short notes a week, Monday, Wednesday and Friday at 8. Dry, never a streak. Once you’ve run a few times they move to your usual days.
+          Three short notes a week to get you out the door: Monday, Wednesday and Friday at 8. Once you’ve run a few times they move to your usual days.
         </Text>
-        <Text style={styles.itemText}>Written on this phone, not sent from anywhere. Also puts distance and time on your lock screen while you run.</Text>
+
+        <View style={styles.list}>
+          <Item title="Never more than you picked" text="Three a week unless you change it, five at the very most. One reminder a day, tops. Nothing after 9 pm or before 7." />
+          <Item title="Never a guilt trip" text="No streaks, no “you missed a day”, no sounds, no red badges." />
+          <Item title="Easy to quieten" text="Every note has a “Fewer, please” button. They skip days you’ve already run, and go silent if you stop opening the app." />
+          <Item title="Written on this phone" text="Not sent from anywhere. No server knows you exist. Also puts distance and time on your lock screen while you run." />
+        </View>
+
         <Button title="Yes, quietly" onPress={() => onAnswer(true)} style={{ height: 62, marginTop: spacing.md }} />
         <Button title="Not now" variant="secondary" onPress={() => onAnswer(false)} style={{ height: 52 }} />
-        <Text style={styles.footer}>You can change all of it in Settings.</Text>
+        <Text style={styles.footer}>If one ever annoys you, that’s a bug. Settings has the switch.</Text>
       </ScrollView>
     </AmbientBackground>
   );

@@ -111,6 +111,9 @@ export function SettingsScreen() {
             </Pressable>
           </Row>
         ) : null}
+        <Text style={styles.promise}>
+          The deal: never more than you pick here, one a day at most, nothing between 9 pm and 7 am, never a streak or a sound. Each one has a “Fewer, please” button.
+        </Text>
         <Row label="Per week" hint="Short, dry, never a streak. Skips days you’ve already run, eases off if ignored.">
           <Segmented
             value={String(settings.notifyPerWeek)}
@@ -147,7 +150,7 @@ export function SettingsScreen() {
       <Section title="Privacy" bg={colors.white} fg={colors.muted}>
         <Text style={styles.privacy}>
           Runtrovert has no server. Your runs, routes, notes and settings live only here. We can't see them even if we wanted to.
-          Reminders are generated on the phone. Map tiles and the weather are the only things fetched, and the weather only if you leave it on. Delete the app and it's all gone.
+          Reminders are written and scheduled on the phone. No push service, no server, nothing that knows when or whether you ran. Map tiles and the weather are the only things fetched, and the weather only if you leave it on. Delete the app and it's all gone.
         </Text>
       </Section>
     </ScrollView>
@@ -214,6 +217,7 @@ const styles = StyleSheet.create({
   previewText: { fontFamily: fonts.body, color: colors.text, fontSize: 15, lineHeight: 22 },
   sendNow: { backgroundColor: colors.ink, borderRadius: radius.pill, paddingVertical: 12, alignItems: 'center' },
   sendNowText: { fontFamily: fonts.bodySemi, color: colors.cream, fontSize: 14 },
+  promise: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.text },
   turnOn: { backgroundColor: colors.ink, borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 14 },
   turnOnText: { fontFamily: fonts.bodySemi, color: colors.cream, fontSize: 13 },
   previewHint: { fontFamily: fonts.body, color: colors.muted, fontSize: 12, textAlign: 'right' },

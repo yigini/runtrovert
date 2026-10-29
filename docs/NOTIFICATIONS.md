@@ -35,7 +35,7 @@ Nothing runs in the background.
 
 ## Permission
 
-Asked once, on the last welcome step ("A nudge now and then?"). Only "Yes,
+Asked once, on the last welcome step ("A nudge now and then?"), which spells out the deal: never more than you picked (5 a week max, 1 a day), no streaks, sounds or badges, "Fewer, please" on each, written on the phone. Only "Yes,
 quietly" opens the system prompt. "Not now" is final: no prompt on launch, at
 run start or after a run. Settings shows "Notifications are off" with a Turn on
 button, which opens the phone's settings if the prompt is blocked.
