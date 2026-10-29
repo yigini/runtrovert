@@ -197,7 +197,7 @@ function Catalogue({ profile, historyN, lastPlan, onPick, onRules }: { profile: 
     <ScrollView style={styles.scroll} contentContainerStyle={styles.screen}>
       <Text style={type.eyebrow}>Train</Text>
       <Text style={styles.h1}>Structure,{'\n'}without the shouting.</Text>
-      <Text style={styles.lede}>Fourteen plans, from a first run to a marathon. Every one follows nine rules, so you never run more than you can recover from, and every one gives way when life does.</Text>
+      <Text style={styles.lede}>Fourteen plans, from a first run to a marathon. Every one builds gradually, with lighter weeks for recovery, and gives way when life does. Everyone responds differently, so listen to your legs before the plan.</Text>
       {lastPlan?.status === 'done' && <Text style={styles.note}>{lastPlan.name} is done. {planProgress(lastPlan).done} runs, {fmtKm(planProgress(lastPlan).kmDone, true)}. Quietly logged.</Text>}
       <View style={styles.chips}>
         {goals.map((g) => (
@@ -303,8 +303,8 @@ function DetailView({ spec, profile, historyN, unitsKm, onBack, onRules, onStart
         {thin ? (
           <>
             <Text style={styles.hint}>Fewer than four runs here in the last month, so say it yourself. Honest numbers make a safe plan.</Text>
-            <Stepper label="Kilometres a week, lately" value={weekly} onChange={setWeekly} min={0} max={150} step={5} format={(v) => fmtKm(v, unitsKm, 0)} />
-            <Stepper label="Longest run in the last month" value={longest} onChange={setLongest} min={0} max={45} step={1} format={(v) => fmtKm(v, unitsKm, 0)} />
+            <Stepper label={unitsKm ? 'Kilometres a week, lately' : 'Miles a week, lately'} value={weekly} onChange={setWeekly} min={0} max={150} step={unitsKm ? 5 : 5 * KM_IN_MI} format={(v) => fmtKm(v, unitsKm, 0)} />
+            <Stepper label="Longest run in the last month" value={longest} onChange={setLongest} min={0} max={45} step={unitsKm ? 1 : KM_IN_MI} format={(v) => fmtKm(v, unitsKm, 0)} />
           </>
         ) : (
           <Text style={styles.hint}>From your last four weeks: about {fmtKm(profile.weeklyKm, unitsKm, 0)} a week over {profile.runsPerWeek.toFixed(1)} runs, longest {fmtKm(profile.longestKm30, unitsKm)}.</Text>
@@ -603,7 +603,7 @@ function DayRow({ date, today, session, strength, spec, unitsKm, onPress }: { da
         </Text>
         {s && (
           <Text style={[styles.daySub, isToday && { color: colors.onInkMuted }]} numberOfLines={1}>
-            {s.done ? `${fmtKm(s.done.distanceM / 1000, unitsKm)} in ${fmtDur(s.done.durationS)}` : sizeOf(s, spec, unitsKm)}
+            {s.done ? doneText(s.done, unitsKm) : sizeOf(s, spec, unitsKm)}
             {s.note ? ` · ${s.note}` : ''}
           </Text>
         )}
@@ -641,7 +641,7 @@ function TodayCard({ plan, spec, today, unitsKm, onOpen, onStart }: { plan: Plan
   }
   const title = s?.done ? 'Done for today.' : s?.skipped ? 'Set aside today.' : notStarted ? 'The plan starts soon.' : 'Rest today.';
   const text = s?.done
-    ? `${fmtKm(s.done.distanceM / 1000, unitsKm)} in ${fmtDur(s.done.durationS)}. Logged against the plan.`
+    ? `${s.done.distanceM > 0 || s.done.durationS > 0 ? `${doneText(s.done, unitsKm)}. ` : ''}Logged against the plan.`
     : s?.skipped
       ? 'Nothing lost, and nothing added elsewhere to make up for it.'
       : notStarted
@@ -772,7 +772,7 @@ function SessionView({ plan, spec, session: s, unitsKm, today, onBack, onStart, 
   const free = week ? [0, 1, 2, 3, 4, 5, 6].map((d) => addDays(week.start, d)).filter((d) => d >= today && d !== s.date && !week.sessions.some((x) => x.date === d && x.kind !== 'strength')) : [];
   const [moving, setMoving] = useState(false);
   const open = !s.done && !s.skipped && s.kind !== 'strength';
-  const heat = s.hard || s.kind === 'long' ? 'Hot day: slow down, or move it. The plan is about the effort, not the number.' : null;
+  const heat = s.hard || s.kind === 'long' ? 'On a hot day, slow down or move it. The plan is about the effort, not the number.' : null;
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.screen}>
       <Back onPress={onBack} label={`Week ${week?.index ?? ''}`} />
@@ -785,7 +785,7 @@ function SessionView({ plan, spec, session: s, unitsKm, today, onBack, onStart, 
       {s.note && <Text style={[styles.body, { color: colors.lilacDeep }]}>{s.note}</Text>}
       {s.done && (
         <Text style={[styles.body, { color: colors.mintDeep }]}>
-          Done: {fmtKm(s.done.distanceM / 1000, unitsKm)} in {fmtDur(s.done.durationS)}.
+          {s.done.distanceM > 0 || s.done.durationS > 0 ? `Done: ${doneText(s.done, unitsKm)}.` : 'Done. The run itself was deleted, so only the tick is kept.'}
         </Text>
       )}
       {s.skipped && <Text style={[styles.body, { color: colors.muted }]}>Skipped. Nothing lost.</Text>}
@@ -971,6 +971,12 @@ function TimeBox({ value, onChange, label }: { value: string; onChange: (v: stri
 
 function fmtKm(km: number, unitsKm: boolean, digits = 1): string {
   return unitsKm ? `${km.toFixed(digits)} km` : `${(km / KM_IN_MI).toFixed(digits)} mi`;
+}
+
+/** What a done session shows; a deleted run leaves only the tick. */
+function doneText(done: NonNullable<Session['done']>, unitsKm: boolean): string {
+  if (done.distanceM <= 0 && done.durationS <= 0) return 'Done';
+  return `${fmtKm(done.distanceM / 1000, unitsKm)} in ${fmtDur(done.durationS)}`;
 }
 
 function fmtDur(s: number, short = false): string {
