@@ -36,9 +36,10 @@ import {
   offersFor,
   parseLocale,
   pickCountry,
-  showLink,
+  openTarget,
   usualRunMin,
   whenLabel,
+  type Episode,
   type Fresh,
   type Group,
   type Offer,
@@ -67,7 +68,7 @@ const GROUP_TINT: Record<Group, Tint> = {
 };
 const LOCAL_TINT: Tint = { bg: colors.peach, fg: colors.peachDeep };
 
-type Picking = { kind: 'music' } | { kind: 'podcast'; then: Show | null };
+type Picking = { kind: 'music' } | { kind: 'podcast'; then: Show | null; ep?: Episode | null };
 
 export function ListenScreen({ onBack }: { onBack?: () => void }) {
   const { settings, update } = useSettings();
@@ -112,19 +113,17 @@ export function ListenScreen({ onBack }: { onBack?: () => void }) {
   const localFirst = local.length > 0 && parseLocale(locale).lang !== 'en';
   const fresh = useMemo(() => (shelf ? freshEpisodes([...local, ...shelf.curated], today, usual) : []), [shelf, cc, usual, today]);
   const podcastApp = PODCAST_APPS.find((a) => a.key === settings.podcastApp) ?? null;
-  // "Open in Spotify" on the buttons; the share option just says "Open".
-  const podcastLabel = podcastApp && podcastApp.key !== 'share' ? short(podcastApp.label) : null;
   const tintOf = (show: Show): Tint => {
     const g = shelf?.curated.find((c) => c.id === show.id)?.groups?.[0];
     return g ? GROUP_TINT[g] : LOCAL_TINT;
   };
 
-  async function open(show: Show, app: PodcastApp | null) {
+  async function open(show: Show, app: PodcastApp | null, ep?: Episode | null) {
     if (!app) {
-      setPicking({ kind: 'podcast', then: show });
+      setPicking({ kind: 'podcast', then: show, ep });
       return;
     }
-    await openShowIn(show, app);
+    await openShowIn(show, app, ep);
   }
 
   if (kit && shelf) {
@@ -216,8 +215,8 @@ export function ListenScreen({ onBack }: { onBack?: () => void }) {
                 today={today}
                 tint={tintOf(f.show)}
                 online={online}
-                appLabel={podcastLabel}
-                onOpen={() => open(f.show, settings.podcastApp)}
+                label={buttonLabel(settings.podcastApp, f.show, f.ep)}
+                onOpen={() => open(f.show, settings.podcastApp, f.ep)}
                 onMore={() => setDetail({ show: f.show, tint: tintOf(f.show) })}
               />
             ))}
@@ -268,12 +267,11 @@ export function ListenScreen({ onBack }: { onBack?: () => void }) {
         usual={usual}
         today={today}
         online={online}
-        appLabel={podcastLabel}
         onClose={() => setDetail(null)}
-        onOpen={(app) => {
+        onOpen={(app, ep) => {
           const show = detail?.show;
           setDetail(null);
-          if (show) open(show, app);
+          if (show) open(show, app, ep);
         }}
       />
       <AppSheet
@@ -288,9 +286,10 @@ export function ListenScreen({ onBack }: { onBack?: () => void }) {
         }}
         onPodcast={(app) => {
           const show = picking?.kind === 'podcast' ? picking.then : null;
+          const ep = picking?.kind === 'podcast' ? picking.ep : null;
           update({ podcastApp: app });
           setPicking(null);
-          if (show && app) open(show, app);
+          if (show && app) open(show, app, ep);
         }}
       />
       <CountryChooser
@@ -307,14 +306,28 @@ export function ListenScreen({ onBack }: { onBack?: () => void }) {
   );
 }
 
-/** Opens a show in the chosen podcast app; if that fails, shares the feed instead. */
-async function openShowIn(show: Show, app: PodcastApp) {
-  const url = showLink(app, show);
-  if (url) {
-    const ok = await Linking.openURL(url).then(() => true, () => false);
+/**
+ * Opens the episode (or else the show) in the chosen podcast app, using the links
+ * the daily list carries. If the app can't take it, shares the feed instead.
+ */
+async function openShowIn(show: Show, app: PodcastApp, ep?: Episode | null) {
+  const target = openTarget(app, show, ep);
+  if (target) {
+    const ok = await Linking.openURL(target.url).then(() => true, () => false);
     if (ok) return;
   }
+  shareFeed(show);
+}
+
+function shareFeed(show: Show) {
   Share.share({ message: show.feed, title: show.name }).catch(() => {});
+}
+
+/** "Open in Spotify"; "Search in YouTube Music" when the list has no direct link there. */
+function buttonLabel(app: PodcastApp | null, show: Show, ep?: Episode | null): string {
+  const a = PODCAST_APPS.find((x) => x.key === app);
+  if (!a || a.key === 'share') return ui().listen.open;
+  return openTarget(a.key, show, ep)?.kind === 'search' ? ui().listen.searchInX(short(a.label)) : ui().listen.openInX(short(a.label));
 }
 
 /**
@@ -378,7 +391,7 @@ export function ListenSheet({ open, onClose, onBrowse }: { open: boolean; onClos
                 {two.map((f) => (
                   <Pressable
                     key={f.show.id}
-                    onPress={() => (settings.podcastApp ? openShowIn(f.show, settings.podcastApp) : setPicking({ kind: 'podcast', then: f.show }))}
+                    onPress={() => (settings.podcastApp ? openShowIn(f.show, settings.podcastApp, f.ep) : setPicking({ kind: 'podcast', then: f.show, ep: f.ep }))}
                     accessibilityRole="button"
                     accessibilityLabel={ui().listen.xXXOpensIn(f.ep.title, f.show.name, f.ep.min ? ui().listen.xMinutes(f.ep.min) : '')}
                     style={({ pressed }) => [styles.miniEp, pressed && { opacity: 0.85 }]}
@@ -430,9 +443,10 @@ export function ListenSheet({ open, onClose, onBrowse }: { open: boolean; onClos
         }}
         onPodcast={(app) => {
           const show = picking?.kind === 'podcast' ? picking.then : null;
+          const ep = picking?.kind === 'podcast' ? picking.ep : null;
           update({ podcastApp: app });
           setPicking(null);
-          if (show && app) openShowIn(show, app);
+          if (show && app) openShowIn(show, app, ep);
         }}
       />
     </Modal>
@@ -505,7 +519,7 @@ function EpisodeCard({
   today,
   tint,
   online,
-  appLabel,
+  label,
   onOpen,
   onMore,
 }: {
@@ -514,7 +528,7 @@ function EpisodeCard({
   today: string;
   tint: Tint;
   online: boolean;
-  appLabel: string | null;
+  label: string;
   onOpen: () => void;
   onMore: () => void;
 }) {
@@ -543,7 +557,7 @@ function EpisodeCard({
           </View>
         ) : null}
       </View>
-      <PlayButton label={appLabel ? ui().listen.openInX(appLabel) : ui().listen.open} onPress={onOpen} wide />
+      <PlayButton label={label} onPress={onOpen} wide />
     </Pressable>
   );
 }
@@ -553,7 +567,6 @@ function ShowSheet({
   usual,
   today,
   online,
-  appLabel,
   onClose,
   onOpen,
 }: {
@@ -561,9 +574,8 @@ function ShowSheet({
   usual: number | null;
   today: string;
   online: boolean;
-  appLabel: string | null;
   onClose: () => void;
-  onOpen: (app: PodcastApp | null) => void;
+  onOpen: (app: PodcastApp | null, ep?: Episode | null) => void;
 }) {
   const { settings } = useSettings();
   const show = item?.show;
@@ -588,23 +600,42 @@ function ShowSheet({
               <View style={styles.eps}>
                 <Text style={[styles.epsLabel, { color: item.tint.fg }]}>{ui().listen.latest}</Text>
                 {show.latest.map((e) => (
-                  <View key={e.title + e.date} style={{ gap: 2 }}>
-                    <Text style={styles.epsTitle} numberOfLines={2}>
-                      {e.title}
-                    </Text>
-                    <Text style={styles.showBy}>
-                      {e.min ? ui().listen.xMin4(e.min) : ''}
-                      {whenLabel(e.date, today)}
-                      {fitsRun(e.min, usual) ? ui().listen.fitsYourUsualRun : ''}
-                    </Text>
-                  </View>
+                  <Pressable
+                    key={e.title + e.date}
+                    onPress={() => onOpen(settings.podcastApp, e)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${e.title}. ${buttonLabel(settings.podcastApp, show, e)}`}
+                    style={({ pressed }) => [styles.epsRow, pressed && { opacity: 0.7 }]}
+                  >
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={styles.epsTitle} numberOfLines={2}>
+                        {e.title}
+                      </Text>
+                      <Text style={styles.showBy}>
+                        {e.min ? ui().listen.xMin4(e.min) : ''}
+                        {whenLabel(e.date, today)}
+                        {fitsRun(e.min, usual) ? ui().listen.fitsYourUsualRun : ''}
+                      </Text>
+                    </View>
+                    <Svg width={22} height={22} viewBox="0 0 22 22" importantForAccessibility="no">
+                      <Circle cx={11} cy={11} r={11} fill={colors.ink} />
+                      <Path d="M8.5 6.5 L15.5 11 L8.5 15.5 Z" fill={colors.cream} />
+                    </Svg>
+                  </Pressable>
                 ))}
               </View>
             ) : null}
             <View style={[styles.rowGap, { alignItems: 'center' }]}>
-              <PlayButton label={appLabel ? ui().listen.openInX(appLabel) : ui().listen.open} onPress={() => onOpen(settings.podcastApp)} />
+              <PlayButton label={buttonLabel(settings.podcastApp, show)} onPress={() => onOpen(settings.podcastApp)} />
               {settings.podcastApp ? <Pill label={ui().listen.anotherApp} onPress={() => onOpen(null)} /> : null}
             </View>
+            {settings.podcastApp && openTarget(settings.podcastApp, show)?.kind === 'search' ? (
+              <Pressable onPress={() => shareFeed(show)} accessibilityRole="button">
+                <Text style={[styles.hint, { color: item.tint.fg }]}>
+                  {ui().listen.notFoundInYourAppYet}
+                </Text>
+              </Pressable>
+            ) : null}
           </Pressable>
         ) : null}
       </Pressable>
@@ -910,6 +941,7 @@ const styles = StyleSheet.create({
   sheetName: { fontFamily: fonts.display, fontSize: 22, lineHeight: 27, color: colors.text },
   eps: { backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: radius.md, padding: 14, gap: 10 },
   epsLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase' },
+  epsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   epsTitle: { fontFamily: fonts.bodySemi, fontSize: 14, lineHeight: 19, color: colors.text },
   grabber: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(43,39,51,0.2)', marginTop: -8, marginBottom: 4 },
 

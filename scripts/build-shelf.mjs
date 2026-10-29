@@ -17,6 +17,7 @@
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { linkShow, rememberLinks, tagEpisodes } from './podcast-links.mjs';
 
 // Apple storefront → the languages a show's feed may be in to count as local.
 // English shows from elsewhere already sit in the hand-picked list.
@@ -37,6 +38,7 @@ const PER_COUNTRY = 8;
 const ACTIVE_DAYS = 60; // a show with nothing new in two months drops off until it's back
 const MIN_EPISODES = 10; // enough to know it's a show, not a pilot
 
+const SHELF_URL = 'https://raw.githubusercontent.com/yigini/runtrovert/shelf/shelf.json'; // yesterday's, for its links
 const UA = 'Runtrovert shelf builder (+https://github.com/yigini/runtrovert)';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -129,12 +131,23 @@ export function speaks(langs, feedLang, text) {
   return langs.some((l) => l !== 'en' && LETTERS[l]?.test(text));
 }
 
-/** Apple lookup for up to 150 ids at a time. */
+/**
+ * Apple lookup, 40 ids at a time, with each show's three newest episodes in
+ * r.appleEpisodes so the app can open the exact episode in Apple Podcasts.
+ */
 async function lookup(ids, country = 'us') {
   const out = new Map();
-  for (let i = 0; i < ids.length; i += 150) {
-    const json = await getJson(`https://itunes.apple.com/lookup?country=${country}&id=${ids.slice(i, i + 150).join(',')}`);
-    for (const r of json?.results ?? []) if (r.kind === 'podcast' && r.feedUrl) out.set(r.collectionId, r);
+  for (let i = 0; i < ids.length; i += 40) {
+    const json = await getJson(`https://itunes.apple.com/lookup?country=${country}&entity=podcastEpisode&limit=3&id=${ids.slice(i, i + 40).join(',')}`);
+    const eps = new Map();
+    for (const r of json?.results ?? []) {
+      if (r.kind === 'podcast' && r.feedUrl) out.set(r.collectionId, r);
+      else if (r.wrapperType === 'podcastEpisode' && r.trackId) {
+        if (!eps.has(r.collectionId)) eps.set(r.collectionId, []);
+        eps.get(r.collectionId).push({ id: r.trackId, title: decode(r.trackName ?? '') });
+      }
+    }
+    for (const [id, list] of eps) if (out.has(id)) out.get(id).appleEpisodes = list;
     await sleep(3000);
   }
   return out;
@@ -171,6 +184,9 @@ function artIndex(ids) {
 }
 
 function show(r, head) {
+  // Copies, so tagging episodes never touches the cached feed head another country shares.
+  const latest = (head?.latest ?? []).map((e) => ({ ...e }));
+  tagEpisodes(latest, r.appleEpisodes ?? [], 'apple');
   return {
     id: r.collectionId,
     name: decode(r.collectionName),
@@ -179,7 +195,7 @@ function show(r, head) {
     apple: `https://podcasts.apple.com/podcast/id${r.collectionId}`,
     episodes: r.trackCount ?? null,
     lang: head?.lang ?? null,
-    latest: head?.latest ?? [],
+    latest,
   };
 }
 
@@ -274,7 +290,12 @@ async function main() {
     console.log(`${cc}: ${list.length} of ${ids.length}`);
   }
 
-  // 3. Offers. A bad one fails the build, so a typo never reaches a phone.
+  // 3. Direct links into Spotify and YouTube Music, where keys exist (podcast-links.mjs).
+  const known = rememberLinks(await getJson(SHELF_URL, 1));
+  for (const s of curated) await linkShow(s, 'us', known, today);
+  for (const [cc, list] of Object.entries(regions)) for (const s of list) await linkShow(s, cc, known, today);
+
+  // 4. Offers. A bad one fails the build, so a typo never reaches a phone.
   const offers = offersIn.map((o) => checkOffer(o, today)).filter((o) => !o.expired).map(({ expired, ...o }) => o);
 
   const shelf = { version: 1, builtAt: new Date().toISOString(), curated, regions, offers };

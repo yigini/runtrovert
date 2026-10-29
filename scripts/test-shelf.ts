@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { checkOffer, cleanUrl, parseFeedHead, speaks } from './build-shelf.mjs';
-import { filterOffers, fitsRun, freshEpisodes, whenLabel, localShows, offersFor, parseLocale, pickCountry, showLink, usualRunMin, type Shelf, type Show } from '../src/shelfLogic.ts';
+import { matchEpisode, norm, rememberLinks, sameShow, tagEpisodes } from './podcast-links.mjs';
+import { filterOffers, fitsRun, freshEpisodes, whenLabel, localShows, offersFor, parseLocale, openTarget, pickCountry, showLink, usualRunMin, type Shelf, type Show } from '../src/shelfLogic.ts';
 
 // Rules for the Listen tab and Kit & offers. Run: npm run test:shelf
 
@@ -70,5 +71,38 @@ assert.equal(whenLabel('2026-10-29', '2026-10-29'), 'today');
 assert.equal(whenLabel('2026-10-28', '2026-10-29'), 'yesterday');
 assert.equal(whenLabel('2026-10-25', '2026-10-29'), '4 days ago');
 assert.equal(whenLabel('2026-10-01', '2026-10-29'), '2026-10-01');
+
+// Direct links: same show by name, strictly
+assert.equal(norm('The Outside Podcast'), 'outside');
+assert.equal(sameShow('Outside Podcast', 'The Outside Podcast'), true);
+assert.equal(sameShow('Marathon Talk', 'Half Marathon Talk | FORDY RUNS Podcast'), false);
+assert.equal(sameShow('Running Commentary', 'Love - running commentary version'), false);
+assert.equal(sameShow('Koşu Saati', 'Kosu Saati'), true, 'accents do not matter');
+assert.equal(sameShow('', ''), false);
+
+// Episodes: exact after norm, or 80% of words in common
+const cands = [{ id: 'a', title: 'EP99 | What Went Down In Chi-Town' }, { id: 'b', title: 'Sam Tomlinson' }];
+assert.equal(matchEpisode('EP99 | What Went Down in Chi Town', cands), 'a');
+assert.equal(matchEpisode('Sam Tomlinson', cands), 'b');
+assert.equal(matchEpisode('Yorkshire Marathon 2026', cands), null);
+assert.equal(matchEpisode('What Went Down In Chi-Town', cands), 'a', 'a dropped "EP99 |" still matches');
+assert.equal(matchEpisode('Intervals: New and Improved', [{ id: 'x', title: 'Intervals: AIPI' }]), null, 'a shared series name is not enough');
+const tagged = [{ title: 'Sam Tomlinson', date: '2026-10-26', min: 46 } as any, { title: 'Other', date: '2026-10-20', min: 30 } as any];
+tagEpisodes(tagged, cands, 'spotify');
+assert.equal(tagged[0].spotify, 'b');
+assert.equal(tagged[1].spotify, undefined);
+assert.deepEqual([...rememberLinks({ curated: [{ id: 1, links: { yt: 'PL1' } }], regions: { tr: [{ id: 2 }] } }).entries()], [[1, { yt: 'PL1' }]]);
+
+// Where "Open" goes: episode, then show, then an honest search
+const linked = { id: 5, name: 'Running Commentary', feed: 'x', links: { spotify: 'S1', yt: 'PL9' } };
+const ep1 = { title: 't', date: '2026-10-29', min: 40, apple: 77, spotify: 'E1', yt: 'V1' };
+assert.deepEqual(openTarget('apple', linked, ep1), { url: 'https://podcasts.apple.com/podcast/id5?i=77', kind: 'episode' });
+assert.deepEqual(openTarget('spotify', linked, ep1), { url: 'https://open.spotify.com/episode/E1', kind: 'episode' });
+assert.deepEqual(openTarget('youtube', linked, ep1), { url: 'https://music.youtube.com/watch?v=V1&list=PL9', kind: 'episode' });
+assert.deepEqual(openTarget('youtube', linked), { url: 'https://music.youtube.com/playlist?list=PL9', kind: 'show' });
+assert.deepEqual(openTarget('spotify', linked, { title: 't', date: 'd', min: null }), { url: 'https://open.spotify.com/show/S1', kind: 'show' });
+assert.equal(openTarget('youtube', { id: 5, name: 'A B', feed: 'x' })?.kind, 'search');
+assert.equal(openTarget('pocketcasts', linked, ep1)?.kind, 'show');
+assert.equal(openTarget('share', linked, ep1), null);
 
 console.log('shelf: all checks pass');

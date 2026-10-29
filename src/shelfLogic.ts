@@ -10,6 +10,15 @@ export interface Episode {
   title: string;
   date: string; // YYYY-MM-DD
   min: number | null;
+  apple?: number; // Apple Podcasts episode id
+  spotify?: string; // Spotify episode id
+  yt?: string; // YouTube video id
+}
+
+/** Where a show lives in other apps, found by the daily build (scripts/podcast-links.mjs). */
+export interface ShowLinks {
+  spotify?: string; // Spotify show id
+  yt?: string; // YouTube podcast playlist id
 }
 
 export interface Show {
@@ -25,6 +34,7 @@ export interface Show {
   since?: number | null;
   why?: string;
   art?: boolean; // a cover sits next to shelf.json as art/<id>.jpg
+  links?: ShowLinks;
 }
 
 export interface Offer {
@@ -161,27 +171,47 @@ export function whenLabel(date: string, today: string): string {
   return date;
 }
 
+export interface Target {
+  url: string;
+  /** episode / show: lands exactly there. search: the app's search for the show's name. */
+  kind: 'episode' | 'show' | 'search';
+}
+
 /**
- * The link that opens a show in the runner's own app. Spotify and YouTube Music
- * have no public id we can map to, so they open a search for the show's name.
+ * Where tapping "Open" goes in the runner's app: the episode when the daily build
+ * matched it, else the show, else (Spotify and YouTube Music without a match) a
+ * search for the show's name, which the button then says out loud.
  * 'share' returns null: the caller hands the feed to the share sheet instead.
  */
-export function showLink(app: PodcastApp, show: Pick<Show, 'id' | 'name' | 'feed'>): string | null {
+export function openTarget(app: PodcastApp, show: Pick<Show, 'id' | 'name' | 'feed' | 'links'>, ep?: Episode | null): Target | null {
   const q = encodeURIComponent(show.name);
   switch (app) {
     case 'apple':
-      return `https://podcasts.apple.com/podcast/id${show.id}`;
+      return ep?.apple
+        ? { url: `https://podcasts.apple.com/podcast/id${show.id}?i=${ep.apple}`, kind: 'episode' }
+        : { url: `https://podcasts.apple.com/podcast/id${show.id}`, kind: 'show' };
     case 'spotify':
-      return `https://open.spotify.com/search/${q}/podcasts`;
-    case 'youtube':
-      return `https://music.youtube.com/search?q=${q}`;
+      if (ep?.spotify) return { url: `https://open.spotify.com/episode/${ep.spotify}`, kind: 'episode' };
+      if (show.links?.spotify) return { url: `https://open.spotify.com/show/${show.links.spotify}`, kind: 'show' };
+      return { url: `https://open.spotify.com/search/${q}/podcasts`, kind: 'search' };
+    case 'youtube': {
+      const list = show.links?.yt;
+      if (ep?.yt) return { url: `https://music.youtube.com/watch?v=${ep.yt}${list ? `&list=${list}` : ''}`, kind: 'episode' };
+      if (list) return { url: `https://music.youtube.com/playlist?list=${list}`, kind: 'show' };
+      return { url: `https://music.youtube.com/search?q=${q}`, kind: 'search' };
+    }
     case 'pocketcasts':
-      return `https://pca.st/itunes/${show.id}`;
+      return { url: `https://pca.st/itunes/${show.id}`, kind: 'show' };
     case 'antennapod':
-      return `https://antennapod.org/deeplink/subscribe?url=${encodeURIComponent(show.feed)}&title=${q}`;
+      return { url: `https://antennapod.org/deeplink/subscribe?url=${encodeURIComponent(show.feed)}&title=${q}`, kind: 'show' };
     case 'share':
       return null;
   }
+}
+
+/** The show's own page in the runner's app (or a search, see openTarget). */
+export function showLink(app: PodcastApp, show: Pick<Show, 'id' | 'name' | 'feed' | 'links'>): string | null {
+  return openTarget(app, show)?.url ?? null;
 }
 
 /** Light sanity check on a downloaded shelf before it replaces the stored one. */
