@@ -19,6 +19,7 @@ import { SettingsScreen } from './src/screens/SettingsScreen';
 import { TrainScreen } from './src/screens/TrainScreen';
 import { UnlockHost } from './src/screens/UnlockScreen';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
+import { EverythingScreen } from './src/screens/EverythingScreen';
 import { FEWER_ACTION, fewer, fewerMessage, notifyAfterRun, requestNotificationPermission, rescheduleReminders } from './src/notify';
 import { SettingsProvider, useSettings } from './src/settings';
 import { startBilling } from './src/billing';
@@ -35,7 +36,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 type Tab = 'run' | 'runs' | 'train';
 /** Opened over any tab: Settings from the gear, every Listen shelf from the sheet beside Start. */
-type Sub = 'settings' | 'listen' | null;
+type Sub = 'settings' | 'listen' | 'everything' | null;
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({ DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold, Fraunces_300Light, Fraunces_400Regular_Italic, Fraunces_600SemiBold });
@@ -59,6 +60,7 @@ function Shell() {
   const { settings, ready, update } = useSettings();
   const [tab, setTab] = useState<Tab>('run');
   const [sub, setSub] = useState<Sub>(null);
+  const [everythingFrom, setEverythingFrom] = useState<Sub>(null);
   // Just run keeps the dusk map screen; the other two running layouts are on cream.
   const [runInk, setRunInk] = useState(true);
   const [openRun, setOpenRun] = useState<number | null>(null);
@@ -215,7 +217,17 @@ function Shell() {
               onInk={setRunInk}
             />
           </View>
-          {sub === 'settings' && <SettingsScreen onBack={() => setSub(null)} onOpenListen={() => setSub('listen')} />}
+          {sub === 'settings' && (
+            <SettingsScreen
+              onBack={() => setSub(null)}
+              onOpenListen={() => setSub('listen')}
+              onOpenEverything={() => {
+                setEverythingFrom('settings');
+                setSub('everything');
+              }}
+            />
+          )}
+          {sub === 'everything' && <EverythingScreen onBack={() => setSub(everythingFrom)} onChanged={() => setRefreshKey((k) => k + 1)} />}
           {sub === 'listen' && <ListenScreen onBack={() => setSub(null)} />}
           {sub == null && tab === 'train' && (
             <TrainScreen
@@ -234,6 +246,10 @@ function Shell() {
                 setOpenRun(id);
               }}
               refreshKey={refreshKey}
+              onBringIn={() => {
+                setEverythingFrom(null);
+                setSub('everything');
+              }}
             />
           )}
           {sub == null && tab === 'runs' && openRun != null && (

@@ -14,7 +14,7 @@ const QUIET_LABEL: Record<Quiet, string> = { crowded: 'crowded', some: 'some peo
 const QUIET_BG: Record<Quiet, string> = { crowded: colors.peach, some: colors.butter, empty: colors.mint };
 const QUIET_FG: Record<Quiet, string> = { crowded: colors.peachDeep, some: colors.butterDeep, empty: colors.mintDeep };
 
-export function HistoryScreen({ onOpen, refreshKey }: { onOpen: (runId: number) => void; refreshKey: number }) {
+export function HistoryScreen({ onOpen, refreshKey, onBringIn }: { onOpen: (runId: number) => void; refreshKey: number; onBringIn?: () => void }) {
   const km = useSettings().settings.unitsKm;
   const [runs, setRuns] = useState<Run[]>([]);
   const load = useCallback(async () => setRuns(await listRuns()), []);
@@ -53,6 +53,11 @@ export function HistoryScreen({ onOpen, refreshKey }: { onOpen: (runId: number) 
         <View style={styles.empty}>
           <Text style={type.h2}>No runs yet.</Text>
           <Text style={[type.body, { color: colors.muted, textAlign: 'center' }]}>Your runs will stay on this phone. Nobody else sees them.</Text>
+          {onBringIn ? (
+            <Pressable onPress={onBringIn} accessibilityRole="button" hitSlop={8} style={({ pressed }) => [styles.bringIn, pressed && { opacity: 0.8 }]}>
+              <Text style={styles.bringInText}>Bring runs in from a watch or another app</Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
     );
@@ -147,6 +152,8 @@ const styles = StyleSheet.create({
   stat: { flex: 1, backgroundColor: colors.white, borderRadius: radius.md, padding: 12 },
   statValue: { fontFamily: fonts.display, fontSize: 22, lineHeight: 26, color: colors.text },
   statLabel: { fontFamily: fonts.bodySemi, fontSize: 11, color: colors.muted },
+  bringIn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.md, marginTop: spacing.sm },
+  bringInText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.lilacDeep, textDecorationLine: 'underline', textAlign: 'center' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: radius.lg, padding: 16 },
   thumb: { width: 48, height: 48, borderRadius: 16, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },

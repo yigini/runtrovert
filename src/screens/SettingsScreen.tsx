@@ -24,7 +24,7 @@ const CUES: Array<{ key: CueMode; label: string; hint: string }> = [
   { key: 'voice', label: 'Voice', hint: 'One calm sentence per km. No cheering.' },
 ];
 
-export function SettingsScreen({ onOpenListen, onBack }: { onOpenListen: () => void; onBack?: () => void }) {
+export function SettingsScreen({ onOpenListen, onOpenEverything, onBack }: { onOpenListen: () => void; onOpenEverything: () => void; onBack?: () => void }) {
   const { settings, update } = useSettings();
   const [presets, setPresets] = useState(false);
   const preset = settings.runPreset ? presetInfo(settings.runPreset) : null;
@@ -198,6 +198,16 @@ export function SettingsScreen({ onOpenListen, onBack }: { onOpenListen: () => v
         <Row label="Kit & offers" hint="A shelf of running kit from paying sponsors, at the bottom of Listen. Only there, only when you open it. Off hides it for good.">
           <Switch value={!settings.offersHidden} onValueChange={(v) => update({ offersHidden: !v })} trackColor={{ true: colors.ink }} />
         </Row>
+      </Section>
+
+      <Section title="Your data" bg={colors.peach} fg={colors.peachDeep}>
+        <Pressable onPress={onOpenEverything} accessibilityRole="button" accessibilityHint="Bring runs in from GPX or FIT files, or take them out" style={({ pressed }) => [styles.option, pressed && { opacity: 0.85 }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.optionLabel}>Everything you have</Text>
+            <Text style={styles.optionHint}>Bring runs in from a watch or another app as GPX or FIT, and take them out again. All on this phone.</Text>
+          </View>
+          <Text style={[styles.chev, { color: colors.peachDeep }]} importantForAccessibility="no">›</Text>
+        </Pressable>
       </Section>
 
       <Section title="Privacy" bg={colors.white} fg={colors.muted}>

@@ -7,7 +7,8 @@ import { RouteMap } from '../components/RouteMap';
 import { ShareSheet } from '../components/ShareSheet';
 import { RunStatsView } from '../components/RunStats';
 import { YouLine } from '../components/YouLine';
-import { deleteRun, getPoints, getRun, getSplits, setMoodAfter } from '../db';
+import { deleteRun, getPoints, getRun, getRunSource, getSplits, setMoodAfter, type RunSource } from '../db';
+import { shareRunGpx } from '../io/store';
 import { forgetRun } from '../training/store';
 import { compare, youVsYou, type RunFacts } from '../progress';
 import type { RunWeather } from '../shareLines';
@@ -26,6 +27,8 @@ export function RunDetailScreen({ runId, onBack, onDeleted, shareOnOpen }: { run
   const [facts, setFacts] = useState<RunFacts[] | null>(null);
   const [weather, setWeather] = useState<RunWeather | null>(null);
   const [sharing, setSharing] = useState(!!shareOnOpen);
+  const [source, setSource] = useState<RunSource | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -34,6 +37,7 @@ export function RunDetailScreen({ runId, onBack, onDeleted, shareOnOpen }: { run
       setPath(pts.map((p) => ({ latitude: p.lat, longitude: p.lon })));
       setPoints(pts.map((p) => ({ ts: p.ts, lat: p.lat, lon: p.lon, alt: p.alt })));
       setSplits(await getSplits(runId));
+      setSource(await getRunSource(runId).catch(() => null));
       const you = await loadYou().catch(() => null);
       if (you) {
         setFacts(you.facts);
@@ -58,6 +62,17 @@ export function RunDetailScreen({ runId, onBack, onDeleted, shareOnOpen }: { run
   const tailDur = lastKm ? run.durationS - lastKm.atDurationS : run.durationS;
   const partial = tail > 20 ? { index: kmSplits.length + 1, distanceM: tail, durationS: tailDur } : null;
 
+  async function onSaveGpx() {
+    setSaving(true);
+    try {
+      await shareRunGpx(runId);
+    } catch (e) {
+      Alert.alert('Couldn’t save the GPX', String((e as Error)?.message ?? e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function onDelete() {
     Alert.alert('Delete run?', 'This cannot be undone.', [
       { text: 'Keep', style: 'cancel' },
@@ -77,6 +92,12 @@ export function RunDetailScreen({ runId, onBack, onDeleted, shareOnOpen }: { run
     <ScrollView style={styles.screen} contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xl }}>
       <BackButton label="Your runs" onPress={onBack} />
       <Text style={styles.date}>{d.toLocaleString(undefined, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</Text>
+      {source ? (
+        <Text style={styles.source}>
+          Brought in from {source.kind === 'health' ? 'Health Connect' : source.fileName ?? `a ${source.kind.toUpperCase()} file`} on{' '}
+          {new Date(source.importedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'long' })}.
+        </Text>
+      ) : null}
       <RouteMap path={path} height={260} />
       {line && <YouLine title={line.title.replace('\n', ' ')} detail={line.detail} />}
       <RunStatsView run={run} points={points} splits={kmSplits} laps={laps} partial={partial} sun={weather} km={km} />
@@ -92,6 +113,7 @@ export function RunDetailScreen({ runId, onBack, onDeleted, shareOnOpen }: { run
       ) : null}
       {run.note ? <Text style={styles.note}>{run.note}</Text> : null}
       {cmp && <Button title="Share with someone" variant="secondary" onPress={() => setSharing(true)} style={{ marginTop: spacing.sm }} />}
+      {path.length > 1 ? <Button title={saving ? 'Saving…' : 'Save as GPX'} variant="secondary" onPress={onSaveGpx} disabled={saving} /> : null}
       <Button title="Delete run" variant="danger" onPress={onDelete} style={{ marginTop: spacing.lg }} />
       {cmp && <ShareSheet visible={sharing} onClose={() => setSharing(false)} run={run} path={path} cmp={cmp} weather={weather} km={km} />}
     </ScrollView>
@@ -100,6 +122,7 @@ export function RunDetailScreen({ runId, onBack, onDeleted, shareOnOpen }: { run
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.cream, padding: spacing.md, paddingTop: spacing.lg },
+  source: { ...type.small, marginTop: -spacing.sm },
   date: { fontFamily: fonts.display, fontSize: 22, lineHeight: 26, color: colors.text },
   note: { fontFamily: fonts.body, color: colors.text, fontSize: 15, lineHeight: 22, backgroundColor: colors.butter, borderRadius: radius.lg, padding: spacing.md },
 });
