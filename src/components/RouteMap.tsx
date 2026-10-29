@@ -1,6 +1,7 @@
 import { Camera, GeoJSONSource, Layer, Map as MapLibreMap } from '@maplibre/maplibre-react-native';
-import React, { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { type LayoutChangeEvent, StyleSheet, View } from 'react-native';
+import { boundsFor, fitBounds } from '../mapFit';
 import { colors, radius } from '../theme';
 import type { LatLon } from '../types';
 
@@ -19,18 +20,6 @@ export const BLANK_STYLE = {
   layers: [{ id: 'bg', type: 'background' as const, paint: { 'background-color': colors.mintSoft } }],
 };
 
-function boundsFor(path: LatLon[]): [number, number, number, number] | null {
-  if (path.length < 2) return null;
-  let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
-  for (const p of path) {
-    minLat = Math.min(minLat, p.latitude);
-    maxLat = Math.max(maxLat, p.latitude);
-    minLon = Math.min(minLon, p.longitude);
-    maxLon = Math.max(maxLon, p.longitude);
-  }
-  return [minLon, minLat, maxLon, maxLat]; // west, south, east, north
-}
-
 type ViewPadding = { top: number; right: number; bottom: number; left: number };
 
 export function RouteMap({
@@ -42,6 +31,8 @@ export function RouteMap({
   fill = false,
   interactive = true,
   focusPadding,
+  fitPadding,
+  markers,
   fps,
 }: {
   path: LatLon[];
@@ -54,9 +45,18 @@ export function RouteMap({
   interactive?: boolean;
   /** Where the live dot should sit when following, e.g. below overlaid numbers. */
   focusPadding?: ViewPadding;
+  /** Space to keep clear when framing the whole route, e.g. under a summary card. */
+  fitPadding?: ViewPadding;
+  /** Start and finish dots. On by default whenever we're not following. */
+  markers?: boolean;
   /** Cap the frame rate; a map behind the numbers doesn't need 60 fps. */
   fps?: number;
 }) {
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+  const onLayout = (e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    if (width > 0 && height > 0 && (width !== size?.w || height !== size?.h)) setSize({ w: width, h: height });
+  };
   const last = path[path.length - 1];
   // Live position wins over the route's end: we may be standing still, or the
   // filter may still be waiting for an accurate fix before it draws a line.
@@ -72,20 +72,28 @@ export function RouteMap({
     [path],
   );
 
-  // Declarative camera: MapLibre applies it once the map is ready, so there are
-  // no imperative calls to lose if they arrive before the style has loaded.
-  const padding = { top: 28, right: 28, bottom: 28, left: 28 };
+  // Declarative camera. For a whole route we work out centre and zoom ourselves
+  // once the view has a size (see mapFit.ts): MapLibre's own bounds fit can run
+  // before layout on Android and come back as the whole world.
+  const pad = fitPadding ?? { top: 28, right: 28, bottom: 28, left: 28 };
+  const fit = useMemo(
+    () => (bounds && size ? fitBounds(bounds, size.w, size.h, pad) : null),
+    [bounds, size?.w, size?.h, pad.top, pad.right, pad.bottom, pad.left],
+  );
   const view =
     follow && head
       ? { center: [head.longitude, head.latitude] as [number, number], zoom: 16, padding: focusPadding, duration: 600, easing: 'ease' as const }
-      : bounds
-        ? { bounds, padding, duration: 0 }
-        : head
-          ? { center: [head.longitude, head.latitude] as [number, number], zoom: 15, duration: 0 }
-          : null;
+      : fit
+        ? { center: fit.center, zoom: fit.zoom, duration: 0 }
+        : null;
+  // Until we can fit, start near the run rather than at zoom 1 over the globe.
+  const start = path[0] ?? head;
+  const initial = start ? { center: [start.longitude, start.latitude] as [number, number], zoom: 14 } : { zoom: 1 };
+  const showMarkers = (markers ?? !follow) && path.length > 1;
+  const first = path[0];
 
   return (
-    <View style={fill ? styles.fill : [styles.wrap, { height }]} pointerEvents={interactive ? 'auto' : 'none'}>
+    <View style={fill ? styles.fill : [styles.wrap, { height }]} pointerEvents={interactive ? 'auto' : 'none'} onLayout={onLayout}>
       <MapLibreMap
         style={StyleSheet.absoluteFill}
         mapStyle={offline ? BLANK_STYLE : MAP_STYLE}
@@ -100,17 +108,41 @@ export function RouteMap({
         touchPitch={false}
         preferredFramesPerSecond={fps}
       >
-        {view ? <Camera {...view} /> : <Camera initialViewState={{ zoom: 1 }} />}
+        {view ? <Camera initialViewState={initial} {...view} /> : <Camera initialViewState={initial} />}
         {path.length > 1 && (
           <GeoJSONSource id="route" data={line}>
             <Layer id="route-casing" type="line" paint={{ 'line-color': colors.cream, 'line-width': 8, 'line-opacity': 0.9 }} layout={{ 'line-cap': 'round', 'line-join': 'round' }} />
             <Layer id="route-line" type="line" paint={{ 'line-color': colors.ink, 'line-width': 4 }} layout={{ 'line-cap': 'round', 'line-join': 'round' }} />
           </GeoJSONSource>
         )}
-        {head && (
-          <GeoJSONSource id="head" data={{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [head.longitude, head.latitude] } }}>
-            <Layer id="head-dot" type="circle" paint={{ 'circle-radius': 7, 'circle-color': colors.ink, 'circle-stroke-color': colors.cream, 'circle-stroke-width': 3 }} />
+        {showMarkers ? (
+          <GeoJSONSource
+            id="ends"
+            data={{
+              type: 'FeatureCollection',
+              features: [
+                { type: 'Feature', properties: { end: 0 }, geometry: { type: 'Point', coordinates: [first.longitude, first.latitude] } },
+                { type: 'Feature', properties: { end: 1 }, geometry: { type: 'Point', coordinates: [last.longitude, last.latitude] } },
+              ],
+            }}
+          >
+            <Layer
+              id="ends-dot"
+              type="circle"
+              paint={{
+                'circle-radius': ['match', ['get', 'end'], 0, 7, 9],
+                'circle-color': ['match', ['get', 'end'], 0, colors.mint, colors.peach],
+                'circle-stroke-color': colors.ink,
+                'circle-stroke-width': 3,
+              }}
+            />
           </GeoJSONSource>
+        ) : (
+          head && (
+            <GeoJSONSource id="head" data={{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [head.longitude, head.latitude] } }}>
+              <Layer id="head-dot" type="circle" paint={{ 'circle-radius': 7, 'circle-color': colors.ink, 'circle-stroke-color': colors.cream, 'circle-stroke-width': 3 }} />
+            </GeoJSONSource>
+          )
         )}
       </MapLibreMap>
     </View>
