@@ -1,4 +1,4 @@
-import { useKeepAwake } from 'expo-keep-awake';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Dimensions, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -35,7 +35,16 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number) => void }) {
   const [mapFront, setMapFront] = useState(false);
   const veil = useRef(new Animated.Value(1)).current;
 
-  useKeepAwake();
+  // The screen is the second-biggest drain after GPS. Off by default: the lock
+  // screen (and the watch) carry the live numbers instead.
+  const keepAwake = phase === 'active' && settings.keepScreenOn;
+  useEffect(() => {
+    if (!keepAwake) return;
+    activateKeepAwakeAsync('run').catch(() => {});
+    return () => {
+      deactivateKeepAwake('run').catch(() => {});
+    };
+  }, [keepAwake]);
   useEffect(() => subscribe(setTrack), []);
   useEffect(() => {
     if (phase === 'idle') listRuns().then(setRuns);

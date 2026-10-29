@@ -22,7 +22,7 @@ function truePos(t: number) {
   return { lat: lat0 + (R * Math.sin(a)) / mPerDegLat, lon: lon0 + (R * Math.cos(a)) / mPerDegLon };
 }
 
-function run(label: string, opts: { noiseM: number; stopAt?: [number, number]; tunnel?: [number, number]; outliers?: number }) {
+function run(label: string, opts: { noiseM: number; stopAt?: [number, number]; tunnel?: [number, number]; outliers?: number; everyS?: number }) {
   const f = new GpsFilter();
   let naiveDist = 0, filtDist = 0, dropped = 0, n = 0;
   let prevRaw: { lat: number; lon: number } | null = null;
@@ -33,6 +33,7 @@ function run(label: string, opts: { noiseM: number; stopAt?: [number, number]; t
     if (opts.stopAt && t >= opts.stopAt[0] && t < opts.stopAt[1]) stopped = true;
     if (!stopped) moveT++;
     if (opts.tunnel && t >= opts.tunnel[0] && t < opts.tunnel[1]) continue; // no fixes at all
+    if (opts.everyS && t % opts.everyS !== 0) continue; // battery saver: sparser fixes
     const p = truePos(moveT);
     const acc = Math.max(3, opts.noiseM * (0.6 + rnd() * 0.8));
     let lat = p.lat + (gauss() * acc * 0.5) / mPerDegLat;
@@ -61,3 +62,6 @@ run('urban + 30 s stop at crossing', { noiseM: 12, stopAt: [400, 430] });
 run('urban + 2% outliers', { noiseM: 12, outliers: 0.02 });
 run('urban + tunnel 20 s (GPS silent)', { noiseM: 12, tunnel: [800, 820] });
 run('bad (25 m) + stop + outliers', { noiseM: 25, stopAt: [400, 430], outliers: 0.02 });
+run('saver: 3 s fixes, clean', { noiseM: 5, everyS: 3 });
+run('saver: 3 s fixes, urban', { noiseM: 12, everyS: 3 });
+run('saver: 3 s fixes, urban + stop', { noiseM: 12, everyS: 3, stopAt: [400, 430] });
