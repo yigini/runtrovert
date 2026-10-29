@@ -7,6 +7,7 @@ import { notificationStatus, previewLine, sendLineNow, turnOnNotifications, type
 import { presetInfo } from '../presets';
 import { PODCAST_APPS } from '../shelfLogic';
 import { onBatteryModeChanged } from '../tracking';
+import { MoneyNote, UnlockSettingsRow } from '../components/UnlockRow';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import type { BatteryMode, CueMode, ListenDownload, NotifyPerWeek } from '../types';
@@ -53,6 +54,7 @@ export function SettingsScreen({ onOpenListen, onBack }: { onOpenListen: () => v
     <ScrollView style={styles.screen} contentContainerStyle={{ gap: spacing.lg, paddingBottom: spacing.xl }}>
       {onBack ? <BackButton label="Back" onPress={onBack} /> : null}
       <Text style={styles.h1} accessibilityRole="header">Settings</Text>
+      <UnlockSettingsRow />
 
       <Section title="Today's run" bg={colors.lilac} fg={colors.lilacDeep}>
         <Pressable onPress={() => setPresets(true)} accessibilityRole="button" accessibilityHint="Shows the three presets and what each one brings" style={({ pressed }) => [styles.option, pressed && { opacity: 0.85 }]}>
@@ -200,7 +202,7 @@ export function SettingsScreen({ onOpenListen, onBack }: { onOpenListen: () => v
 
       <Section title="Privacy" bg={colors.white} fg={colors.muted}>
         <Text style={styles.privacy}>
-          Runtrovert has no server. Your runs, routes, notes and settings are saved on this phone, and in the phone's own backup to your Google or Apple
+          Runtrovert has no server. Your runs, routes, places, notes and settings are saved on this phone, and in the phone's own backup to your Google or Apple
           account if you have backups on. We can't see them even if we wanted to. Reminders are written and scheduled on the phone. No push service, no
           server, nothing that knows when or whether you ran. The app fetches three things: map tiles unless you chose Plain map, the weather if you leave it
           on, and the Listen list if you said yes, which is one file that's the same for everyone. Like any website, each of those sees your IP address. The
@@ -208,6 +210,7 @@ export function SettingsScreen({ onOpenListen, onBack }: { onOpenListen: () => v
           play in your own podcast app; we never see what you play. Sponsors pay a flat fee for a place on the Kit & offers shelf and never learn who opened
           it or what was tapped. Delete the app and it's gone from this phone; a phone backup keeps a copy until it's replaced.
         </Text>
+        <MoneyNote />
       </Section>
       <PresetSheet open={presets} value={settings.runPreset ?? 'just'} onPick={(p) => update({ runPreset: p })} onClose={() => setPresets(false)} />
     </ScrollView>

@@ -4,7 +4,9 @@ import Svg, { Circle, Polyline, Rect } from 'react-native-svg';
 import { formatDistance, formatDuration, formatElevation } from '../geo';
 import { bests, EFFORTS, formatClock, trends, type Best, type Trends } from '../progress';
 import { colors, fonts, radius, spacing, type } from '../theme';
+import { useUnlocked } from '../unlockState';
 import { loadYou } from '../you';
+import { LockRow } from './LockRow';
 
 // The top of History: your bests and how you're doing against your own last
 // six weeks. Nobody else is on this screen, and nothing here is ever sent anywhere.
@@ -14,6 +16,8 @@ const LABEL: Record<string, string> = { ...Object.fromEntries(EFFORTS.map((e) =>
 
 export function YouSection({ km, refreshKey }: { km: boolean; refreshKey: number }) {
   const [data, setData] = useState<{ all: Best[]; recent: Best[]; tr: Trends } | null>(null);
+  // Bests, this week and recharge are free; the six-week and twelve-week trends come with the unlock.
+  const unlocked = useUnlocked();
   useEffect(() => {
     let live = true;
     loadYou()
@@ -37,7 +41,7 @@ export function YouSection({ km, refreshKey }: { km: boolean; refreshKey: number
   const value = (b: Best) => (b.key === 'longest' ? formatDistance(b.value, km) : b.key === 'climb' ? formatElevation(b.value, km) : formatClock(b.value));
 
   const rows: Array<{ k: string; v: string; spark?: React.ReactNode }> = [];
-  if (tr.fitness) {
+  if (unlocked && tr.fitness) {
     const f = tr.fitness;
     const diff = f.before != null ? f.before - f.now : null;
     rows.push({
@@ -48,7 +52,7 @@ export function YouSection({ km, refreshKey }: { km: boolean; refreshKey: number
       spark: <Line values={tr.fitness.series.map((x) => -x)} color={colors.mintDeep} />,
     });
   }
-  if (tr.pace) {
+  if (unlocked && tr.pace) {
     const p = tr.pace;
     const diff = p.before != null ? p.before - p.now : null;
     const per = km ? 1 : 1.609344;
@@ -78,7 +82,7 @@ export function YouSection({ km, refreshKey }: { km: boolean; refreshKey: number
     });
   }
   const weeks = tr.rhythm.filter(Boolean).length;
-  rows.push({ k: 'Rhythm', v: `Ran in ${weeks} of the last 12 weeks.`, spark: <Dots values={tr.rhythm} color={colors.skyDeep} /> });
+  if (unlocked) rows.push({ k: 'Rhythm', v: `Ran in ${weeks} of the last 12 weeks.`, spark: <Dots values={tr.rhythm} color={colors.skyDeep} /> });
 
   return (
     <View style={{ gap: spacing.md }}>
@@ -111,6 +115,7 @@ export function YouSection({ km, refreshKey }: { km: boolean; refreshKey: number
           </View>
         ))}
       </View>
+      <LockRow title="Trends over months" detail="Fitness, usual pace and rhythm. Comes with Everything, once" />
       <Text style={type.small}>Only ever compared with your own runs. The 5 km estimate uses Riegel’s formula on your best efforts over 3 km; pace is a six-week median with hills allowed for.</Text>
       <Text style={[type.eyebrow, { marginTop: spacing.sm }]}>Every run</Text>
     </View>
