@@ -17,7 +17,9 @@ import { RULES } from '../training/rules';
 import { EFFORT_LABEL, paceFor, paceSetFor } from '../training/sessions';
 import { createPlan, currentProfile, historyCount, lastRunAt, markDone, nextSession, runSessions, planEnd, planProgress, planSpec, refreshPlan, savePlan, setStatus, skipSession, todaySession, weekProgress } from '../training/store';
 import type { Plan, PlanSetup, Session, Step, Week } from '../training/types';
-import { UNLOCK_LINE, UNLOCK_PRICE, isUnlocked } from '../unlock';
+import { LockRow } from '../components/LockRow';
+import { isUnlocked, openWeeks, planSessionOpen, planWeekOpen, trainLine } from '../unlock';
+import { openUnlock, useUnlocked } from '../unlockState';
 
 /**
  * The Train tab. Without a plan: the catalogue, a plan's page, its setup and a
@@ -28,7 +30,6 @@ import { UNLOCK_LINE, UNLOCK_PRICE, isUnlocked } from '../unlock';
 type Page =
   | { kind: 'catalogue' }
   | { kind: 'detail'; spec: PlanSpec }
-  | { kind: 'locked'; spec: PlanSpec }
   | { kind: 'health'; spec: PlanSpec; setup: PlanSetup; runner: RunnerProfile; paces: Paces | null }
   | { kind: 'week'; index: number | null }
   | { kind: 'session'; id: string }
@@ -49,6 +50,7 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
   const [historyN, setHistoryN] = useState(0);
   const [lastRun, setLastRun] = useState<number | null>(null);
   const [view, setView] = useState<Page>({ kind: 'catalogue' });
+  useUnlocked(); // a purchase opens the rest of the plan without leaving the tab
 
   const reload = useCallback(async () => {
     const [p, prof, n, last] = await Promise.all([refreshPlan(), currentProfile(), historyCount(), lastRunAt()]);
@@ -56,7 +58,7 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
     setProfile(prof);
     setHistoryN(n);
     setLastRun(last);
-    setView((v) => (p && p.status !== 'stopped' && p.status !== 'done' && (v.kind === 'catalogue' || v.kind === 'detail' || v.kind === 'health' || v.kind === 'locked') ? { kind: 'week', index: null } : v));
+    setView((v) => (p && p.status !== 'stopped' && p.status !== 'done' && (v.kind === 'catalogue' || v.kind === 'detail' || v.kind === 'health') ? { kind: 'week', index: null } : v));
   }, []);
 
   useEffect(() => {
@@ -76,8 +78,7 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
   if (view.kind === 'rules') return <RulesView onBack={() => setView(active ? { kind: 'week', index: null } : { kind: 'catalogue' })} />;
 
   if (!active) {
-    if (view.kind === 'detail') return <DetailView spec={view.spec} profile={profile} historyN={historyN} unitsKm={settings.unitsKm} onBack={() => setView({ kind: 'catalogue' })} onRules={() => setView({ kind: 'rules' })} onStart={(setup, runner, paces) => setView(isUnlocked() ? { kind: 'health', spec: view.spec, setup, runner, paces } : { kind: 'locked', spec: view.spec })} />;
-    if (view.kind === 'locked') return <LockedView spec={view.spec} onBack={() => setView({ kind: 'detail', spec: view.spec })} />;
+    if (view.kind === 'detail') return <DetailView spec={view.spec} profile={profile} historyN={historyN} unitsKm={settings.unitsKm} onBack={() => setView({ kind: 'catalogue' })} onRules={() => setView({ kind: 'rules' })} onStart={(setup, runner, paces) => setView({ kind: 'health', spec: view.spec, setup, runner, paces })} />;
     if (view.kind === 'health') {
       return (
         <HealthView
@@ -183,7 +184,7 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
           },
         ]);
       }}
-      onCalendar={() => exportCalendar(active)}
+      onCalendar={() => exportCalendar(openWeeks(active))}
     />
   );
 }
@@ -395,22 +396,20 @@ function DetailView({ spec, profile, historyN, unitsKm, onBack, onRules, onStart
       <Pressable onPress={onRules} style={{ paddingVertical: spacing.xs }} accessibilityRole="button">
         <Text style={styles.link}>The nine rules →</Text>
       </Pressable>
-      <Button title={isUnlocked() ? 'Start this plan' : `Unlock plans · ${UNLOCK_PRICE}`} disabled={!preview.ok || !daysOk} onPress={() => onStart(setup, runner, paces)} />
+      <Button title="Start this plan" disabled={!preview.ok || !daysOk} onPress={() => onStart(setup, runner, paces)} />
+      {!isUnlocked() && <TrainLockLine weeks={spec.tier === 'keep' ? null : spec.weeks} />}
       {!gate.ok && preview.ok && <Text style={styles.hint}>You can start anyway. The plan begins from the numbers above, not from where it would like you to be.</Text>}
     </ScrollView>
   );
 }
 
-function LockedView({ spec, onBack }: { spec: PlanSpec; onBack: () => void }) {
+/** The Train line: week 1 is free, the rest comes with the unlock. Tapping it opens Everything, once. */
+function TrainLockLine({ weeks }: { weeks: number | null }) {
+  const line = trainLine(weeks);
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.screen}>
-      <Back onPress={onBack} label={spec.name} />
-      <Text style={type.eyebrow}>Everything, once</Text>
-      <Text style={styles.h1}>One price.{'\n'}No subscription.</Text>
-      <Text style={styles.lede}>{UNLOCK_LINE}</Text>
-      <Text style={styles.body}>All fourteen plans, guided sessions with cues, calendar export, and every plan that comes later. Pay once, keep it. Nothing is rented.</Text>
-      <Button title={`Unlock · ${UNLOCK_PRICE}`} onPress={() => Alert.alert('Not in this build', 'Purchases are not wired up yet. Test builds have everything unlocked.')} />
-    </ScrollView>
+    <Pressable onPress={openUnlock} accessibilityRole="button" accessibilityLabel={line} accessibilityHint="Opens Everything, once" style={({ pressed }) => [styles.lockLine, pressed && { opacity: 0.85 }]}>
+      <Text style={styles.lockLineText}>{line}</Text>
+    </Pressable>
   );
 }
 
@@ -486,7 +485,7 @@ function WeekView(props: {
   const prog = weekProgress(week);
   const total = planProgress(plan);
   const paused = plan.status === 'paused';
-  const behind = missed.kind !== 'none' && plan.weeks.flatMap((w) => w.sessions).some((s) => s.date < today && !s.done && !s.skipped && s.kind !== 'strength');
+  const behind = missed.kind !== 'none' && plan.weeks.flatMap((w) => w.sessions).some((s) => s.date < today && !s.done && !s.skipped && s.kind !== 'strength' && planSessionOpen(plan, s.id));
   const raceIn = plan.setup.raceDate != null ? daysBetween(today, plan.setup.raceDate) : null;
 
   return (
@@ -504,6 +503,7 @@ function WeekView(props: {
       ) : (
         <TodayCard plan={plan} spec={spec} today={today} unitsKm={unitsKm} onOpen={props.onOpen} onStart={props.onStart} />
       )}
+      {!isUnlocked() && weeks.length > 1 && <TrainLockLine weeks={spec.tier === 'keep' ? null : weeks[weeks.length - 1].index} />}
       {!paused && behind && (
         <View style={styles.banner}>
           <Text style={styles.bannerTitle}>{missedTitle(missed)}</Text>
@@ -537,6 +537,9 @@ function WeekView(props: {
           </Pressable>
         </View>
 
+        {!planWeekOpen(plan, week.index) ? (
+          <LockRow title={`Week ${week.index}`} />
+        ) : (
         <View style={styles.days}>
           {[0, 1, 2, 3, 4, 5, 6].map((d) => {
             const date = addDays(week.start, d);
@@ -546,6 +549,7 @@ function WeekView(props: {
             return <DayRow key={date} date={date} today={today} session={s ?? null} strength={!!strength} spec={spec} unitsKm={unitsKm} onPress={s ? () => props.onOpen(s.id) : undefined} />;
           })}
         </View>
+        )}
         <Legend />
         <Text style={styles.hint}>Tap a day for its steps, to move it within the week, or to skip it.</Text>
       </Section>
@@ -646,7 +650,7 @@ function TodayCard({ plan, spec, today, unitsKm, onOpen, onStart }: { plan: Plan
         <Text style={styles.hint}>
           {sizeOf(s, spec, unitsKm)} · {s.hard ? 'a harder day' : s.kind === 'long' ? 'the long run, slow' : 'easy, you can talk the whole way'}
         </Text>
-        <Button title="Start today’s session" onPress={() => onStart(s)} style={{ marginTop: 6 }} />
+        {planSessionOpen(plan, s.id) ? <Button title="Start today’s session" onPress={() => onStart(s)} style={{ marginTop: 6 }} /> : <LockRow title="Guided sessions after week 1" style={{ marginTop: 6 }} />}
         <Pressable onPress={() => onOpen(s.id)} hitSlop={8} style={{ alignSelf: 'center', paddingVertical: 4 }}>
           <Text style={styles.link}>See the steps, move or skip it</Text>
         </Pressable>
@@ -815,7 +819,7 @@ function SessionView({ plan, spec, session: s, unitsKm, today, onBack, onStart, 
         </Section>
       )}
 
-      {open && s.kind !== 'rest' && <Button title={s.date === today ? 'Start this session' : s.date < today ? 'Do it today instead' : 'Start it now anyway'} onPress={onStart} />}
+      {open && s.kind !== 'rest' && (planSessionOpen(plan, s.id) ? <Button title={s.date === today ? 'Start this session' : s.date < today ? 'Do it today instead' : 'Start it now anyway'} onPress={onStart} /> : <LockRow title="Guided sessions after week 1" />)}
       {open && (
         <View style={styles.chips}>
           {free.length > 0 && <Chip label={moving ? 'Pick a day' : 'Move it'} on={moving} onPress={() => setMoving((v) => !v)} small />}
@@ -1106,6 +1110,8 @@ async function exportCalendar(plan: Plan) {
 }
 
 const styles = StyleSheet.create({
+  lockLine: { backgroundColor: '#ece5da', borderRadius: radius.md, paddingVertical: 12, paddingHorizontal: 14 },
+  lockLineText: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.inkSoft },
   scroll: { flex: 1, backgroundColor: colors.cream },
   screen: { padding: spacing.md, paddingTop: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
   h1: { fontFamily: fonts.display, fontSize: 34, lineHeight: 38, letterSpacing: -0.6, color: colors.text },

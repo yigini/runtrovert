@@ -16,15 +16,18 @@ import { RunDetailScreen } from './src/screens/RunDetailScreen';
 import { RunScreen } from './src/screens/RunScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { TrainScreen } from './src/screens/TrainScreen';
+import { UnlockHost } from './src/screens/UnlockScreen';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import { FEWER_ACTION, fewer, fewerMessage, notifyAfterRun, requestNotificationPermission, rescheduleReminders } from './src/notify';
 import { SettingsProvider, useSettings } from './src/settings';
+import { startBilling } from './src/billing';
 import { recoverRun, subscribe } from './src/tracking';
 import { colors, fonts, spacing } from './src/theme';
 import type { PainLevel } from './src/training/adapt';
 import { schedulePlanReminders } from './src/training/remind';
 import { onRunSaved } from './src/training/store';
 import type { Session } from './src/training/types';
+import { loadUnlock } from './src/unlockState';
 import { NEWS } from './src/whatsNew';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -88,6 +91,13 @@ function Shell() {
       return true;
     });
     return () => sub.remove();
+  }, []);
+
+  useEffect(() => {
+    // What this phone has unlocked, then (once billing is on) what the store says.
+    loadUnlock()
+      .then(startBilling)
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -235,6 +245,7 @@ function Shell() {
           <TabButton label="Settings" color={colors.peach} active={tab === 'settings'} onPress={() => setTab('settings')} />
         </View>
       )}
+      <UnlockHost />
     </SafeAreaView>
   );
 }

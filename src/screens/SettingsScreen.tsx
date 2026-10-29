@@ -4,6 +4,7 @@ import { appByKey } from '../music';
 import { notificationStatus, previewLine, sendLineNow, turnOnNotifications, type NotifyStatus } from '../notify';
 import { PODCAST_APPS } from '../shelfLogic';
 import { onBatteryModeChanged } from '../tracking';
+import { MoneyNote, UnlockSettingsRow } from '../components/UnlockRow';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import type { BatteryMode, CueMode, ListenDownload, NotifyPerWeek } from '../types';
@@ -47,6 +48,7 @@ export function SettingsScreen({ onOpenListen }: { onOpenListen: () => void }) {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ gap: spacing.lg, paddingBottom: spacing.xl }}>
       <Text style={styles.h1} accessibilityRole="header">Settings</Text>
+      <UnlockSettingsRow />
 
       <Section title="Cues" bg={colors.lilac} fg={colors.lilacDeep}>
         {CUES.map((c) => {
@@ -192,6 +194,7 @@ export function SettingsScreen({ onOpenListen }: { onOpenListen: () => void }) {
           play in your own podcast app; we never see what you play. Sponsors pay a flat fee for a place on the Kit & offers shelf and never learn who opened
           it or what was tapped. Delete the app and it's gone from this phone; a phone backup keeps a copy until it's replaced.
         </Text>
+        <MoneyNote />
       </Section>
     </ScrollView>
   );

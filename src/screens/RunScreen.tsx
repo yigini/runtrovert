@@ -12,6 +12,7 @@ import { PainPicker } from '../components/PainPicker';
 import { QuietPicker } from '../components/QuietPicker';
 import { RouteMap } from '../components/RouteMap';
 import { RunStatsView } from '../components/RunStats';
+import { UnlockNudge } from '../components/UnlockNudge';
 import { YouLine } from '../components/YouLine';
 import { useBack } from '../back';
 import { cueCountdown } from '../cues';
@@ -30,6 +31,7 @@ import { loadPlan, nextSession, savePlan, todaySession } from '../training/store
 import type { Session } from '../training/types';
 import { formatLeft, stepLine } from '../training/workout';
 import type { Mood, Quiet, Run } from '../types';
+import { planSessionOpen } from '../unlock';
 import { cachedWeather } from '../weather';
 import { beginWorkout, endWorkout, subscribeWorkout, type GuidedRun } from '../workoutRun';
 import { liveFacts, recordRunFacts } from '../you';
@@ -118,8 +120,11 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
       .then((p) => {
         const active = p && p.status === 'active' ? p : null;
         setHasPlan(!!active);
-        setPlanSession(active ? todaySession(active) : null);
-        setPlanNext(active && !todaySession(active) ? nextSession(active) : null);
+        // Run home only offers sessions the plan can guide; a locked week says nothing here.
+        const open = (x: Session | null) => (active && x && planSessionOpen(active, x.id) ? x : null);
+        const today = active ? todaySession(active) : null;
+        setPlanSession(open(today));
+        setPlanNext(active && !today ? open(nextSession(active)) : null);
       })
       .catch(() => {});
   }, [phase, planKey]);
@@ -394,6 +399,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         </View>
         <View style={{ padding: spacing.md, paddingTop: spacing.lg, gap: spacing.lg }}>
           {you && <YouLine title={you.title} detail={you.detail} />}
+          <UnlockNudge />
           <MoodPicker title="And your energy now?" value={moodAfter} onChange={setMoodAfter} />
           <QuietPicker value={quiet} onChange={setQuiet} />
           <TextInput style={styles.note} placeholder="A note, if you want one" placeholderTextColor={colors.inkMuted} value={note} onChangeText={setNote} multiline />
