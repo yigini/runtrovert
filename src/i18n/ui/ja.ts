@@ -408,6 +408,8 @@ export const ja: Strings = {
     xMin3: (n) => `${n}分 · `,
     fitsYourRun: 'ランにぴったり',
     openInX: (app) => `${app}で開く`,
+    searchInX: (app) => `${app}で検索`,
+    notFoundInYourAppYet: 'まだアプリ内で見つからないため、検索を開きます。または番組のフィードのリンクを、お好きなポッドキャストアプリに共有してください ›',
     open: '開く',
     sinceX: (since) => ` · ${since}から`,
     xEpisodes: (n) => ` · ${n}エピソード`,

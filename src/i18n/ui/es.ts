@@ -410,6 +410,8 @@ export const es: Strings = {
     xMin3: (n) => `${n} min · `,
     fitsYourRun: 'Encaja con tu salida',
     openInX: (app) => `Abrir en ${app}`,
+    searchInX: (app) => `Buscar en ${app}`,
+    notFoundInYourAppYet: 'Todavía no está en tu app, así que se abre una búsqueda. O comparte el enlace del feed del programa con cualquier app de pódcasts ›',
     open: 'Abrir',
     sinceX: (since) => ` · desde ${since}`,
     xEpisodes: (n) => ` · ${n} episodios`,

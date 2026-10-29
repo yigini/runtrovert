@@ -410,6 +410,8 @@ export const de: Strings = {
     xMin3: (n) => `${n} Min. · `,
     fitsYourRun: 'Passt zu deinem Lauf',
     openInX: (app) => `In ${app} öffnen`,
+    searchInX: (app) => `In ${app} suchen`,
+    notFoundInYourAppYet: 'Noch nicht in deiner App gefunden, deshalb öffnet sich eine Suche. Oder teile den Feed-Link der Sendung mit einer beliebigen Podcast-App ›',
     open: 'Öffnen',
     sinceX: (since) => ` · seit ${since}`,
     xEpisodes: (n) => ` · ${n} Folgen`,

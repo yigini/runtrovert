@@ -411,6 +411,8 @@ export const tr: Strings = {
     xMin3: (n) => `${n} dk · `,
     fitsYourRun: 'Koşuna uyar',
     openInX: (app) => `Şurada aç: ${app}`,
+    searchInX: (app) => `Şurada ara: ${app}`,
+    notFoundInYourAppYet: 'Uygulamanda henüz bulunamadı, bu yüzden bir arama açılır. Ya da programın akış bağlantısını herhangi bir podcast uygulamasıyla paylaş ›',
     open: 'Aç',
     sinceX: (since) => ` · başlangıç ${since}`,
     xEpisodes: (n) => ` · ${n} bölüm`,

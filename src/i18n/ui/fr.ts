@@ -412,6 +412,8 @@ export const fr: Strings = {
     xMin3: (n) => `${n} min · `,
     fitsYourRun: 'Colle à ta sortie',
     openInX: (app) => `Ouvrir dans ${app}`,
+    searchInX: (app) => `Chercher dans ${app}`,
+    notFoundInYourAppYet: 'Pas encore trouvée dans ton appli, donc une recherche s’ouvre. Ou partage le lien du flux de l’émission avec n’importe quelle appli de podcasts ›',
     open: 'Ouvrir',
     sinceX: (since) => ` · depuis ${since}`,
     xEpisodes: (n) => ` · ${n} épisodes`,

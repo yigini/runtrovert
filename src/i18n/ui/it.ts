@@ -410,6 +410,8 @@ export const it: Strings = {
     xMin3: (n) => `${n} min · `,
     fitsYourRun: 'Adatto alla tua corsa',
     openInX: (app) => `Apri in ${app}`,
+    searchInX: (app) => `Cerca in ${app}`,
+    notFoundInYourAppYet: 'Non ancora trovato nella tua app, quindi si apre una ricerca. Oppure condividi il link al feed del programma con qualsiasi app di podcast ›',
     open: 'Apri',
     sinceX: (since) => ` · dal ${since}`,
     xEpisodes: (n) => ` · ${n} episodi`,
