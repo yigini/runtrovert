@@ -77,7 +77,7 @@ export function candidates(f: ShareFacts): Pick[] {
     at: v.clockWords(f.startedAt),
     km: f.km,
   };
-  const add = (tone: Tone, lines: string[]) => out.push({ tone, lines: lines.map(finish) });
+  const add = (tone: Tone, lines: string[]) => out.push({ tone, lines: lines.map((l) => finish(l)) });
   const hour = new Date(f.startedAt).getHours();
   const dow = new Date(f.startedAt).getDay();
   const weekend = dow === 0 || dow === 6;
