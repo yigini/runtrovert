@@ -30,7 +30,7 @@ Notifications.setNotificationHandler({
 export async function ensureChannel() {
   if (Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync(CHANNEL, {
-    name: 'Quiet reminders',
+    name: ui().notify.channel,
     importance: Notifications.AndroidImportance.DEFAULT,
     sound: null,
     vibrationPattern: [0, 120],

@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 import { colors, fonts, radius, spacing, type } from '../theme';
-import { UNLOCK_NAME } from '../unlock';
+import { unlockName } from '../unlock';
 import { openUnlock, useUnlocked } from '../unlockState';
 import { ui } from '../i18n/ui';
 
@@ -12,7 +12,7 @@ import { ui } from '../i18n/ui';
  * screen can leave it in place: `<LockRow title="Trends over months" />`.
  * No countdowns, no blurred previews, no badges.
  */
-export function LockRow({ title, detail = ui().lockRow.comesWithX(UNLOCK_NAME), style }: { title: string; detail?: string; style?: ViewStyle }) {
+export function LockRow({ title, detail = ui().lockRow.comesWithX(unlockName()), style }: { title: string; detail?: string; style?: ViewStyle }) {
   const unlocked = useUnlocked();
   if (unlocked) return null;
   return (
@@ -20,7 +20,7 @@ export function LockRow({ title, detail = ui().lockRow.comesWithX(UNLOCK_NAME), 
       onPress={openUnlock}
       accessibilityRole="button"
       accessibilityLabel={`${title}. ${detail}.`}
-      accessibilityHint={ui().lockRow.opensX(UNLOCK_NAME)}
+      accessibilityHint={ui().lockRow.opensX(unlockName())}
       style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }, style]}
     >
       <LockGlyph />

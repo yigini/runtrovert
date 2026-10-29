@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, radius, spacing, type } from '../theme';
-import { UNLOCKED_BUILD, UNLOCK_NAME, UNLOCK_PRICE } from '../unlock';
+import { UNLOCKED_BUILD, unlockName, UNLOCK_PRICE } from '../unlock';
 import { openUnlock, useUnlockState, useUnlocked } from '../unlockState';
 import { ui } from '../i18n/ui';
 
@@ -11,9 +11,9 @@ export function UnlockSettingsRow() {
   const { owned } = useUnlockState();
   const detail = owned ? ui().unlockRow.itSYoursThankYou : unlocked && UNLOCKED_BUILD ? ui().unlockRow.unlockedInThisTestBuild : ui().unlockRow.plansMonthsOfTrendsBackup(UNLOCK_PRICE);
   return (
-    <Pressable onPress={openUnlock} accessibilityRole="button" accessibilityLabel={`${UNLOCK_NAME}. ${detail}`} style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]}>
+    <Pressable onPress={openUnlock} accessibilityRole="button" accessibilityLabel={`${unlockName()}. ${detail}`} style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]}>
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={styles.title}>{UNLOCK_NAME}</Text>
+        <Text style={styles.title}>{unlockName()}</Text>
         <Text style={styles.detail}>{detail}</Text>
       </View>
       <Text style={styles.chev} importantForAccessibility="no" accessibilityElementsHidden>
@@ -31,7 +31,7 @@ export function MoneyNote() {
       <Text style={styles.moneyText}>
         {ui().unlockRow.moneyBefore}
         <Text style={styles.link} onPress={openUnlock} accessibilityRole="link">
-          {UNLOCK_NAME}
+          {unlockName()}
         </Text>
         {ui().unlockRow.moneyAfter}
       </Text>

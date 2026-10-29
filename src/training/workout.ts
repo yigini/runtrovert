@@ -85,10 +85,10 @@ export function leftClock(v: WorkoutView): string {
 }
 
 export function formatMin(sec: number): string {
-  if (sec < 60) return `${Math.round(sec)} s`;
+  if (sec < 60) return ui().common.sec(Math.round(sec));
   const m = Math.floor(sec / 60);
   const s = Math.round(sec % 60);
-  return s ? ui().workout.xMinXS(m, s) : `${m} min`;
+  return s ? ui().workout.xMinXS(m, s) : ui().common.min(m);
 }
 
 export function formatM(m: number): string {
@@ -101,6 +101,6 @@ export function formatLeft(v: WorkoutView): string {
     const s = Math.floor(v.leftS % 60);
     return ui().workout.xXLeft(m, String(s).padStart(2, '0'));
   }
-  if (v.leftM != null) return `${formatM(v.leftM)} left`;
+  if (v.leftM != null) return ui().workout.left(formatM(v.leftM));
   return '';
 }

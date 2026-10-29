@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { listRuns } from '../db';
 import { colors, fonts, spacing, type } from '../theme';
-import { UNLOCK_NAME, shouldNudge, unlockState } from '../unlock';
+import { unlockName, shouldNudge, unlockState } from '../unlock';
 import { openUnlock, updateUnlock } from '../unlockState';
 import { ui } from '../i18n/ui';
 
@@ -35,7 +35,7 @@ export function UnlockNudge() {
       <Text style={styles.text}>
         {ui().unlockNudge.before(count)}
         <Text style={styles.link} onPress={openUnlock} accessibilityRole="link">
-          {UNLOCK_NAME}
+          {unlockName()}
         </Text>
         {ui().unlockNudge.after}
       </Text>

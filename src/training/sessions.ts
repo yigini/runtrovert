@@ -6,7 +6,7 @@
 import type { Goal, PlanSpec, RunnerProfile } from './catalogue';
 import type { Paces } from './paces';
 import type { Effort, Session, SessionKind, Step } from './types';
-import { ui } from '../i18n/ui';
+import { live, ui } from '../i18n/ui';
 
 /** Seconds per km for each effort, from a race result or scaled off easy pace. */
 export interface PaceSet {
@@ -59,15 +59,7 @@ export function paceFor(effort: Effort, p: PaceSet): number {
   }
 }
 
-export const EFFORT_LABEL: Record<Effort, string> = {
-  walk: 'Walk',
-  easy: 'Easy. Full sentences.',
-  steady: 'Steady. Short sentences.',
-  race: 'Race effort',
-  threshold: 'Comfortably hard. Short sentences only.',
-  hard: 'Hard. A few words at most.',
-  fast: 'Fast and relaxed',
-};
+export const EFFORT_LABEL: Record<Effort, string> = live(() => ui().sessions.effort);
 
 const min = (m: number) => Math.round(m * 60);
 
@@ -167,11 +159,11 @@ export function longRun(km: number, racePaceKm: number, raceLabel: string, goal:
   const easyKm = Math.max(km - racePaceKm, 0);
   const steps: Step[] = [step('run', 'easy', ui().sessions.easyFullSentences, undefined, Math.round(easyKm * 1000))];
   if (racePaceKm > 0) steps.push(step('run', goal === '10k' ? 'steady' : 'race', raceLabel, undefined, Math.round(racePaceKm * 1000)));
-  const rp = racePaceKm > 0 ? ui().sessions.theLastXKmAt(racePaceKm, goal === '10k' ? 'steady' : 'race') : ui().sessions.allEasy;
+  const rp = racePaceKm > 0 ? ui().sessions.theLastKmAt(racePaceKm, goal === '10k' ? 'steady' : 'race') : ui().sessions.allEasy;
   return {
     kind: 'long',
     title: ui().sessions.longRunXKm(km),
-    summary: `${km} km${rp}.`,
+    summary: ui().sessions.longSummary(km, rp),
     why: racePaceKm > 0 ? ui().sessions.theLongRunIsThe : ui().sessions.theLongRunIsThe2,
     steps,
     hard: false,
@@ -254,12 +246,12 @@ export function fartlek(reps: number, onS: number, offS: number, gentle: boolean
     if (i < reps - 1) steps.push(step('jog', 'easy', ui().sessions.easeOff, offS));
   }
   steps.push(step('cool', 'easy', ui().sessions.coolDownEasy, min(10)));
-  const on = onS % 60 === 0 ? `${onS / 60} min` : `${onS} s`;
-  const off = offS % 60 === 0 ? `${offS / 60} min` : `${offS} s`;
+  const on = onS % 60 === 0 ? ui().common.min(onS / 60) : ui().common.sec(onS);
+  const off = offS % 60 === 0 ? ui().common.min(offS / 60) : ui().common.sec(offS);
   return {
     kind: 'fartlek',
-    title: `${gentle ? ui().sessions.gentleFartlek : ui().sessions.fartlek} ${reps} × ${on}`,
-    summary: ui().sessions.n10MinEasyXX2(reps, on, gentle ? ui().sessions.aLittleQuicker : 'quick', off),
+    title: ui().sessions.fartlekTitle(gentle, reps, on),
+    summary: ui().sessions.fartlekSummary(reps, on, gentle, off),
     why: gentle ? ui().sessions.aFirstTasteOfChanging : ui().sessions.changesOfPaceByFeel,
     steps,
     hard: !gentle,
@@ -284,7 +276,7 @@ export function runWalk(reps: number, runS: number, walkS: number): Draft {
     if (i < reps - 1 || walkS > 0) steps.push(step('walk', 'walk', ui().sessions.walk, walkS));
   }
   steps.push(step('walk', 'walk', ui().sessions.walkToCoolDown, min(5)));
-  const fmt = (s: number) => (s % 60 === 0 ? `${s / 60} min` : s > 60 ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : `${s} s`);
+  const fmt = (s: number) => (s % 60 === 0 ? ui().common.min(s / 60) : s > 60 ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : ui().common.sec(s));
   return {
     kind: 'runwalk',
     title: ui().sessions.runXX(fmt(runS), reps),

@@ -35,8 +35,8 @@ export interface RunNoteState {
 async function ensureChannels() {
   if (Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync(LIVE_CHANNEL, {
-    name: 'Run in progress',
-    description: 'Distance and time on the lock screen while you run.',
+    name: ui().runNotify.liveChannel,
+    description: ui().runNotify.liveChannelHint,
     importance: Notifications.AndroidImportance.LOW, // no sound, no peek
     sound: null,
     enableVibrate: false,
@@ -44,8 +44,8 @@ async function ensureChannels() {
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
   });
   await Notifications.setNotificationChannelAsync(SPLIT_CHANNEL, {
-    name: 'Splits',
-    description: 'A short note at each km or mile. Your watch shows it too.',
+    name: ui().runNotify.splitChannel,
+    description: ui().runNotify.splitChannelHint,
     importance: Notifications.AndroidImportance.DEFAULT,
     sound: null,
     vibrationPattern: [0, 120, 90, 120],
@@ -86,7 +86,7 @@ export function updateLiveNote(s: RunNoteState): void {
     identifier: LIVE_ID,
     content: {
       title: `${formatDistanceNumber(s.distanceM, s.unitsKm)} ${unit} · ${formatDuration(s.durationS)}`,
-      body: `${formatPace(s.distanceM, s.durationS, s.unitsKm)} /${unit} average · ${statusWord(s.status)}`,
+      body: ui().runNotify.liveBody(`${formatPace(s.distanceM, s.durationS, s.unitsKm)} /${unit}`, statusWord(s.status)),
       sound: false,
       sticky: true,
       autoDismiss: false,

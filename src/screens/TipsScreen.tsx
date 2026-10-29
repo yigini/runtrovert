@@ -3,9 +3,9 @@ import { Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, V
 import { colors, fonts, radius, spacing } from '../theme';
 import { type Tip } from '../tips';
 import { localTips, localTipsByTopic } from '../i18n/voice';
-import { ui } from '../i18n/ui';
+import { live, ui } from '../i18n/ui';
 
-const GROUPS = localTipsByTopic();
+const GROUPS = live(() => localTipsByTopic());
 const COUNT = localTips().length;
 const TINT = [colors.mint, colors.peach, colors.lilac, colors.butter, colors.sky];
 

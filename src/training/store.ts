@@ -208,7 +208,7 @@ export function skipSession(plan: Plan, sessionId: string): Plan {
   const s = sessionById(p, sessionId);
   if (s && !s.done) {
     s.skipped = true;
-    s.note = 'Skipped. Nothing lost.';
+    s.note = ui().planStore.skippedNothingLost;
   }
   return p;
 }

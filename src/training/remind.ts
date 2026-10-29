@@ -13,13 +13,13 @@ import type { Settings } from '../types';
 import { DAY_MS, dayStart } from './dates';
 import { planSessionOpen } from '../unlock';
 import { loadPlan, runSessions } from './store';
-import { ui } from '../i18n/ui';
+import { live, ui } from '../i18n/ui';
 
 const CHANNEL = 'runtrovert-quiet';
 const HORIZON_DAYS = 14;
 const MAX_PLAN_PENDING = 10;
 
-const TITLES = ['Today, if you like', 'On the plan today', 'A run is pencilled in', 'Whenever suits'];
+const TITLES: string[] = live(() => ui().remind.titles);
 
 /** Call after the ordinary reminders are laid out, since that lays them out from scratch. */
 export async function schedulePlanReminders(settings: Settings): Promise<void> {

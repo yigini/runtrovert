@@ -243,7 +243,7 @@ export function sunTimes(ms: number, lat: number, lon: number): Sun {
 
 function mins(ms: number): string {
   const m = Math.round(Math.abs(ms) / 60000);
-  if (m < 60) return `${m} min`;
+  if (m < 60) return ui().common.min(m);
   const h = Math.floor(m / 60);
   const r = m % 60;
   return r ? ui().runStats.xHXMin(h, r) : `${h} h`;

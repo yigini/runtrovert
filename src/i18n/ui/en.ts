@@ -925,6 +925,8 @@ export const en = {
     couldNotMakeTheCalendar: 'Could not make the calendar file',
   },
   unlock: {
+    name: 'Everything, once',
+    priceLine: (price: string, later: string) => `${price}, once. It becomes ${later} when full training plans arrive.`,
     adds: ['Full training plans, past week 1', 'Trends and progress over months', 'Patterns in your places and your energy', 'Backup, export of every run, Health Connect', 'Themes and widgets'],
     theStoreSaidNo: 'The store said no',
     notInThisBuild: 'Not in this build',
@@ -983,10 +985,13 @@ export const en = {
     ifOneEverAnnoysYou: 'If one ever annoys you, that’s a bug. Settings has the switch.',
   },
   a11y: {
+    perUnit: (time: string, km: boolean) => `${time} per ${km ? 'kilometre' : 'mile'}`,
     noPaceYet: 'no pace yet',
     xXAverageX: (spokenDistance: string | number, spokenDuration: string | number, spokenPace: string | number) => `${spokenDistance}, ${spokenDuration}, average ${spokenPace}`,
   },
   cues: {
+    // Spoken at each km or mile: "3 kilometres. 5 40 per kilometre. 17 05 total."
+    split: (n: number, km: boolean, pace: string, total: string) => `${n} ${km ? 'kilometre' : 'mile'}${n === 1 ? '' : 's'}. ${pace} per ${km ? 'kilometre' : 'mile'}. ${total} total.`,
     lapXX: (lap: string | number, replace: string | number) => `Lap ${lap}, ${replace}.`,
     paused: 'Paused.',
     resumed: 'Resumed.',
@@ -1000,11 +1005,14 @@ export const en = {
     allYourRunsAsFit: 'All your runs as FIT',
   },
   notify: {
+    channel: 'Quiet reminders',
     fewerPlease: 'Fewer, please',
     noMoreRemindersSettingsCan: 'No more reminders. Settings can bring them back.',
     fewer: (perWeek: number) => `Fewer it is. ${perWeek === 1 ? 'One' : 'Three'} a week from now on.`,
   },
   patterns: {
+    thisWeek: 'This week',
+    lastWeek: 'Last week',
     titles: {
       lift: 'Your energy, before and after',
       shortWeekday: 'Shorter weekday runs and your energy',
@@ -1059,6 +1067,11 @@ export const en = {
       `You found it busy on ${count === of ? 'all' : enNum(count)} of your ${every ? '' : 'last '}${enNum(of)} ${when} here.`,
   },
   runNotify: {
+    liveChannel: 'Run in progress',
+    liveChannelHint: 'Distance and time on the lock screen while you run.',
+    splitChannel: 'Splits',
+    splitChannelHint: 'A short note at each km or mile. Your watch shows it too.',
+    liveBody: (pace: string, status: string) => `${pace} average · ${status}`,
     recording: 'Recording',
     autoPaused: 'Auto-paused',
     paused: 'Paused',
@@ -1070,9 +1083,19 @@ export const en = {
     phoneIsInLowPower: 'Phone is in low-power mode. GPS eased off so the run makes it home.',
   },
   shelfLogic: {
+    group: {
+      quiet: { label: 'Quiet company', hint: 'For easy runs. Company that asks nothing back.' },
+      stories: { label: 'Stories', hint: 'For long runs. People who went somewhere, inside or out.' },
+      learn: { label: 'Learn something', hint: 'Science and training, told without shouting.' },
+      start: { label: 'First steps', hint: 'For people who don\'t call themselves runners yet.' },
+    },
+    topic: { 'Road shoes': 'Road shoes', Trail: 'Trail', 'Anti-chafe': 'Anti-chafe', 'Night running': 'Night running', Rain: 'Rain', Watches: 'Watches' },
+    shareFeed: 'Another app (share the feed)',
     xDaysAgo: (d: string | number) => `${d} days ago`,
   },
   adapt: {
+    restedLowEnergy: 'Rested: low energy. Nothing lost.',
+    awayNote: 'Away. Planned rest, not a miss.',
     unknownPlanX: (planId: string | number) => `unknown plan ${planId}`,
     theRaceHasPassed: 'The race has passed.',
     twoWeeksOrMoreAway: 'Two weeks or more away: stepped back to 60% and rebuilt from there.',
@@ -1159,10 +1182,20 @@ export const en = {
     planWeek: (plan: string | number, week: string | number) => `${plan}, week ${week}.`,
   },
   remind: {
+    titles: ['Today, if you like', 'On the plan today', 'A run is pencilled in', 'Whenever suits'],
     raceDay: 'Race day',
   },
   sessions: {
-    aLittleQuicker: 'a little quicker',
+    // How each effort feels: the label on a block.
+    effort: {
+      walk: 'Walk',
+      easy: 'Easy. Full sentences.',
+      steady: 'Steady. Short sentences.',
+      race: 'Race effort',
+      threshold: 'Comfortably hard. Short sentences only.',
+      hard: 'Hard. A few words at most.',
+      fast: 'Fast and relaxed',
+    },
     easyXMin: (minutes: string | number) => `Easy ${minutes} min`,
     xMinAtAPace: (minutes: string | number) => `${minutes} min at a pace where you could chat.`,
     easyRunningIsWhereMost: 'Easy running is where most of the fitness comes from. It builds the engine without wearing the frame.',
@@ -1176,7 +1209,7 @@ export const en = {
     easyXMinXStrides: (minutes: string | number, n: string | number) => `Easy ${minutes} min + ${n} strides`,
     xMinEasyThenX: (minutes: string | number, n: string | number) => `${minutes} min easy, then ${n} × 20 s quick and relaxed with a minute's walk between.`,
     stridesTeachTheLegsTo: 'Strides teach the legs to turn over quickly without any real strain. Twenty seconds is too short to hurt.',
-    theLastXKmAt: (racePaceKm: string | number, goal: string | number) => `, the last ${racePaceKm} km at ${goal} effort`,
+    theLastKmAt: (km: number, effort: 'steady' | 'race') => `, the last ${km} km at ${effort} effort`,
     allEasy: ', all easy',
     longRunXKm: (km: string | number) => `Long run ${km} km`,
     theLongRunIsThe: 'The long run is the backbone. Finishing it at race effort teaches the body to hold pace on tired legs.',
@@ -1210,9 +1243,9 @@ export const en = {
     pickItUpALittle: 'Pick it up a little. Short sentences.',
     quickAFewWordsAt: 'Quick. A few words at most.',
     easeOff: 'Ease off',
-    gentleFartlek: 'Gentle fartlek',
-    fartlek: 'Fartlek',
-    n10MinEasyXX2: (reps: string | number, on: string | number, gentle: string | number, off: string | number) => `10 min easy, ${reps} × ${on} ${gentle} with ${off} easy, 10 min easy.`,
+    fartlekSummary: (reps: number, on: string, gentle: boolean, off: string) => `10 min easy, ${reps} × ${on} ${gentle ? 'a little quicker' : 'quick'} with ${off} easy, 10 min easy.`,
+    fartlekTitle: (gentle: boolean, reps: number, on: string) => `${gentle ? 'Gentle fartlek' : 'Fartlek'} ${reps} × ${on}`,
+    longSummary: (km: number, rest: string) => `${km} km${rest}.`,
     aFirstTasteOfChanging: 'A first taste of changing pace, by feel. Nothing here should hurt.',
     changesOfPaceByFeel: 'Changes of pace by feel, with no watch to obey. Hard enough to count, loose enough to enjoy.',
     racePaceXMin: (minutes: string | number) => `Race pace ${minutes} min`,
@@ -1242,6 +1275,7 @@ export const en = {
     race: 'Race',
   },
   workout: {
+    left: (distance: string) => `${distance} left`,
     thatIsTheSessionEasy: 'That is the session. Easy to the door.',
     warmUp: 'Warm up',
     coolDown: 'Cool down',
@@ -1277,6 +1311,7 @@ export const en = {
     recordingYourRunQuietly: 'Recording your run. Quietly.',
   },
   planStore: {
+    skippedNothingLost: 'Skipped. Nothing lost.',
     unknownPlanX: (planId: string | number) => `unknown plan ${planId}`,
     doneWithoutTheApp: 'Done without the app.',
   },
@@ -1393,6 +1428,23 @@ export const en = {
       who: 'Six months of steady running, 55+ km a week, marathon done.',
     },
     goal: { none: 'Just running', '5k': '5K', '10k': '10K', half: 'Half marathon', marathon: 'Marathon' },
+  },
+  rules: {
+    // The nine rules, in order.
+    rule: [
+      { title: 'Most running is easy', text: 'At least three quarters of each week is conversational. Finish plans and no-race plans, nearer nine tenths.' },
+      { title: 'No run more than 10% longer than your longest in 30 days', text: 'The best current evidence on overuse injury looks at single sessions, not weekly totals. Half a kilometre is allowed when that is more than 10%, so beginners can get anywhere. Race day is the one planned exception.' },
+      { title: 'Weekly volume grows slowly', text: 'At most 10% a week and 30% over any two weeks. The 10% rule on its own is convention; the two-week ceiling has evidence behind it.' },
+      { title: 'Every fourth week is lighter', text: 'About 23% less, with nothing hard. Every third week with extra recovery on.' },
+      { title: 'Long runs have a ceiling', text: 'Never past three hours, never past the plan cap (32 km for a first marathon), never more than half the week.' },
+      { title: 'Hard work has limits', text: 'Threshold at most 10% of the week, intervals 8%, fast reps 5%. Never two hard days in a row, never a hard day before the long run, nothing hard in weeks one and two.' },
+      { title: 'Taper by cutting volume, not intensity', text: 'The last one to three weeks drop 40–60% of the running while keeping short race-pace work and the usual days.' },
+      { title: 'Effort first, pace second', text: 'Every session is described by how it should feel and the talk test. Paces appear only if you give a recent race time.' },
+      { title: 'Strength twice a week, optional', text: 'Twenty minutes, bodyweight, on days off. The best-supported way to cut injury risk, and never required.' },
+    ],
+  },
+  whatsNew: {
+    text: 'New: pick today’s run. Clear my head keeps the screen empty and the phone quiet. Settings is the gear, top right.',
   },
 };
 

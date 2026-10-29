@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { buyUnlock, restoreUnlock, storePrice } from '../billing';
 import { Button } from '../components/Button';
 import { colors, fonts, radius, spacing, type } from '../theme';
-import { BILLING_ON, PRICE_LINE, UNLOCKED_BUILD, UNLOCK_NAME, UNLOCK_PRICE, UNLOCK_PRICE_LATER } from '../unlock';
+import { BILLING_ON, priceLine, UNLOCKED_BUILD, unlockName, UNLOCK_PRICE, UNLOCK_PRICE_LATER } from '../unlock';
 import { closeUnlock, updateUnlock, useUnlockOpen, useUnlockState, useUnlocked } from '../unlockState';
 import { live, ui } from '../i18n/ui';
 
@@ -41,11 +41,11 @@ export function UnlockScreen({ onClose }: { onClose: () => void }) {
   async function onRestore() {
     const owned = await restoreUnlock();
     if (owned == null) Alert.alert(ui().unlock.couldNotReachTheStore, ui().unlock.tryAgainWithAConnection);
-    else if (!owned) Alert.alert(ui().unlock.nothingToRestore, ui().unlock.thisStoreAccountHasnT(UNLOCK_NAME));
+    else if (!owned) Alert.alert(ui().unlock.nothingToRestore, ui().unlock.thisStoreAccountHasnT(unlockName()));
   }
 
   // Store prices are local; the "becomes" line only reads right next to the euro price.
-  const line = price === UNLOCK_PRICE ? PRICE_LINE : ui().unlock.xOnceThePriceGoes(price);
+  const line = price === UNLOCK_PRICE ? priceLine() : ui().unlock.xOnceThePriceGoes(price);
 
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.screen}>

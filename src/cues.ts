@@ -4,6 +4,7 @@ import type { CueMode } from './types';
 import { formatDuration, formatPace } from './geo';
 import { duck } from './music';
 import { ui } from './i18n/ui';
+import { dateLocale } from './i18n/lang';
 
 /**
  * Cues never shout. Voice is a single calm sentence; haptic is a short pattern;
@@ -60,7 +61,7 @@ function say(text: string) {
   try {
     Speech.stop();
     duck(true);
-    Speech.speak(text, { rate: 0.95, pitch: 1.0, onDone: release, onStopped: release, onError: release });
+    Speech.speak(text, { language: dateLocale(), rate: 0.95, pitch: 1.0, onDone: release, onStopped: release, onError: release });
   } catch {
     release();
   }
@@ -70,9 +71,8 @@ export async function cueKmSplit(km: number, splitDurationS: number, totalDurati
   if (mode === 'silent') return;
   await buzz('double');
   if (mode === 'voice') {
-    const unit = unitsKm ? 'kilometre' : 'mile';
     const pace = formatPace(unitsKm ? 1000 : 1609.344, splitDurationS);
-    say(`${km} ${unit}${km === 1 ? '' : 's'}. ${pace.replace(':', ' ')} per ${unit}. ${formatDuration(totalDurationS).replace(':', ' ')} total.`);
+    say(ui().cues.split(km, unitsKm, pace.replace(':', ' '), formatDuration(totalDurationS).replace(':', ' ')));
   }
 }
 

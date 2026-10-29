@@ -33,7 +33,7 @@ export function spokenPace(distanceM: number, durationS: number, km = true): str
   if (distanceM < 50 || durationS < 10) return ui().a11y.noPaceYet;
   const secPerUnit = durationS / (distanceM / (km ? 1000 : MILE_M));
   if (!isFinite(secPerUnit) || secPerUnit > 60 * 60) return ui().a11y.noPaceYet;
-  return `${spokenDuration(Math.round(secPerUnit))} per ${km ? 'kilometre' : 'mile'}`;
+  return ui().a11y.perUnit(spokenDuration(Math.round(secPerUnit)), km);
 }
 
 /** The live run in one sentence, for the numbers block on the run screen. */

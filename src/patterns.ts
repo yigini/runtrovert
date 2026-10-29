@@ -73,10 +73,10 @@ export function groupRuns<T extends { startedAt: number }>(runs: T[], now = Date
     let title: string;
     if (r.startedAt >= thisWeek) {
       key = 'this-week';
-      title = 'This week';
+      title = ui().patterns.thisWeek;
     } else if (r.startedAt >= lastWeek) {
       key = 'last-week';
-      title = 'Last week';
+      title = ui().patterns.lastWeek;
     } else {
       const d = new Date(r.startedAt);
       const first = new Date(d.getFullYear(), d.getMonth(), 1).getTime();

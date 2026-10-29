@@ -218,7 +218,7 @@ export function applyEnergy(plan: Plan, date: number, mood: number, choice: Ener
   if (today && week && choice !== 'planned') {
     if (choice === 'rest') {
       today.skipped = true;
-      today.note = 'Rested: low energy. Nothing lost.';
+      today.note = ui().adapt.restedLowEnergy;
       gaveWay = today.hard || today.kind === 'long';
     } else if (today.hard || today.kind === 'long') {
       const original = { ...today, steps: today.steps.map((s) => ({ ...s })) };
@@ -334,7 +334,7 @@ export function applyHoliday(plan: Plan, from: number, to: number, today: number
   for (const s of runSessions(p)) {
     if (s.date >= from && s.date <= to && !s.done) {
       s.skipped = true;
-      s.note = 'Away. Planned rest, not a miss.';
+      s.note = ui().adapt.awayNote;
     }
   }
   const days = daysBetween(from, to) + 1;

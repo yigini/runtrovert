@@ -26,6 +26,7 @@ import { coverFor, phoneLocale, refreshShelf, storedShelf } from '../shelf';
 import {
   GROUPS,
   OFFER_TOPICS,
+  topicLabel,
   PODCAST_APPS,
   filterOffers,
   fitsRun,
@@ -767,7 +768,7 @@ function KitShelf({ offers, onBack }: { offers: Offer[]; onBack: () => void }) {
       {topics.length ? (
         <View style={[styles.rowGap, { flexWrap: 'wrap' }]}>
           {topics.map((t) => (
-            <Chip key={t} label={t} on={settings.offerTopics.includes(t)} onPress={() => toggle(t)} />
+            <Chip key={t} label={topicLabel(t)} on={settings.offerTopics.includes(t)} onPress={() => toggle(t)} />
           ))}
         </View>
       ) : null}

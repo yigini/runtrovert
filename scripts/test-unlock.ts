@@ -1,5 +1,5 @@
 import type { Plan } from '../src/training/types';
-import { NUDGE_AFTER_RUNS, PRICE_LINE, UNLOCKED_BUILD, isUnlocked, openWeeks, planSessionOpen, planWeekOpen, setUnlockState, shouldNudge, subscribeUnlock, trainLine, unlockState } from '../src/unlock';
+import { NUDGE_AFTER_RUNS, priceLine, UNLOCKED_BUILD, isUnlocked, openWeeks, planSessionOpen, planWeekOpen, setUnlockState, shouldNudge, subscribeUnlock, trainLine, unlockState } from '../src/unlock';
 
 // Checks the one gate. Run: npm run test:unlock
 let fails = 0;
@@ -44,10 +44,10 @@ setUnlockState({ previewLocks: false });
 check(planWeekOpen(plan, 8) && openWeeks(plan).weeks.length === 8, 'unlocked: every week');
 
 // Copy: the plain price line and the Train line.
-check(PRICE_LINE === '€4.99, once. It becomes €6.99 when full training plans arrive.', `price line: ${PRICE_LINE}`);
+check(priceLine() === '€4.99, once. It becomes €6.99 when full training plans arrive.', `price line: ${priceLine()}`);
 check(trainLine(8).startsWith('Week 1 is yours to try. Weeks 2 to 8 come with Everything, once'), trainLine(8));
 check(trainLine(null).includes('The weeks after'), trainLine(null));
-for (const t of [PRICE_LINE, trainLine(8)]) check(!/[—!]/.test(t), `no em dashes or exclamation marks: ${t}`);
+for (const t of [priceLine(), trainLine(8)]) check(!/[—!]/.test(t), `no em dashes or exclamation marks: ${t}`);
 
 if (fails) {
   console.log(`${fails} unlock checks failed`);

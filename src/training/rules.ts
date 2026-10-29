@@ -17,6 +17,7 @@ import type { PlanSpec, RunnerProfile } from './catalogue';
 import { daysBetween } from './dates';
 import { paceSetFor } from './sessions';
 import type { Effort, Plan, Session, Week } from './types';
+import { live, ui } from '../i18n/ui';
 
 export interface Violation {
   rule: number;
@@ -246,15 +247,20 @@ function r1(n: number): number {
   return Math.round(n * 10) / 10;
 }
 
-/** A short, human line per rule for the rules page. */
-export const RULES: Array<{ n: number; title: string; text: string; evidence: 'strong' | 'moderate' | 'practice'; source: string }> = [
-  { n: 1, title: 'Most running is easy', text: 'At least three quarters of each week is conversational. Finish plans and no-race plans, nearer nine tenths.', evidence: 'strong', source: 'Seiler & Kjerland 2006; Stöggl & Sperlich 2014; Muñoz et al. 2014' },
-  { n: 2, title: 'No run more than 10% longer than your longest in 30 days', text: 'The best current evidence on overuse injury looks at single sessions, not weekly totals. Half a kilometre is allowed when that is more than 10%, so beginners can get anywhere. Race day is the one planned exception.', evidence: 'moderate', source: 'Frandsen et al. 2025, Br J Sports Med (5,200 runners)' },
-  { n: 3, title: 'Weekly volume grows slowly', text: 'At most 10% a week and 30% over any two weeks. The 10% rule on its own is convention; the two-week ceiling has evidence behind it.', evidence: 'moderate', source: 'Buist et al. 2008; Nielsen et al. 2014' },
-  { n: 4, title: 'Every fourth week is lighter', text: 'About 23% less, with nothing hard. Every third week with extra recovery on.', evidence: 'practice', source: "Daniels' Running Formula; Pfitzinger & Douglas, Advanced Marathoning" },
-  { n: 5, title: 'Long runs have a ceiling', text: 'Never past three hours, never past the plan cap (32 km for a first marathon), never more than half the week.', evidence: 'practice', source: "Daniels' Running Formula; Higdon novice plans" },
-  { n: 6, title: 'Hard work has limits', text: 'Threshold at most 10% of the week, intervals 8%, fast reps 5%. Never two hard days in a row, never a hard day before the long run, nothing hard in weeks one and two.', evidence: 'practice', source: "Daniels' Running Formula, intensity limits per session type" },
-  { n: 7, title: 'Taper by cutting volume, not intensity', text: 'The last one to three weeks drop 40–60% of the running while keeping short race-pace work and the usual days.', evidence: 'strong', source: 'Bosquet et al. 2007, meta-analysis of tapering' },
-  { n: 8, title: 'Effort first, pace second', text: 'Every session is described by how it should feel and the talk test. Paces appear only if you give a recent race time.', evidence: 'strong', source: 'Persinger et al. 2004 (talk test); Daniels & Gilbert VDOT; Vickers & Vertosick 2016' },
-  { n: 9, title: 'Strength twice a week, optional', text: 'Twenty minutes, bodyweight, on days off. The best-supported way to cut injury risk, and never required.', evidence: 'strong', source: 'Lauersen et al. 2014, meta-analysis' },
+// The sources stay as published; titles and lines come from the interface text.
+const RULE_DATA: Array<{ n: number; evidence: 'strong' | 'moderate' | 'practice'; source: string }> = [
+  { n: 1, evidence: 'strong', source: 'Seiler & Kjerland 2006; Stöggl & Sperlich 2014; Muñoz et al. 2014' },
+  { n: 2, evidence: 'moderate', source: 'Frandsen et al. 2025, Br J Sports Med (5,200 runners)' },
+  { n: 3, evidence: 'moderate', source: 'Buist et al. 2008; Nielsen et al. 2014' },
+  { n: 4, evidence: 'practice', source: "Daniels' Running Formula; Pfitzinger & Douglas, Advanced Marathoning" },
+  { n: 5, evidence: 'practice', source: "Daniels' Running Formula; Higdon novice plans" },
+  { n: 6, evidence: 'practice', source: "Daniels' Running Formula, intensity limits per session type" },
+  { n: 7, evidence: 'strong', source: 'Bosquet et al. 2007, meta-analysis of tapering' },
+  { n: 8, evidence: 'strong', source: 'Persinger et al. 2004 (talk test); Daniels & Gilbert VDOT; Vickers & Vertosick 2016' },
+  { n: 9, evidence: 'strong', source: 'Lauersen et al. 2014, meta-analysis' },
 ];
+
+/** A short, human line per rule for the rules page. */
+export const RULES: Array<{ n: number; title: string; text: string; evidence: 'strong' | 'moderate' | 'practice'; source: string }> = live(() =>
+  RULE_DATA.map((r) => ({ ...r, ...ui().rules.rule[r.n - 1] })),
+);
