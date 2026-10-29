@@ -26,11 +26,11 @@ export function phoneLocale(): string {
 }
 
 /**
- * Languages the whole app speaks, interface included. Until a language's
- * interface text is in, the phone's language doesn't switch to it, so nobody
- * gets German reminders inside English screens.
+ * Languages the whole app speaks, interface included. A new language joins
+ * here only once its interface and voice are both in, so nobody gets German
+ * reminders inside English screens. test:ui checks each one has its strings.
  */
-export const SHIPPED: Lang[] = ['en'];
+export const SHIPPED: Lang[] = ['en', 'de', 'fr', 'es', 'pt', 'it', 'tr', 'ja'];
 
 /** The language for a locale, English when we don't speak it. Portugal gets Brazilian Portuguese. */
 export function langFor(locale: string): Lang {

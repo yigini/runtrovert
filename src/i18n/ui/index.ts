@@ -1,13 +1,36 @@
 // Interface text. ui() returns the strings for the current language; English is the
 // source and the fallback, and every other language is typed against it.
-import { lang, type Lang } from '../lang';
+import { finish, lang, type Lang } from '../lang';
+import { de } from './de';
+import { fr } from './fr';
 import { en, type Strings } from './en';
+import { es } from './es';
+import { it } from './it';
+import { ja } from './ja';
+import { pt } from './pt';
+import { tr } from './tr';
 
 /** Every interface language. A language listed in SHIPPED (lang.ts) must be here. */
-export const UI: Partial<Record<Lang, Strings>> = { en };
+export const UI: Partial<Record<Lang, Strings>> = { en, de, fr, es, pt, it, tr, ja };
 
 export function ui(): Strings {
-  return UI[lang()] ?? en;
+  const l = lang();
+  const s = UI[l] ?? en;
+  // French spacing before ?!:; and Swiss German ss go through finish(), as the voice does.
+  if (l !== 'fr' && l !== 'de') return s;
+  const key = `${l}:${finish('ß', l)}`;
+  if (polished?.key !== key) polished = { key, value: polish(s, l) };
+  return polished.value;
+}
+
+let polished: { key: string; value: Strings } | null = null;
+
+function polish<T>(x: T, l: Lang): T {
+  if (typeof x === 'string') return finish(x, l) as T;
+  if (typeof x === 'function') return ((...args: unknown[]) => polish((x as (...a: unknown[]) => unknown)(...args), l)) as T;
+  if (Array.isArray(x)) return x.map((v) => polish(v, l)) as T;
+  if (x && typeof x === 'object') return Object.fromEntries(Object.entries(x).map(([k, v]) => [k, polish(v, l)])) as T;
+  return x;
 }
 
 /**
