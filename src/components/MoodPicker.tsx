@@ -15,15 +15,16 @@ const ON_FILL: Record<Mood, string> = { 1: colors.sky, 2: colors.lilac, 3: color
 export function MoodPicker({ value, onChange, title, inline }: { value: Mood | null; onChange: (m: Mood) => void; title: string; inline?: boolean }) {
   const size = inline ? 40 : 52;
   const faces = (
-    <View style={[styles.row, inline && { gap: 2, justifyContent: 'flex-end' }]}>
+    <View style={[styles.row, inline && { gap: 2, justifyContent: 'flex-end' }]} accessibilityRole="radiogroup" accessibilityLabel={title}>
       {([1, 2, 3, 4, 5] as Mood[]).map((m) => {
         const on = value === m;
         return (
           <Pressable
             key={m}
             onPress={() => onChange(m)}
-            accessibilityLabel={LABELS[m]}
-            accessibilityState={{ selected: on }}
+            accessibilityRole="radio"
+            accessibilityLabel={`${LABELS[m]}, energy ${m} of 5`}
+            accessibilityState={{ checked: on }}
             hitSlop={4}
             style={[styles.face, { width: size, height: size, borderRadius: size / 2 }, on && { backgroundColor: ON_FILL[m] }]}
           >
@@ -58,7 +59,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
   face: { alignItems: 'center', justifyContent: 'center', opacity: 1 },
-  hint: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.muted, textAlign: 'center', height: 16 },
+  hint: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.muted, textAlign: 'center', minHeight: 16 },
   inline: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   inlineTitle: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text },
   inlineHint: { fontFamily: fonts.body, fontSize: 12, color: colors.inkSoft, opacity: 0.75 },

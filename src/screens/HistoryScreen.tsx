@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { spokenDistance, spokenDuration, spokenPace } from '../a11y';
 import { YouSection } from '../components/YouSection';
 import { listRuns } from '../db';
 import { formatDistance, formatDuration, formatPace } from '../geo';
@@ -30,7 +31,7 @@ export function HistoryScreen({ onOpen, refreshKey }: { onOpen: (runId: number) 
     <View style={{ gap: spacing.md, marginBottom: spacing.sm }}>
       <View>
         <Text style={type.eyebrow}>{now.toLocaleDateString(undefined, { month: 'long' })}</Text>
-        <Text style={type.h1}>Your runs.</Text>
+        <Text style={type.h1} accessibilityRole="header">Your runs.</Text>
       </View>
       <View style={styles.tiles}>
         <Stat value={formatDistance(monthM, km).replace(/ .*/, '')} label={`${km ? 'km' : 'mi'} this month`} />
@@ -69,7 +70,7 @@ export function HistoryScreen({ onOpen, refreshKey }: { onOpen: (runId: number) 
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <View style={styles.stat}>
+    <View style={styles.stat} accessible accessibilityLabel={`${label}: ${value === '—' || value === '–' ? 'none yet' : value}`}>
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
@@ -86,7 +87,21 @@ function RunRow({ run, km, onPress }: { run: Run; km: boolean; onPress: () => vo
   const fg = q ? QUIET_FG[q] : colors.lilacDeep;
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.row, { backgroundColor: bg }, pressed && { opacity: 0.85 }]}>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityHint="Opens this run"
+      accessibilityLabel={[
+        `${d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}, ${time}`,
+        `${spokenDistance(run.distanceM, km)} in ${spokenDuration(run.durationS)}`,
+        spokenPace(run.distanceM, run.durationS, km),
+        delta != null ? `energy ${delta > 0 ? 'up' : delta < 0 ? 'down' : 'steady'}${delta ? ` ${Math.abs(delta)}` : ''}` : null,
+        q ? `${QUIET_LABEL[q]} route` : null,
+      ]
+        .filter(Boolean)
+        .join('. ')}
+      style={({ pressed }) => [styles.row, { backgroundColor: bg }, pressed && { opacity: 0.85 }]}
+    >
       <View style={styles.thumb}>
         <Svg viewBox="0 0 32 32" width={32} height={32}>
           <Path d={shapeFor(run.id)} stroke={fg} strokeWidth={2.5} fill="none" strokeLinejoin="round" strokeLinecap="round" />

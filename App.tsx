@@ -240,7 +240,9 @@ function TabButton({ label, color, active, onPress }: { label: string; color: st
   return (
     <Pressable onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: active }} style={styles.tab}>
       <View style={[styles.tabDot, { backgroundColor: active ? colors.ink : color }]} />
-      <Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text>
+      <Text style={[styles.tabText, active && styles.tabTextActive]} numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.6}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -250,7 +252,8 @@ const styles = StyleSheet.create({
   rootInk: { backgroundColor: colors.ink },
   hidden: { display: 'none' },
   tabs: { flexDirection: 'row', justifyContent: 'space-around', backgroundColor: colors.cream, paddingTop: 8, paddingBottom: spacing.sm + 2 },
-  tab: { alignItems: 'center', gap: 5, minWidth: 72, paddingVertical: 6 },
+  // Five tabs share the width evenly, so a narrow phone or a big font never pushes one off the edge.
+  tab: { flex: 1, alignItems: 'center', gap: 5, paddingVertical: 6, paddingHorizontal: 2 },
   tabDot: { width: 8, height: 8, borderRadius: 4 },
   tabText: { fontFamily: fonts.bodySemi, fontSize: 11, color: colors.muted },
   tabTextActive: { color: colors.text },

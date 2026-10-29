@@ -1,7 +1,8 @@
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Dimensions, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { AccessibilityInfo, Alert, Animated, Dimensions, Easing, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { DISPLAY_MAX_SCALE, spokenDistance, spokenDuration, spokenPace, spokenRun } from '../a11y';
 import { AmbientBackground } from '../components/AmbientBackground';
 import { Button } from '../components/Button';
 import { Face } from '../components/Mark';
@@ -38,6 +39,8 @@ type Phase = 'idle' | 'countdown' | 'active' | 'finish';
 const SEEN_KEY = 'surprises.seen';
 /** Under this, Stop asks before making a run of it: a pocket tap is not a run. */
 const TINY_RUN_M = 50;
+/** How long Stop is held before the run ends. Long enough that a sleeve or a pocket can't do it. */
+const HOLD_TO_STOP_MS = 1000;
 
 export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0, focused = true }: { onSaved: (runId: number, share?: boolean, extra?: { pain: PainLevel | null; sessionId: string | null }) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number; focused?: boolean }) {
   const { settings } = useSettings();
@@ -62,6 +65,8 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   const veil = useRef(new Animated.Value(1)).current;
   // Heights of the words and the numbers laid over the finish map, so the route is framed between them.
   const [finishPad, setFinishPad] = useState({ top: 140, bottom: 170 });
+  // At large text sizes the words and numbers over the map grow; the map grows with them.
+  const [finishCardH, setFinishCardH] = useState(170);
   // The plan, when there is one: today's session (or the one opened from the
   // Train tab), the guided steps during the run, and the pain line after.
   const [hasPlan, setHasPlan] = useState(false);
@@ -276,6 +281,16 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     reset();
   }
 
+  // Stopped by mistake: straight back to recording. The clock stood still on the finish screen.
+  async function onResumeRun() {
+    Haptics.selectionAsync();
+    await continueRun();
+    setFinal(null);
+    setSurprise(null);
+    setLive(null);
+    setPhase('active');
+  }
+
   function reset() {
     endWorkout();
     onRequestTaken?.();
@@ -314,7 +329,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   // ---- Finish ----------------------------------------------------------------
   if (phase === 'finish' && final) {
     const partialKm = final.currentKm.distanceM > 20 ? { index: final.splits.length + 1, ...final.currentKm } : null;
-    const mapH = Math.round(Dimensions.get('window').height * 0.62);
+    const mapH = Math.max(Math.round(Dimensions.get('window').height * 0.62), finishPad.top + finishCardH + 160);
     const you = live ? youVsYou(compare({ ...live.run, moodBefore, moodAfter }, live.history), km) : null;
     return (
       <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
@@ -327,12 +342,24 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
             interactive={false}
             fitPadding={{ top: finishPad.top + 24, right: 36, bottom: finishPad.bottom + 24, left: 36 }}
           />
-          <View style={styles.finishTop} pointerEvents="none" onLayout={(e) => setFinishPad((p) => ({ ...p, top: e.nativeEvent.layout.y + e.nativeEvent.layout.height }))}>
-            <Text style={[type.eyebrow, { color: colors.mintDeep }]}>Run done</Text>
-            <Text style={styles.finishTitle}>{surprise?.line ?? finishLine()}</Text>
+          <View style={styles.finishTop} pointerEvents="box-none" onLayout={(e) => setFinishPad((p) => ({ ...p, top: e.nativeEvent.layout.y + e.nativeEvent.layout.height }))}>
+            <View style={styles.finishTopRow} pointerEvents="box-none">
+              <Text style={[type.eyebrow, { color: colors.mintDeep, flex: 1 }]} accessibilityRole="header">Run done</Text>
+              <Pressable onPress={() => void onResumeRun()} accessibilityRole="button" accessibilityLabel="Resume run" accessibilityHint="Not finished? Goes back to recording this run." hitSlop={8} style={({ pressed }) => [styles.resumePill, pressed && { opacity: 0.85 }]}>
+                <Text style={styles.resumeText}>▶  Resume run</Text>
+              </Pressable>
+            </View>
+            <Text style={styles.finishTitle} maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>{surprise?.line ?? finishLine()}</Text>
           </View>
-          <View style={styles.finishCard} onLayout={(e) => setFinishPad((p) => ({ ...p, bottom: mapH - e.nativeEvent.layout.y }))}>
-            <View style={styles.statRow}>
+          <View
+            style={styles.finishCard}
+            onLayout={(e) => {
+              const { y, height } = e.nativeEvent.layout;
+              setFinishPad((p) => ({ ...p, bottom: mapH - y }));
+              setFinishCardH(height);
+            }}
+          >
+            <View style={styles.statRow} accessible accessibilityLabel={`${spokenDistance(final.distanceM, km)} in ${spokenDuration(final.durationS)}, average ${spokenPace(final.distanceM, final.durationS, km)}, climb ${formatElevation(final.elevationGainM, km)}`}>
               <Stat value={formatDistanceNumber(final.distanceM, km)} label={distanceUnit(km)} big />
               <Stat value={formatDuration(final.durationS)} label="time" />
               <Stat value={formatPace(final.distanceM, final.durationS, km)} label={`/${distanceUnit(km)}`} />
@@ -413,28 +440,104 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         </View>
 
         <View style={styles.controls}>
-          <Pressable onPress={onPauseResume} accessibilityLabel={paused ? 'Resume' : 'Pause'} style={styles.roundBtn}>
+          <Pressable onPress={onPauseResume} accessibilityRole="button" accessibilityLabel={paused ? 'Resume' : 'Pause'} style={styles.roundBtn}>
             <Text style={styles.roundGlyph}>{paused ? '▶' : '❚❚'}</Text>
           </Pressable>
           <Pressable onPress={() => lap()} disabled={paused} accessibilityRole="button" style={({ pressed }) => [styles.lapBtn, pressed && { opacity: 0.85 }, paused && { opacity: 0.4 }]}>
             <Text style={styles.lapText}>Lap</Text>
           </Pressable>
-          <Pressable onPress={onStop} accessibilityLabel="Stop" style={[styles.roundBtn, { backgroundColor: colors.peach }]}>
-            <View style={styles.stopSquare} />
-          </Pressable>
+          <StopButton onStop={() => void onStop()} />
         </View>
       </View>
     </View>
   );
 }
 
+/**
+ * Stop is held, not tapped: the button fills for a second and the run ends. A
+ * short tap only says "Hold to stop". With TalkBack or VoiceOver on, holding is
+ * awkward, so a double tap asks first instead.
+ */
+function StopButton({ onStop }: { onStop: () => void }) {
+  const fill = useRef(new Animated.Value(0)).current;
+  const [hint, setHint] = useState(false);
+  const [reader, setReader] = useState(false);
+  const held = useRef(false);
+  const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    AccessibilityInfo.isScreenReaderEnabled().then(setReader).catch(() => {});
+    const sub = AccessibilityInfo.addEventListener('screenReaderChanged', setReader);
+    return () => {
+      sub.remove();
+      if (hintTimer.current) clearTimeout(hintTimer.current);
+    };
+  }, []);
+
+  function pressIn() {
+    if (reader) return;
+    held.current = false;
+    setHint(false);
+    Haptics.selectionAsync().catch(() => {});
+    Animated.timing(fill, { toValue: 1, duration: HOLD_TO_STOP_MS, easing: Easing.linear, useNativeDriver: true }).start(({ finished }) => {
+      if (!finished) return;
+      held.current = true;
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      fill.setValue(0);
+      onStop();
+    });
+  }
+
+  function pressOut() {
+    if (reader || held.current) return;
+    fill.stopAnimation();
+    Animated.timing(fill, { toValue: 0, duration: 160, useNativeDriver: true }).start();
+    setHint(true);
+    if (hintTimer.current) clearTimeout(hintTimer.current);
+    hintTimer.current = setTimeout(() => setHint(false), 2200);
+  }
+
+  function press() {
+    if (!reader) return;
+    Alert.alert('Stop the run?', undefined, [
+      { text: 'Keep running', style: 'cancel' },
+      { text: 'Stop', onPress: onStop },
+    ]);
+  }
+
+  return (
+    <View>
+      {hint && (
+        <View style={styles.holdHint} pointerEvents="none">
+          <Text style={styles.holdHintText}>Hold to stop</Text>
+        </View>
+      )}
+      <Pressable
+        onPressIn={pressIn}
+        onPressOut={pressOut}
+        onPress={press}
+        accessibilityRole="button"
+        accessibilityLabel="Stop run"
+        accessibilityHint={reader ? 'Asks before ending the run.' : 'Hold for a second to end the run.'}
+        style={[styles.roundBtn, { backgroundColor: colors.peach, overflow: 'hidden' }]}
+      >
+        <Animated.View pointerEvents="none" style={[styles.stopFill, { transform: [{ scale: fill }] }]} />
+        <View style={styles.stopSquare} />
+      </Pressable>
+    </View>
+  );
+}
+
 function LiveNumbers({ km, t, guided }: { km: boolean; t: TrackingState; guided: GuidedRun | null }) {
   const cur = t.currentKm;
+  // One sentence for a screen reader instead of seven loose numbers.
+  const now = t.speedMps >= 0.5 ? spokenPace(1000, 1000 / t.speedMps, km) : 'no pace';
+  const step = guided && !guided.view.finished && guided.view.step ? `${stepLine(guided.view.step)}, ${formatLeft(guided.view)}. ` : '';
+  const spoken = `${step}${spokenRun(t, km)}, right now ${now}, climb ${formatElevation(t.elevationGainM, km)}`;
   return (
-    <View style={{ gap: spacing.md }} pointerEvents="none">
+    <View style={{ gap: spacing.md }} pointerEvents="none" accessible accessibilityLabel={spoken}>
       {guided && <GuidedStrip g={guided} />}
       <View style={styles.hero}>
-        <Text style={styles.heroValue} adjustsFontSizeToFit numberOfLines={1}>{formatDistanceNumber(t.distanceM, km)}</Text>
+        <Text style={styles.heroValue} adjustsFontSizeToFit numberOfLines={1} maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>{formatDistanceNumber(t.distanceM, km)}</Text>
         <Text style={styles.heroUnit}>{km ? 'kilometres' : 'miles'}</Text>
       </View>
       <View style={styles.numRow}>
@@ -442,7 +545,7 @@ function LiveNumbers({ km, t, guided }: { km: boolean; t: TrackingState; guided:
         <LiveStat value={formatPace(t.distanceM, t.durationS, km)} label={`avg /${distanceUnit(km)}`} color={colors.peach} />
         <LiveStat value={formatSpeedAsPace(t.speedMps, km)} label="right now" color={colors.lilac} />
       </View>
-      <Text style={styles.splitLine}>
+      <Text style={styles.splitLine} numberOfLines={1} adjustsFontSizeToFit>
         {km ? 'km' : 'mile'} {t.splits.length + 1} · {formatPace(cur.distanceM, cur.durationS, km)} · climb {formatElevation(t.elevationGainM, km)}
       </Text>
     </View>
@@ -483,7 +586,7 @@ function LiveStat({ value, label, color }: { value: string; label: string; color
       <Text style={styles.liveStatValue} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         <View style={[styles.statDot, { backgroundColor: color }]} />
-        <Text style={styles.liveStatLabel}>{label}</Text>
+        <Text style={styles.liveStatLabel} numberOfLines={1} adjustsFontSizeToFit>{label}</Text>
       </View>
     </View>
   );
@@ -516,7 +619,7 @@ function Tile({ bg, fg, value, label, small }: { bg: string; fg: string; value: 
 function Stat({ value, label, big }: { value: string; label: string; big?: boolean }) {
   return (
     <View>
-      <Text style={[styles.statValue, big && styles.statValueBig]}>{value}</Text>
+      <Text style={[styles.statValue, big && styles.statValueBig]} maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
@@ -611,5 +714,11 @@ const styles = StyleSheet.create({
   lapBtn: { flex: 1, height: 64, borderRadius: radius.pill, backgroundColor: 'rgba(232,226,245,0.94)', alignItems: 'center', justifyContent: 'center' },
   lapText: { fontFamily: fonts.bodySemi, fontSize: 17, color: colors.lilacDeep },
   stopSquare: { width: 20, height: 20, borderRadius: 5, backgroundColor: colors.ink },
+  stopFill: { position: 'absolute', width: 64, height: 64, borderRadius: 32, backgroundColor: colors.peachDeep, opacity: 0.45 },
+  holdHint: { position: 'absolute', bottom: 74, right: -6, backgroundColor: 'rgba(246,241,234,0.94)', borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 6, minWidth: 110, alignItems: 'center' },
+  holdHintText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.ink },
+  finishTopRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  resumePill: { backgroundColor: colors.ink, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 8 },
+  resumeText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.cream },
   note: { minHeight: 56, borderBottomWidth: 1.5, borderBottomColor: colors.ink, paddingVertical: 10, color: colors.text, fontFamily: fonts.displayItalic, fontSize: 17, textAlignVertical: 'top' },
 });

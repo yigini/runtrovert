@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { DISPLAY_MAX_SCALE } from '../a11y';
 import { AmbientBackground } from '../components/AmbientBackground';
 import { Button } from '../components/Button';
 import { Fade } from '../components/Fade';
@@ -67,7 +68,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, planToday }: { runs: R
         </View>
 
         {weather ? <SkyRow w={weather} metric={metric} /> : null}
-        <Text style={styles.headline} accessibilityRole="header">
+        <Text style={styles.headline} accessibilityRole="header" maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>
           {weather ? headline(weather, metric, now) : greeting(runs, now)}
         </Text>
         <Text style={styles.sub}>{seasonalLine(now) ?? subline(runs, now)}</Text>
@@ -112,7 +113,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, planToday }: { runs: R
 
       <View style={styles.dock}>
         <MoodPicker inline title="Energy right now" value={mood} onChange={onMood} />
-        <Button title={planToday && !planToday.done && !planToday.skipped ? 'Start today’s session' : 'Start run'} onPress={onStart} style={{ height: 62 }} />
+        <Button title={planToday && !planToday.done && !planToday.skipped ? 'Start today’s session' : 'Start run'} onPress={onStart} style={{ minHeight: 62 }} />
         <Text style={styles.footer}>{footer(runs, now)}</Text>
       </View>
     </AmbientBackground>

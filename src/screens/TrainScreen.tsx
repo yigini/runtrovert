@@ -202,7 +202,7 @@ function Catalogue({ profile, historyN, lastPlan, onPick, onRules }: { profile: 
       {plansFor(goal).map((spec) => (
         <PlanCard key={spec.id} spec={spec} profile={profile} historyN={historyN} onPress={() => onPick(spec)} />
       ))}
-      <Pressable onPress={onRules} style={{ paddingVertical: spacing.sm }}>
+      <Pressable onPress={onRules} style={{ paddingVertical: spacing.sm }} accessibilityRole="button">
         <Text style={styles.link}>The nine rules every plan keeps →</Text>
       </Pressable>
       <Text style={styles.foot}>No account, no server. A plan is a file on your phone.</Text>
@@ -387,7 +387,7 @@ function DetailView({ spec, profile, historyN, unitsKm, onBack, onRules, onStart
         )}
       </Section>
 
-      <Pressable onPress={onRules} style={{ paddingVertical: spacing.xs }}>
+      <Pressable onPress={onRules} style={{ paddingVertical: spacing.xs }} accessibilityRole="button">
         <Text style={styles.link}>The nine rules →</Text>
       </Pressable>
       <Button title={isUnlocked() ? 'Start this plan' : `Unlock plans · ${UNLOCK_PRICE}`} disabled={!preview.ok || !daysOk} onPress={() => onStart(setup, runner, paces)} />
@@ -514,15 +514,15 @@ function WeekView(props: {
       )}
 
       <View style={styles.weekNav}>
-        <Pressable disabled={i <= 0} onPress={() => props.onWeek(weeks[i - 1].index)} style={[styles.navBtn, i <= 0 && { opacity: 0.3 }]}>
+        <Pressable disabled={i <= 0} onPress={() => props.onWeek(weeks[i - 1].index)} accessibilityRole="button" accessibilityLabel={i > 0 ? `Previous week, week ${weeks[i - 1].index}` : 'Previous week'} accessibilityState={{ disabled: i <= 0 }} style={[styles.navBtn, i <= 0 && { opacity: 0.3 }]}>
           <Text style={styles.navText}>‹ Week {i > 0 ? weeks[i - 1].index : ''}</Text>
         </Pressable>
         {week !== current && (
-          <Pressable onPress={() => props.onWeek(current.index)}>
+          <Pressable onPress={() => props.onWeek(current.index)} accessibilityRole="button" accessibilityLabel="Back to this week">
             <Text style={styles.link}>This week</Text>
           </Pressable>
         )}
-        <Pressable disabled={i >= weeks.length - 1} onPress={() => props.onWeek(weeks[i + 1].index)} style={[styles.navBtn, i >= weeks.length - 1 && { opacity: 0.3 }]}>
+        <Pressable disabled={i >= weeks.length - 1} onPress={() => props.onWeek(weeks[i + 1].index)} accessibilityRole="button" accessibilityLabel={i < weeks.length - 1 ? `Next week, week ${weeks[i + 1].index}` : 'Next week'} accessibilityState={{ disabled: i >= weeks.length - 1 }} style={[styles.navBtn, i >= weeks.length - 1 && { opacity: 0.3 }]}>
           <Text style={styles.navText}>Week {i < weeks.length - 1 ? weeks[i + 1].index : ''} ›</Text>
         </Pressable>
       </View>
@@ -568,7 +568,22 @@ function DayRow({ date, today, session, strength, spec, unitsKm, onPress }: { da
   const state = !s ? (strength ? 'Strength, optional' : 'Rest') : s.done ? 'Done' : s.skipped ? 'Skipped' : isToday ? 'Today' : past ? 'Missed' : '';
   const dot = !s ? colors.cream : s.kind === 'race' ? colors.peach : s.hard ? colors.peach : s.kind === 'long' ? colors.butter : colors.mint;
   return (
-    <Pressable onPress={onPress} disabled={!onPress} style={[styles.dayRow, isToday && styles.dayRowToday, s?.skipped && { opacity: 0.55 }]}>
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : 'text'}
+      accessibilityHint={onPress ? 'Opens the session' : undefined}
+      accessibilityLabel={[
+        `${isToday ? 'Today, ' : ''}${new Date(date).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}`,
+        s ? s.title : strength ? 'Strength, if you like' : 'Rest',
+        s ? (s.done ? `${fmtKm(s.done.distanceM / 1000, unitsKm)} in ${fmtDur(s.done.durationS)}` : sizeOf(s, spec, unitsKm)) : null,
+        s?.note ?? null,
+        state && state !== 'Today' && state !== 'Rest' ? state : null,
+      ]
+        .filter(Boolean)
+        .join('. ')}
+      style={[styles.dayRow, isToday && styles.dayRowToday, s?.skipped && { opacity: 0.55 }]}
+    >
       <View style={{ width: 44 }}>
         <Text style={[styles.dayName, isToday && { color: colors.cream }]}>{WEEKDAY_SHORT[weekdayOf(date)]}</Text>
         <Text style={[styles.dayDate, isToday && { color: colors.onInkMuted }]}>{new Date(date).getDate()}</Text>
@@ -730,7 +745,7 @@ function Back({ onPress, label }: { onPress: () => void; label: string }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={styles.sectionTitle} accessibilityRole="header">{title}</Text>
       {children}
     </View>
   );
@@ -738,7 +753,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Chip({ label, on, onPress, small }: { label: string; on?: boolean; onPress: () => void; small?: boolean }) {
   return (
-    <Pressable onPress={onPress} accessibilityState={{ selected: !!on }} style={[styles.chip, small && styles.chipSmall, on && styles.chipOn]}>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: !!on }} style={[styles.chip, small && styles.chipSmall, on && styles.chipOn]}>
       <Text style={[styles.chipText, on && styles.chipTextOn]}>{label}</Text>
     </Pressable>
   );
@@ -756,7 +771,16 @@ function Row({ label, hint, onPress, danger }: { label: string; hint: string; on
 function Stepper({ label, value, onChange, min, max, step, format }: { label: string; value: number; onChange: (v: number) => void; min: number; max: number; step: number; format: (v: number) => string }) {
   return (
     <View style={styles.stepper}>
-      <View style={{ flex: 1 }}>
+      {/* One adjustable control for screen readers: swipe up or down to change it. */}
+      <View
+        style={{ flex: 1 }}
+        accessible
+        accessibilityRole="adjustable"
+        accessibilityLabel={label}
+        accessibilityValue={{ text: format(value) }}
+        accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+        onAccessibilityAction={(e) => onChange(e.nativeEvent.actionName === 'increment' ? Math.min(max, value + step) : Math.max(min, value - step))}
+      >
         <Text style={styles.stepperLabel}>{label}</Text>
         <Text style={styles.stepperValue}>{format(value)}</Text>
       </View>
@@ -784,10 +808,12 @@ function Toggle({ value, onChange, label, hint }: { value: boolean; onChange: (v
   );
 }
 
+const TIME_WORD: Record<string, string> = { h: 'Hours', min: 'Minutes', s: 'Seconds' };
+
 function TimeBox({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
   return (
     <View style={{ alignItems: 'center', gap: 2 }}>
-      <TextInput value={value} onChangeText={(t) => onChange(t.replace(/[^0-9]/g, '').slice(0, 2))} keyboardType="number-pad" placeholder="00" placeholderTextColor={colors.inkMuted} style={styles.timeBox} maxLength={2} />
+      <TextInput value={value} onChangeText={(t) => onChange(t.replace(/[^0-9]/g, '').slice(0, 2))} accessibilityLabel={TIME_WORD[label] ?? label} keyboardType="number-pad" placeholder="00" placeholderTextColor={colors.inkMuted} style={styles.timeBox} maxLength={2} />
       <Text style={styles.hint}>{label}</Text>
     </View>
   );
@@ -911,8 +937,8 @@ const styles = StyleSheet.create({
   foot: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1, color: colors.inkMuted, textAlign: 'center', marginTop: spacing.sm },
   big: { fontFamily: fonts.display, fontSize: 24, lineHeight: 28, color: colors.text },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  chip: { paddingHorizontal: 16, height: 40, borderRadius: radius.pill, borderWidth: 1.5, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
-  chipSmall: { height: 36, paddingHorizontal: 13 },
+  chip: { paddingHorizontal: 16, minHeight: 40, paddingVertical: 6, borderRadius: radius.pill, borderWidth: 1.5, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  chipSmall: { minHeight: 36, paddingHorizontal: 13 },
   chipOn: { backgroundColor: colors.ink },
   chipText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.inkSoft },
   chipTextOn: { color: colors.cream },
