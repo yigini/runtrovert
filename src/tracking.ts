@@ -14,6 +14,7 @@ import { getEngine } from './gps/engine';
 import { GpsFilter, type FilteredFix, type RawFix } from './gps/kalman';
 import { clearSnapshot, loadSnapshot, saveSnapshot, type RunSnapshot } from './gps/recovery';
 import { ElevationTracker, StepFusion } from './gps/sensors';
+import { rememberPlace } from './place';
 import { GPS_PROFILES, profileFor, readPower, type GpsProfileName } from './power';
 import { beginRunNotes, batteryNote, endRunNotes, splitNote, updateLiveNote } from './runNotify';
 import { DEFAULT_SETTINGS, type LatLon, type Mood, type Quiet, type Settings, type Split } from './types';
@@ -57,6 +58,8 @@ export interface TrackingState {
   elevationSource: 'barometer' | 'gps';
   stepFilledM: number;
   gpsProfile: GpsProfileName;
+  /** Stop tapped, sensors off, finish screen showing. */
+  halted: boolean;
 }
 
 let settings: Settings = { ...DEFAULT_SETTINGS };
@@ -89,6 +92,7 @@ const state: TrackingState = {
   elevationSource: 'gps',
   stepFilledM: 0,
   gpsProfile: 'best',
+  halted: false,
 };
 
 let accumulatedS = 0;
@@ -176,8 +180,8 @@ function openSegment() {
 }
 
 /** Fixes recorded in this run that haven't been written to the database yet. */
-export function unsavedPoints(): Array<{ ts: number; lat: number; lon: number }> {
-  return pendingPoints.map((p) => ({ ts: p.ts, lat: p.lat, lon: p.lon }));
+export function unsavedPoints(): Array<{ ts: number; lat: number; lon: number; alt: number | null }> {
+  return pendingPoints.map((p) => ({ ts: p.ts, lat: p.lat, lon: p.lon, alt: p.alt }));
 }
 
 // ---- Persistence ------------------------------------------------------------
@@ -262,6 +266,7 @@ function onFixes(raws: RawFix[]) {
   const latest = raws[raws.length - 1];
   if (latest) {
     state.here = { latitude: latest.lat, longitude: latest.lon };
+    rememberPlace(state.here);
     state.gpsAccM = latest.acc;
     state.gps = qualityFor(latest.acc);
   }
@@ -380,6 +385,9 @@ export async function ensurePermissions(): Promise<{ ok: boolean; background: bo
   const fg = await Location.requestForegroundPermissionsAsync();
   if (fg.status !== 'granted') return { ok: false, background: false };
   const bg = await Location.requestBackgroundPermissionsAsync();
+  // Steps fill GPS gaps (tunnels, tall streets). Optional: no answer, no step fill.
+  const { Pedometer } = await import('expo-sensors');
+  await Pedometer.requestPermissionsAsync().catch(() => null);
   return { ok: true, background: bg.status === 'granted' };
 }
 
@@ -409,18 +417,46 @@ function resetState() {
   lastPowerCheckAt = 0;
   state.gpsProfile = 'best';
   pendingPoints = [];
+  state.halted = false;
   filter.reset();
   elevation.reset();
   steps.reset();
 }
 
 async function attachSensors() {
+  state.halted = false;
   const engine = getEngine();
   engine.setListener(onFixes);
   await elevation.start();
   await steps.start();
   if (tickTimer) clearInterval(tickTimer);
   tickTimer = setInterval(() => void tick(), 1000);
+}
+
+/** Everything that listens, off: GPS service, foreground watch, barometer, pedometer, the clock. */
+async function detachSensors() {
+  if (tickTimer) {
+    clearInterval(tickTimer);
+    tickTimer = null;
+  }
+  const engine = getEngine();
+  engine.setListener(null);
+  await engine.stop().catch(() => {});
+  elevation.stop();
+  steps.stop();
+}
+
+/**
+ * The background service. Without "Always" location some Android versions
+ * refuse it; the foreground watch from attachSensors() still records while the
+ * app is open, so the run goes ahead instead of failing.
+ */
+async function startEngine() {
+  try {
+    await getEngine().start(GPS_PROFILES[state.gpsProfile]);
+  } catch {
+    // foreground watch only
+  }
 }
 
 export async function startRun(moodBefore: Mood | null): Promise<void> {
@@ -436,9 +472,35 @@ export async function startRun(moodBefore: Mood | null): Promise<void> {
   lastPowerCheckAt = Date.now();
   await beginRunNotes(settings.runNotes);
   await attachSensors();
-  await getEngine().start(GPS_PROFILES[state.gpsProfile]);
+  await startEngine();
   await persist(true);
   emit();
+}
+
+/**
+ * Stop was tapped. Freeze the clock and switch every sensor off straight away,
+ * so nothing records while the finish screen asks keep or discard. The run
+ * stays open until stopRun(); continueRun() picks it back up.
+ */
+export async function haltRun(): Promise<void> {
+  if (state.status === 'idle' || state.halted) return;
+  if (state.status === 'running') closeSegment();
+  state.status = 'paused';
+  state.speedMps = 0;
+  state.halted = true;
+  await detachSensors();
+  await persist(true).catch(() => {});
+  emit();
+}
+
+/** Changed your mind on the finish screen: sensors back on, clock running. */
+export async function continueRun(): Promise<void> {
+  if (state.status === 'idle') return;
+  if (state.halted) {
+    await attachSensors();
+    await startEngine();
+  }
+  resumeRun();
 }
 
 export function pauseRun(): void {
@@ -462,15 +524,8 @@ export async function stopRun(extra: { moodAfter: Mood | null; quiet: Quiet | nu
   if (state.status === 'idle' || state.runId == null) return null;
   const runId = state.runId;
   const durationS = Math.floor(liveDuration());
-  if (tickTimer) {
-    clearInterval(tickTimer);
-    tickTimer = null;
-  }
-  const engine = getEngine();
-  engine.setListener(null);
-  await engine.stop();
-  elevation.stop();
-  steps.stop();
+  await detachSensors();
+  state.halted = false;
   if (pendingPoints.length) await addPoints(runId, pendingPoints);
   pendingPoints = [];
   await finishRun(runId, {
@@ -547,8 +602,7 @@ async function recoverRunInner(): Promise<boolean> {
   lastPowerCheckAt = Date.now();
   await beginRunNotes(settings.runNotes);
   await attachSensors();
-  const engine = getEngine();
-  if (!(await engine.isRunning())) await engine.start(GPS_PROFILES[state.gpsProfile]);
+  if (!(await getEngine().isRunning())) await startEngine();
   emit();
   return true;
 }

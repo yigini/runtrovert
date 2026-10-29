@@ -9,8 +9,14 @@
 //
 //   node scripts/build-shelf.mjs [out.json]      (default: shelf.json)
 //   SHELF_COUNTRIES=tr,de node scripts/build-shelf.mjs   (a quick partial run)
+//   node scripts/build-shelf.mjs out/shelf.json --art=out/art   (covers for every show)
+//   npm run shelf   (the copy the app ships with, plus the hand-picked covers in assets/)
+//
+// Covers: Apple's artwork, shrunk to small JPEGs and published next to shelf.json, so
+// a phone loads them from the same place as the list and never from Apple.
 
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
 // Apple storefront → the languages a show's feed may be in to count as local.
 // English shows from elsewhere already sit in the hand-picked list.
@@ -134,6 +140,36 @@ async function lookup(ids, country = 'us') {
   return out;
 }
 
+const ART_PX = 256;
+let sharp; // loaded on first use; without it the shelf simply has no covers
+const drawn = new Set();
+
+/** Saves the show's cover as <dir>/<id>.jpg. True when the file is there. */
+async function saveArt(r, dir) {
+  if (!dir) return false;
+  if (drawn.has(r.collectionId)) return true;
+  const url = r.artworkUrl600 ?? r.artworkUrl100;
+  if (!url) return false;
+  try {
+    sharp ??= (await import('sharp')).default;
+    const res = await fetch(url, { headers: { 'User-Agent': UA } });
+    if (!res.ok) return false;
+    const buf = Buffer.from(await res.arrayBuffer());
+    await sharp(buf).resize(ART_PX, ART_PX, { fit: 'cover' }).jpeg({ quality: 74, mozjpeg: true }).toFile(join(dir, `${r.collectionId}.jpg`));
+    drawn.add(r.collectionId);
+    return true;
+  } catch (e) {
+    console.warn(`art ${r.collectionId}: ${e.message}`);
+    return false;
+  }
+}
+
+/** The ids that have a cover bundled in the app, as a module of require()s. */
+function artIndex(ids) {
+  const lines = ids.map((id) => `  ${id}: require('../assets/shelf-art/${id}.jpg'),`);
+  return `// Written by \`npm run shelf\`. Covers for the hand-picked shows, shipped with the app.\n\nexport const BUNDLED_ART: Record<number, number> = {\n${lines.join('\n')}\n};\n`;
+}
+
 function show(r, head) {
   return {
     id: r.collectionId,
@@ -185,7 +221,11 @@ export function checkOffer(o, today) {
 }
 
 async function main() {
-  const outPath = process.argv[2] ?? 'shelf.json';
+  const args = process.argv.slice(2);
+  const outPath = args.find((a) => !a.startsWith('--')) ?? 'shelf.json';
+  const bundle = args.includes('--bundle'); // hand-picked covers into assets/, region shows get none
+  const artDir = bundle ? 'assets/shelf-art' : args.find((a) => a.startsWith('--art='))?.slice(6) ?? null;
+  if (artDir) await mkdir(artDir, { recursive: true });
   const today = new Date().toISOString().slice(0, 10);
   const cutoff = Date.now() - ACTIVE_DAYS * 86400000;
   const picked = JSON.parse(await readFile(new URL('../content/listen.json', import.meta.url), 'utf8')).shows;
@@ -202,7 +242,8 @@ async function main() {
     }
     // noFeed: the publisher's terms ask for a licence to use the feed commercially (the
     // BBC's do), so link to the show and leave its feed alone.
-    curated.push({ ...show(r, p.noFeed ? null : await headFor(r.feedUrl)), groups: p.groups, since: p.since ?? null, why: p.why });
+    const art = await saveArt(r, artDir);
+    curated.push({ ...show(r, p.noFeed ? null : await headFor(r.feedUrl)), art, groups: p.groups, since: p.since ?? null, why: p.why });
   }
 
   // 2. Each country's running chart, kept to active shows in that country's languages.
@@ -226,7 +267,7 @@ async function main() {
       if (!head) continue;
       if (head.latest.length && Date.parse(head.latest[0].date) < cutoff) continue; // Apple's date can lag a dead feed
       if (!speaks(langs, head.lang, [r.collectionName, ...head.latest.map((e) => e.title)].join(' '))) continue;
-      list.push(show(r, head));
+      list.push({ ...show(r, head), art: bundle ? false : await saveArt(r, artDir) });
       if (list.length >= PER_COUNTRY) break;
     }
     if (list.length) regions[cc] = list;
@@ -238,7 +279,8 @@ async function main() {
 
   const shelf = { version: 1, builtAt: new Date().toISOString(), curated, regions, offers };
   await writeFile(outPath, JSON.stringify(shelf));
-  console.log(`wrote ${outPath}: ${curated.length} hand-picked, ${Object.keys(regions).length} countries, ${offers.length} offers, ${(JSON.stringify(shelf).length / 1024).toFixed(0)} KB`);
+  if (bundle) await writeFile('src/shelfArt.ts', artIndex(curated.filter((s) => s.art).map((s) => s.id)));
+  console.log(`wrote ${outPath}: ${curated.length} hand-picked, ${Object.keys(regions).length} countries, ${offers.length} offers, ${drawn.size} covers, ${(JSON.stringify(shelf).length / 1024).toFixed(0)} KB`);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

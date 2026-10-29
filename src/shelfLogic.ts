@@ -23,6 +23,7 @@ export interface Show {
   groups?: Group[];
   since?: number | null;
   why?: string;
+  art?: boolean; // a cover sits next to shelf.json as art/<id>.jpg
 }
 
 export interface Offer {
@@ -116,14 +117,48 @@ export function filterOffers(offers: Offer[], topics: string[]): Offer[] {
   return offers.filter((o) => o.topics.some((t) => topics.includes(t)));
 }
 
-export const PODCAST_APPS: Array<{ key: PodcastApp; label: string; ios: boolean; android: boolean }> = [
+/** pkg: the Android package, used only to tell which apps are on the phone. */
+export const PODCAST_APPS: Array<{ key: PodcastApp; label: string; ios: boolean; android: boolean; pkg?: string }> = [
   { key: 'apple', label: 'Apple Podcasts', ios: true, android: false },
-  { key: 'spotify', label: 'Spotify', ios: true, android: true },
-  { key: 'youtube', label: 'YouTube Music', ios: true, android: true },
-  { key: 'pocketcasts', label: 'Pocket Casts', ios: true, android: true },
-  { key: 'antennapod', label: 'AntennaPod', ios: false, android: true },
+  { key: 'spotify', label: 'Spotify', ios: true, android: true, pkg: 'com.spotify.music' },
+  { key: 'youtube', label: 'YouTube Music', ios: true, android: true, pkg: 'com.google.android.apps.youtube.music' },
+  { key: 'pocketcasts', label: 'Pocket Casts', ios: true, android: true, pkg: 'au.com.shiftyjelly.pocketcasts' },
+  { key: 'antennapod', label: 'AntennaPod', ios: false, android: true, pkg: 'de.danoeh.antennapod' },
   { key: 'share', label: 'Another app (share the feed)', ios: true, android: true },
 ];
+
+export interface Fresh {
+  show: Show;
+  ep: Episode;
+  fits: boolean;
+}
+
+/**
+ * Newest episodes across the given shows, one per show, from the last `days` days.
+ * Ones that fit the runner's usual run come first, then the newest.
+ */
+export function freshEpisodes(shows: Show[], today: string, usualMin: number | null, days = 10, max = 8): Fresh[] {
+  const since = new Date(Date.parse(today) - days * 86400000).toISOString().slice(0, 10);
+  const seen = new Set<number>();
+  const out: Fresh[] = [];
+  for (const show of shows) {
+    const ep = show.latest[0];
+    if (!ep || ep.date < since || seen.has(show.id)) continue;
+    seen.add(show.id);
+    out.push({ show, ep, fits: fitsRun(ep.min, usualMin) });
+  }
+  out.sort((a, b) => Number(b.fits) - Number(a.fits) || b.ep.date.localeCompare(a.ep.date));
+  return out.slice(0, max);
+}
+
+/** "today", "yesterday", "3 days ago", or the date. */
+export function whenLabel(date: string, today: string): string {
+  const d = Math.round((Date.parse(today) - Date.parse(date)) / 86400000);
+  if (d <= 0) return 'today';
+  if (d === 1) return 'yesterday';
+  if (d < 7) return `${d} days ago`;
+  return date;
+}
 
 /**
  * The link that opens a show in the runner's own app. Spotify and YouTube Music

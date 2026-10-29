@@ -5,7 +5,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Alert, BackHandler, Pressable, StyleSheet, Text, ToastAndroid, View } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { handleBack } from './src/back';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { discardUnfinishedRuns, getRun } from './src/db';
 import { HistoryScreen } from './src/screens/HistoryScreen';
@@ -37,11 +39,13 @@ export default function App() {
   }, [ready]);
   if (!ready) return null;
   return (
-    <ErrorBoundary>
-      <SettingsProvider>
-        <Shell />
-      </SettingsProvider>
-    </ErrorBoundary>
+    <SafeAreaProvider>
+      <ErrorBoundary>
+        <SettingsProvider>
+          <Shell />
+        </SettingsProvider>
+      </ErrorBoundary>
+    </SafeAreaProvider>
   );
 }
 
@@ -52,10 +56,39 @@ function Shell() {
   const [shareOpen, setShareOpen] = useState(false); // open the share card on arrival ("Keep it and share")
   const [refreshKey, setRefreshKey] = useState(0);
   const [liveRun, setLiveRun] = useState(false);
+  const [finishing, setFinishing] = useState(false);
   // A session opened from the Train tab, waiting on the Run tab's start button.
   const [sessionRequest, setSessionRequest] = useState<Session | null>(null);
   const [planKey, setPlanKey] = useState(0);
-  useEffect(() => subscribe((t) => setLiveRun(t.status !== 'idle')), []);
+  useEffect(
+    () =>
+      subscribe((t) => {
+        setLiveRun(t.status !== 'idle');
+        setFinishing(t.halted);
+      }),
+    [],
+  );
+
+  // The phone's back gesture: whatever is open on screen first (src/back.ts),
+  // then back to the Run tab, and only then out of the app, on a second press.
+  const nav = useRef({ tab });
+  nav.current = { tab };
+  const lastBack = useRef(0);
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (handleBack()) return true;
+      if (nav.current.tab !== 'run') {
+        setTab('run');
+        return true;
+      }
+      const now = Date.now();
+      if (now - lastBack.current < 2000) return false;
+      lastBack.current = now;
+      ToastAndroid.show('Back again to leave', ToastAndroid.SHORT);
+      return true;
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     // If the app was killed mid-run, pick the run back up; otherwise tidy strays.
@@ -90,6 +123,8 @@ function Shell() {
       const next = fewer(settingsRef.current.notifyPerWeek);
       update({ notifyPerWeek: next });
       Alert.alert('Reminders', fewerMessage(next));
+    } else if (data.kind === 'plan') {
+      setTab('train');
     } else if (data.kind === 'after-run' && typeof data.runId === 'number') {
       setOpenRun(data.runId);
       setTab('history');
@@ -104,7 +139,8 @@ function Shell() {
         <WelcomeScreen
           onDone={async (yes) => {
             if (yes) await requestNotificationPermission().catch(() => false);
-            update({ onboarded: true, notifyAsk: yes ? 'yes' : 'no', seenNews: NEWS.id });
+            // The welcome told them what the map service sees, so tiles may load.
+            update({ onboarded: true, notifyAsk: yes ? 'yes' : 'no', seenNews: NEWS.id, mapNoticeSeen: true });
           }}
         />
       </SafeAreaView>
@@ -136,14 +172,14 @@ function Shell() {
       .catch(() => {});
   }
 
-  const inkMode = liveRun && tab === 'run';
+  const inkMode = liveRun && !finishing && tab === 'run';
   return (
     <SafeAreaView style={[styles.root, inkMode && styles.rootInk]}>
       <StatusBar style={inkMode ? 'light' : 'dark'} />
       <View style={{ flex: 1 }}>
         {/* RunScreen stays mounted so a live run survives tab switches. */}
         <View style={[{ flex: 1 }, tab !== 'run' && styles.hidden]}>
-          <RunScreen onSaved={onSaved} requested={sessionRequest} onRequestTaken={() => setSessionRequest(null)} planKey={planKey} />
+          <RunScreen onSaved={onSaved} requested={sessionRequest} onRequestTaken={() => setSessionRequest(null)} planKey={planKey} focused={tab === 'run'} onOpenPlan={() => setTab('train')} />
         </View>
         {tab === 'train' && (
           <TrainScreen
@@ -180,7 +216,7 @@ function Shell() {
           />
         )}
         {tab === 'listen' && <ListenScreen />}
-        {tab === 'settings' && <SettingsScreen />}
+        {tab === 'settings' && <SettingsScreen onOpenListen={() => setTab('listen')} />}
       </View>
       {!liveRun && (
         <View style={styles.tabs}>

@@ -9,7 +9,7 @@ Runtrovert works with whatever music app the runner already uses, without loggin
 | Show the song title | no (needs notification access) | no |
 | Voice cues lower the music | yes (transient audio focus, may duck) | yes (audio session `duckOthers`) |
 
-Code: `modules/runtrovert-music` (local Expo module, autolinked), `src/music.ts`, `src/components/MusicStrip.tsx`, Settings → Music.
+Code: `modules/runtrovert-music` (local Expo module, autolinked), `src/music.ts`, `src/components/MusicStrip.tsx`. The music app, the podcast app and the strip switch are set on the Listen tab (Your sound), which also shows a working copy of the strip; Settings links there.
 
 ## Why not the Spotify / YouTube Music / Apple Music SDKs
 
