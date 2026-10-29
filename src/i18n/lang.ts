@@ -58,9 +58,14 @@ export function onLangChange(fn: (l: Lang) => void): () => void {
   return () => listeners.delete(fn);
 }
 
-/** Last touch on any text shown: Swiss German swaps ß for ss. */
-export function finish(s: string): string {
-  return swiss ? s.replace(/ß/g, 'ss') : s;
+/**
+ * Last touch on any text shown: Swiss German swaps ß for ss; French puts a
+ * thin no-break space before ? ! : ; and %, and inside « ».
+ */
+export function finish(s: string, l: Lang = current): string {
+  if (swiss && l === 'de') return s.replace(/ß/g, 'ss');
+  if (l === 'fr') return s.replace(/ ([?!:;%»])/g, '\u202f$1').replace(/« /g, '«\u202f');
+  return s;
 }
 
 export type PluralForm = 'one' | 'other';
