@@ -9,9 +9,7 @@ import { RouteMap } from '../components/RouteMap';
 import { SplitsTable } from '../components/SplitsTable';
 import { cueCountdown } from '../cues';
 import { deleteRun, listRuns } from '../db';
-import { AmbientBackground } from '../components/AmbientBackground';
-import { Mark } from '../components/Mark';
-import { previewLine } from '../notify';
+import { HomeScreen } from './HomeScreen';
 import { distanceUnit, formatDistance, formatDistanceNumber, formatDuration, formatElevation, formatPace, formatSpeedAsPace } from '../geo';
 import { useSettings } from '../settings';
 import { ensurePermissions, getState, lap, pauseRun, resumeRun, startRun, stopRun, subscribe, TrackingState } from '../tracking';
@@ -34,7 +32,6 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number) => void }) {
   const [final, setFinal] = useState<TrackingState | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
-  const [line] = useState(previewLine());
   const [mapFront, setMapFront] = useState(false);
   const veil = useRef(new Animated.Value(1)).current;
 
@@ -150,40 +147,7 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number) => void }) {
 
   // ---- Idle ------------------------------------------------------------------
   if (phase === 'idle') {
-    return (
-      <AmbientBackground dim={0.1} style="tree">
-      <View style={[styles.screen, { backgroundColor: 'transparent' }]}>
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={type.eyebrow}>{dayName()}</Text>
-            <Text style={type.h1}>{greeting(runs)}</Text>
-          </View>
-          <Mark size={44} ground={colors.butter} />
-        </View>
-
-        <View style={styles.quietCard}>
-          <View style={styles.quietIcon}>
-            <Mark size={40} tile={false} ink={colors.lilacDeep} />
-          </View>
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text style={[type.label, { color: colors.lilacDeep, letterSpacing: 1.5, textTransform: 'uppercase' }]}>A quiet word</Text>
-            <Text style={styles.quietText}>{line}</Text>
-          </View>
-        </View>
-
-        <View style={styles.tiles}>
-          <Tile bg={colors.mint} fg={colors.mintDeep} value={runs.length ? String(runsThisMonth(runs)) : '—'} label={runs.length ? 'runs this month' : 'no runs yet'} />
-          <Tile bg={colors.peach} fg={colors.peachDeep} value={avgEnergy(runs)} label={runs.length ? 'energy, on average' : 'the first is just a walk that speeds up'} />
-        </View>
-
-        <View style={{ flex: 1 }} />
-        <View style={styles.pane}>
-          <MoodPicker title="How’s your energy right now?" value={moodBefore} onChange={setMoodBefore} />
-          <Button title="Start run" onPress={onStart} style={{ height: 64, marginTop: spacing.sm }} />
-        </View>
-      </View>
-      </AmbientBackground>
-    );
+    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} />;
   }
 
   // ---- Countdown -------------------------------------------------------------
@@ -204,17 +168,18 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number) => void }) {
         <View style={styles.finishHero}>
           <Text style={[type.eyebrow, { color: colors.mintDeep }]}>Run done</Text>
           <Text style={styles.finishTitle}>{finishLine()}</Text>
-          <View style={styles.tiles}>
-            <Tile bg={colors.cream} fg={colors.muted} value={formatDistanceNumber(final.distanceM, km)} label={distanceUnit(km)} small />
-            <Tile bg={colors.cream} fg={colors.muted} value={formatDuration(final.durationS)} label="time" small />
-            <Tile bg={colors.cream} fg={colors.muted} value={formatPace(final.distanceM, final.durationS, km)} label={`/${distanceUnit(km)}`} small />
+          <View style={styles.statRow}>
+            <Stat value={formatDistanceNumber(final.distanceM, km)} label={distanceUnit(km)} big />
+            <Stat value={formatDuration(final.durationS)} label="time" />
+            <Stat value={formatPace(final.distanceM, final.durationS, km)} label={`/${distanceUnit(km)}`} />
+            <Stat value={formatElevation(final.elevationGainM, km)} label="climb" />
           </View>
         </View>
         <View style={{ padding: spacing.md, paddingTop: spacing.lg, gap: spacing.lg }}>
           <RouteMap path={final.path} height={180} />
           <MoodPicker title="And your energy now?" value={moodAfter} onChange={setMoodAfter} />
           <QuietPicker value={quiet} onChange={setQuiet} />
-          <TextInput style={styles.note} placeholder="A note, if you want one" placeholderTextColor={colors.muted} value={note} onChangeText={setNote} multiline />
+          <TextInput style={styles.note} placeholder="A note, if you want one" placeholderTextColor={colors.inkMuted} value={note} onChangeText={setNote} multiline />
           <SplitsTable title={`Splits per ${distanceUnit(km)}`} rows={final.splits} km={km} partial={partialKm} />
           {final.laps.length > 0 && <SplitsTable title="Laps" rows={final.laps} km={km} />}
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
@@ -349,17 +314,13 @@ function Tile({ bg, fg, value, label, small }: { bg: string; fg: string; value: 
   );
 }
 
-function dayName() {
-  return new Date().toLocaleDateString(undefined, { weekday: 'long' });
-}
-
-function greeting(runs: Run[]): string {
-  const h = new Date().getHours();
-  const last = runs[0]?.startedAt;
-  if (last && Date.now() - last < 36 * 3600 * 1000) return 'Rest day.';
-  if (h < 11) return 'Quiet morning.';
-  if (h < 17) return 'Slow afternoon.';
-  return 'Dusk run?';
+function Stat({ value, label, big }: { value: string; label: string; big?: boolean }) {
+  return (
+    <View>
+      <Text style={[styles.statValue, big && styles.statValueBig]}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
 }
 
 function finishLine(): string {
@@ -367,37 +328,21 @@ function finishLine(): string {
   return lines[Math.floor(Date.now() / 60000) % lines.length];
 }
 
-function runsThisMonth(runs: Run[]): number {
-  const now = new Date();
-  return runs.filter((r) => {
-    const d = new Date(r.startedAt);
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  }).length;
-}
-
-function avgEnergy(runs: Run[]): string {
-  const deltas = runs.filter((r) => r.moodBefore != null && r.moodAfter != null).map((r) => (r.moodAfter as number) - (r.moodBefore as number));
-  if (!deltas.length) return '—';
-  const avg = deltas.reduce((a, b) => a + b, 0) / deltas.length;
-  return `${avg > 0 ? '+' : ''}${avg.toFixed(1)}`;
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.cream, padding: spacing.md, paddingTop: spacing.lg, gap: spacing.md },
   screenInk: { flex: 1, backgroundColor: colors.ink, padding: spacing.md, paddingTop: spacing.md, gap: spacing.sm },
   center: { alignItems: 'center', justifyContent: 'center' },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
-  quietCard: { backgroundColor: 'rgba(217,208,240,0.92)', borderRadius: 28, padding: 18, flexDirection: 'row', gap: 14, alignItems: 'center' },
-  quietIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
-  quietText: { fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.text },
   tiles: { flexDirection: 'row', gap: spacing.sm + 2 },
-  pane: { backgroundColor: 'rgba(246,241,234,0.9)', borderRadius: 28, padding: spacing.md, gap: spacing.sm },
   tile: { flex: 1, borderRadius: radius.lg, padding: 16 },
   tileValue: { fontFamily: fonts.display, fontSize: 30, lineHeight: 34, color: colors.text, fontVariant: ['tabular-nums'] },
   tileLabel: { fontFamily: fonts.bodySemi, fontSize: 12, marginTop: 2 },
   countdown: { fontFamily: fonts.displayLight, fontSize: 140, color: colors.cream, fontVariant: ['tabular-nums'] },
-  finishHero: { backgroundColor: colors.mint, borderBottomLeftRadius: 40, borderBottomRightRadius: 40, padding: spacing.md, paddingTop: spacing.lg, gap: 12 },
-  finishTitle: { fontFamily: fonts.display, fontSize: 32, lineHeight: 36, letterSpacing: -0.5, color: colors.text },
+  finishHero: { padding: spacing.md, paddingTop: spacing.lg, gap: 14 },
+  finishTitle: { fontFamily: fonts.display, fontSize: 38, lineHeight: 42, letterSpacing: -0.8, color: colors.text },
+  statRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 18, marginTop: 6 },
+  statValue: { fontFamily: fonts.displayLight, fontSize: 34, lineHeight: 38, letterSpacing: -1, color: colors.text, fontVariant: ['tabular-nums'] },
+  statValueBig: { fontSize: 60, lineHeight: 60, letterSpacing: -3 },
+  statLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: colors.inkMuted },
   live: { flex: 1, backgroundColor: colors.ink },
   veil: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(43,39,51,0.66)' },
   liveLayer: { flex: 1, padding: spacing.md, paddingTop: spacing.sm, gap: spacing.md },
@@ -425,5 +370,5 @@ const styles = StyleSheet.create({
   lapBtn: { flex: 1, height: 64, borderRadius: radius.pill, backgroundColor: 'rgba(232,226,245,0.94)', alignItems: 'center', justifyContent: 'center' },
   lapText: { fontFamily: fonts.bodySemi, fontSize: 17, color: colors.lilacDeep },
   stopSquare: { width: 20, height: 20, borderRadius: 5, backgroundColor: colors.ink },
-  note: { minHeight: 72, backgroundColor: colors.white, borderRadius: radius.lg, padding: spacing.md, color: colors.text, fontFamily: fonts.body, fontSize: 15, textAlignVertical: 'top' },
+  note: { minHeight: 56, borderBottomWidth: 1.5, borderBottomColor: colors.ink, paddingVertical: 10, color: colors.text, fontFamily: fonts.displayItalic, fontSize: 17, textAlignVertical: 'top' },
 });

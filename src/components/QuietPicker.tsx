@@ -31,8 +31,8 @@ const styles = StyleSheet.create({
   wrap: { gap: spacing.sm },
   title: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
   row: { flexDirection: 'row', gap: spacing.sm },
-  pill: { flex: 1, height: 48, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.lilacSoft },
+  pill: { flex: 1, height: 44, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: colors.ink },
   pillOn: { backgroundColor: colors.ink },
-  label: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.lilacDeep },
+  label: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.inkSoft },
   labelOn: { color: colors.cream },
 });

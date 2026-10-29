@@ -131,9 +131,9 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.cream },
   rootInk: { backgroundColor: colors.ink },
   hidden: { display: 'none' },
-  tabs: { flexDirection: 'row', justifyContent: 'space-around', backgroundColor: colors.cream, paddingTop: 10, paddingBottom: spacing.md },
-  tab: { alignItems: 'center', gap: 4, minWidth: 72 },
-  tabDot: { width: 36, height: 36, borderRadius: 18 },
+  tabs: { flexDirection: 'row', justifyContent: 'space-around', backgroundColor: colors.cream, paddingTop: 8, paddingBottom: spacing.sm + 2 },
+  tab: { alignItems: 'center', gap: 5, minWidth: 72, paddingVertical: 6 },
+  tabDot: { width: 8, height: 8, borderRadius: 4 },
   tabText: { fontFamily: fonts.bodySemi, fontSize: 11, color: colors.muted },
   tabTextActive: { color: colors.text },
 });

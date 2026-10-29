@@ -58,6 +58,7 @@ export interface Settings {
   notifyHour: number; // 0–23, local
   notifyMinute: number;
   afterRunNote: boolean; // a quiet "run saved" notification
+  weather: boolean; // fetch the local forecast for the home screen (Open-Meteo, coarse location)
   runNotes: boolean; // live stats on the lock screen and a note per km (watches mirror these)
   batteryMode: BatteryMode;
   keepScreenOn: boolean; // during a run only
@@ -73,6 +74,7 @@ export const DEFAULT_SETTINGS: Settings = {
   notifyHour: 8,
   notifyMinute: 0,
   afterRunNote: true,
+  weather: true,
   runNotes: true,
   batteryMode: 'auto',
   keepScreenOn: false,
