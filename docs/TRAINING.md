@@ -58,7 +58,8 @@ The ongoing plan (Keep running) lays out four more weeks as its last one begins.
 - **Home**: "Today, from your plan" with the session, and the start button starts it.
 - **During the run**: steps are read off the tracker's own tick, so cues ("Comfortably hard, 8 minutes.") arrive with the screen off. A strip on the live screen shows the step, how it should feel, what is left and what comes next.
 - **After the run**: the day's session is ticked off at the distance run (any run ≥500 m or ≥5 min on a plan day counts). The pain line eases the days ahead.
-- **Reminders**: on a plan day the ordinary quiet line steps aside and the day's session is the reminder, at the hour already chosen. Reminders off means no plan reminders either.
+- **Reminders**: while a plan is active it takes over the quiet reminders. A plan day gets one note naming the session, at the hour already chosen; rest days get nothing (the ordinary lines step aside for every day the plan covers). Reminders off means no plan reminders either. Paused plans hand the days back to the ordinary reminders. Tapping a plan note opens the Train tab.
+- **Making it clear** (`src/components/PlanReminders.tsx`): the Train tab and the "How a plan works" page say in one card whether notes will come and at what time, with one tap to turn them on (permission first, then 3 a week if the count was 0). Home shows the same in one line under the plan, and on rest days shows the next session. Starting a plan opens "How a plan works" once: today, this week, the plan, missed days, reminders.
 - **Calendar**: "Add the plan to a calendar" writes an `.ics` file (one all-day event per session) and opens the share sheet. No calendar permission, nothing syncs back.
 
 ## Code
