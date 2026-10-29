@@ -144,6 +144,12 @@ export async function finishRun(
   );
 }
 
+/** The energy check, filled in later (from the after-run note). */
+export async function setMoodAfter(runId: number, mood: Mood): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('UPDATE runs SET mood_after = ? WHERE id = ?', mood, runId);
+}
+
 export async function deleteRun(runId: number) {
   const db = await getDb();
   await db.withTransactionAsync(async () => {
