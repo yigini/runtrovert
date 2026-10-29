@@ -1,9 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { previewLine, rescheduleReminders } from '../notify';
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { previewLine, rescheduleReminders, sendLineNow } from '../notify';
+import { onBatteryModeChanged } from '../tracking';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
-import type { CueMode, NotifyPerWeek } from '../types';
+import type { BatteryMode, CueMode, NotifyPerWeek } from '../types';
+
+const BATTERY: Array<{ key: BatteryMode; label: string; hint: string }> = [
+  { key: 'auto', label: 'Auto', hint: 'Full GPS until the battery drops to 25% or the phone is in low-power mode, then eases off.' },
+  { key: 'best', label: 'Best accuracy', hint: 'A fix every second. Most precise splits, most battery.' },
+  { key: 'saver', label: 'Saver', hint: 'A fix every few seconds. Distance stays within about 1% on steady runs.' },
+];
 
 const CUES: Array<{ key: CueMode; label: string; hint: string }> = [
   { key: 'silent', label: 'Silent', hint: 'Nothing. Ever.' },
@@ -19,6 +26,15 @@ export function SettingsScreen() {
   useEffect(() => {
     rescheduleReminders(settings);
   }, [settings.notifyPerWeek, settings.notifyHour, settings.notifyMinute]);
+  useEffect(() => {
+    onBatteryModeChanged();
+  }, [settings.batteryMode]);
+
+  async function onSendNow() {
+    const ok = await sendLineNow();
+    if (ok) Alert.alert('On its way', 'Lock your phone. One arrives in five seconds, the way they will on a Tuesday morning.');
+    else Alert.alert('Notifications are off', 'Turn on notifications for Runtrovert in your phone settings to get reminders and run notes.');
+  }
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ gap: spacing.lg, paddingBottom: spacing.xl }}>
@@ -49,8 +65,28 @@ export function SettingsScreen() {
             onChange={(v) => update({ countdownS: Number(v) })}
           />
         </Row>
+        <Row label="Lock screen and watch" hint="Live distance and time on the lock screen, a short note at each km. Wear OS and Apple Watch show them too.">
+          <Switch value={settings.runNotes} onValueChange={(v) => update({ runNotes: v })} trackColor={{ true: colors.ink }} />
+        </Row>
         <Row label="Units">
           <Segmented value={settings.unitsKm ? 'km' : 'mi'} options={['km', 'mi']} onChange={(v) => update({ unitsKm: v === 'km' })} />
+        </Row>
+      </Section>
+
+      <Section title="Battery" bg={colors.sky} fg={colors.skyDeep}>
+        {BATTERY.map((b) => {
+          const on = settings.batteryMode === b.key;
+          return (
+            <Pressable key={b.key} onPress={() => update({ batteryMode: b.key })} style={[styles.option, on && styles.optionOn]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.optionLabel, on && styles.optionLabelOn]}>{b.label}</Text>
+                <Text style={[styles.optionHint, on && { color: colors.onInkMuted }]}>{b.hint}</Text>
+              </View>
+            </Pressable>
+          );
+        })}
+        <Row label="Keep screen on" hint="Only during a run. Costs a lot of battery; the lock screen shows your numbers anyway.">
+          <Switch value={settings.keepScreenOn} onValueChange={(v) => update({ keepScreenOn: v })} trackColor={{ true: colors.ink }} />
         </Row>
       </Section>
 
@@ -76,6 +112,9 @@ export function SettingsScreen() {
           <Text style={styles.previewLabel}>Sounds like</Text>
           <Text style={styles.previewText}>{preview}</Text>
           <Text style={styles.previewHint}>tap for another</Text>
+        </Pressable>
+        <Pressable onPress={onSendNow} style={styles.sendNow}>
+          <Text style={styles.sendNowText}>Send me one now</Text>
         </Pressable>
       </Section>
 
@@ -146,5 +185,7 @@ const styles = StyleSheet.create({
   preview: { backgroundColor: colors.cream, borderRadius: radius.md, padding: 14, gap: 4 },
   previewLabel: { fontFamily: fonts.bodySemi, color: colors.muted, fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 },
   previewText: { fontFamily: fonts.body, color: colors.text, fontSize: 15, lineHeight: 22 },
+  sendNow: { backgroundColor: colors.ink, borderRadius: radius.pill, paddingVertical: 12, alignItems: 'center' },
+  sendNowText: { fontFamily: fonts.bodySemi, color: colors.cream, fontSize: 14 },
   previewHint: { fontFamily: fonts.body, color: colors.muted, fontSize: 12, textAlign: 'right' },
 });

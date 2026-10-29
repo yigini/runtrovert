@@ -1,5 +1,5 @@
 import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { listRuns, loadSeenLines, loadSettings, saveSeenLines } from './db';
 import { AFTER_RUN_LINES, AFTER_RUN_TITLES, LINES, TITLES, TOTAL_LINES, type Mood } from './lines';
 import type { Settings } from './types';
@@ -8,16 +8,20 @@ const CHANNEL = 'runtrovert-quiet';
 const HORIZON_DAYS = 21; // schedule this far ahead; refreshed on every app open
 const MAX_PENDING = 20; // stay well under the iOS limit of 64
 
+// Run notes (live stats, km splits) are for the lock screen and the watch; while
+// the app is open you are already looking at the numbers, so no banner then.
+const RUN_KINDS = new Set(['live', 'split', 'battery']);
+
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
+  handleNotification: async (n) => ({
+    shouldShowBanner: !(RUN_KINDS.has(String(n.request.content.data?.kind)) && AppState.currentState === 'active'),
     shouldShowList: true,
     shouldPlaySound: false, // quiet, always
     shouldSetBadge: false,
   }),
 });
 
-async function ensureChannel() {
+export async function ensureChannel() {
   if (Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync(CHANNEL, {
     name: 'Quiet reminders',
@@ -147,6 +151,18 @@ export async function notifyAfterRun(settings: Settings): Promise<void> {
 }
 
 /** For the Settings screen: a random preview without scheduling anything. */
+/** Settings: send one line right now, so you can see how they look (and that they arrive). */
+export async function sendLineNow(): Promise<boolean> {
+  if (!(await requestNotificationPermission())) return false;
+  await ensureChannel();
+  const rnd = seeded(Date.now());
+  await Notifications.scheduleNotificationAsync({
+    content: { title: pick(TITLES, rnd), body: previewLine(), sound: false, data: { kind: 'reminder' } },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 5, channelId: CHANNEL },
+  });
+  return true;
+}
+
 export function previewLine(): string {
   const rnd = seeded(Date.now());
   const moods: Mood[] = ['nudge', 'rest', 'quiet', 'weather', 'morning', 'evening'];

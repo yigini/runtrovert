@@ -46,6 +46,9 @@ export type CueMode = 'silent' | 'haptic' | 'voice';
 
 export type NotifyPerWeek = 0 | 1 | 3 | 5;
 
+/** best: 1 Hz navigation GPS. saver: coarser, slower fixes. auto: best until the battery is low. */
+export type BatteryMode = 'auto' | 'best' | 'saver';
+
 export interface Settings {
   cueMode: CueMode;
   autoPause: boolean;
@@ -55,6 +58,9 @@ export interface Settings {
   notifyHour: number; // 0–23, local
   notifyMinute: number;
   afterRunNote: boolean; // a quiet "run saved" notification
+  runNotes: boolean; // live stats on the lock screen and a note per km (watches mirror these)
+  batteryMode: BatteryMode;
+  keepScreenOn: boolean; // during a run only
   onboarded: boolean;
 }
 
@@ -67,5 +73,8 @@ export const DEFAULT_SETTINGS: Settings = {
   notifyHour: 8,
   notifyMinute: 0,
   afterRunNote: true,
+  runNotes: true,
+  batteryMode: 'auto',
+  keepScreenOn: false,
   onboarded: false,
 };

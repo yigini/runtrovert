@@ -13,6 +13,7 @@
  */
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
+import { GPS_PROFILES, type GpsProfile } from '../power';
 import type { RawFix } from './kalman';
 
 export const LOCATION_TASK = 'runtrovert-location';
@@ -22,7 +23,8 @@ export type FixListener = (fixes: RawFix[]) => void;
 export interface LocationEngine {
   readonly name: string;
   setListener(l: FixListener | null): void;
-  start(): Promise<void>;
+  /** To change profile mid-run, stop() then start(newProfile). */
+  start(profile?: GpsProfile): Promise<void>;
   stop(): Promise<void>;
   isRunning(): Promise<boolean>;
 }
@@ -52,6 +54,7 @@ TaskManager.defineTask(LOCATION_TASK, async ({ data, error }) => {
 class ExpoEngine implements LocationEngine {
   readonly name = 'expo-location';
   private watch: Promise<Location.LocationSubscription | null> | null = null;
+  private profile: GpsProfile = GPS_PROFILES.best;
 
   /**
    * The background task keeps recording with the screen off, but some phones
@@ -63,7 +66,7 @@ class ExpoEngine implements LocationEngine {
     expoListener = l;
     if (l && !this.watch) {
       this.watch = Location.watchPositionAsync(
-        { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1000, distanceInterval: 0 },
+        { accuracy: this.profile.accuracy, timeInterval: this.profile.timeIntervalMs, distanceInterval: this.profile.distanceIntervalM },
         (loc) => expoListener?.([toFix(loc)]),
       ).catch(() => null);
     } else if (!l && this.watch) {
@@ -72,12 +75,20 @@ class ExpoEngine implements LocationEngine {
       void w.then((sub) => sub?.remove());
     }
   }
-  async start() {
+  async start(profile: GpsProfile = GPS_PROFILES.best) {
+    const changed = profile.name !== this.profile.name;
+    this.profile = profile;
+    if (changed && this.watch) {
+      // Re-open the foreground watch at the new rate.
+      const l = expoListener;
+      this.setListener(null);
+      this.setListener(l);
+    }
     await Location.startLocationUpdatesAsync(LOCATION_TASK, {
-      accuracy: Location.Accuracy.BestForNavigation,
+      accuracy: profile.accuracy,
       activityType: Location.ActivityType.Fitness,
-      timeInterval: 1000,
-      distanceInterval: 0, // every fix; the filter decides what counts
+      timeInterval: profile.timeIntervalMs,
+      distanceInterval: profile.distanceIntervalM, // 0 = every fix; the filter decides what counts
       pausesUpdatesAutomatically: false,
       showsBackgroundLocationIndicator: true,
       deferredUpdatesInterval: 0,
@@ -125,13 +136,16 @@ class TransistorEngine implements LocationEngine {
     this.listener = l;
   }
 
-  async start() {
+  async start(profile: GpsProfile = GPS_PROFILES.best) {
     const bg = this.bg;
+    const gps = {
+      desiredAccuracy: profile.name === 'best' ? bg.DESIRED_ACCURACY_NAVIGATION : bg.DESIRED_ACCURACY_HIGH,
+      distanceFilter: profile.distanceIntervalM,
+      locationUpdateInterval: profile.timeIntervalMs,
+      fastestLocationUpdateInterval: profile.timeIntervalMs,
+    };
     await bg.ready({
-      desiredAccuracy: bg.DESIRED_ACCURACY_NAVIGATION,
-      distanceFilter: 0,
-      locationUpdateInterval: 1000,
-      fastestLocationUpdateInterval: 1000,
+      ...gps,
       disableElasticity: true,
       stopOnTerminate: false,
       startOnBoot: false,
@@ -159,6 +173,7 @@ class TransistorEngine implements LocationEngine {
         },
       ]);
     });
+    await bg.setConfig(gps); // ready() only applies config on its first call; this covers profile changes
     await bg.start();
     await bg.changePace(true); // force "moving" so it never idles into stationary geofence mode
   }

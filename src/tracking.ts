@@ -7,12 +7,15 @@
  *
  * Everything the UI reads comes from subscribe()/getState().
  */
+import { AppState } from 'react-native';
 import { cueAutoPause, cueAutoResume, cueKmSplit, cueLap, setCueMode } from './cues';
 import { addPoints, addSplit, createRun, finishRun, getPoints, getRun, updateRunProgress } from './db';
 import { getEngine } from './gps/engine';
 import { GpsFilter, type FilteredFix, type RawFix } from './gps/kalman';
 import { clearSnapshot, loadSnapshot, saveSnapshot, type RunSnapshot } from './gps/recovery';
 import { ElevationTracker, StepFusion } from './gps/sensors';
+import { GPS_PROFILES, profileFor, readPower, type GpsProfileName } from './power';
+import { beginRunNotes, batteryNote, endRunNotes, splitNote, updateLiveNote } from './runNotify';
 import { DEFAULT_SETTINGS, type LatLon, type Mood, type Quiet, type Settings, type Split } from './types';
 
 export { LOCATION_TASK } from './gps/engine';
@@ -22,6 +25,7 @@ const AUTO_PAUSE_AFTER_MS = 6000;
 const MOVING_SPEED_MPS = 0.9; // ~3.2 km/h; slower than a walk
 const SNAPSHOT_EVERY_MS = 5000;
 const MAX_PATH_POINTS = 20000; // ~5.5 h at 1 Hz before we thin the live path
+const POWER_CHECK_EVERY_MS = 120_000; // battery level moves slowly; no need to ask often
 
 export type TrackingStatus = 'idle' | 'running' | 'paused' | 'autopaused';
 export type GpsQuality = 'searching' | 'good' | 'ok' | 'weak' | 'lost';
@@ -52,6 +56,7 @@ export interface TrackingState {
   engine: string;
   elevationSource: 'barometer' | 'gps';
   stepFilledM: number;
+  gpsProfile: GpsProfileName;
 }
 
 let settings: Settings = { ...DEFAULT_SETTINGS };
@@ -83,6 +88,7 @@ const state: TrackingState = {
   engine: getEngine().name,
   elevationSource: 'gps',
   stepFilledM: 0,
+  gpsProfile: 'best',
 };
 
 let accumulatedS = 0;
@@ -95,6 +101,7 @@ let lapMarkDistance = 0;
 let lapMarkDuration = 0;
 let tickTimer: ReturnType<typeof setInterval> | null = null;
 let lastSnapshotAt = 0;
+let lastPowerCheckAt = 0;
 let pendingPoints: Array<{ ts: number; lat: number; lon: number; alt: number | null; acc: number | null }> = [];
 
 type Listener = (s: TrackingState) => void;
@@ -125,9 +132,17 @@ function snapshot(): TrackingState {
 }
 
 function emit() {
+  if (state.status !== 'idle') updateLiveNote({ status: state.status, distanceM: state.distanceM, durationS: liveDuration(), unitsKm: settings.unitsKm });
+  // With the screen off or the app in the back, nobody is looking: skip the
+  // snapshot (it copies the whole path) and the re-render it would cause.
+  if (AppState.currentState !== 'active') return;
   const s = snapshot();
   listeners.forEach((l) => l(s));
 }
+
+AppState.addEventListener('change', (next) => {
+  if (next === 'active') emit(); // catch the screen up straight away
+});
 
 export function subscribe(l: Listener): () => void {
   listeners.add(l);
@@ -202,6 +217,7 @@ async function maybeCloseKmSplit() {
       await addSplit(state.runId, row);
     }
     cueKmSplit(index, closedDur, kmMarkDuration, settings.unitsKm);
+    splitNote(index, closedDur, kmMarkDistance, kmMarkDuration, settings.unitsKm);
   }
 }
 
@@ -302,8 +318,45 @@ async function tick() {
       cueAutoPause();
     }
   }
+  if (now - lastPowerCheckAt > POWER_CHECK_EVERY_MS) {
+    lastPowerCheckAt = now;
+    await applyPowerProfile('tick');
+  }
   await persist();
   emit();
+}
+
+// ---- Battery ---------------------------------------------------------------
+
+/**
+ * Pick the GPS profile for the current battery and setting. At start this just
+ * records it; mid-run it restarts the engine if the profile changed. We only
+ * ever step down to saver mid-run, never back up: plugging in on a run is rare
+ * and flip-flopping around the threshold would be worse.
+ */
+async function applyPowerProfile(when: 'start' | 'tick' | 'user'): Promise<void> {
+  const power = await readPower();
+  const next = profileFor(settings.batteryMode, power);
+  if (when === 'start') {
+    state.gpsProfile = next.name;
+    return;
+  }
+  if (next.name === state.gpsProfile || (when === 'tick' && next.name === 'best')) return;
+  state.gpsProfile = next.name;
+  const engine = getEngine();
+  try {
+    await engine.stop();
+    await engine.start(next);
+  } catch {
+    // keep whatever is running
+  }
+  if (when === 'tick') batteryNote(power.level != null ? Math.round(power.level * 100) : null);
+}
+
+/** Settings screen: battery mode changed. Applies to a live run straight away. */
+export function onBatteryModeChanged(): void {
+  if (state.status === 'idle') return;
+  void applyPowerProfile('user');
 }
 
 // ---- Permissions -----------------------------------------------------------
@@ -339,6 +392,8 @@ function resetState() {
   lapMarkDistance = 0;
   lapMarkDuration = 0;
   lastSnapshotAt = 0;
+  lastPowerCheckAt = 0;
+  state.gpsProfile = 'best';
   pendingPoints = [];
   filter.reset();
   elevation.reset();
@@ -363,8 +418,11 @@ export async function startRun(moodBefore: Mood | null): Promise<void> {
   state.runId = runId;
   state.startedAt = now;
   openSegment();
+  await applyPowerProfile('start');
+  lastPowerCheckAt = Date.now();
+  await beginRunNotes(settings.runNotes);
   await attachSensors();
-  await getEngine().start();
+  await getEngine().start(GPS_PROFILES[state.gpsProfile]);
   await persist(true);
   emit();
 }
@@ -411,6 +469,7 @@ export async function stopRun(extra: { moodAfter: Mood | null; quiet: Quiet | nu
     note: extra.note,
   });
   await clearSnapshot();
+  await endRunNotes();
   resetState();
   emit();
   return runId;
@@ -470,9 +529,12 @@ async function recoverRunInner(): Promise<boolean> {
   state.splits = splits.filter((s) => s.kind === 'km').map((s) => ({ kind: 'km' as const, index: s.index, distanceM: s.distanceM, durationS: s.durationS }));
   state.laps = splits.filter((s) => s.kind === 'lap').map((s) => ({ kind: 'lap' as const, index: s.index, distanceM: s.distanceM, durationS: s.durationS }));
 
+  await applyPowerProfile('start');
+  lastPowerCheckAt = Date.now();
+  await beginRunNotes(settings.runNotes);
   await attachSensors();
   const engine = getEngine();
-  if (!(await engine.isRunning())) await engine.start();
+  if (!(await engine.isRunning())) await engine.start(GPS_PROFILES[state.gpsProfile]);
   emit();
   return true;
 }
