@@ -3,17 +3,16 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { BUSY_LABEL } from '../places';
 import { colors, fonts, radius, spacing } from '../theme';
 import type { Quiet } from '../types';
+import { live, ui } from '../i18n/ui';
 
 // The runner's own words for it, the same ones their places keep in the log.
-const OPTIONS: Array<{ key: Quiet; label: string }> = (['crowded', 'some', 'empty'] as const).map((key) => ({ key, label: BUSY_LABEL[key] }));
-
-const TITLE = 'How busy was it out there?';
+const OPTIONS: Array<{ key: Quiet; label: string }> = live(() => (['crowded', 'some', 'empty'] as const).map((key) => ({ key, label: BUSY_LABEL[key] })));
 
 export function QuietPicker({ value, onChange }: { value: Quiet | null; onChange: (q: Quiet) => void }) {
   return (
     <View style={styles.wrap}>
-      <Text style={styles.title}>{TITLE}</Text>
-      <View style={styles.row} accessibilityRole="radiogroup" accessibilityLabel={TITLE}>
+      <Text style={styles.title}>{ui().quietPicker.title}</Text>
+      <View style={styles.row} accessibilityRole="radiogroup" accessibilityLabel={ui().quietPicker.title}>
         {OPTIONS.map((o) => {
           const on = value === o.key;
           return (

@@ -1,5 +1,11 @@
 // English interface text, the source every other language is checked against.
-// Generated from the screens by scripts/extract (first pass), then edited by hand.
+// Each screen or module has its own group. A value is a string, a table, or a
+// function when the sentence needs numbers or grammar; other languages give the
+// same shape (Strings), so a missing or misnamed line fails the type check.
+
+import type { DayPart } from '../../places';
+
+const enNum = (n: number) => ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'][n] ?? String(n);
 
 export const en = {
   app: {
@@ -82,7 +88,7 @@ export const en = {
     thePlanOnlyShowsHere: 'The plan only shows here and on the Run screen. Turn them on and you get one quiet note on plan days, nothing on rest days.',
     noRemindersYouSetThem: 'No reminders. You set them to none.',
     turnOnReminders: 'Turn on reminders',
-    aQuietNoteAtX2: (at: string | number) => `A quiet note at ${at}on plan days.`,
+    aQuietNoteAtX2: (at: string | number) => `A quiet note at ${at} on plan days.`,
     turnOn: 'Turn on',
   },
   presetSheet: {
@@ -125,7 +131,7 @@ export const en = {
     firstHalf: 'First half',
     secondHalf: 'Second half',
     theLight: 'The light',
-    xMinOfItUnder: (darkS: string | number) => `${darkS}min of it under streetlights.`,
+    xMinOfItUnder: (darkS: string | number) => `${darkS} min of it under streetlights.`,
     paceWithinXSMost: (spread: string | number) => `pace within ±${spread} s most of the way`,
     yourQuickest200MAround: (formatDistance: string | number) => `your quickest 200 m, around ${formatDistance} in`,
     cornerTaken: 'corner taken',
@@ -225,7 +231,9 @@ export const en = {
     noChange: 'no change',
     recharge: 'Recharge',
     onAverageARunMoves: (faces: string | number) => `On average a run moves your energy ${faces}.`,
-    xLiftYouMost: (r: string | number) => ` ${r} lift you most.`,
+    liftYouMost: (part: 'morning' | 'midday' | 'evening') => ` ${{ morning: 'Mornings', midday: 'Middays', evening: 'Evenings' }[part]} lift you most.`,
+    longest: 'Longest',
+    mostClimb: 'Most climb',
     rhythm: 'Rhythm',
     ranInXOfThe: (weeks: string | number) => `Ran in ${weeks} of the last 12 weeks.`,
     youVsYou: 'You vs you',
@@ -264,8 +272,10 @@ export const en = {
   },
   history: {
     yourRuns: 'Your runs',
-    xSoFarXX: (monthName: string | number, runs: string | number, month: string | number, spokenDistance: string | number, spokenDuration: string | number) => `${monthName} so far: ${runs} ${month}, ${spokenDistance}, ${spokenDuration} running.`,
-    xSoFar: (monthName: string | number) => `${monthName}so far`,
+    monthSoFarSpoken: (month: string, runs: number, distance: string, duration: string) => `${month} so far: ${runs} ${runs === 1 ? 'run' : 'runs'}, ${distance}, ${duration} running.`,
+    monthSoFar: (month: string) => `${month} so far`,
+    runsLabel: (n: number) => (n === 1 ? 'run' : 'runs'),
+    running: 'running',
     noRunsYet: 'No runs yet.',
     yourRunsWillStayOn: 'Your runs will stay on this phone. Nobody else sees them.',
     bringRunsInFromA: 'Bring runs in from a watch or another app',
@@ -273,10 +283,10 @@ export const en = {
     places: 'Places',
     patterns: 'Patterns',
     opensThisRun: 'Opens this run',
-    energyXX: (delta: string | number, delta2: string | number) => ` · energy ${delta}${delta2}`,
+    energy: (delta: number) => ` · energy ${delta > 0 ? '+' : ''}${delta}`,
   },
   home: {
-    xDaysSinceYourLast: (away: string | number) => `${away}days since your last run`,
+    xDaysSinceYourLast: (away: string | number) => `${away} days since your last run`,
     welcomeBackNothingToCatch: 'Welcome back.\nNothing to catch up on.',
     runHoweverYouLikeToday: 'Run however you like today. Your plan waits until you decide what to do with it.',
     runHoweverYouLikeToday2: 'Run however you like today.',
@@ -591,7 +601,7 @@ export const en = {
     thingsNobodyTellsYou: 'Things nobody tells you',
     close: 'Close',
     done: 'Done',
-    xSmallThingsAboutRunning: (COUNT: string | number) => `${COUNT}small things about running, from nipples to Pheidippides. Sources where it is medical. All of it lives on the phone.`,
+    xSmallThingsAboutRunning: (COUNT: string | number) => `${COUNT} small things about running, from nipples to Pheidippides. Sources where it is medical. All of it lives on the phone.`,
     today: 'Today',
     oneOnTheHomeScreen: 'One on the home screen',
     aNewOneEachDay: 'A new one each day, picked for the weather and your runs. Off leaves just a small link.',
@@ -608,7 +618,7 @@ export const en = {
     train: 'Train',
     structureWithoutTheShouting: 'Structure,\nwithout the shouting.',
     fourteenPlansFromAFirst: 'Fourteen plans, from a first run to a marathon. Every one builds gradually, with lighter weeks for recovery, and gives way when life does. Everyone responds differently, so listen to your legs before the plan.',
-    xIsDoneXRuns: (name: string | number, done: string | number, fmtKm: string | number) => `${name}is done. ${done}runs, ${fmtKm}. Quietly logged.`,
+    xIsDoneXRuns: (name: string | number, done: string | number, fmtKm: string | number) => `${name} is done. ${done} runs, ${fmtKm}. Quietly logged.`,
     theNineRulesEveryPlan: 'The nine rules every plan keeps →',
     noAccountNoServerA: 'No account, no server. A plan is a file on your phone.',
     expectsX: (lower: string | number) => `Expects ${lower}`,
@@ -628,14 +638,14 @@ export const en = {
     kilometresAWeekLately: 'Kilometres a week, lately',
     milesAWeekLately: 'Miles a week, lately',
     longestRunInTheLast: 'Longest run in the last month',
-    fromYourLastFourWeeks: (fmtKm: string | number, profile: string | number, fmtKm2: string | number) => `From your last four weeks: about ${fmtKm}a week over ${profile}runs, longest ${fmtKm2}.`,
+    fromYourLastFourWeeks: (fmtKm: string | number, profile: string | number, fmtKm2: string | number) => `From your last four weeks: about ${fmtKm} a week over ${profile} runs, longest ${fmtKm2}.`,
     xIsTheBridgeTo: (name: string | number) => ` ${name} is the bridge to this one.`,
     runsAWeek: 'Runs a week',
     whichDays: 'Which days',
-    thisPlanRunsXDays: (spec: string | number) => `This plan runs ${spec}days a week.`,
+    thisPlanRunsXDays: (spec: string | number) => `This plan runs ${spec} days a week.`,
     longRunOn: 'Long run on',
     raceDay: 'Race day',
-    xWeeksFromNowThe: (weeksToRace: string | number, weeks: string | number, minWeeks: string | number) => `${weeksToRace}weeks from now. The plan is ${weeks}weeks and shortens to ${minWeeks}at most.`,
+    xWeeksFromNowThe: (weeksToRace: string | number, weeks: string | number, minWeeks: string | number) => `${weeksToRace} weeks from now. The plan is ${weeks} weeks and shortens to ${minWeeks} at most.`,
     week: '− week',
     week2: '+ week',
     day: '− day',
@@ -647,7 +657,7 @@ export const en = {
     optionalWithoutItEverySession: 'Optional. Without it, every session is described by effort and the talk test. With it, each gets a pace too.',
     half: 'Half',
     marathon: 'Marathon',
-    easyXXThresholdX: (formatSPerKm: string | number, formatSPerKm2: string | number, formatSPerKm3: string | number, formatSPerKm4: string | number, GOAL_LABEL: string | number, formatRaceTime: string | number) => `Easy ${formatSPerKm}–${formatSPerKm2}· threshold ${formatSPerKm3}· intervals ${formatSPerKm4}. On that form, a ${GOAL_LABEL}in about ${formatRaceTime}.`,
+    easyXXThresholdX: (formatSPerKm: string | number, formatSPerKm2: string | number, formatSPerKm3: string | number, formatSPerKm4: string | number, GOAL_LABEL: string | number, formatRaceTime: string | number) => `Easy ${formatSPerKm}–${formatSPerKm2} · threshold ${formatSPerKm3} · intervals ${formatSPerKm4}. On that form, a ${GOAL_LABEL} in about ${formatRaceTime}.`,
     weekOne: 'Week one',
     runAndWalkInMinutes: 'Run and walk, in minutes.',
     weekOneAboutXPeak: (fmtKm: string | number, fmtKm2: string | number) => `Week one about ${fmtKm}, peak week about ${fmtKm2}.`,
@@ -672,7 +682,7 @@ export const en = {
     stepBackAndRebuild: 'Step back and rebuild',
     thisWeek: 'This week',
     weekX: (index: string | number) => `Week ${index}`,
-    xOfXRunsX: (done: string | number, total: string | number, fmtKm: string | number, fmtKm2: string | number) => `${done}of ${total}runs · ${fmtKm}of ${fmtKm2}`,
+    xOfXRunsX: (done: string | number, total: string | number, fmtKm: string | number, fmtKm2: string | number) => `${done} of ${total} runs · ${fmtKm} of ${fmtKm2}`,
     previousWeekWeekX: (index: string | number) => `Previous week, week ${index}`,
     previousWeek: 'Previous week',
     backToThisWeek: 'Back to this week',
@@ -850,7 +860,7 @@ export const en = {
     notNow: 'Not now',
     boughtItBeforeRestore: 'Bought it before? Restore',
     testBuild: 'Test build',
-    everythingIsUnlockedHereThe: (UNLOCK_PRICE: string | number, UNLOCK_PRICE_LATER: string | number) => `Everything is unlocked here. The store version charges ${UNLOCK_PRICE}, then ${UNLOCK_PRICE_LATER}once full plans arrive. Switch this on to see the app the way a new store user does.`,
+    everythingIsUnlockedHereThe: (UNLOCK_PRICE: string | number, UNLOCK_PRICE_LATER: string | number) => `Everything is unlocked here. The store version charges ${UNLOCK_PRICE}, then ${UNLOCK_PRICE_LATER} once full plans arrive. Switch this on to see the app the way a new store user does.`,
     showTheLocks: 'Show the locks',
     previewsTheStoreVersionS: 'Previews the store version\'s locks in this test build',
     weeks2ToX: (weeks: string | number) => `Weeks 2 to ${weeks}`,
@@ -906,15 +916,25 @@ export const en = {
     fewerItIsXA: (perWeek: string | number) => `Fewer it is. ${perWeek} a week from now on.`,
   },
   patterns: {
+    titles: {
+      lift: 'Your energy, before and after',
+      shortWeekday: 'Shorter weekday runs and your energy',
+      places: 'Places you most often go back to',
+      timeOfDay: 'The time of day you finish happiest',
+    },
+    part: { morning: 'Morning', midday: 'Midday', evening: 'Evening' },
+    span: (from: string, to: string) => `${from} to ${to}`,
+    runs: (n: number) => `${n} ${n === 1 ? 'run' : 'runs'}`,
+    weekdayRuns: (n: number) => `${n} ${n === 1 ? 'weekday run' : 'weekday runs'}`,
+    runsInOnePlace: (n: number) => `${n} ${n === 1 ? 'run' : 'runs'} in one place`,
     noneYet: 'None yet.',
-    xSoFar: (plural: string | number) => `${plural} so far.`,
+    xSoFar: (counted: string) => `${counted} so far.`,
     showsUpAfterXRuns: (LIFT_MIN: string | number) => `Shows up after ${LIFT_MIN} runs where you answered both energy questions.`,
     youHadMoreEnergyAfter: (up: string | number, n: string | number) => `You had more energy after ${up} of your last ${n} runs.`,
     yourEnergyStayedTheSame: (same: string | number, n: string | number) => `Your energy stayed the same after ${same} of your last ${n} runs.`,
     youHadLessEnergyAfter: (down: string | number, n: string | number) => `You had less energy after ${down} of your last ${n} runs.`,
     xMoreXTheSame: (up: string | number, same: string | number, down: string | number, span: string | number) => `${up} more, ${same} the same, ${down} less. From your before and after check-ins, ${span}. No score, just your answers counted.`,
     showsUpAfterXWeekday: (WEEKDAY_MIN: string | number) => `Shows up after ${WEEKDAY_MIN} weekday runs where you answered both energy questions.`,
-    weekdayRun: 'weekday run',
     yourWeekdayRunsAreMostly: 'Your weekday runs are mostly the same length, so there is nothing to compare yet.',
     yourShorterWeekdayRunsMore: 'Your shorter weekday runs more often ended with more energy.',
     yourLongerWeekdayRunsMore: 'Your longer weekday runs more often ended with more energy.',
@@ -925,29 +945,29 @@ export const en = {
     xOrMore: (d: string | number) => `${d} or more`,
     moreEnergyAfterXOf2: (lu: string | number, long: string | number) => `more energy after ${lu} of ${long}`,
     showsUpOnceYouHave: (PLACE_MIN: string | number) => `Shows up once you have run one of your places ${PLACE_MIN} times.`,
-    runInOnePlace: 'run in one place',
-    runsInOnePlace: 'runs in one place',
-    youWentBackToX: (get: string | number, plural: string | number, fmt: string | number) => `You went back to ${get} most: ${plural} since ${fmt}.`,
+    youWentBackToX: (place: string, runs: number, since: string) => `You went back to ${place} most: ${runs} ${runs === 1 ? 'run' : 'runs'} since ${since}.`,
     runsLoggedInYourPlaces: (span: string | number) => `Runs logged in your places, ${span}.`,
     moreEnergyAfterXOf3: (up: string | number, r: string | number) => `, more energy after ${up} of ${r}`,
     showsUpAfterXRuns2: (TIME_MIN: string | number) => `Shows up after ${TIME_MIN} runs at two different times of day, with both energy questions answered.`,
-    yourXRunsMostOften: (p: string | number, high: string | number, n: string | number) => `Your ${p} runs most often ended on Good or Recharged: ${high} of ${n}.`,
+    yourXRunsMostOften: (p: 'morning' | 'midday' | 'evening', high: number, n: number) => `Your ${p} runs most often ended on Good or Recharged: ${high} of ${n}.`,
     yourRunsEndedOnGood: 'Your runs ended on Good or Recharged about as often at any time of day.',
     morningIsBefore1100: (span: string | number) => `Morning is before 11:00, evening from 16:00. Your after-run answers, ${span}.`,
     goodOrRechargedAfterX: (high: string | number, n: string | number) => `Good or Recharged after ${high} of ${n}`,
   },
   places: {
     thirdTimeOnThisLoop: 'Third time on this loop. Keep it as a place?',
-    xRunsOnThisLoop: (n: string | number) => `${n} runs on this loop now. Keep it as a place?`,
-    morning: 'Morning',
-    lunchtime: 'Lunchtime',
-    afternoon: 'Afternoon',
-    evening: 'Evening',
-    night: 'Night',
-    earlyMorning: 'early morning',
-    yourLastX: (num: string | number) => `your last ${num}`,
-    youNotedHardlyAnyoneOn: (num: string | number, yours: string | number, label: string | number) => `You noted hardly anyone on ${num} of ${yours} ${label} here.`,
-    youFoundItBusyOn: (num: string | number, yours: string | number, label: string | number) => `You found it busy on ${num} of ${yours} ${label} here.`,
+    xRunsOnThisLoop: (n: number) => `${n} runs on this loop now. Keep it as a place?`,
+    loopName: { morning: 'Morning loop', lunchtime: 'Lunchtime loop', afternoon: 'Afternoon loop', evening: 'Evening loop', night: 'Night loop' },
+    busy: { empty: 'Hardly anyone', some: 'A few people', crowded: 'Busy' },
+    tags: { quiet: 'quiet', shaded: 'shaded', 'few crossings': 'few crossings', familiar: 'familiar', 'lit after dark': 'lit after dark', 'soft ground': 'soft ground', hilly: 'hilly' },
+    // "Sunday mornings", "weekday evenings". day: 0 is Sunday.
+    slot: (part: DayPart, day: number | null, weekend: boolean) =>
+      `${day != null ? ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day] : weekend ? 'weekend' : 'weekday'} ${part}s`,
+    // "You noted hardly anyone on 3 of your last 4 Sunday mornings here." every: of is all the notes there are.
+    quietLine: (count: number, of: number, every: boolean, when: string) =>
+      `You noted hardly anyone on ${count === of ? 'all' : enNum(count)} of your ${every ? '' : 'last '}${enNum(of)} ${when} here.`,
+    busyLine: (count: number, of: number, every: boolean, when: string) =>
+      `You found it busy on ${count === of ? 'all' : enNum(count)} of your ${every ? '' : 'last '}${enNum(of)} ${when} here.`,
   },
   runNotify: {
     recording: 'Recording',
@@ -1140,6 +1160,22 @@ export const en = {
     stride: 'Stride',
     xMinXS: (m: string | number, s: string | number) => `${m} min ${s} s`,
     xXLeft: (m: string | number, padStart: string | number) => `${m}:${padStart} left`,
+  },
+  common: {
+    // The five energy faces, 1 (Drained) to 5 (Recharged).
+    mood: { 1: 'Drained', 2: 'Low', 3: 'Okay', 4: 'Good', 5: 'Recharged' },
+  },
+  painPicker: {
+    title: 'Anything hurt?',
+    label: { none: 'Nothing', niggle: 'A niggle', pain: 'Pain' },
+    hint: {
+      none: ' ',
+      niggle: 'Noted. If it is still there next run, say so.',
+      pain: 'Pain that changes how you run, or gets worse as you go. Two days off, then an easy week; the plan adjusts itself.',
+    },
+  },
+  quietPicker: {
+    title: 'How busy was it out there?',
   },
 };
 

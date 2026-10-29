@@ -3,9 +3,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, spacing } from '../theme';
 import type { Mood } from '../types';
 import { Face } from './Mark';
-import { ui } from '../i18n/ui';
+import { live, ui } from '../i18n/ui';
 
-const LABELS: Record<Mood, string> = { 1: 'Drained', 2: 'Low', 3: 'Okay', 4: 'Good', 5: 'Recharged' };
+const LABELS: Record<Mood, string> = live(() => ui().common.mood);
 const ON_FILL: Record<Mood, string> = { 1: colors.sky, 2: colors.lilac, 3: colors.butter, 4: colors.mint, 5: colors.peach };
 
 /**

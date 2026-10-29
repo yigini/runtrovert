@@ -22,6 +22,7 @@ import { LockRow } from '../components/LockRow';
 import { isUnlocked, openWeeks, planSessionOpen, planWeekOpen, trainLine } from '../unlock';
 import { openUnlock, useUnlocked } from '../unlockState';
 import { ui } from '../i18n/ui';
+import { dateLocale } from '../i18n/lang';
 
 /**
  * The Train tab. Without a plan: the catalogue, a plan's page, its setup and a
@@ -605,7 +606,7 @@ function DayRow({ date, today, session, strength, spec, unitsKm, onPress }: { da
       accessibilityRole={onPress ? 'button' : 'text'}
       accessibilityHint={onPress ? ui().train.opensTheSession : undefined}
       accessibilityLabel={[
-        `${isToday ? ui().train.today2 : ''}${new Date(date).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}`,
+        `${isToday ? ui().train.today2 : ''}${new Date(date).toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}`,
         s ? s.title : strength ? ui().train.strengthIfYouLike : ui().train.rest,
         s ? (s.done ? `${fmtKm(s.done.distanceM / 1000, unitsKm)} in ${fmtDur(s.done.durationS)}` : sizeOf(s, spec, unitsKm)) : null,
         s?.note ?? null,

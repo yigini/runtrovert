@@ -15,6 +15,7 @@ import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import type { Quiet, Run } from '../types';
 import { ui } from '../i18n/ui';
+import { dateLocale, monthName, upperFirst } from '../i18n/lang';
 
 const QUIET_BG: Record<Quiet, string> = { crowded: colors.peach, some: colors.butter, empty: colors.mint };
 const QUIET_FG: Record<Quiet, string> = { crowded: colors.peachDeep, some: colors.butterDeep, empty: colors.mintDeep };
@@ -49,7 +50,7 @@ export function HistoryScreen({
   const now = Date.now();
   const runs = data?.runs ?? [];
   const names = useMemo(() => new Map((data?.places ?? []).map((p) => [p.id, p.name])), [data]);
-  const groups = useMemo(() => groupRuns(runs, now, (t) => new Date(t).toLocaleDateString(undefined, { month: 'long' })), [runs]);
+  const groups = useMemo(() => groupRuns(runs, now), [runs]);
   const patterns = useMemo(() => (data ? energyPatterns(patternRuns(data), data.places, now, patternFormat(km)) : null), [data, km]);
 
   const title = (
@@ -82,19 +83,19 @@ export function HistoryScreen({
   }
 
   const month = monthSummary(runs, now);
-  const monthName = new Date(now).toLocaleDateString(undefined, { month: 'long' });
+  const thisMonth = upperFirst(monthName(now));
   const header = (
     <View style={{ gap: spacing.md, marginBottom: spacing.sm }}>
       {title}
       <View
         style={styles.month}
         accessible
-        accessibilityLabel={ui().history.xSoFarXX(monthName, month.runs, month.runs === 1 ? 'run' : 'runs', spokenDistance(month.distanceM, km), spokenDuration(month.durationS))}
+        accessibilityLabel={ui().history.monthSoFarSpoken(thisMonth, month.runs, spokenDistance(month.distanceM, km), spokenDuration(month.durationS))}
       >
-        <Text style={[type.eyebrow, styles.monthTitle]}>{ui().history.xSoFar(monthName)}</Text>
-        <Stat value={String(month.runs)} label={month.runs === 1 ? 'run' : 'runs'} />
+        <Text style={[type.eyebrow, styles.monthTitle]}>{ui().history.monthSoFar(thisMonth)}</Text>
+        <Stat value={String(month.runs)} label={ui().history.runsLabel(month.runs)} />
         <Stat value={month.runs ? formatDistanceNumber(month.distanceM, km) : '0'} label={distanceUnit(km)} />
-        <Stat value={hoursMinutes(month.durationS)} label="running" />
+        <Stat value={hoursMinutes(month.durationS)} label={ui().history.running} />
       </View>
       <YouSection km={km} refreshKey={refreshKey} />
     </View>
@@ -179,8 +180,8 @@ function Stat({ value, label }: { value: string; label: string }) {
 
 function RunRow({ run, km, place, onPress }: { run: Run; km: boolean; place: string | null; onPress: () => void }) {
   const d = new Date(run.startedAt);
-  const date = d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' });
-  const time = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  const date = d.toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric' });
+  const time = d.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' });
   const delta = run.moodBefore != null && run.moodAfter != null ? run.moodAfter - run.moodBefore : null;
   const q = run.quiet;
   const busy = q ? BUSY_LABEL[q].toLowerCase() : null;
@@ -193,7 +194,7 @@ function RunRow({ run, km, place, onPress }: { run: Run; km: boolean; place: str
       accessibilityRole="button"
       accessibilityHint={ui().history.opensThisRun}
       accessibilityLabel={[
-        `${d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}, ${time}`,
+        `${d.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}, ${time}`,
         place,
         `${spokenDistance(run.distanceM, km)} in ${spokenDuration(run.durationS)}`,
         spokenPace(run.distanceM, run.durationS, km),
@@ -219,7 +220,7 @@ function RunRow({ run, km, place, onPress }: { run: Run; km: boolean; place: str
         </Text>
         <Text style={styles.rowSub}>
           {formatPace(run.distanceM, run.durationS, km)} /{km ? 'km' : 'mi'}
-          {delta != null ? ui().history.energyXX(delta > 0 ? '+' : '', delta) : ''}
+          {delta != null ? ui().history.energy(delta) : ''}
         </Text>
       </View>
     </Pressable>

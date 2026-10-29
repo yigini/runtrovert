@@ -1,3 +1,5 @@
+import { dateLocale } from '../i18n/lang';
+
 // Local calendar days as epoch ms at midnight. Plans think in days and weeks
 // (Monday to Sunday), never in hours, so DST never shifts a session.
 
@@ -41,5 +43,5 @@ export const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export const WEEKDAY_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export function formatDay(day: number): string {
-  return new Date(day).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+  return new Date(day).toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric', month: 'short' });
 }

@@ -7,13 +7,14 @@ import { lastWhen } from '../components/PlacesList';
 import { RouteMap } from '../components/RouteMap';
 import { SavePlaceSheet } from '../components/SavePlaceSheet';
 import { formatDistance, formatPace } from '../geo';
-import { BUSY_LABEL, placeSummary, quietPatterns } from '../places';
+import { BUSY_LABEL, placeSummary, quietPatterns, tagLabel } from '../places';
 import { deletePlace, getPlace, placeVisits, updatePlace, type Place, type PlaceVisit } from '../placeStore';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import type { LatLon } from '../types';
 import { useUnlocked } from '../unlockState';
 import { ui } from '../i18n/ui';
+import { dateLocale } from '../i18n/lang';
 
 /**
  * One of your places: its loop, your notes as tags, every dated note on how
@@ -54,7 +55,7 @@ export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeI
     );
   }
 
-  const since = summary.since ? new Date(summary.since).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : null;
+  const since = summary.since ? new Date(summary.since).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' }) : null;
   const facts = [
     summary.count === 1 ? ui().place.runOnce : ui().place.runXTimes(summary.count),
     since ? `since ${since}` : null,
@@ -90,10 +91,10 @@ export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeI
           {place.name}
         </Text>
         {place.tags.length ? (
-          <View style={styles.tags} accessibilityLabel={ui().place.yourNotesX(place.tags.join(', '))}>
+          <View style={styles.tags} accessibilityLabel={ui().place.yourNotesX(place.tags.map(tagLabel).join(', '))}>
             {place.tags.map((t) => (
               <Text key={t} style={styles.tag}>
-                {t}
+                {tagLabel(t)}
               </Text>
             ))}
           </View>
@@ -107,7 +108,7 @@ export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeI
           {visits.length === 0 ? <Text style={type.small}>{ui().place.nothingYetEachRunHere}</Text> : null}
           {visits.map((v) => {
             const when = new Date(v.at);
-            const label = `${when.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })} ${when.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
+            const label = `${when.toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric', month: 'short' })} ${when.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' })}`;
             return (
               <View key={v.id} style={styles.log} accessible accessibilityLabel={[label, v.busy ? BUSY_LABEL[v.busy] : ui().place.noRating, v.note].filter(Boolean).join('. ')}>
                 <Text style={styles.logWhen}>{label}</Text>

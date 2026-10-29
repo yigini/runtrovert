@@ -9,7 +9,8 @@
 
 import { weekStart } from './progress';
 import type { Mood } from './types';
-import { ui } from './i18n/ui';
+import { lang, monthName, upperFirst } from './i18n/lang';
+import { live, ui } from './i18n/ui';
 
 export interface PatternRun {
   id: number;
@@ -89,9 +90,8 @@ export function groupRuns<T extends { startedAt: number }>(runs: T[], now = Date
   return out;
 }
 
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 function defaultMonth(t: number): string {
-  return MONTHS[new Date(t).getMonth()];
+  return upperFirst(monthName(t));
 }
 
 // ---- Energy patterns ---------------------------------------------------------------
@@ -105,7 +105,7 @@ export interface PatternFormat {
 const PLAIN: PatternFormat = {
   date: (t) => {
     const d = new Date(t);
-    return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}`;
+    return lang() === 'en' ? `${d.getDate()} ${monthName(t).slice(0, 3)}` : d.toLocaleDateString(lang() === 'pt' ? 'pt-BR' : lang(), { day: 'numeric', month: 'short' });
   },
   distance: (m) => `${(m / 1000).toFixed(1)} km`,
 };
@@ -137,12 +137,7 @@ export interface Patterns {
   more: Insight[];
 }
 
-export const TITLES: Record<PatternKey, string> = {
-  lift: 'Your energy, before and after',
-  shortWeekday: 'Shorter weekday runs and your energy',
-  places: 'Places you most often go back to',
-  timeOfDay: 'The time of day you finish happiest',
-};
+export const TITLES: Record<PatternKey, string> = live(() => ui().patterns.titles);
 
 /** Runs with both check-ins counted for "lift". */
 export const LIFT_RUNS = 10;
@@ -167,25 +162,21 @@ export function change(r: { moodBefore: Mood; moodAfter: Mood }): Change {
   return r.moodAfter > r.moodBefore ? 'up' : r.moodAfter < r.moodBefore ? 'down' : 'same';
 }
 
-function plural(n: number, one: string, many = `${one}s`): string {
-  return `${n} ${n === 1 ? one : many}`;
-}
-
 function span(fmt: PatternFormat, list: Array<{ startedAt: number }>): string {
   const ts = list.map((r) => r.startedAt);
   const from = Math.min(...ts);
   const to = Math.max(...ts);
   const a = fmt.date(from);
   const b = fmt.date(to);
-  return a === b ? a : `${a} to ${b}`;
+  return a === b ? a : ui().patterns.span(a, b);
 }
 
-function waiting(key: PatternKey, need: string, have: number, one: string, many?: string): Insight {
+function waiting(key: PatternKey, need: string, have: number, counted: (n: number) => string): Insight {
   return {
     key,
     title: TITLES[key],
     line: need,
-    detail: have === 0 ? ui().patterns.noneYet : ui().patterns.xSoFar(plural(have, one, many)),
+    detail: have === 0 ? ui().patterns.noneYet : ui().patterns.xSoFar(counted(have)),
     ready: false,
   };
 }
@@ -196,7 +187,7 @@ export function lift(runs: PatternRun[], fmt: PatternFormat = PLAIN): Insight {
     .sort((a, b) => b.startedAt - a.startedAt)
     .slice(0, LIFT_RUNS);
   if (last.length < LIFT_MIN) {
-    return waiting('lift', ui().patterns.showsUpAfterXRuns(LIFT_MIN), last.length, 'run');
+    return waiting('lift', ui().patterns.showsUpAfterXRuns(LIFT_MIN), last.length, ui().patterns.runs);
   }
   const changes = last.map(change).reverse();
   const n = changes.length;
@@ -237,13 +228,13 @@ export function shortWeekday(runs: PatternRun[], now = Date.now(), fmt: PatternF
     return d >= 1 && d <= 5;
   });
   if (week.length < WEEKDAY_MIN) {
-    return waiting('shortWeekday', ui().patterns.showsUpAfterXWeekday(WEEKDAY_MIN), week.length, ui().patterns.weekdayRun);
+    return waiting('shortWeekday', ui().patterns.showsUpAfterXWeekday(WEEKDAY_MIN), week.length, ui().patterns.weekdayRuns);
   }
   const mid = median(week.map((r) => r.distanceM));
   const short = week.filter((r) => r.distanceM < mid);
   const long = week.filter((r) => r.distanceM >= mid);
   if (short.length < WEEKDAY_SIDE_MIN || long.length < WEEKDAY_SIDE_MIN) {
-    return waiting('shortWeekday', ui().patterns.yourWeekdayRunsAreMostly, week.length, ui().patterns.weekdayRun);
+    return waiting('shortWeekday', ui().patterns.yourWeekdayRunsAreMostly, week.length, ui().patterns.weekdayRuns);
   }
   const su = short.filter((r) => change(r) === 'up').length;
   const lu = long.filter((r) => change(r) === 'up').length;
@@ -285,14 +276,14 @@ export function placesBack(runs: PatternRun[], places: PatternPlace[], now = Dat
     .slice(0, 3);
   if (top.length === 0) {
     const most = Math.max(0, ...[...byPlace.values()].map((l) => l.length));
-    return waiting('places', ui().patterns.showsUpOnceYouHave(PLACE_MIN), most, ui().patterns.runInOnePlace, ui().patterns.runsInOnePlace);
+    return waiting('places', ui().patterns.showsUpOnceYouHave(PLACE_MIN), most, ui().patterns.runsInOnePlace);
   }
   const [firstId, firstRuns] = top[0];
   const all = top.flatMap(([, l]) => l);
   return {
     key: 'places',
     title: TITLES.places,
-    line: ui().patterns.youWentBackToX(names.get(firstId), plural(firstRuns.length, 'run'), fmt.date(Math.min(...firstRuns.map((r) => r.startedAt)))),
+    line: ui().patterns.youWentBackToX(names.get(firstId) ?? '', firstRuns.length, fmt.date(Math.min(...firstRuns.map((r) => r.startedAt)))),
     detail: ui().patterns.runsLoggedInYourPlaces(span(fmt, all)),
     ready: true,
     rows: top.map(([id, list]) => {
@@ -300,14 +291,14 @@ export function placesBack(runs: PatternRun[], places: PatternPlace[], now = Dat
       const up = r.filter((x) => change(x) === 'up').length;
       return {
         label: names.get(id)!,
-        value: `${plural(list.length, 'run')}` + (r.length >= PLACE_MIN ? ui().patterns.moreEnergyAfterXOf3(up, r.length) : ''),
+        value: ui().patterns.runs(list.length) + (r.length >= PLACE_MIN ? ui().patterns.moreEnergyAfterXOf3(up, r.length) : ''),
       };
     }),
   };
 }
 
 export type DayPart = 'morning' | 'midday' | 'evening';
-const PART_LABEL: Record<DayPart, string> = { morning: 'Morning', midday: 'Midday', evening: 'Evening' };
+const PART_LABEL: Record<DayPart, string> = live(() => ui().patterns.part);
 
 export function dayPart(t: number): DayPart {
   const h = new Date(t).getHours();
@@ -325,7 +316,7 @@ export function timeOfDay(runs: PatternRun[], now = Date.now(), fmt: PatternForm
     })
     .filter((x) => x.n >= TIME_MIN);
   if (parts.length < 2) {
-    return waiting('timeOfDay', ui().patterns.showsUpAfterXRuns2(TIME_MIN), list.length, 'run');
+    return waiting('timeOfDay', ui().patterns.showsUpAfterXRuns2(TIME_MIN), list.length, ui().patterns.runs);
   }
   const sorted = [...parts].sort((a, b) => b.share - a.share);
   const best = sorted[0];

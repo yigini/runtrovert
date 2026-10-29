@@ -5,6 +5,7 @@ import { colors, fonts, radius, spacing, type } from '../theme';
 import { useUnlocked } from '../unlockState';
 import { LockGlyph, LockRow } from './LockRow';
 import { ui } from '../i18n/ui';
+import { dateLocale } from '../i18n/lang';
 
 /**
  * Your runs › Patterns: your own before and after energy answers, counted.
@@ -84,7 +85,7 @@ function Dots({ changes }: { changes: Change[] }) {
 /** How the screen writes dates and distances inside pattern lines. */
 export function patternFormat(km: boolean) {
   return {
-    date: (t: number) => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }),
+    date: (t: number) => new Date(t).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' }),
     distance: (m: number) => (km ? `${(m / 1000).toFixed(1)} km` : `${(m / 1609.344).toFixed(1)} mi`),
   };
 }

@@ -47,6 +47,16 @@ let current: Lang = langFor(phoneLocale());
 let swiss = isSwiss(phoneLocale());
 const listeners = new Set<(l: Lang) => void>();
 
+/**
+ * The locale for dates and times: the phone's own when it speaks the app's
+ * language (so en-GB keeps day-month order), else the app's language.
+ */
+export function dateLocale(): string {
+  const phone = phoneLocale();
+  if (phone.toLowerCase().split('-')[0] === current) return phone;
+  return current === 'pt' ? 'pt-BR' : current;
+}
+
 export function lang(): Lang {
   return current;
 }

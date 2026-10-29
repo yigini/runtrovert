@@ -7,13 +7,13 @@ import { colors, fonts, radius, spacing, type } from '../theme';
 import { useUnlocked } from '../unlockState';
 import { loadYou } from '../you';
 import { LockRow } from './LockRow';
-import { ui } from '../i18n/ui';
+import { live, ui } from '../i18n/ui';
 
 // The top of History: your bests and how you're doing against your own last
 // six weeks. Nobody else is on this screen, and nothing here is ever sent anywhere.
 
 const DAY = 86400000;
-const LABEL: Record<string, string> = { ...Object.fromEntries(EFFORTS.map((e) => [e.key, e.label])), longest: 'Longest', climb: 'Most climb' };
+const LABEL: Record<string, string> = live(() => ({ ...Object.fromEntries(EFFORTS.map((e) => [e.key, e.label])), longest: ui().youSection.longest, climb: ui().youSection.mostClimb }));
 
 export function YouSection({ km, refreshKey }: { km: boolean; refreshKey: number }) {
   const [data, setData] = useState<{ all: Best[]; recent: Best[]; tr: Trends } | null>(null);
@@ -79,7 +79,7 @@ export function YouSection({ km, refreshKey }: { km: boolean; refreshKey: number
     const faces = Math.abs(r.avg) < 0.05 ? ui().youSection.noChange : `${r.avg > 0 ? '+' : ''}${r.avg.toFixed(1)} faces`;
     rows.push({
       k: ui().youSection.recharge,
-      v: ui().youSection.onAverageARunMoves(faces) + (r.best ? ui().youSection.xLiftYouMost(r.best === 'morning' ? 'Mornings' : r.best === 'midday' ? 'Middays' : 'Evenings') : ''),
+      v: ui().youSection.onAverageARunMoves(faces) + (r.best ? ui().youSection.liftYouMost(r.best) : ''),
     });
   }
   const weeks = tr.rhythm.filter(Boolean).length;

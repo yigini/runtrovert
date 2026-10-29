@@ -7,14 +7,14 @@ import { clock } from '../sky';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import { BUSY_LABEL } from '../places';
 import { SplitsTable, type SplitRow } from './SplitsTable';
-import { ui } from '../i18n/ui';
+import { live, ui } from '../i18n/ui';
 
 // The stats page for one run: the four numbers first, big and plain, then the
 // run drawn out (pace and hills along the way, splits, halves, the sun), then a
 // handful of odd little facts. Everything comes from the stored fixes.
 
 const QUIET = BUSY_LABEL;
-const MOOD = ['', 'Drained', 'Low', 'Okay', 'Good', 'Recharged'];
+const MOOD: Record<number, string> = live(() => ui().common.mood);
 
 export interface RunStatsProps {
   run: StatRun & { quiet?: 'crowded' | 'some' | 'empty' | null; moodBefore?: number | null; moodAfter?: number | null };

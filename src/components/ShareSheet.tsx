@@ -13,6 +13,7 @@ import type { LatLon, Mood, Quiet } from '../types';
 import { Button } from './Button';
 import { Face, Mark } from './Mark';
 import { ui } from '../i18n/ui';
+import { dateLocale } from '../i18n/lang';
 
 // "Share with someone": a card drawn on the phone and handed to the phone's
 // own share sheet. Runtrovert never sees where it goes. The route is off by
@@ -97,7 +98,7 @@ export function ShareSheet({
   })();
 
   const faces = stat === 'energy' && run.moodBefore != null && run.moodAfter != null ? { before: run.moodBefore, after: run.moodAfter } : null;
-  const when = `${new Date(run.startedAt).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })} · ${roughTime(run.startedAt)}`;
+  const when = `${new Date(run.startedAt).toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric', month: 'short' })} · ${roughTime(run.startedAt)}`;
 
   async function onShare() {
     if (!card.current || busy) return;

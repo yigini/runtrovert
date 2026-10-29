@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { BUSY_LABEL, cleanTag, PLACE_TAGS, type RouteSig } from '../places';
+import { BUSY_LABEL, cleanTag, PLACE_TAGS, tagLabel, type RouteSig } from '../places';
 import type { PlaceDraft } from '../placeStore';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import type { Quiet } from '../types';
@@ -109,7 +109,7 @@ export function SavePlaceSheet({
                   const on = tags.includes(t);
                   return (
                     <Pressable key={t} onPress={() => toggle(t)} accessibilityRole="checkbox" accessibilityState={{ checked: on }} style={[styles.chip, on && styles.chipOn]}>
-                      <Text style={[styles.chipText, on && styles.chipTextOn]}>{t}</Text>
+                      <Text style={[styles.chipText, on && styles.chipTextOn]}>{tagLabel(t)}</Text>
                     </Pressable>
                   );
                 })}

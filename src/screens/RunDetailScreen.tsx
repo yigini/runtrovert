@@ -19,6 +19,7 @@ import type { StatPoint } from '../runStats';
 import type { LatLon, Mood, Run, Split } from '../types';
 import { loadYou } from '../you';
 import { ui } from '../i18n/ui';
+import { dateLocale } from '../i18n/lang';
 
 export function RunDetailScreen({
   runId,
@@ -107,11 +108,11 @@ export function RunDetailScreen({
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xl }}>
       <BackButton label={ui().runDetail.yourRuns} onPress={onBack} />
-      <Text style={styles.date}>{d.toLocaleString(undefined, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</Text>
+      <Text style={styles.date}>{d.toLocaleString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</Text>
       {source ? (
         <Text style={styles.source}>
           Brought in from {source.kind === 'health' ? ui().runDetail.healthConnect : source.fileName ?? ui().runDetail.aXFile(source.kind.toUpperCase())} on{' '}
-          {new Date(source.importedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'long' })}.
+          {new Date(source.importedAt).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' })}.
         </Text>
       ) : null}
       {place && onOpenPlace ? (

@@ -26,6 +26,7 @@ import type { Mood, Run } from '../types';
 import { NEWS } from '../whatsNew';
 import { cachedWeather, getWeather, type Weather, type WeatherResult } from '../weather';
 import { ui } from '../i18n/ui';
+import { dateLocale } from '../i18n/lang';
 
 /**
  * The first thing you see. Footage, the sky in a sentence, three plain
@@ -279,7 +280,7 @@ function SkyRow({ w, metric }: { w: Weather; metric: boolean }) {
 
 function dateLine(now: number): string {
   const d = new Date(now);
-  return `${d.toLocaleDateString(undefined, { weekday: 'long' })} · ${clock(now)}`;
+  return `${d.toLocaleDateString(dateLocale(), { weekday: 'long' })} · ${clock(now)}`;
 }
 
 function greeting(runs: Run[], now: number): string {
@@ -296,7 +297,7 @@ function subline(runs: Run[], now: number): string {
   const days = Math.floor((startOfDay(now) - startOfDay(runs[0].startedAt)) / 86400000);
   if (days <= 0) return ui().home.youAlreadyRanTodayNobody;
   if (days === 1) return ui().home.youRanYesterdayEasyIs;
-  if (days < 7) return ui().home.lastRunXLegsRemember(new Date(runs[0].startedAt).toLocaleDateString(undefined, { weekday: 'long' }));
+  if (days < 7) return ui().home.lastRunXLegsRemember(new Date(runs[0].startedAt).toLocaleDateString(dateLocale(), { weekday: 'long' }));
   return ui().home.xDaysSinceTheLast(days);
 }
 
@@ -308,7 +309,7 @@ function footer(runs: Run[], now: number): string {
   }).length;
   const deltas = runs.filter((r) => r.moodBefore != null && r.moodAfter != null).map((r) => (r.moodAfter as number) - (r.moodBefore as number));
   const parts = [ui().home.runAloneNotLonely];
-  if (month) parts.push(`${month} ${month === 1 ? 'run' : 'runs'} in ${d.toLocaleDateString(undefined, { month: 'long' })}`);
+  if (month) parts.push(`${month} ${month === 1 ? 'run' : 'runs'} in ${d.toLocaleDateString(dateLocale(), { month: 'long' })}`);
   if (deltas.length) {
     const avg = deltas.reduce((a, b) => a + b, 0) / deltas.length;
     parts.push(ui().home.energyXXAfter(avg >= 0 ? '+' : '', avg.toFixed(1)));
