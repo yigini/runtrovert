@@ -3,6 +3,7 @@ import * as Sharing from 'expo-sharing';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
+import { SettingsGear } from '../components/SettingsGear';
 import { Button } from '../components/Button';
 import { PlanReminderCard } from '../components/PlanReminders';
 import { useSettings } from '../settings';
@@ -195,7 +196,10 @@ function Catalogue({ profile, historyN, lastPlan, onPick, onRules }: { profile: 
   const [goal, setGoal] = useState<Goal>(lastPlan ? planById(lastPlan.setup.planId)?.goal ?? 'none' : 'none');
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.screen}>
-      <Text style={type.eyebrow}>Train</Text>
+      <View style={styles.topRow}>
+        <Text style={type.eyebrow}>Train</Text>
+        <SettingsGear />
+      </View>
       <Text style={styles.h1}>Structure,{'\n'}without the shouting.</Text>
       <Text style={styles.lede}>Fourteen plans, from a first run to a marathon. Every one builds gradually, with lighter weeks for recovery, and gives way when life does. Everyone responds differently, so listen to your legs before the plan.</Text>
       {lastPlan?.status === 'done' && <Text style={styles.note}>{lastPlan.name} is done. {planProgress(lastPlan).done} runs, {fmtKm(planProgress(lastPlan).kmDone, true)}. Quietly logged.</Text>}
@@ -491,9 +495,12 @@ function WeekView(props: {
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.screen}>
-      <Text style={type.eyebrow}>
-        {plan.name} · week {current.index} of {spec.tier === 'keep' ? '∞' : weeks[weeks.length - 1].index}
-      </Text>
+      <View style={styles.topRow}>
+        <Text style={[type.eyebrow, { flex: 1 }]}>
+          {plan.name} · week {current.index} of {spec.tier === 'keep' ? '∞' : weeks[weeks.length - 1].index}
+        </Text>
+        <SettingsGear />
+      </View>
       <Text style={styles.h1}>{weekHeadline(current, current, today, raceIn)}</Text>
 
       {paused ? (
@@ -1106,6 +1113,7 @@ async function exportCalendar(plan: Plan) {
 }
 
 const styles = StyleSheet.create({
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, marginTop: -10, marginRight: -10 },
   scroll: { flex: 1, backgroundColor: colors.cream },
   screen: { padding: spacing.md, paddingTop: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
   h1: { fontFamily: fonts.display, fontSize: 34, lineHeight: 38, letterSpacing: -0.6, color: colors.text },

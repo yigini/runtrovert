@@ -2,6 +2,7 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Alert, Animated, Dimensions, Easing, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { DISPLAY_MAX_SCALE, spokenDistance, spokenDuration, spokenPace, spokenRun } from '../a11y';
 import { AmbientBackground } from '../components/AmbientBackground';
 import { Button } from '../components/Button';
@@ -14,11 +15,12 @@ import { RouteMap } from '../components/RouteMap';
 import { RunStatsView } from '../components/RunStats';
 import { YouLine } from '../components/YouLine';
 import { useBack } from '../back';
-import { cueCountdown } from '../cues';
+import { cueCountdown, setRunSilent } from '../cues';
 import { deleteRun, getPoints, listRuns, loadValue, saveValue } from '../db';
 import { HomeScreen } from './HomeScreen';
 import { countdownFootage, type Footage } from '../footage';
 import { distanceUnit, formatDistance, formatDistanceNumber, formatDuration, formatElevation, formatPace, formatSpeedAsPace } from '../geo';
+import { effectivePreset, silentRun, type RunPreset } from '../presets';
 import { compare, youVsYou, type RunFacts } from '../progress';
 import type { StatPoint } from '../runStats';
 import { useSettings } from '../settings';
@@ -27,8 +29,8 @@ import { continueRun, ensurePermissions, getState, haltRun, lap, pauseRun, resum
 import { colors, fonts, radius, spacing, type } from '../theme';
 import { applyEnergy, type PainLevel } from '../training/adapt';
 import { loadPlan, nextSession, savePlan, todaySession } from '../training/store';
-import type { Session } from '../training/types';
-import { formatLeft, stepLine } from '../training/workout';
+import type { Session, Step } from '../training/types';
+import { createWorkout, formatLeft, leftClock, stepFeel, stepLine, stepName } from '../training/workout';
 import type { Mood, Quiet, Run } from '../types';
 import { cachedWeather } from '../weather';
 import { beginWorkout, endWorkout, subscribeWorkout, type GuidedRun } from '../workoutRun';
@@ -43,7 +45,7 @@ const TINY_RUN_M = 50;
 /** How long Stop is held before the run ends. Long enough that a sleeve or a pocket can't do it. */
 const HOLD_TO_STOP_MS = 1000;
 
-export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0, focused = true, onOpenPlan }: { onSaved: (runId: number, share?: boolean, extra?: { pain: PainLevel | null; sessionId: string | null }) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number; focused?: boolean; onOpenPlan?: () => void }) {
+export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0, focused = true, onOpenPlan, onBrowseListen, onInk }: { onSaved: (runId: number, share?: boolean, extra?: { pain: PainLevel | null; sessionId: string | null }) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number; focused?: boolean; onOpenPlan?: () => void; onBrowseListen?: () => void; onInk?: (ink: boolean) => void }) {
   const { settings } = useSettings();
   const km = settings.unitsKm;
   const [track, setTrack] = useState<TrackingState>(getState());
@@ -78,6 +80,13 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   const [pain, setPain] = useState<PainLevel | null>(null);
   const [guided, setGuided] = useState<GuidedRun | null>(null);
   const session = requested ?? planSession;
+  const sessionOpen = !!session && !session.done && !session.skipped;
+  // Today's run: a session opened from Train is always followed; otherwise the preset picks.
+  const preset: RunPreset = requested && sessionOpen ? 'plan' : effectivePreset(settings.runPreset, sessionOpen);
+  // The layout of the run in progress, fixed when it starts. A run picked back up after the app was killed keeps today's preset.
+  const [layout, setLayout] = useState<RunPreset>(preset);
+  // Clear my head: the running time stays hidden until asked for.
+  const [showTime, setShowTime] = useState(false);
 
   // The screen is the second-biggest drain after GPS. Off by default: the lock
   // screen (and the watch) carry the live numbers instead.
@@ -124,13 +133,23 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
       .catch(() => {});
   }, [phase, planKey]);
   useEffect(() => subscribeWorkout(setGuided), []);
+  useEffect(() => {
+    // Picked back up after the app was killed: keep a quiet run quiet.
+    if (getState().status !== 'idle') setRunSilent(silentRun(preset, settings.silentDay, Date.now()));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const shown: RunPreset = layout === 'plan' && !guided ? 'just' : layout;
+  const ink = phase === 'active' && shown === 'just';
+  useEffect(() => {
+    onInk?.(ink);
+  }, [ink, onInk]);
   useEffect(() => () => {
     if (countdownRef.current) clearInterval(countdownRef.current);
   }, []);
 
   async function onStart() {
     // A low face before a hard or long day: the plan gives way before the run, not after.
-    if (session && !session.done && !session.skipped && (session.hard || session.kind === 'long') && moodBefore != null && moodBefore <= 2) {
+    if (session && sessionOpen && preset === 'plan' && (session.hard || session.kind === 'long') && moodBefore != null && moodBefore <= 2) {
       Alert.alert(`Low energy, and ${session.title} is on the plan.`, 'Easy days are allowed. Nothing is added elsewhere to make up for it.', [
         { text: 'Make it easy', onPress: () => giveWay('easy') },
         { text: 'Rest today', onPress: () => giveWay('rest') },
@@ -169,6 +188,9 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     if (!perm.background) {
       Alert.alert('Background location', 'Without "Always" location the run may stop recording when the screen is off. You can change this in Settings later.');
     }
+    setLayout(preset);
+    setShowTime(false);
+    setRunSilent(silentRun(preset, settings.silentDay, Date.now()));
     if (settings.countdownS > 0) {
       setCountFootage(countdownFootage());
       setPhase('countdown');
@@ -194,7 +216,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   }
 
   async function go() {
-    if (session && !session.done && !session.skipped) beginWorkout(session);
+    if (preset === 'plan' && session && sessionOpen) beginWorkout(session);
     try {
       await startRun(moodBefore);
       setPhase('active');
@@ -208,6 +230,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   function cancelCountdown() {
     if (countdownRef.current) clearInterval(countdownRef.current);
     countdownRef.current = null;
+    setRunSilent(false);
     setPhase('idle');
   }
 
@@ -317,6 +340,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
 
   function reset() {
     endWorkout();
+    setRunSilent(false);
     onRequestTaken?.();
     setPain(null);
     setPhase('idle');
@@ -333,7 +357,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
 
   // ---- Idle ------------------------------------------------------------------
   if (phase === 'idle') {
-    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} planToday={session} planNext={requested ? null : planNext} onOpenPlan={onOpenPlan} />;
+    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} planToday={session} planNext={requested ? null : planNext} onOpenPlan={onOpenPlan} onBrowseListen={onBrowseListen} />;
   }
 
   // ---- Countdown -------------------------------------------------------------
@@ -425,6 +449,119 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   const autoPaused = track.status === 'autopaused';
   const halted = paused || autoPaused;
   const H = Dimensions.get('window').height;
+  const statusLine = `${autoPaused ? 'Auto-paused' : paused ? 'Paused' : 'Recording'}${track.gps === 'lost' ? ' · GPS lost' : ''}`;
+  const lightControls = (
+    <View style={styles.controls}>
+      <Pressable onPress={onPauseResume} accessibilityRole="button" accessibilityLabel={paused ? 'Resume' : 'Pause'} style={({ pressed }) => [styles.roundBtn, styles.roundLight, pressed && { opacity: 0.85 }]}>
+        <Text style={[styles.roundGlyph, { color: colors.ink }]}>{paused ? '▶' : '❚❚'}</Text>
+      </Pressable>
+      <StopButton wide onStop={() => void onStop()} />
+    </View>
+  );
+
+  // Clear my head: nothing to read. The run records, the numbers wait for the finish.
+  if (shown === 'clear') {
+    return (
+      <View style={styles.calm}>
+        <View style={styles.calmTop}>
+          <Text style={type.eyebrow}>Clear my head</Text>
+          <View style={styles.calmStatus} accessible accessibilityLabel={statusLine}>
+            <View style={[styles.dot, { backgroundColor: halted ? colors.butterDeep : colors.mintDeep }]} />
+            <Text style={styles.calmStatusText}>{statusLine}</Text>
+          </View>
+        </View>
+        <View style={styles.calmMiddle}>
+          <CalmGlyph />
+          <Text style={styles.calmLine} maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>
+            Nothing to look at.{'\n'}Just run.
+          </Text>
+          <Pressable
+            onPress={() => setShowTime((v) => !v)}
+            accessibilityRole="button"
+            accessibilityLabel={showTime ? `${spokenDuration(track.durationS)} so far. Hide the time` : 'Show the time'}
+            style={styles.calmTime}
+          >
+            {showTime ? (
+              <Text style={styles.calmClock} maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>
+                {formatDuration(track.durationS)}
+              </Text>
+            ) : null}
+            <Text style={styles.calmTap}>{showTime ? 'so far · tap to hide' : 'Tap to show the time'}</Text>
+          </Pressable>
+        </View>
+        <Text style={styles.calmNote}>{halted ? (autoPaused ? 'Auto-paused. It carries on when you do.' : 'Paused. Nothing is recording.') : 'No voice, no buzz. Your music still plays.'}</Text>
+        {lightControls}
+      </View>
+    );
+  }
+
+  // Follow my plan: the block you're in, big, and what comes next. Numbers second.
+  if (shown === 'plan' && guided) {
+    const v = guided.view;
+    const step = v.step;
+    const tint = blockTint(v.finished ? null : step);
+    const blocks = createWorkout(guided.session.steps).steps;
+    const spoken = v.finished ? 'That is the session.' : step ? `Block ${v.index + 1} of ${v.total}, ${stepName(step)}, ${formatLeft(v)}.${v.next ? ` Then ${stepLine(v.next)}.` : ' Last block.'}` : '';
+    return (
+      <View style={[styles.calm, { gap: spacing.md + 2 }]}>
+        <View style={styles.calmTop}>
+          <Text style={[type.eyebrow, { flex: 1 }]} numberOfLines={1}>
+            {guided.session.title}
+          </Text>
+          <View style={styles.calmStatus} accessible accessibilityLabel={statusLine}>
+            <View style={[styles.dot, { backgroundColor: halted ? colors.butterDeep : colors.mintDeep }]} />
+            <Text style={styles.calmStatusText}>{statusLine}</Text>
+          </View>
+        </View>
+        <View style={[styles.block, { backgroundColor: tint.bg }]} accessible accessibilityLabel={spoken} accessibilityLiveRegion="polite">
+          <Text style={[styles.blockEyebrow, { color: tint.fg }]}>{v.finished ? 'All blocks done' : `Block ${v.index + 1} of ${v.total}`}</Text>
+          <Text style={[styles.blockName, { color: tint.fg }]} maxFontSizeMultiplier={DISPLAY_MAX_SCALE} numberOfLines={2} adjustsFontSizeToFit>
+            {v.finished ? 'That is the session.' : step ? stepName(step) : ''}
+          </Text>
+          {!v.finished ? (
+            <>
+              <Text style={styles.blockLeft} maxFontSizeMultiplier={DISPLAY_MAX_SCALE} numberOfLines={1} adjustsFontSizeToFit>
+                {leftClock(v)}
+              </Text>
+              <Text style={[styles.blockFeel, { color: tint.fg }]}>left in this block.{step && stepFeel(step) ? ` ${stepFeel(step)}` : ''}</Text>
+            </>
+          ) : (
+            <Text style={[styles.blockFeel, { color: tint.fg }]}>Easy to the door. Hold Stop when you get there.</Text>
+          )}
+        </View>
+        <View style={styles.segments} importantForAccessibility="no-hide-descendants">
+          {blocks.map((b, i) => (
+            <View
+              key={i}
+              style={[
+                styles.segment,
+                { flex: Math.max(0.4, (b.durationS ?? (b.distanceM ?? 0) * 0.35) / 300) },
+                { backgroundColor: i < v.index ? colors.mintDeep : i === v.index ? colors.mint : 'rgba(43,39,51,0.1)' },
+              ]}
+            />
+          ))}
+        </View>
+        {!v.finished ? (
+          <Text style={styles.blockNext} importantForAccessibility="no">
+            {v.next ? (
+              <>
+                Then <Text style={{ fontFamily: fonts.bodySemi }}>{stepLine(v.next)}</Text>.{settings.cueMode === 'voice' ? ' A voice tells you when.' : ''}
+              </>
+            ) : (
+              'Last block.'
+            )}
+          </Text>
+        ) : null}
+        <View style={{ flex: 1 }} />
+        <View style={styles.planNums} accessible accessibilityLabel={spokenRun(track, km)}>
+          <PlanNum value={formatDistanceNumber(track.distanceM, km)} label={distanceUnit(km)} />
+          <PlanNum value={formatDuration(track.durationS)} label="total" />
+          <PlanNum value={formatPace(track.distanceM, track.durationS, km)} label={`pace /${distanceUnit(km)}`} />
+        </View>
+        {lightControls}
+      </View>
+    );
+  }
 
   return (
     <View style={styles.live}>
@@ -489,7 +626,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
  * short tap only says "Hold to stop". With TalkBack or VoiceOver on, holding is
  * awkward, so a double tap asks first instead.
  */
-function StopButton({ onStop }: { onStop: () => void }) {
+function StopButton({ onStop, wide }: { onStop: () => void; wide?: boolean }) {
   const fill = useRef(new Animated.Value(0)).current;
   const [hint, setHint] = useState(false);
   const [reader, setReader] = useState(false);
@@ -536,7 +673,7 @@ function StopButton({ onStop }: { onStop: () => void }) {
   }
 
   return (
-    <View>
+    <View style={wide && { flex: 1 }}>
       {hint && (
         <View style={styles.holdHint} pointerEvents="none">
           <Text style={styles.holdHintText}>Hold to stop</Text>
@@ -549,12 +686,53 @@ function StopButton({ onStop }: { onStop: () => void }) {
         accessibilityRole="button"
         accessibilityLabel="Stop run"
         accessibilityHint={reader ? 'Asks before ending the run.' : 'Hold for a second to end the run.'}
-        style={[styles.roundBtn, { backgroundColor: colors.peach, overflow: 'hidden' }]}
+        style={[wide ? styles.stopWide : styles.roundBtn, { backgroundColor: colors.peach, overflow: 'hidden' }]}
       >
-        <Animated.View pointerEvents="none" style={[styles.stopFill, { transform: [{ scale: fill }] }]} />
-        <View style={styles.stopSquare} />
+        {wide ? (
+          <>
+            {/* The pill fills from the left as you hold. */}
+            <Animated.View pointerEvents="none" style={[styles.stopFillWide, { transform: [{ scaleX: fill }] }]} />
+            <Text style={styles.stopWideText}>Hold to stop</Text>
+          </>
+        ) : (
+          <>
+            <Animated.View pointerEvents="none" style={[styles.stopFill, { transform: [{ scale: fill }] }]} />
+            <View style={styles.stopSquare} />
+          </>
+        )}
       </Pressable>
     </View>
+  );
+}
+
+/** The block card's colour: the pastel that owns that kind of effort. */
+function blockTint(step: Step | null): { bg: string; fg: string } {
+  if (!step) return { bg: colors.mint, fg: colors.mintDeep };
+  if (step.kind === 'hard') return { bg: colors.peach, fg: colors.peachDeep };
+  if (step.kind === 'walk') return { bg: colors.lilac, fg: colors.lilacDeep };
+  if (step.kind === 'stride') return { bg: colors.butter, fg: colors.butterDeep };
+  return { bg: colors.mint, fg: colors.mintDeep };
+}
+
+function PlanNum({ value, label }: { value: string; label: string }) {
+  return (
+    <View style={{ flex: 1 }}>
+      <Text style={styles.planNumValue} numberOfLines={1} adjustsFontSizeToFit>
+        {value}
+      </Text>
+      <Text style={styles.planNumLabel}>{label}</Text>
+    </View>
+  );
+}
+
+/** Clear my head: two quiet rings and a line drawn once round. Nothing moves. */
+function CalmGlyph() {
+  return (
+    <Svg width={168} height={168} viewBox="0 0 180 180" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Circle cx={90} cy={90} r={80} fill={colors.lilacSoft} />
+      <Circle cx={90} cy={90} r={56} fill={colors.lilac} />
+      <Path d="M90 46 a44 44 0 1 1 -38 22" fill="none" stroke={colors.lilacDeep} strokeWidth={2.5} strokeLinecap="round" />
+    </Svg>
   );
 }
 
@@ -748,6 +926,31 @@ const styles = StyleSheet.create({
   stopFill: { position: 'absolute', width: 64, height: 64, borderRadius: 32, backgroundColor: colors.peachDeep, opacity: 0.45 },
   holdHint: { position: 'absolute', bottom: 74, right: -6, backgroundColor: 'rgba(246,241,234,0.94)', borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 6, minWidth: 110, alignItems: 'center' },
   holdHintText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.ink },
+  calm: { flex: 1, backgroundColor: colors.cream, padding: spacing.md + 4, paddingTop: spacing.lg },
+  calmTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  calmStatus: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  calmStatusText: { fontFamily: fonts.body, fontSize: 13, color: colors.inkMuted },
+  calmMiddle: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 18 },
+  calmLine: { fontFamily: fonts.displayItalic, fontSize: 26, lineHeight: 32, textAlign: 'center', color: colors.text },
+  calmTime: { minHeight: 48, minWidth: 200, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.md },
+  calmClock: { fontFamily: fonts.displayLight, fontSize: 44, lineHeight: 50, color: colors.text, fontVariant: ['tabular-nums'] },
+  calmTap: { fontFamily: fonts.body, fontSize: 13, color: colors.inkMuted, textDecorationLine: 'underline' },
+  calmNote: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.inkMuted, textAlign: 'center', marginBottom: 14 },
+  roundLight: { backgroundColor: colors.white },
+  stopWide: { flex: 1, height: 64, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  stopFillWide: { ...StyleSheet.absoluteFill, backgroundColor: colors.peachDeep, opacity: 0.3, transformOrigin: 'left' },
+  stopWideText: { fontFamily: fonts.bodySemi, fontSize: 17, color: colors.peachDeep },
+  block: { borderRadius: 28, padding: 22, gap: 6 },
+  blockEyebrow: { fontFamily: fonts.bodySemi, fontSize: 12, letterSpacing: 3, textTransform: 'uppercase' },
+  blockName: { fontFamily: fonts.display, fontSize: 40, lineHeight: 46 },
+  blockLeft: { fontFamily: fonts.display, fontSize: 64, lineHeight: 68, letterSpacing: -1, color: colors.text, fontVariant: ['tabular-nums'] },
+  blockFeel: { fontFamily: fonts.body, fontSize: 15, lineHeight: 21 },
+  segments: { flexDirection: 'row', gap: 4 },
+  segment: { height: 10, borderRadius: radius.pill },
+  blockNext: { fontFamily: fonts.body, fontSize: 16, lineHeight: 22, color: colors.text },
+  planNums: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  planNumValue: { fontFamily: fonts.bodySemi, fontSize: 20, color: colors.text, fontVariant: ['tabular-nums'] },
+  planNumLabel: { fontFamily: fonts.body, fontSize: 13, color: colors.inkMuted },
   finishTopRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   resumePill: { backgroundColor: colors.ink, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 8 },
   resumeText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.cream },

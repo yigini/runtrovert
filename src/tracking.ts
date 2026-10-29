@@ -8,7 +8,7 @@
  * Everything the UI reads comes from subscribe()/getState().
  */
 import { AppState } from 'react-native';
-import { cueAutoPause, cueAutoResume, cueKmSplit, cueLap, setCueMode } from './cues';
+import { cueAutoPause, cueAutoResume, cueKmSplit, cueLap, runSilent, setCueMode } from './cues';
 import { addPoints, addSplit, clearBufferedFixes, createRun, finishRun, getBufferedFixes, getPoints, getRun, updateRunProgress } from './db';
 import { getEngine } from './gps/engine';
 import { GpsFilter, type FilteredFix, type RawFix } from './gps/kalman';
@@ -239,7 +239,7 @@ async function maybeCloseKmSplit(quiet = false) {
     }
     if (quiet) continue;
     cueKmSplit(index, closedDur, kmMarkDuration, settings.unitsKm);
-    splitNote(index, closedDur, kmMarkDistance, kmMarkDuration, settings.unitsKm);
+    if (!runSilent()) splitNote(index, closedDur, kmMarkDistance, kmMarkDuration, settings.unitsKm);
   }
 }
 
