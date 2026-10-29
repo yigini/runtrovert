@@ -53,7 +53,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
   const [mapFront, setMapFront] = useState(false);
-  const [countFootage, setCountFootage] = useState<Footage>('cobbles');
+  const [countFootage, setCountFootage] = useState<Footage>('trail-bridge');
   // The finish line for this run, when it has earned one; otherwise finishLine().
   const [surprise, setSurprise] = useState<Surprise | null>(null);
   const veil = useRef(new Animated.Value(1)).current;
