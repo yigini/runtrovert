@@ -2,9 +2,9 @@ import { Camera, GeoJSONSource, Layer, Map as MapLibreMap } from '@maplibre/mapl
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, type LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import { boundsFor, fitBounds } from '../mapFit';
-import { useSettings } from '../settings';
 import { colors, radius } from '../theme';
 import type { LatLon } from '../types';
+import { useSettings } from '../settings';
 
 /**
  * MapLibre: open source, no API key, no Google. Tiles come from a public
