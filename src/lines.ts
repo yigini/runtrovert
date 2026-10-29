@@ -125,6 +125,36 @@ export const LINES: Record<Mood, string[]> = {
   ],
 };
 
+/** Your usual days. {day} is the weekday name. */
+export const RHYTHM_LINES = [
+  '{day}, around now. You usually go about this time. Just mentioning it.',
+  'Your hour is coming up. The route is where you left it.',
+  '{day} is apparently a running day for you. The park agrees.',
+  'This is roughly when you go. No pressure, just the hour.',
+  'The usual {day} slot is nearly here. The shoes have noticed.',
+  'In about an hour it’s your time. Nobody else has booked it.',
+  'Your {day} run, if you want it. It’s been reliable company.',
+  'Habit check: {day}, late enough to wake up, early enough to matter.',
+];
+
+/** Wet now, dry later. {time} is the first dry hour. */
+export const WINDOW_LINES = [
+  'Rain until {time}, then dry. The paths stay empty a bit longer than the clouds do.',
+  'Wet now. Dry from {time}. Most people won’t notice. You will.',
+  'Dry from {time}. The puddles will have cleared the park for you.',
+  'It eases off around {time}. Fewer people, fresher air, same route.',
+];
+
+/** The single line in week two, after a week of not opening the app. Then silence. */
+export const LAST_LINES = [
+  'That’s the last nudge for a while. The app will be here, quietly, whenever.',
+  'Going quiet now. If you want the reminders back, just go for a run.',
+  'Last one from me for a bit. No hard feelings. No feelings at all, technically.',
+];
+
+export const REFLECT_TITLES = ['How was that?', 'Quick one'];
+export const REFLECT_LINES = ['Energy now, before the shower wins. One tap.', 'How do you feel, compared to before? Tap to note it.'];
+
 export const AFTER_RUN_TITLES = ['Run saved.', 'Done.', 'That’s one.', 'Logged, quietly.'];
 
 export const AFTER_RUN_LINES = [
