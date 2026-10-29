@@ -1,4 +1,5 @@
 import * as Location from 'expo-location';
+import { rememberPlace } from './place';
 import { loadValue, saveValue } from './db';
 import { parse, type Weather } from './forecast';
 
@@ -32,6 +33,7 @@ async function position(ask: boolean): Promise<{ lat: number; lon: number } | 'n
   const last = await Location.getLastKnownPositionAsync({ maxAge: 3 * 3600 * 1000 }).catch(() => null);
   const pos = last ?? (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low }).catch(() => null));
   if (!pos) return null;
+  rememberPlace({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }); // for maps with no route yet
   return { lat: coarse(pos.coords.latitude), lon: coarse(pos.coords.longitude) };
 }
 
