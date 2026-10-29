@@ -1,0 +1,436 @@
+// Deutsch. Written in German, not translated line by line: "du", short
+// sentences, understatement. Effort names come with the preposition German
+// wants ("über 5 km", "im Halbmarathon"), so lines never glue grammar to them.
+
+import type { EffortKey } from '../../progress';
+import type { VoicePack } from './types';
+import { clockDigits, distNumber, word } from './util';
+
+const comma = (s: string) => s.replace('.', ',');
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+const NUM = ['null', 'eine', 'zwei', 'drei', 'vier', 'fünf', 'sechs', 'sieben'];
+const ORD = ['', 'Erster', 'Zweiter', 'Dritter', 'Vierter', 'Fünfter', 'Sechster', 'Siebter'];
+
+const EFFORT: Record<EffortKey, string> = { '1k': '1 km', mile: '1 Meile', '5k': '5 km', '10k': '10 km', half: 'Halbmarathon', full: 'Marathon' };
+/** As an object: "zum ersten Mal einen Halbmarathon". */
+const ACC: Record<EffortKey, string> = { '1k': '1 km', mile: '1 Meile', '5k': '5 km', '10k': '10 km', half: 'einen Halbmarathon', full: 'einen Marathon' };
+/** "Bestzeit über 5 km", "Bestzeit im Halbmarathon". */
+const OVER: Record<EffortKey, string> = { '1k': 'über 1 km', mile: 'über 1 Meile', '5k': 'über 5 km', '10k': 'über 10 km', half: 'im Halbmarathon', full: 'im Marathon' };
+
+/** After "seit" / "nach": dative. */
+function since(days: number): string {
+  if (days < 21) return Math.round(days / 7) === 1 ? 'einer Woche' : `${days} Tagen`;
+  if (days < 60) return `${Math.round(days / 7)} Wochen`;
+  return `${Math.round(days / 30)} Monaten`;
+}
+
+function hm(ms: number): string {
+  const d = new Date(ms);
+  return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+export const de: VoicePack = {
+  distance: (m, km) => `${comma(distNumber(m, km))} ${km ? 'km' : 'Meilen'}`,
+  minutes(s) {
+    const m = Math.round(s / 60);
+    if (m < 90) return `${m} ${m === 1 ? 'Minute' : 'Minuten'}`;
+    const h = Math.floor(m / 60);
+    const r = m % 60;
+    return r ? `${h} Std. ${r} Min.` : `${h} Stunden`;
+  },
+  margin: (s) => {
+    const t = Math.round(s);
+    return t < 60 ? `${t} ${t === 1 ? 'Sekunde' : 'Sekunden'}` : clockDigits(t);
+  },
+  clockWords: (ms) => `${hm(ms)} Uhr`,
+  effort: EFFORT,
+
+  share: {
+    bestFirst: (k, time) => [
+      `Zum ersten Mal ${ACC[k]} gelaufen. ${time}. Vor allem froh, dass ich angekommen bin.`,
+      `Erstmals ${ACC[k]}. Dem Handy erzählt, jetzt dir. Das ist die ganze Liste.`,
+      `${EFFORT[k]}: zum ersten Mal geschafft. Keine Medaille. Brauchte keine.`,
+    ],
+    best: (k, time, m) => [
+      `Neue Bestzeit ${OVER[k]}. Niemand hat’s gesehen. So war’s geplant.`,
+      `So schnell war ich ${OVER[k]} noch nie. ${cap(m)} schneller. Ich mach kein Ding draus.`,
+      `${time} ${OVER[k]}. Meine Bestzeit. Du gehörst zu den etwa drei Menschen, die das erfahren.`,
+      `Meine alte Zeit ${OVER[k]} um ${m} geschlagen. Mein einziger Rivale bin ich. Und ich hab gewonnen.`,
+      `Bestzeit ${OVER[k]}, ohne Zeugen. Ich melde es dir, ganz kurz.`,
+    ],
+    firstRun: ({ d }) => [`Erster Lauf mit Runtrovert. ${d}. Ein leiser Anfang.`, `Lauf Nummer eins. ${d}. Keiner hat zugeschaut, das hat geholfen.`],
+    gap(days, { d }) {
+      const weeks = Math.round(days / 7);
+      const dat = weeks <= 7 ? `${word(NUM, weeks)} Wochen` : `${Math.round(days / 30)} Monaten`;
+      const nom = weeks <= 7 ? `${cap(word(NUM, weeks))} Wochen` : `${Math.round(days / 30)} Monate`;
+      return [`Erster Lauf seit ${dat}. Die Beine wussten noch Bescheid. Größtenteils.`, `Nach ${dat} wieder draußen. Keine Reden. ${d}.`, `${nom} Pause, dann ${d}. Weiter, wo ich aufgehört hab.`];
+    },
+    recentBest: (k, time) => [
+      `Schnellste Zeit ${OVER[k]} seit drei Monaten. Nicht meine beste überhaupt. Meine beste in letzter Zeit, zählt auch.`,
+      `${time} ${OVER[k]}. Die schnellste seit 90 Tagen.`,
+    ],
+    longestEver: ({ d }) => [
+      `Längster Lauf bisher. ${d}. Ich erzähl dir davon. Kurz.`,
+      `${d}. So weit war ich noch nie. Applaus war nicht nötig.`,
+      `Neuer längster Lauf: ${d}. Die zweite Hälfte waren nur ich und meine Gedanken. Wir verstehen uns.`,
+    ],
+    longestWhile: ({ d }) => [`${d}, mein längster seit einer Weile. Hat sich auch so angefühlt.`, `Längster Lauf seit zwei Monaten. ${d}, ohne mit jemandem zu reden.`],
+    recharge: (n, { d, dur }) => [`Müde losgelaufen. Mit ${NUM[n]} Stufen besserer Laune zurück.`, `${d} ohne Reden. Akku: deutlich voller.`, `Platt losgelaufen, besser zurückgekommen. ${dur}, gut investiert.`],
+    slowHappy: ({ d }) => ['Langsamster Lauf des Monats. Beste Laune danach. Mach daraus, was du willst.', `Langsam, mit Absicht, meistens. Glücklicher zurück. ${d}.`],
+    storm: ({ d }) => [`Gewitter in der Gegend, und ich bin trotzdem los. ${d}, leicht selbstzufrieden.`, `Zwischen zwei Gewittern gelaufen. ${d}. Der Himmel hat gehalten. Meistens.`],
+    snow: ({ d, t }) => ['Frischer Schnee. Die einzigen Spuren waren meine.', `${d} im Schnee. Die Welt wurde still, ich auch.`, `Schnee, ${t}. Alle anderen blieben drin. Selber schuld.`],
+    rain: ({ d, at }, empty) => [
+      empty ? `${d} im Regen. Der Weg war leer. Das macht Regen so.` : `${d} im Regen. Nass, aber jeden Meter wert.`,
+      `Regen, ${at}. Alle anderen blieben drin. Ich nicht.`,
+      'Im Regen gelaufen. Die Schuhe trocknen. Ich bin sehr zufrieden mit mir.',
+    ],
+    drizzle: ({ d, t }) => [`Nieselregen. Gerade genug, um die Leute drinnen zu halten. ${d}.`, `Niesel, ${t}. Feucht, ruhig, gut.`],
+    fog: ({ d }) => ['Nebel auf der ganzen Strecke. Niemand konnte mich sehen. Ideal.', `${d} durch den Nebel. Die Welt war ungefähr 50 Meter breit.`],
+    cold: ({ d, ft }) => [`Gefühlt ${ft}. Die Eifrigen lagen noch im Bett. Hab ich gehört.`, `${ft}. Kalt genug, um die Massen zu Hause zu halten. ${d}.`],
+    hot: ({ d, t }) => [`${t}, und ich bin trotzdem los. Langsam, mit Absicht.`, `${t}. Erst Schatten, dann Tempo. ${d}.`],
+    wind: ({ d }) => ['Hin gegen den Wind, zurück mit ihm. Fairer Tausch.', `Windig. ${d}, halb heldenhaft, halb geschenkt.`],
+    beforeSunrise: ({ at }) => ['Vor Sonnenaufgang draußen. Die Straßenlaternen waren das einzige Publikum.', `${at}. Gelaufen, bevor der Tag etwas von mir wollte.`],
+    afterDark: ({ d }) => ['Ein Lauf nach Einbruch der Dunkelheit. Weniger Blicke, mehr Sterne.', `${d} unter Straßenlaternen. Die Straßen gehörten mir.`],
+    crowded: ({ d }) => ['Draußen war viel los. Ich bin trotzdem gelaufen und hab mit niemandem geredet.', `Volle Strecke, ${d}, null Gespräche. Eine Kunst.`],
+    empty: ({ d }) => ['Den ganzen Weg für mich allein. Keine Menschenseele.', `${d}, und ich glaube, ich bin an niemandem vorbeigekommen. Perfekt.`],
+    climb: (m) => [`${m} Höhenmeter. Hoch ist auch eine Richtung.`, `Hügel, ${m} Höhenmeter davon. Meine Beine haben jetzt eine Meinung.`],
+    quicker: (s, { km }) => [
+      `${s} Sekunden pro ${km ? 'Kilometer' : 'Meile'} schneller als sonst. Gleiche Beine, offenbar bessere.`,
+      `${s} s pro ${km ? 'km' : 'Meile'} schneller als sonst. Behalte ich für mich. Und für dich.`,
+    ],
+    week: (n) => [`${ORD[n]} Lauf diese Woche. Ich werde leise zu jemandem, der läuft.`, `Lauf ${n} der Woche. Keine Serie. Nur eine Gewohnheit mit guten Manieren.`],
+    weekendEarly: (sunday, { at }) => [`${sunday ? 'Sonntag' : 'Samstag'}, ${at}. Die Stadt schlief noch. Ich hab sie nicht geweckt.`],
+    lunch: ({ d }) => ['Ein Lauf in der Mittagspause. Niemand hat gemerkt, dass ich weg war.', `${d} in der Mittagspause. Zurück, bevor jemand gefragt hat.`],
+    short: ({ d }) => [`Nur ${d}. Zählt trotzdem. Vor allem für mich.`, `${d}. Kleiner Lauf, kein Publikum, zählt voll.`],
+    grey: ({ dur }) => [`Grau und still. Gut, um für ${dur} zu verschwinden.`],
+    clear: ({ d, t }) => [`${t} und klar. Keine Ausreden, kein Publikum.`, `Blauer Himmel, ${d}, niemand zum Reden. Ideale Bedingungen.`],
+    always: ({ d, dur }) => [
+      `${d}. Niemand hat’s gesehen. So war der Plan.`,
+      `${dur}, in denen mich niemand erreichen konnte. Empfehlenswert.`,
+      `${d}, ohne mit jemandem zu reden. Jetzt wieder da. Kurz.`,
+      'War laufen. Bin zurück. Das sind die Nachrichten.',
+    ],
+  },
+
+  sky: {
+    headline: {
+      storm: () => ['Gewitter in der Nähe.\nDas Sofa ist auch eine Route.', 'Gewitter ringsum.\nVielleicht eine Stunde warten.'],
+      snow: (t) => ['Schnee. Frische Spuren,\nalle deine.', `${t} und Schnee.\nDie Welt ist still.`],
+      rain: (t) => [`${t} und Regen.\nDer Park gehört dir.`, 'Regen. Alle anderen\nbleiben drin.'],
+      drizzle: (t) => [`${t} und Niesel.\nAlle anderen bleiben drin.`, 'Nieselregen. Genug, um\ndie Leute drinnen zu halten.'],
+      fog: (t) => ['Nebel. Die Welt ist\nfür dich still geworden.', `${t} und Nebel.\nSieht dich eh keiner.`],
+      dark: (t) => ['Dunkel draußen.\nWeniger Blicke, mehr Sterne.', `${t} unter Laternen.\nDie Straßen sind leer.`],
+      cold: (t) => [`${t}. Kalt genug, um die\nMassen daheim zu halten.`, `${t}. Die Eifrigen\nliegen noch im Bett.`],
+      hot: (t) => [`Schon ${t}.\nFrüh los oder langsam.`, `${t}. Erst Schatten,\ndann Tempo.`],
+      wind: () => ['Windig. Hin dagegen,\nzurück mit Rückenwind.', 'Wind kommt auf. Hart hin,\nleicht zurück.'],
+      clear: (t) => [`${t} und klar.\nKeine Ausreden, kein Publikum.`, `${t} und blau.\nRaus, bevor es voll wird.`],
+      grey: (t) => [`${t}, grau und still.\nGut zum Verschwinden.`, `Bedeckt, ${t}.\nNiemand schaut nach oben.`],
+    },
+    bestWindow: 'Beste Zeit',
+    noDryHour: 'Heute keine trockene Stunde mehr. Regenjacke oder morgen.',
+    dry: 'trocken',
+    rainChance: (p) => `${p} % Regen`,
+    now: (what) => `Jetzt. ${cap(what)}.`,
+    from: (time, what) => `Ab ${time} Uhr. ${cap(what)}.`,
+    wear: 'Anziehen',
+    kit: [
+      'Thermoschicht, Handschuhe, Mütze',
+      'Lange Ärmel, Handschuhe, Mütze',
+      'Lange Ärmel, dünne Handschuhe',
+      'Lange Ärmel oder eine leichte Schicht',
+      'T-Shirt und Shorts',
+      'Leichte Sachen. Wasser mitnehmen',
+      'So wenig, wie es anständig ist. Wasser',
+    ],
+    shell: 'eine Regenjacke',
+    windproof: 'etwas Winddichtes',
+    reflective: 'etwas Reflektierendes',
+    kitWith: (kit, extras) => `${extras.length ? `${kit}, dazu ${extras.join(' und ')}` : kit}.`,
+    light: 'Licht',
+    darkAt: (time) => `Dunkel ab ${time} Uhr. Nimm eine Lampe mit.`,
+    daylightUntil: (time) => `Hell bis ${time} Uhr.`,
+    lightAgain: (time) => `Wieder hell ab ${time} Uhr. Trag etwas Helles.`,
+  },
+
+  surprises: {
+    lines: {
+      'first-run': 'Das war einer.\nNiemand hat’s gesehen. Perfekt.',
+      marathon: 'Ein Marathon.\nAllein, mit Absicht.',
+      half: 'Halbmarathon.\nKeine halben Sachen.',
+      ten: 'Zehn.\nDie Zahl gibt dir recht.',
+      'run-100': 'Hundert Läufe.\nImmer noch klatscht keiner. Immer noch gut.',
+      'run-50': 'Fünfzig Läufe.\nDie leise Art von Gewohnheit.',
+      anniversary: 'Vor einem Jahr bist du allein los.\nUnd dabei geblieben.',
+      'first-snow': 'Erster Schnee des Jahres.\nDu warst draußen.',
+      longest: 'Längster bisher.\nSag’s niemandem.',
+      rare: 'Du bist niemandem begegnet,\nmit dem du reden musstest.',
+      rain: 'Nass. Erledigt.\nSelbstzufriedenheit erlaubt.',
+      snow: 'Schneelauf.\nDie Fußspuren sind der einzige Beweis.',
+      early: 'Unterwegs, bevor die Meinungen aufwachen.',
+      late: 'Nachtlauf.\nDie Straßen behalten es für sich.',
+    },
+    round: (n, km) => `${n},00 ${km ? 'km' : 'Meilen'}.\nVerdächtig glatt.`,
+    seasonal: {
+      '1-1': 'Neues Jahr. Gleiche Strecke. Gut.',
+      '2-14': 'Valentinstag. Die Strecke bleibt treu.',
+      '2-29': 'Ein Tag, den es meistens nicht gibt. Nutz ihn.',
+      '6-21': 'Längster Tag. Kein Grund zur Eile.',
+      '10-31': 'Alle sind verkleidet. Du bist in Laufhose.',
+      '12-21': 'Kürzester Tag. Ein kurzer Lauf zählt.',
+      '12-25': 'Stille Straßen heute. Endlich.',
+      '12-31': 'Letzter Lauf des Jahres oder erster des nächsten. Beides gut.',
+    },
+  },
+
+  you: {
+    bestFirst: (k, time) => ({ title: `Zum ersten Mal ${ACC[k]}.`, detail: `${time}. Das erste Mal ist immer eine Bestzeit.` }),
+    best: (k, time, m, month) => ({
+      title: `Neue Bestzeit ${OVER[k]}.\nNiemand hat’s gesehen. Du weißt es.`,
+      detail: `${time}, ${Math.round(m) < 60 ? `${Math.round(m)} s` : clockDigits(m)} schneller als deine letzte Bestzeit${month ? ` (${month})` : ''}.`,
+    }),
+    welcomeBack: (days) => ({ title: 'Willkommen zurück.', detail: `Erster Lauf seit ${since(days)}. Die Beine erinnern sich an mehr, als du denkst.` }),
+    recentBest: (k, time) => ({ title: `Schnellste Zeit ${OVER[k]} seit 90 Tagen.`, detail: `${time}. Keine Bestzeit aller Zeiten, aber die beste dieser Phase.` }),
+    longestEver: { title: 'Dein bisher längster Lauf.', detail: 'Weiter als jeder Lauf auf diesem Handy.' },
+    longestMonths: { title: 'Längster Lauf seit zwei Monaten.', detail: 'Weiter als alles in den letzten 60 Tagen.' },
+    recharge: (n) => ({ title: `Mit ${NUM[n]} Stufen besserer Laune zurück.`, detail: 'Das zählt genauso viel wie das Tempo.' }),
+    quicker: (s, km) => ({ title: `${s} ${km ? 's/km' : 's/Meile'} schneller als sonst.`, detail: 'Verglichen mit deinen letzten sechs Wochen, Hügel eingerechnet.' }),
+    slowerGood: { title: 'Langsamer als sonst. Guter Lauf.', detail: 'Du kamst leichter zurück, und darum ging’s.' },
+  },
+
+  reminders: {
+    moods: {
+      nudge: [
+        'Hallo. Der Park ist um 7 leer. Nur so.',
+        'Kein Druck. Aber deine Schuhe haben wieder zur Tür geschaut.',
+        'Kleiner Lauf, kein Smalltalk. Zwanzig Minuten?',
+        'Kopfhörer optional. Menschen optional. Laufen empfohlen.',
+        'Deine Lieblingsstrecke ist noch da. Sie hat dir den Platz freigehalten.',
+        'Ein Lauf ist ein Meeting mit einer Person. Die Teilnahme ist großartig.',
+        'Da draußen fragt dich keiner, wie’s dir geht. Genau darum geht’s.',
+        'Heute wäre eine Runde gut. Irgendeine. Auch eine kleine.',
+        'Zum Schuhebinden musst du mit niemandem reden.',
+        'Raus, zurück, Dusche, Ruhe. Ehrlich gesagt ein guter Nachmittag.',
+        'Der Asphalt hat keine Meinung zu deinem Tempo.',
+        'Ein Lauf zählt, auch wenn niemand davon weiß. Gerade dann.',
+        'Kurz raus? Die Welt ist noch laut genug, wenn du zurück bist.',
+        'Beine: verfügbar. Wetter: geht. Ausreden: höflich abgelehnt.',
+        'Dreißig Minuten, in denen dein Handy nur Kilometer zählt.',
+        'Laufen ist das einzige Hobby, bei dem früh aufhören „ins Ziel kommen“ heißt.',
+        'Ein Lauf. Null Gespräche. Reichlich Selbstzufriedenheit. Fairer Deal.',
+        'Das Beste am Laufen ist der Teil, in dem dich keiner erreicht.',
+        'Kein Schubs. Ein Stupser. Der Unterschied sind etwa fünf Minuten.',
+        'Es gibt eine Version von heute, in der du gelaufen bist. Sie ist etwas besser.',
+        'Erinnerung: Frische Luft ist gratis und stellt keine Fragen.',
+        'Zwanzig Minuten draußen schlagen zwanzig Minuten Drüber-Nachdenken.',
+      ],
+      rest: [
+        'Der Lauf von gestern wirkt noch. Pause gehört zum Plan.',
+        'Du bist gelaufen. Heute besteht der Job aus Sitzen und Zufriedensein.',
+        'Ruhetag. Deine Beine bauen sich leise wieder auf. Lass sie.',
+        'Heute nichts zu tun. Dafür war gestern da.',
+        'Erholung ist auch Laufen. Nur die unsichtbare Sorte.',
+        'Die Muskeln arbeiten. Du musst sie nicht beaufsichtigen.',
+        'Du hast dir einen langsamen Tag verdient. Hol ihn dir ab.',
+        'Heute nichts zu beweisen. Schon erledigt.',
+        'Deine Beine möchten etwas sagen: danke, und bitte nicht heute.',
+        'Gestern laufen war der harte Teil. Heute ausruhen ist der kluge.',
+        'Zwei Tage am Stück sind erlaubt. Einer auch. Du entscheidest.',
+      ],
+      quiet: [
+        'Ein paar Tage sind vergangen. Die Strecke ist nicht weggelaufen.',
+        'Ruhige Woche? Ein kurzer Lauf ist ein guter Abschluss.',
+        'Länger nicht gelaufen. Kein Problem. Eine lockere Runde setzt alles zurück.',
+        'Die Schuhe werden misstrauisch. Beruhige sie.',
+        'War die Woche laut, ist ein Lauf der leiseste Raum, den du hast.',
+        'Ein schlechter kurzer Lauf ist besser als ein großartiger geplanter.',
+        'Dein Tempo von letzter Woche ist entspannt. Es wartet.',
+        'Neu anfangen ist einfach Anfangen mit besseren Schuhen.',
+        'Der härteste Kilometer ist der zwischen Haustür und Gehweg.',
+      ],
+      gap: [
+        'Eine Woche Pause passiert. Die Straße ist noch da.',
+        'Hallo nochmal. Keine Predigt. Nur eine Tür und eine Strecke dahinter.',
+        'Das Leben kam dazwischen. Macht es so. Ein kurzer Lauf holt dich wieder raus.',
+        'Willkommen zurück, wann immer das ist. Kein Formular auszufüllen.',
+        'Nichts ist verloren. Fitness ist treu: Sie geht langsam und kommt schnell zurück.',
+        'Keine Serie zu retten. Nur ein Lauf zum Genießen, wenn dir danach ist.',
+        'Fang klein an. Der Karte ist egal, wie klein.',
+        'Du schuldest niemandem ein Comeback. Du kannst einfach laufen gehen.',
+        'Wenn heute der Tag ist: schön. Wenn nicht: Morgen ist auch ein Tag.',
+        'Beim ersten Lauf zurück geht’s vor allem darum, ob die Schuhe noch passen.',
+      ],
+      weather: [
+        'Es regnet. Keiner wird draußen sein. Du weißt, was das heißt.',
+        'Kalt draußen. Weniger Leute. Fast, als wäre das Wetter auf deiner Seite.',
+        'Grauer Himmel macht die Wege frei. Beste Zeit, sie für dich zu haben.',
+        'Früh dunkel. Stirnlampe an. Die Welt schrumpft auf einen ruhigen Lichtkreis.',
+        'Nieselregen ist die Einlasskontrolle der Introvertierten.',
+        'Schlechtes Wetter, leerer Park. Ehrlich gesagt perfekt.',
+        'Pfützen machen keinen Smalltalk. Ideale Laufpartner.',
+        'Ein Lauf im Regen ist eine Dusche auf dem Weg zur Dusche.',
+        'Nebel zieht auf. Selbst die, die immer winken, sehen dich nicht.',
+      ],
+      morning: [
+        'Guten Morgen. Die einzige Benachrichtigung, die du heute von mir bekommst.',
+        'Die Straßen schlafen noch. Schließ dich an, in Bewegung.',
+        'Früher Lauf: Der Tag hat noch nicht angefangen, Dinge von dir zu wollen.',
+        'Morgen. Im Park sind ungefähr drei Leute und ein Graureiher.',
+        'Kaffee, Schuhe, Tür. Unterhaltung nicht erforderlich.',
+        'Die stille Stunde hat geöffnet. Reservierung für eine Person.',
+        'Morgenlicht und ein leerer Uferweg. Schwer zu toppen.',
+      ],
+      evening: [
+        'Abend. Der Tag hat ausgeredet. Geh dahin, wo er dir nicht folgen kann.',
+        'Ein kurzer Lauf vor der Dunkelheit. Dann gehörst du dem Sofa.',
+        'Das letzte Licht ist das schönste. Und das leerste.',
+        'Eine Runde vor dem Abendessen. Am Tisch muss das keiner wissen.',
+        'Beende den Tag als Punkt auf einer Karte. Leise, in Bewegung, deiner.',
+        'Abendluft, tiefe Sonne, keine Menschenmenge. Nimm den leichten Sieg mit.',
+        'Morgen darf laut sein. Heute Abend: ein Lauf und dann nichts.',
+      ],
+    },
+    rhythm: [
+      '{day}, ungefähr jetzt. Da gehst du meistens los. Nur so erwähnt.',
+      'Deine Stunde kommt. Die Strecke liegt da, wo du sie gelassen hast.',
+      '{day} ist offenbar ein Lauftag für dich. Der Park sieht das auch so.',
+      'Ungefähr jetzt läufst du normalerweise. Kein Druck, nur die Uhrzeit.',
+      'Dein üblicher Termin am {day} ist gleich da. Die Schuhe haben’s gemerkt.',
+      'In etwa einer Stunde ist deine Zeit. Niemand sonst hat sie gebucht.',
+    ],
+    window: [
+      'Regen bis {time} Uhr, dann trocken. Die Wege bleiben etwas länger leer als die Wolken.',
+      'Jetzt nass. Ab {time} Uhr trocken. Die meisten merken das nicht. Du schon.',
+      'Trocken ab {time} Uhr. Die Pfützen haben dir den Park freigeräumt.',
+      'Gegen {time} Uhr hört es auf. Weniger Leute, frischere Luft, gleiche Strecke.',
+    ],
+    last: [
+      'Das war der letzte Stupser für eine Weile. Die App ist da, leise, wann immer.',
+      'Ich werde jetzt still. Willst du die Erinnerungen zurück, geh einfach laufen.',
+      'Das Letzte von mir für eine Weile. Nichts für ungut. Technisch gesehen gar keine Gefühle.',
+    ],
+    reflectTitles: ['Wie war’s?', 'Kurz noch'],
+    reflectLines: ['Energie jetzt, bevor die Dusche gewinnt. Einmal tippen.', 'Wie fühlst du dich im Vergleich zu vorher? Zum Notieren tippen.'],
+    afterRunTitles: ['Lauf gespeichert.', 'Erledigt.', 'Das war einer.', 'Leise notiert.'],
+    afterRunLines: [
+      'Das hat niemand gesehen. So war der Plan.',
+      'Energiecheck: wahrscheinlich gestiegen. Wissenschaft, ungefähr.',
+      'Das ist ein Lauf. Kein Feed, keine Kudos, keine Kommentare. Nur deiner.',
+      'Dusche, Tee, Ruhe. In dieser Reihenfolge.',
+      'Auf der Karte ist eine neue Linie. Nur du kannst sie sehen.',
+      'Gut. Jetzt sei eine Weile unerreichbar.',
+      'Die Beine haben geredet. Alles andere darf still bleiben.',
+      'Ein beendeter Lauf ist ein Gespräch, das du nicht führen musstest.',
+    ],
+    titles: ['Runtrovert', 'Hallo', 'Ein leises Wort', 'Psst', 'Kleiner Gedanke', 'Nur so', 'Kein Druck'],
+  },
+
+  tips: {
+    topics: {
+      start: 'Die ersten Läufe',
+      chafe: 'Scheuern, ganz offen',
+      shoes: 'Schuhe',
+      gear: 'Was anziehen',
+      pace: 'Tempo und Atmung',
+      fuel: 'Wasser, Essen, Toiletten',
+      weather: 'Wetter',
+      body: 'Wehwehchen, Schmerzen und wann aufhören',
+      head: 'Der leise Teil',
+      trivia: 'Nutzlos, aber wahr',
+    },
+    text: {
+      'start-walk': 'Laufen und Gehen im Wechsel ist kein Schummeln. So schaffen sehr viele ihre ersten 5 km, und auch so mancher Marathon wird so gelaufen.',
+      'start-ten': 'Die ersten zehn Minuten fühlen sich für fast alle am schlechtesten an, während der Körper hochfährt. Beurteile den Lauf danach, nicht vorher.',
+      'start-slow': 'Lauf langsamer los, als nötig scheint. Zu schnell starten ist der klassische Anfängerfehler, und für Minute drei gibt es keine Medaille.',
+      'start-turn': 'Du kannst jederzeit umdrehen. Ein Lauf, der früh endet, ist trotzdem ein Lauf, und vermutlich ein gut eingeteilter.',
+      'start-runner': 'Du bist ab dem ersten Lauf ein Läufer oder eine Läuferin. Es gibt keine Mindestdistanz und keinen Mitgliedsausweis.',
+      'start-rest': 'An den Ruhetagen wirst du eigentlich fitter. Der Lauf ist die Bestellung, die Erholung die Lieferung.',
+      'start-same': 'In den ersten Wochen erst Zeit, dann Tempo. Gleiches lockeres Tempo, ein paar Minuten mehr.',
+      'start-bad': 'Manche Läufe fühlen sich ohne Grund schwer an. Das ist normal und sagt wenig. Der nächste fühlt sich meist wieder gut an.',
+      'chafe-nipple': 'Ein nasses Baumwollshirt kann nach etwa 5 km die Brustwarzen wund reiben. Trag ein Oberteil aus Funktionsfaser oder Merino, und für längere Läufe Tape oder Creme.',
+      'chafe-term': '„Joggerbrustwarze“ ist seit 1977 ein medizinischer Begriff. Ein Pflaster kostet weniger als die Würde.',
+      'chafe-thigh': 'Oberschenkel, die sich berühren, melden sich um Kilometer 4. Anti-Scheuer-Creme oder kurze Tights beenden die Diskussion.',
+      'chafe-seams': 'Scheuern beginnt an Nähten, Etiketten, Bündchen und am Rand des Sport-BHs. Creme kommt vor dem Lauf drauf. Danach heißt es Reue.',
+      'chafe-salt': 'Getrockneter Schweiß hinterlässt Salz auf der Haut, und das wirkt wie sehr feines Schleifpapier. Nach heißen oder langen Läufen bald abspülen.',
+      'chafe-shower': 'Wenn es unter der Dusche brennt, hast du dort gescheuert. Merk es dir. Die Stelle bekommt nächstes Mal Creme.',
+      'chafe-wet': 'Regen macht das Scheuern schlimmer, weil nasser Stoff reibt. Enger sitzende Kleidung und etwas Creme helfen mehr als eine dickere Jacke.',
+      'shoes-comfort': 'Such Laufschuhe danach aus, wie sie sich im Laden anfühlen, nicht nach Farbe oder Laufbandanalyse. Komfort ist der beste Wegweiser, den die Forschung gefunden hat.',
+      'shoes-pronation': 'Wenn dir jemand „Überpronation“ attestiert, ist das kein Grund zur Panik. In einer Studie mit 927 Neulingen in Neutralschuhen verletzten sich Pronierer nicht häufiger.',
+      'shoes-thumb': 'Lass etwa eine Daumenbreite Platz zwischen dem längsten Zeh und der Schuhspitze. Füße schwellen an und rutschen bergab nach vorn.',
+      'shoes-afternoon': 'Probier Schuhe am Nachmittag an, mit deinen Laufsocken. Füße sind später am Tag etwas größer, so wie beim Laufen.',
+      'shoes-toe': 'Bei vielen Menschen ist der zweite Zeh der längste. Nimm die Größe für diesen Zeh, nicht für den großen.',
+      'shoes-rotate': 'Wer zwischen mehr als einem Paar abwechselte, hatte in einer Studie mit 264 Läufern ein um 39 % geringeres Verletzungsrisiko. Ein zweites Paar ist außerdem ein trockenes Paar.',
+      'shoes-new': 'Neue Schuhe bekommen erst ein paar kurze Läufe. Nicht den langen Lauf. Niemals den Wettkampf.',
+      'shoes-lock': 'Die zusätzliche Öse oben am Schuh hat eine Aufgabe. Eine Fersenschnürung dort verhindert, dass die Ferse rutscht, und rettet Zehennägel.',
+      'shoes-toenail': 'Ein schwarzer Zehennagel heißt meist: Schuhe einen Tick zu klein oder bergab zu schnell. Probier eine halbe Nummer größer.',
+      'shoes-km': 'Schuhe haben kein Ablaufdatum. Um 500 bis 800 km oder wenn sie sich platt anfühlen, ist ein üblicher Zeitpunkt zum Wechseln. Die Belege sind dünn, deine Beine urteilen besser.',
+      'shoes-price': 'Teuer ist nicht sicherer. Gib das Geld für die Passform aus. Wettkampfschuhe mit Carbonplatte machen schnelle Läufer schneller und lockere Dienstagsrunden vor allem teurer.',
+      'shoes-dry': 'Nasse Schuhe: Einlagen raus, mit Zeitungspapier ausstopfen, weg von der Heizung. Hitze löst den Kleber.',
+      'gear-ten': 'Zieh dich an, als wäre es 5 bis 10 °C wärmer. Fünf Minuten frierst du, danach passt es. Wer an der Tür warm hat, ist zu warm angezogen.',
+      'gear-socks': 'Baumwollsocken halten Wasser und machen Blasen. Laufsocken aus Funktionsfaser oder Merino sind das günstigste Upgrade beim Laufen.',
+      'gear-nothing-new': 'Nichts Neues am Wettkampftag. Keine Schuhe, keine Shorts, nicht das Frühstück, auf das jemand im Internet schwört.',
+      'gear-bra': 'Ein gut sitzender Sport-BH ist wichtiger als jedes Shirt. Ungestützte Brüste bewegen sich bei jedem Schritt mehrere Zentimeter, und das spürt man.',
+      'gear-pocket': 'Shorts mit Reißverschlusstasche heißt: keine Tasche, kein Gürtel, kein Gefummel. Schlüssel, Karte, fertig.',
+      'gear-cap': 'Eine Kappe hält Regen von der Brille und Sonne vom Gesicht. Das nützlichste Laufzubehör, das niemand fotografiert.',
+      'gear-gloves': 'Handschuhe vor Mütze. Die Finger frieren zuerst und tauen zuletzt auf.',
+      'gear-reflect': 'Reflektoren an Knöcheln und Handgelenken werden früher gesehen als auf der Brust, weil Autofahrer bewegte Gliedmaßen als Mensch erkennen.',
+      'gear-layers': 'Zwei dünne Schichten schlagen eine dicke. Eine kannst du ausziehen und dir um die Hüfte binden, als wäre es 1994.',
+      'pace-talk': 'Die meisten Läufe sollten so locker sein, dass du in ganzen Sätzen reden könntest. Du wirst mit niemandem reden. Aber du könntest.',
+      'pace-easy': 'Dein lockeres Tempo darf eine Minute pro km oder mehr langsamer sein als dein schnellstes 5-km-Tempo. Das ist nicht faul, so macht man das.',
+      'pace-hill': 'Bergauf: kürzere Schritte, gleiche Anstrengung, das Tempo darf fallen. Der Berg kennt deinen Schnitt nicht.',
+      'pace-cadence': 'Es gibt keine magischen 180 Schritte pro Minute. Wer aber zu lange Schritte macht, entlastet Knie und Hüfte mit etwa 5 bis 10 % schnelleren, kürzeren Schritten.',
+      'pace-wind': 'Windiger Tag: hin gegen den Wind, zurück mit Rückenwind. Dein müdes Ich wird dir danken.',
+      'pace-breath': 'Es gibt kein richtiges Atemmuster. Mund, Nase, beides. Wenn du keinen Satz mehr zu Ende bringst, läufst du nicht mehr locker.',
+      'pace-gps': 'Das GPS-Tempo schwankt unter Bäumen und zwischen hohen Häusern. Deine Anstrengung nicht. Vertrau dem, was in deiner Brust ist.',
+      'pace-negative': 'Etwas schneller ankommen, als du losgelaufen bist, nennt sich Negative Split. Es fühlt sich auf die beste Art selbstzufrieden an.',
+      'fuel-short': 'Bei Läufen unter einer Stunde brauchen die meisten unterwegs nichts. Etwas trinken davor und danach, und der Durst ist ein guter Ratgeber.',
+      'fuel-over': 'Auf langen Läufen weit über den Durst hinaus zu trinken, kann das Natrium im Blut verdünnen, und das ist gefährlich. Trink nach Durst, nicht nach Plan.',
+      'fuel-pee': 'Helles Strohgelb ist die Farbe, die du willst. Ganz klar heißt: Du kannst beim Wasser etwas nachlassen.',
+      'fuel-before': 'Iss ein bis drei Stunden vorher etwas Einfaches. Mit vollem Magen laufen ist eine Lektion, die man nur einmal braucht.',
+      'fuel-carbs': 'Ab etwa einer Stunde bis neunzig Minuten helfen Kohlenhydrate unterwegs: grob 30 bis 60 g pro Stunde, also ein Gel oder ein, zwei Bananen.',
+      'fuel-coffee': 'Kaffee vor dem Lauf lässt ihn für viele leichter wirken. Er wirkt auch auf den Darm. Wisse, wo die Toiletten sind.',
+      'fuel-trots': 'Magen-Darm-Probleme beim Laufen sind häufig: ein Drittel oder mehr der Langstreckler kennt sie. Am Abend vorher weniger Ballaststoffe, und eine Strecke, die an einer Toilette vorbeiführt.',
+      'fuel-after': 'Nach einem Lauf ist eine normale Mahlzeit mit etwas Eiweiß alles, was die meisten zur Erholung brauchen. Kein Pulver nötig.',
+      'weather-rain': 'Regen leert den Park. Kappe auf, keine Baumwolle, und alles gehört dir. Haut ist wasserdicht.',
+      'weather-lungs': 'Kalte Luft lässt deine Lunge nicht gefrieren; sie wärmt sich auf dem Weg hinein auf. Sie kann in den Atemwegen brennen, ein Schlauchtuch vor dem Mund hilft.',
+      'weather-heat': 'Bei Hitze nach Gefühl laufen und langsamer werden. Bei Wärme steigt der Puls beim gleichen Tempo. Früh los, solange der Asphalt noch kühl ist.',
+      'weather-heatill': 'Bei Hitze sind Verwirrung, Stolpern oder plötzliche Kopfschmerzen keine Müdigkeit. Anhalten, in den Schatten, mit Wasser abkühlen und Hilfe holen.',
+      'weather-ice': 'Auf Eis: kurze Schritte, lieber in den Schnee als aufs Glänzende, und akzeptieren, dass heute ein ehrgeiziger Spaziergang ist.',
+      'weather-facing': 'Wo es keinen Gehweg gibt, lauf dem Verkehr entgegen, damit du siehst, was kommt. Etwas Blinkendes hilft auch.',
+      'weather-windchill': 'Wind zählt. 5 °C mit starkem Wind können sich fast wie null anfühlen, vor allem auf dem Rückweg, wenn du verschwitzt bist.',
+      'weather-sun': 'Sonnencreme auf die Ohren und in den Nacken. Marathonläufer hatten in einer Studie mehr Sonnenschäden auf der Haut als Nichtläufer.',
+      'weather-dark': 'Läufe im Dunkeln sind ruhiger, aber der Boden ist tückisch. Nimm eine bekannte Strecke mit Beleuchtung und heb dir den Trail fürs Wochenende auf.',
+      'body-pain': 'Ein leichter Schmerz, der beim Warmwerden nachlässt, ist meist in Ordnung. Schmerz, der schlimmer wird, deinen Laufstil verändert oder über 3 von 10 liegt, heißt: aufhören und ein paar Tage pausieren.',
+      'body-toomuch': 'Die meisten Laufverletzungen kommen von zu viel, zu früh, nicht von Schuhen oder Technik. Geduld ist die beste Verletzungsvorbeugung, die es gibt.',
+      'body-longest': 'Ein einzelner Lauf, der deutlich länger war als der längste des letzten Monats, erhöhte in einer Studie mit über 5.000 Läufern das Verletzungsrisiko. Steigere um etwa 10 %.',
+      'body-shin': 'Schienbeinkantensyndrom heißt meist: zu viel, zu früh. Nimm Tempo raus. Ein stechender Schmerz an einer Stelle des Knochens ist etwas anderes: aufhören und abklären lassen.',
+      'body-stretch': 'Statisches Dehnen vor dem Lauf verhindert keine Verletzungen. Fünf Minuten ganz lockeres Joggen wärmen dich besser auf.',
+      'body-strength': 'Krafttraining senkte Sportverletzungen in einer großen Übersichtsarbeit auf etwa ein Drittel. Kniebeugen, Ausfallschritte und Wadenheben zu Hause zählen.',
+      'body-stitch': 'Seitenstechen: langsamer werden, tief ausatmen, auf die Stelle drücken. Niemand weiß genau, warum es passiert, was seltsam beruhigend ist.',
+      'body-doms': 'Muskelkater ein, zwei Tage nach etwas Neuem ist normal. Er ist nach etwa einem bis drei Tagen am stärksten und geht dann weg.',
+      'body-cramp': 'Krämpfe haben wohl mehr mit müden Muskeln zu tun als mit fehlendem Salz. Langsamer werden, sanft dehnen, ausgehen.',
+      'body-blister': 'Blasen möglichst nicht aufstechen, sondern abdecken. Reibung plus Feuchtigkeit macht sie, trockene Socken verhindern also die meisten.',
+      'body-chest': 'Schmerzen in der Brust, Schwindel oder ein Herzschlag, der sich falsch anfühlt: anhalten und abklären lassen. Das ist nie ein Härtetest.',
+      'body-sleep': 'Schlaf ist Training. Junge Sportler, die weniger als acht Stunden schliefen, verletzten sich in einer Studie häufiger.',
+      'body-gap': 'Zurück nach einer Pause? Fang kürzer und lockerer an als vorher. Fitness kommt schneller zurück, als sie das erste Mal kam.',
+      'head-spotlight': 'Niemand beobachtet dich so sehr, wie du denkst. Studierende in einem peinlichen T-Shirt schätzten, die Hälfte im Raum habe es bemerkt. Es war etwa ein Viertel.',
+      'head-nod': 'Du musst nicht alle Läufer grüßen. Ein kleines Nicken ist ein vollständiger Satz.',
+      'head-green': 'Bewegung zwischen Bäumen oder am Wasser hebt die Stimmung, und in einer großen Auswertung kam der größte Effekt in den ersten fünf Minuten.',
+      'head-high': 'Das Runner’s High kommt wahrscheinlich eher von Endocannabinoiden als von Endorphinen. Dein Körper macht seine eigene Ruhe, zumindest bei Mäusen, und vermutlich auch bei dir.',
+      'head-ears': 'In der Nähe von Verkehr ein Ohr frei lassen, oder beide. Die Stille gehört sowieso zum Lauf.',
+      'head-hours': 'Stille Stunden: früh morgens, regnerische Abende, der Kanal am Sonntag und das Gewerbegebiet am Wochenende. Dort läuft niemand. Genau darum.',
+      'head-thoughts': 'Nachdenken ist erlaubt. Nicht nachdenken auch. Beides sind gültige Beschäftigungen für dreißig Minuten.',
+      'head-verdict': 'Ein langsamer Lauf ist ein Datenpunkt, kein Urteil. Die meisten Läufe sind einfach okay, und okay ist das Ziel.',
+      'head-short': 'Schon 5 bis 10 Minuten Laufen am Tag hingen in einer Studie mit 55.000 Erwachsenen mit einem geringeren Risiko für einen frühen Tod zusammen. Kurz zählt.',
+      'head-alone': 'Lauftreffs sind schön. Keinen zu wollen ist auch schön. Niemand brauchte je eine Erlaubnis, um allein zu laufen.',
+      'trivia-steps': 'In gemütlichem Tempo machst du grob 1.000 Schritte pro Kilometer. Deine Füße beschweren sich darüber erstaunlich wenig.',
+      'trivia-force': 'Bei jeder Landung geht etwa das Zwei- bis Dreifache deines Körpergewichts durch dein Bein. Körper sind, ehrlich gesagt, beeindruckend.',
+      'trivia-sweat': 'Menschen gehören zu den ganz wenigen Tieren, die dafür gebaut sind, bei Hitze lange Strecken zu laufen, vor allem dank Schwitzen. Peinlich, aber wirksam.',
+      'trivia-pheidippides': 'Pheidippides, der der Legende nach den ersten Marathon lief, starb im Ziel. Das erste Argument der Geschichte fürs Tapern.',
+      'trivia-42': 'Der Marathon wurde bei den Olympischen Spielen 1908 in London 42,195 km lang, damit die Strecke am Windsor Castle beginnen und vor der königlichen Loge enden konnte.',
+      'trivia-police': 'Ende der 1960er wurden in den USA manche Jogger von der Polizei angehalten, die sich nicht vorstellen konnte, warum jemand rennt, ohne verfolgt zu werden.',
+      'trivia-switzer': 'Kathrine Switzer lief 1967 den Boston-Marathon, als Frauen offiziell nicht zugelassen waren. Ein Offizieller versuchte, sie von der Strecke zu zerren. Sie kam ins Ziel.',
+      'trivia-oldest': 'Fauja Singh fing mit 89 an zu laufen und beendete mit 100 einen Marathon. Das Argument „zu spät zum Anfangen“ ist also, mit Verlaub, schwach.',
+    },
+  },
+};
