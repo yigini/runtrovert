@@ -10,8 +10,12 @@ import { Face } from '../components/Mark';
 import { MoodPicker } from '../components/MoodPicker';
 import { MusicStrip } from '../components/MusicStrip';
 import { PainPicker } from '../components/PainPicker';
+import { PlaceFinishCard } from '../components/PlaceFinishCard';
 import { QuietPicker } from '../components/QuietPicker';
 import { RouteMap } from '../components/RouteMap';
+import { SavePlaceSheet } from '../components/SavePlaceSheet';
+import { suggestName } from '../places';
+import { createPlace, dismissLoop, finishPlace, logRun, saveSig, type FinishPlace, type PlaceDraft } from '../placeStore';
 import { RunStatsView } from '../components/RunStats';
 import { YouLine } from '../components/YouLine';
 import { useBack } from '../back';
@@ -31,12 +35,19 @@ import { applyEnergy, type PainLevel } from '../training/adapt';
 import { loadPlan, nextSession, savePlan, todaySession } from '../training/store';
 import type { Session, Step } from '../training/types';
 import { createWorkout, formatLeft, leftClock, stepFeel, stepLine, stepName } from '../training/workout';
-import type { Mood, Quiet, Run } from '../types';
+import type { LatLon, Mood, Quiet, Run } from '../types';
 import { cachedWeather } from '../weather';
 import { beginWorkout, endWorkout, subscribeWorkout, type GuidedRun } from '../workoutRun';
 import { liveFacts, recordRunFacts } from '../you';
 
 type Phase = 'idle' | 'countdown' | 'active' | 'finish';
+
+/** "Run this again" from a place: its loop as a faint line under the live one. */
+export interface Ghost {
+  placeId: number;
+  name: string;
+  path: LatLon[];
+}
 
 /** Ids of the once-only finish lines already used (src/surprises.ts). */
 const SEEN_KEY = 'surprises.seen';
@@ -45,7 +56,7 @@ const TINY_RUN_M = 50;
 /** How long Stop is held before the run ends. Long enough that a sleeve or a pocket can't do it. */
 const HOLD_TO_STOP_MS = 1000;
 
-export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0, focused = true, onOpenPlan, onBrowseListen, onInk }: { onSaved: (runId: number, share?: boolean, extra?: { pain: PainLevel | null; sessionId: string | null }) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number; focused?: boolean; onOpenPlan?: () => void; onBrowseListen?: () => void; onInk?: (ink: boolean) => void }) {
+export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0, focused = true, onOpenPlan, onBrowseListen, onInk, ghost = null, onGhostTaken }: { onSaved: (runId: number, share?: boolean, extra?: { pain: PainLevel | null; sessionId: string | null }) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number; focused?: boolean; onOpenPlan?: () => void; onBrowseListen?: () => void; onInk?: (ink: boolean) => void; ghost?: Ghost | null; onGhostTaken?: () => void }) {
   const { settings } = useSettings();
   const km = settings.unitsKm;
   const [track, setTrack] = useState<TrackingState>(getState());
@@ -67,6 +78,11 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   const [countFootage, setCountFootage] = useState<Footage>('trail-bridge');
   // The finish line for this run, when it has earned one; otherwise finishLine().
   const [surprise, setSurprise] = useState<Surprise | null>(null);
+  // Your places: the loop this run is on, the third-run offer, and what the runner filled in.
+  const [found, setFound] = useState<FinishPlace | null>(null);
+  const [placeDraft, setPlaceDraft] = useState<PlaceDraft | null>(null);
+  const [placeSheet, setPlaceSheet] = useState(false);
+  const [ghostRun, setGhostRun] = useState<Ghost | null>(null);
   const veil = useRef(new Animated.Value(1)).current;
   // Heights of the words and the numbers laid over the finish map, so the route is framed between them.
   const [finishPad, setFinishPad] = useState({ top: 140, bottom: 170 });
@@ -121,6 +137,24 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
       alive = false;
     };
   }, [phase, final?.runId]);
+  useEffect(() => {
+    if (phase !== 'finish' || finishPoints.length < 2) return;
+    let alive = true;
+    finishPlace(final?.runId ?? null, finishPoints)
+      .then((f) => alive && setFound(f))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [phase, finishPoints]);
+  // "Run this again": straight into the run, the loop drawn under it.
+  useEffect(() => {
+    if (!ghost || phase !== 'idle') return;
+    setGhostRun(ghost);
+    onGhostTaken?.();
+    void onStart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ghost, phase]);
   useEffect(() => {
     if (phase !== 'idle') return;
     loadPlan()
@@ -182,6 +216,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   async function begin() {
     const perm = await ensurePermissions();
     if (!perm.ok) {
+      setGhostRun(null);
       Alert.alert('Location needed', 'Runtrovert can only record a run with location access. Your runs are saved on this phone, not on a server of ours.');
       return;
     }
@@ -231,6 +266,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     if (countdownRef.current) clearInterval(countdownRef.current);
     countdownRef.current = null;
     setRunSilent(false);
+    setGhostRun(null);
     setPhase('idle');
   }
 
@@ -306,9 +342,23 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
       saveValue(SEEN_KEY, [...seen, surprise.id]).catch(() => {});
     }
     if (id != null) await recordRunFacts(id, startedAt, durationS).catch(() => {});
+    if (id != null) await keepPlace(id).catch(() => {});
     const extra = { pain, sessionId: guided?.session.id ?? null };
     reset();
     if (id != null) onSaved(id, share, extra);
+  }
+
+  /** The run is kept: remember its route, and log it in its place or keep it as a new one. */
+  async function keepPlace(runId: number) {
+    if (!found) return;
+    await saveSig(runId, found.sig);
+    if (found.offer.kind === 'place') await logRun(found.offer.placeId, runId);
+    else if (found.offer.kind === 'offer' && placeDraft && found.sig) await createPlace(placeDraft, found.sig, runId, found.offer.earlier);
+  }
+
+  function placeNotNow() {
+    if (found?.sig) dismissLoop(found.sig).catch(() => {});
+    setFound(null);
   }
 
   function onDiscard() {
@@ -335,6 +385,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     setFinal(null);
     setSurprise(null);
     setLive(null);
+    setFound(null);
     setPhase('active');
   }
 
@@ -351,6 +402,10 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     setFinal(null);
     setSurprise(null);
     setLive(null);
+    setFound(null);
+    setPlaceDraft(null);
+    setPlaceSheet(false);
+    setGhostRun(null);
     setMapFront(false);
     veil.setValue(1);
   }
@@ -418,6 +473,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         </View>
         <View style={{ padding: spacing.md, paddingTop: spacing.lg, gap: spacing.lg }}>
           {you && <YouLine title={you.title} detail={you.detail} />}
+          <PlaceFinishCard found={found} draft={placeDraft} onOffer={() => setPlaceSheet(true)} onNotNow={placeNotNow} />
           <MoodPicker title="And your energy now?" value={moodAfter} onChange={setMoodAfter} />
           <QuietPicker value={quiet} onChange={setQuiet} />
           <TextInput style={styles.note} placeholder="A note, if you want one" placeholderTextColor={colors.inkMuted} value={note} onChangeText={setNote} multiline />
@@ -437,6 +493,18 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
           </View>
           <Button title="Keep it and share with someone" variant="secondary" onPress={() => onSave(true)} style={{ marginTop: -spacing.sm }} />
         </View>
+        <SavePlaceSheet
+          open={placeSheet}
+          sig={found?.sig ?? null}
+          initial={placeDraft ?? { name: suggestName(final.startedAt ?? Date.now()), tags: [] }}
+          busy={quiet}
+          onBusy={setQuiet}
+          onSave={(d) => {
+            setPlaceDraft(d);
+            setPlaceSheet(false);
+          }}
+          onClose={() => setPlaceSheet(false)}
+        />
       </ScrollView>
     );
   }
@@ -570,6 +638,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         here={track.here}
         follow
         fill
+        ghost={ghostRun?.path}
         interactive={mapFront}
         fps={mapFront ? undefined : 20}
         focusPadding={mapFront ? { top: 120, right: 0, bottom: 140, left: 0 } : { top: H * 0.5, right: 0, bottom: 150, left: 0 }}
