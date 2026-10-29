@@ -2,6 +2,7 @@ import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
 import type { CueMode } from './types';
 import { formatDuration, formatPace } from './geo';
+import { duck } from './music';
 
 /**
  * Cues never shout. Voice is a single calm sentence; haptic is a short pattern;
@@ -32,12 +33,20 @@ async function buzz(pattern: Haptics.NotificationFeedbackType | 'double' | 'trip
   }
 }
 
+// Music dips while we talk and comes back when we're done. Each sentence gets
+// an id so a stopped one can't lift the duck under the one that replaced it.
+let spoken = 0;
 function say(text: string) {
+  const id = ++spoken;
+  const release = () => {
+    if (id === spoken) duck(false);
+  };
   try {
     Speech.stop();
-    Speech.speak(text, { rate: 0.95, pitch: 1.0 });
+    duck(true);
+    Speech.speak(text, { rate: 0.95, pitch: 1.0, onDone: release, onStopped: release, onError: release });
   } catch {
-    // speech unavailable
+    release();
   }
 }
 

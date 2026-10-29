@@ -3,17 +3,19 @@ import { Fraunces_300Light, Fraunces_400Regular_Italic, Fraunces_600SemiBold } f
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useState } from 'react';
+import * as Notifications from 'expo-notifications';
+import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { discardUnfinishedRuns, getRun } from './src/db';
 import { HistoryScreen } from './src/screens/HistoryScreen';
+import { ListenScreen } from './src/screens/ListenScreen';
 import { RunDetailScreen } from './src/screens/RunDetailScreen';
 import { RunScreen } from './src/screens/RunScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { TrainScreen } from './src/screens/TrainScreen';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
-import { notifyAfterRun, rescheduleReminders } from './src/notify';
+import { FEWER_ACTION, fewer, fewerMessage, notifyAfterRun, requestNotificationPermission, rescheduleReminders } from './src/notify';
 import { SettingsProvider, useSettings } from './src/settings';
 import { recoverRun, subscribe } from './src/tracking';
 import { colors, fonts, spacing } from './src/theme';
@@ -21,10 +23,11 @@ import type { PainLevel } from './src/training/adapt';
 import { schedulePlanReminders } from './src/training/remind';
 import { onRunSaved } from './src/training/store';
 import type { Session } from './src/training/types';
+import { NEWS } from './src/whatsNew';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-type Tab = 'run' | 'train' | 'history' | 'settings';
+type Tab = 'run' | 'train' | 'history' | 'listen' | 'settings';
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({ DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold, Fraunces_300Light, Fraunces_400Regular_Italic, Fraunces_600SemiBold });
@@ -46,6 +49,7 @@ function Shell() {
   const { settings, ready, update } = useSettings();
   const [tab, setTab] = useState<Tab>('run');
   const [openRun, setOpenRun] = useState<number | null>(null);
+  const [shareOpen, setShareOpen] = useState(false); // open the share card on arrival ("Keep it and share")
   const [refreshKey, setRefreshKey] = useState(0);
   const [liveRun, setLiveRun] = useState(false);
   // A session opened from the Train tab, waiting on the Run tab's start button.
@@ -62,27 +66,56 @@ function Shell() {
       .catch(() => {});
   }, []);
 
-  // Lay out the next weeks of reminders each time the app opens (context may have changed).
+  // Re-plan the next two weeks of reminders on open and whenever their settings change.
   useEffect(() => {
     if (ready && settings.onboarded) {
       rescheduleReminders(settings)
         .then(() => schedulePlanReminders(settings))
         .catch(() => {});
     }
-  }, [ready, settings.onboarded, planKey]);
+  }, [ready, settings.onboarded, settings.notifyPerWeek, settings.notifyHour, settings.notifyMinute, settings.notifyAuto, settings.weather, planKey]);
+
+  // Taps on notifications, including the one that launched the app.
+  const response = Notifications.useLastNotificationResponse();
+  const handled = useRef<string | null>(null);
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+  useEffect(() => {
+    if (!ready || !response) return;
+    const key = `${response.notification.request.identifier}:${response.actionIdentifier}`;
+    if (handled.current === key) return;
+    handled.current = key;
+    const data = response.notification.request.content.data ?? {};
+    if (response.actionIdentifier === FEWER_ACTION) {
+      const next = fewer(settingsRef.current.notifyPerWeek);
+      update({ notifyPerWeek: next });
+      Alert.alert('Reminders', fewerMessage(next));
+    } else if (data.kind === 'after-run' && typeof data.runId === 'number') {
+      setOpenRun(data.runId);
+      setTab('history');
+    }
+  }, [ready, response]);
 
   if (!ready) return <SafeAreaView style={styles.root} />;
   if (!settings.onboarded) {
     return (
       <SafeAreaView style={styles.root}>
         <StatusBar style="dark" />
-        <WelcomeScreen onDone={() => update({ onboarded: true })} />
+        <WelcomeScreen
+          onDone={async (yes) => {
+            if (yes) await requestNotificationPermission().catch(() => false);
+            update({ onboarded: true, notifyAsk: yes ? 'yes' : 'no', seenNews: NEWS.id });
+          }}
+        />
       </SafeAreaView>
     );
   }
 
-  async function onSaved(runId: number, extra?: { pain: PainLevel | null; sessionId: string | null }) {
-    notifyAfterRun(settings);
+  async function onSaved(runId: number, share = false, extra?: { pain: PainLevel | null; sessionId: string | null }) {
+    setShareOpen(share);
+    getRun(runId)
+      .then((run) => notifyAfterRun(settings, runId, run?.moodAfter != null))
+      .catch(() => {});
     setRefreshKey((k) => k + 1);
     setOpenRun(runId);
     setTab('history');
@@ -122,17 +155,31 @@ function Shell() {
             }}
           />
         )}
-        {tab === 'history' && openRun == null && <HistoryScreen onOpen={setOpenRun} refreshKey={refreshKey} />}
+        {tab === 'history' && openRun == null && (
+          <HistoryScreen
+            onOpen={(id) => {
+              setShareOpen(false);
+              setOpenRun(id);
+            }}
+            refreshKey={refreshKey}
+          />
+        )}
         {tab === 'history' && openRun != null && (
           <RunDetailScreen
+            key={openRun}
             runId={openRun}
-            onBack={() => setOpenRun(null)}
+            shareOnOpen={shareOpen}
+            onBack={() => {
+              setShareOpen(false);
+              setOpenRun(null);
+            }}
             onDeleted={() => {
               setOpenRun(null);
               setRefreshKey((k) => k + 1);
             }}
           />
         )}
+        {tab === 'listen' && <ListenScreen />}
         {tab === 'settings' && <SettingsScreen />}
       </View>
       {!liveRun && (
@@ -148,6 +195,7 @@ function Shell() {
               setTab('history');
             }}
           />
+          <TabButton label="Listen" color={colors.butter} active={tab === 'listen'} onPress={() => setTab('listen')} />
           <TabButton label="Settings" color={colors.peach} active={tab === 'settings'} onPress={() => setTab('settings')} />
         </View>
       )}

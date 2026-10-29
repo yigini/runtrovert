@@ -6,11 +6,15 @@ import { Fade } from '../components/Fade';
 import { Mark } from '../components/Mark';
 import { MoodPicker } from '../components/MoodPicker';
 import { SkyGlyph } from '../components/SkyGlyph';
+import { TipLine } from '../components/TipLine';
+import { homeFootage } from '../footage';
 import { clock, formatTemp, headline, suggestions } from '../sky';
 import { useSettings } from '../settings';
+import { seasonalLine } from '../surprises';
 import { colors, fonts, spacing } from '../theme';
 import type { Session } from '../training/types';
 import type { Mood, Run } from '../types';
+import { NEWS } from '../whatsNew';
 import { cachedWeather, getWeather, type Weather, type WeatherResult } from '../weather';
 
 /**
@@ -18,7 +22,7 @@ import { cachedWeather, getWeather, type Weather, type WeatherResult } from '../
  * suggestions, and the start button. No cards: the words sit on the picture.
  */
 export function HomeScreen({ runs, mood, onMood, onStart, planToday }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; planToday?: Session | null }) {
-  const { settings } = useSettings();
+  const { settings, update } = useSettings();
   const metric = settings.unitsKm;
   const [sky, setSky] = useState<WeatherResult | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -51,7 +55,8 @@ export function HomeScreen({ runs, mood, onMood, onStart, planToday }: { runs: R
   const evening = weather ? !weather.isDay || (weather.sunset != null && weather.sunset - now < 60 * 60 * 1000) : new Date(now).getHours() >= 17 || new Date(now).getHours() < 6;
 
   return (
-    <AmbientBackground style={evening ? 'dusk' : 'tree'}>
+    // The footage follows the same reading as the headline; a still frame in battery saver.
+    <AmbientBackground style={homeFootage(weather, now)} still={settings.batteryMode === 'saver'}>
       <Fade from="top" height="62%" strength={0.9} />
       <Fade from="bottom" height="42%" strength={0.92} />
       <View style={styles.screen}>
@@ -64,7 +69,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, planToday }: { runs: R
         <Text style={styles.headline} accessibilityRole="header">
           {weather ? headline(weather, metric, now) : greeting(runs, now)}
         </Text>
-        <Text style={styles.sub}>{subline(runs, now)}</Text>
+        <Text style={styles.sub}>{seasonalLine(now) ?? subline(runs, now)}</Text>
         {planToday ? (
           <View style={styles.plan}>
             <Text style={styles.planLabel}>{planToday.done ? 'Today’s session, done' : planToday.skipped ? 'Today’s session, set aside' : 'Today, from your plan'}</Text>
@@ -93,6 +98,14 @@ export function HomeScreen({ runs, mood, onMood, onStart, planToday }: { runs: R
 
         <View style={{ flex: 1 }} />
 
+        {settings.seenNews !== NEWS.id ? (
+          <Pressable onPress={() => update({ seenNews: NEWS.id })} style={styles.news} accessibilityRole="button" accessibilityHint="Dismisses this line">
+            <Text style={styles.newsText}>{NEWS.text}</Text>
+            <Text style={styles.newsDismiss}>Got it</Text>
+          </Pressable>
+        ) : null}
+
+        <TipLine runs={runs} weather={weather} dark={evening} waiting={sky === null} />
         <MoodPicker inline title="Energy right now" value={mood} onChange={onMood} />
         <Button title={planToday && !planToday.done && !planToday.skipped ? 'Start today’s session' : 'Start run'} onPress={onStart} style={{ height: 62 }} />
         <Text style={styles.footer}>{footer(runs, now)}</Text>
@@ -175,6 +188,9 @@ const styles = StyleSheet.create({
   ask: { gap: 4, marginTop: spacing.xs },
   askText: { fontFamily: fonts.bodySemi, fontSize: 16, color: colors.ink },
   askHint: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.inkSoft },
+  news: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm, paddingLeft: 14, borderLeftWidth: 2, borderLeftColor: colors.ink },
+  newsText: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 19, color: colors.ink },
+  newsDismiss: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.inkSoft, textDecorationLine: 'underline' },
   footer: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1, color: colors.inkSoft, textAlign: 'center' },
   plan: { gap: 2, paddingLeft: 14, borderLeftWidth: 2, borderLeftColor: colors.butterDeep },
   planLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: colors.butterDeep },

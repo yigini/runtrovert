@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { previewLine, rescheduleReminders, sendLineNow } from '../notify';
+import { Alert, AppState, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { canControl, installedApps, type MusicApp } from '../music';
+import { notificationStatus, previewLine, sendLineNow, turnOnNotifications, type NotifyStatus } from '../notify';
+import { PODCAST_APPS } from '../shelfLogic';
 import { onBatteryModeChanged } from '../tracking';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
-import type { BatteryMode, CueMode, NotifyPerWeek } from '../types';
+import type { BatteryMode, CueMode, ListenDownload, NotifyPerWeek } from '../types';
 
 const BATTERY: Array<{ key: BatteryMode; label: string; hint: string }> = [
   { key: 'auto', label: 'Auto', hint: 'Full GPS until the battery drops to 25% or the phone is in low-power mode, then eases off.' },
@@ -21,17 +23,27 @@ const CUES: Array<{ key: CueMode; label: string; hint: string }> = [
 export function SettingsScreen() {
   const { settings, update } = useSettings();
   const [preview, setPreview] = useState(previewLine());
-
-  // Any change to the reminder settings re-lays the schedule.
+  const [musicApps, setMusicApps] = useState<MusicApp[]>([]);
   useEffect(() => {
-    rescheduleReminders(settings);
-  }, [settings.notifyPerWeek, settings.notifyHour, settings.notifyMinute]);
+    installedApps().then(setMusicApps);
+  }, []);
+
+  const [status, setStatus] = useState<NotifyStatus>('granted');
+  // App.tsx re-plans reminders when these settings change. Here we only keep the
+  // permission line honest, including after a trip to the phone's settings.
+  useEffect(() => {
+    const check = () => notificationStatus().then(setStatus).catch(() => {});
+    check();
+    const sub = AppState.addEventListener('change', (s) => s === 'active' && check());
+    return () => sub.remove();
+  }, []);
   useEffect(() => {
     onBatteryModeChanged();
   }, [settings.batteryMode]);
 
   async function onSendNow() {
     const ok = await sendLineNow();
+    setStatus(await notificationStatus());
     if (ok) Alert.alert('On its way', 'Lock your phone. One arrives in five seconds, the way they will on a Tuesday morning.');
     else Alert.alert('Notifications are off', 'Turn on notifications for Runtrovert in your phone settings to get reminders and run notes.');
   }
@@ -73,6 +85,28 @@ export function SettingsScreen() {
         </Row>
       </Section>
 
+      <Section title="Music" bg={colors.lilac} fg={colors.lilacDeep}>
+        <Row
+          label="Music on the run screen"
+          hint={
+            canControl
+              ? 'Previous, play and next for whatever is playing, plus a button that opens your app. No login, nothing read.'
+              : 'A button that opens your music app. Your lock screen and Control Center handle the rest.'
+          }
+        >
+          <Switch value={settings.musicStrip} onValueChange={(v) => update({ musicStrip: v })} trackColor={{ true: colors.ink }} />
+        </Row>
+        {[{ key: null, name: "Phone's default" } as { key: string | null; name: string }, ...musicApps].map((a) => {
+          const on = settings.musicApp === a.key;
+          return (
+            <Pressable key={a.key ?? 'default'} onPress={() => update({ musicApp: a.key })} style={[styles.option, on && styles.optionOn]}>
+              <Text style={[styles.optionLabel, on && styles.optionLabelOn]}>{a.name}</Text>
+            </Pressable>
+          );
+        })}
+        <Text style={styles.musicNote}>Voice cues lower your music for a moment instead of talking over it.</Text>
+      </Section>
+
       <Section title="Battery" bg={colors.sky} fg={colors.skyDeep}>
         {BATTERY.map((b) => {
           const on = settings.batteryMode === b.key;
@@ -91,21 +125,38 @@ export function SettingsScreen() {
       </Section>
 
       <Section title="Quiet reminders" bg={colors.butter} fg={colors.butterDeep}>
-        <Row label="Per week" hint="Short, dry, never a streak. Weekends left alone.">
+        {status !== 'granted' ? (
+          <Row label="Notifications are off" hint="So no reminders and no lock-screen numbers during runs. Your call, and nothing else changes.">
+            <Pressable
+              onPress={async () => {
+                await turnOnNotifications();
+                setStatus(await notificationStatus());
+              }}
+              style={styles.turnOn}
+              accessibilityRole="button"
+            >
+              <Text style={styles.turnOnText}>Turn on</Text>
+            </Pressable>
+          </Row>
+        ) : null}
+        <Text style={styles.promise}>
+          The deal: never more than you pick here, one a day at most, nothing between 9 pm and 7 am, never a streak or a sound. Each one has a “Fewer, please” button.
+        </Text>
+        <Row label="Per week" hint="Short, dry, never a streak. Skips days you’ve already run, eases off if ignored.">
           <Segmented
             value={String(settings.notifyPerWeek)}
             options={['0', '1', '3', '5']}
             onChange={(v) => update({ notifyPerWeek: Number(v) as NotifyPerWeek })}
           />
         </Row>
-        <Row label="At" hint="Local time.">
+        <Row stack label="At" hint={settings.notifyAuto ? 'Auto: about 45 minutes before you usually run, on the days you usually run. 8:00 on Mon, Wed, Fri until there are a few runs to go on.' : 'Local time, on weekdays.'}>
           <Segmented
-            value={String(settings.notifyHour)}
-            options={['7', '8', '12', '17', '19']}
-            onChange={(v) => update({ notifyHour: Number(v), notifyMinute: 0 })}
+            value={settings.notifyAuto ? 'Auto' : String(settings.notifyHour)}
+            options={['Auto', '7', '8', '12', '17', '19']}
+            onChange={(v) => (v === 'Auto' ? update({ notifyAuto: true }) : update({ notifyAuto: false, notifyHour: Number(v), notifyMinute: 0 }))}
           />
         </Row>
-        <Row label="After a run" hint="One quiet note a few minutes after you save.">
+        <Row label="After a run" hint="One quiet note fifteen minutes after you save, or a nudge to log your energy if you skipped it. Never after 21:00.">
           <Switch value={settings.afterRunNote} onValueChange={(v) => update({ afterRunNote: v })} trackColor={{ true: colors.ink }} />
         </Row>
         <Pressable onPress={() => setPreview(previewLine())} style={styles.preview}>
@@ -119,15 +170,40 @@ export function SettingsScreen() {
       </Section>
 
       <Section title="The sky" bg={colors.sky} fg={colors.skyDeep}>
-        <Row label="Local weather on the home screen" hint="A location rounded to about 1 km goes to Open-Meteo and a forecast comes back. No key, no account, no cookies. Besides map tiles, it is the only thing the app fetches.">
+        <Row label="Local weather on the home screen" hint="A location rounded to about 1 km goes to Open-Meteo and a forecast comes back. No key, no account, no cookies. Besides map tiles and the Listen list, it is the only thing the app fetches.">
           <Switch value={settings.weather} onValueChange={(v) => update({ weather: v })} trackColor={{ true: colors.ink }} />
+        </Row>
+      </Section>
+
+      <Section title="Listen" bg={colors.butter} fg={colors.butterDeep}>
+        <Row label="Daily list" hint="When you open Listen, download today's shows and episodes. One file, the same for everyone, so nothing about you is sent.">
+          <Segmented
+            value={{ ask: 'Ask', on: 'On', off: 'Off' }[settings.listenDownload]}
+            options={['Ask', 'On', 'Off']}
+            onChange={(v) => update({ listenDownload: v.toLowerCase() as ListenDownload })}
+          />
+        </Row>
+        <Text style={[styles.optionHint, { marginTop: 0 }]}>Open shows in</Text>
+        {[{ key: null, label: 'Ask me' }, ...PODCAST_APPS.filter((a) => (Platform.OS === 'ios' ? a.ios : a.android))].map((a) => {
+          const on = settings.podcastApp === a.key;
+          return (
+            <Pressable key={a.label} onPress={() => update({ podcastApp: a.key })} style={[styles.option, { paddingVertical: 10 }, on && styles.optionOn]}>
+              <Text style={[styles.optionLabel, { fontSize: 14 }, on && styles.optionLabelOn]}>{a.label}</Text>
+            </Pressable>
+          );
+        })}
+        <Row label="Kit & offers" hint="A shelf of running kit from paying sponsors, at the bottom of Listen. Only there, only when you open it. Off hides it for good.">
+          <Switch value={!settings.offersHidden} onValueChange={(v) => update({ offersHidden: !v })} trackColor={{ true: colors.ink }} />
         </Row>
       </Section>
 
       <Section title="Privacy" bg={colors.white} fg={colors.muted}>
         <Text style={styles.privacy}>
           Runtrovert has no server. Your runs, routes, notes and settings live only here. We can't see them even if we wanted to.
-          Reminders are generated on the phone. Map tiles and the weather are the only things fetched, and the weather only if you leave it on. Delete the app and it's all gone.
+          Reminders are written and scheduled on the phone. No push service, no server, nothing that knows when or whether you ran. The app fetches three
+          things: map tiles, the weather if you leave it on, and the Listen list if you said yes, which is one file that's the same for everyone. Podcasts
+          play in your own podcast app; we never see what you play. Sponsors pay a flat fee for a place on the Kit & offers shelf and never learn who opened
+          it or what was tapped. Delete the app and it's all gone.
         </Text>
       </Section>
     </ScrollView>
@@ -143,10 +219,10 @@ function Section({ title, bg, fg, children }: { title: string; bg: string; fg: s
   );
 }
 
-function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Row({ label, hint, stack, children }: { label: string; hint?: string; stack?: boolean; children: React.ReactNode }) {
   return (
-    <View style={styles.row}>
-      <View style={{ flex: 1, paddingRight: spacing.md }}>
+    <View style={[styles.row, stack && styles.rowStack]}>
+      <View style={stack ? undefined : { flex: 1, paddingRight: spacing.md }}>
         <Text style={styles.optionLabel}>{label}</Text>
         {hint ? <Text style={styles.optionHint}>{hint}</Text> : null}
       </View>
@@ -182,6 +258,7 @@ const styles = StyleSheet.create({
   optionHint: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, marginTop: 2 },
   check: { color: colors.cream, fontSize: 18 },
   row: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.cream, borderRadius: radius.md, padding: 14 },
+  rowStack: { flexDirection: 'column', alignItems: 'flex-start', gap: spacing.sm },
   seg: { flexDirection: 'row', backgroundColor: colors.white, borderRadius: radius.pill, padding: 3 },
   segItem: { paddingVertical: 7, paddingHorizontal: 13, borderRadius: radius.pill },
   segItemOn: { backgroundColor: colors.ink },
@@ -193,5 +270,9 @@ const styles = StyleSheet.create({
   previewText: { fontFamily: fonts.body, color: colors.text, fontSize: 15, lineHeight: 22 },
   sendNow: { backgroundColor: colors.ink, borderRadius: radius.pill, paddingVertical: 12, alignItems: 'center' },
   sendNowText: { fontFamily: fonts.bodySemi, color: colors.cream, fontSize: 14 },
+  musicNote: { fontFamily: fonts.body, color: colors.lilacDeep, fontSize: 13, lineHeight: 19 },
+  promise: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.text },
+  turnOn: { backgroundColor: colors.ink, borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 14 },
+  turnOnText: { fontFamily: fonts.bodySemi, color: colors.cream, fontSize: 13 },
   previewHint: { fontFamily: fonts.body, color: colors.muted, fontSize: 12, textAlign: 'right' },
 });

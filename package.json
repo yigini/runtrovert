@@ -24,7 +24,8 @@
     "expo-video": "~58.0.12",
     "react": "19.3.0",
     "react-native": "0.88.0",
-    "react-native-svg": "15.16.0"
+    "react-native-svg": "15.16.0",
+    "react-native-view-shot": "6.1.1"
   },
   "devDependencies": {
     "@napi-rs/canvas": "^1.0.13",
@@ -38,9 +39,14 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "sim:gps": "node --experimental-strip-types scripts/sim-gps.ts",
+    "test:mapfit": "node --experimental-strip-types scripts/test-map-fit.ts",
+    "test:reminders": "node --experimental-strip-types scripts/test-reminders.ts",
     "test:plans": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-plans.ts",
     "icons": "node scripts/make-icons.mjs",
-    "bg": "node scripts/make-bg-video.mjs"
+    "bg": "node scripts/make-bg-video.mjs",
+    "shelf": "node scripts/build-shelf.mjs src/shelfBundled.json",
+    "test:shelf": "node --experimental-strip-types scripts/test-shelf.ts",
+    "test:progress": "node --experimental-strip-types scripts/test-progress.ts"
   },
   "private": true
 }

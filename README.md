@@ -7,7 +7,7 @@ Everything stays on the phone.
 
 ## What's in it (v0.6)
 
-- **Ambient background**: two real-footage loops graded into the palette (`dusk` — a lone figure on a ridge at dusk, behind the splash and welcome; `tree` — a distant runner by a big tree, behind the start screen; Pexels footage, see `assets/CREDITS.md`), plus three 12 s loops drawn in code — `painterly` (default: hazy dawn, distant conifers, drifting ground mist, grain), `flat` (clean motion graphic) and `abstract` (breathing gradients, light leak, one sharp dot). Behind the splash, welcome and start screens; ~0.5 MB each, muted, local, pause in background. Pass `style=` to `AmbientBackground` or change `DEFAULT_STYLE`; `npm run bg` regenerates them
+- **Ambient background**: 21 real-footage loops graded into the palette (Pexels, see `assets/CREDITS.md`; raw clips stay out of git, `scripts/grade-bg.sh <raw-dir> assets` makes them: 9:16, 900×1600, 24 fps, 6–8 s seamless loops, ~0.5 MB each). The home screen picks one from the same weather reading as its headline (`src/footage.ts`: storm, snow, rain, fog, night, dusk, cold, heat, wind, clear, cloud), rotating through a pool per scene by day; the welcome screen has the seawall, the countdown gets feet on cobbles or a trail. Plus three 12 s loops drawn in code — `painterly`, `flat`, `abstract` (`npm run bg`). Muted, local, pause in background; a still frame in battery saver. Pass `style=` to `AmbientBackground`.
 - **Maps**: MapLibre — open source, no API key, no Google; `offline` prop draws the route on plain mint with zero tile requests
 - **Error boundary**: a render crash shows the error on a cream screen instead of closing the app
 - **Identity**: cream ground, ink text, five pastels with jobs (mint = time, peach = pace, lilac = you, butter = reminders, sky = welcome); Fraunces for headlines and numbers, DM Sans for everything else; five energy faces instead of 1–5; the live run flips to ink so the numbers glow. App icon, Android adaptive layers, splash and favicon are generated from the mark (`npm run icons`)
@@ -78,6 +78,8 @@ src/geo.ts                   haversine, unit-aware formatting
 src/settings.tsx             settings context
 src/notify.ts                reminder scheduler (local notifications only)
 src/lines.ts                 the reminder line bank — edit freely, keep it dry
+src/footage.ts               which background loop the sky gets (pools per scene, rotated by day)
+src/surprises.ts             the rare finish lines and the few dated home lines
 src/screens/WelcomeScreen.tsx
 src/screens/RunScreen.tsx    pre-run → countdown → live (swipe pages) → post-run
 src/screens/HistoryScreen.tsx
@@ -90,7 +92,8 @@ src/unlock.ts                "Everything, once" flag (no billing yet: test build
 scripts/test-plans.ts        generates every plan every way and checks the nine rules
 src/components/              Mark (icon + faces), MoodPicker, QuietPicker, PainPicker, RouteMap, SplitsTable, Button
 scripts/make-icons.mjs       regenerates every icon asset from the mark
-scripts/make-bg-video.mjs    renders the ambient background loop
+scripts/make-bg-video.mjs    renders the three drawn background loops
+scripts/grade-bg.sh          grades raw Pexels clips into the footage loops (raw clips stay out of git)
 src/components/AmbientBackground.tsx
 src/theme.ts                 colours and spacing
 ```

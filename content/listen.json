@@ -1,0 +1,24 @@
+{
+  "_about": "Hand-picked shows for the Listen shelf. Edit freely: add an Apple Podcasts id, a group, a one-line why. noFeed: true links the show without reading its feed (for publishers whose terms want a licence, like the BBC). scripts/build-shelf.mjs fills in the feed, the latest episodes and the episode count every day. Groups: quiet, stories, learn, start.",
+  "shows": [
+    { "id": 1083410032, "groups": ["quiet"], "since": 2016, "why": "Two comedians chatting while they actually run. Company that never needs a reply." },
+    { "id": 350035346, "groups": ["quiet"], "since": 2010, "why": "Calm and kind. Deena Kastor and Martin Yelling on the mind as much as the miles." },
+    { "id": 76776428, "groups": ["quiet"], "since": 2005, "why": "One runner, alone, thinking out loud. Since 2005." },
+    { "id": 1204523870, "groups": ["quiet"], "since": 2017, "why": "Warm one-to-one conversations with runners of every level. Never a lecture." },
+    { "id": 1090500561, "groups": ["stories"], "since": 2016, "why": "Survival and adventure stories for long runs. Not only about running." },
+    { "id": 1807970949, "groups": ["stories", "start"], "since": 2025, "noFeed": true, "why": "People who became runners late, often through something hard. From the BBC." },
+    { "id": 1495427631, "groups": ["stories"], "since": 2020, "why": "One runner's story per episode, told without hurry." },
+    { "id": 1225735334, "groups": ["stories"], "since": 2017, "why": "Honest talk about anxiety, burnout and running." },
+    { "id": 582272991, "groups": ["stories"], "since": 2012, "why": "Long, thoughtful conversations that started from an ultra runner's own story." },
+    { "id": 452025505, "groups": ["stories"], "since": 2012, "why": "Everyday runners with real lives. Warm, a little chattier." },
+    { "id": 1492327668, "groups": ["stories"], "since": 2019, "why": "Trail and ultra runners on why they go far and quiet." },
+    { "id": 484661268, "groups": ["stories"], "since": 2011, "why": "Plain, practical trail conversations." },
+    { "id": 1373165672, "groups": ["learn"], "since": 2018, "why": "Runner's World UK's own show. Reliable and weekly." },
+    { "id": 1098195654, "groups": ["learn"], "since": 2016, "why": "Runner's World US, with stories from the magazine." },
+    { "id": 1521532868, "groups": ["learn"], "since": 2020, "why": "Science-minded coaches who are kind about rest and play." },
+    { "id": 1461719225, "groups": ["learn"], "since": 2019, "why": "Evidence first, hype last. Good on shoes and myths." },
+    { "id": 359208879, "groups": ["learn"], "since": 2010, "why": "Practical answers for a first marathon." },
+    { "id": 1170932252, "groups": ["start"], "since": 2016, "why": "Clear, short answers on injuries, form and getting started." },
+    { "id": 1554535778, "groups": ["start"], "since": 2021, "why": "Plain explanations of the words new runners feel silly asking about." }
+  ]
+}

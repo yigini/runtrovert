@@ -175,6 +175,11 @@ function openSegment() {
   lastMovementTs = Date.now();
 }
 
+/** Fixes recorded in this run that haven't been written to the database yet. */
+export function unsavedPoints(): Array<{ ts: number; lat: number; lon: number }> {
+  return pendingPoints.map((p) => ({ ts: p.ts, lat: p.lat, lon: p.lon }));
+}
+
 // ---- Persistence ------------------------------------------------------------
 
 async function persist(force = false) {

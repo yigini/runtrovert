@@ -2,29 +2,41 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Dimensions, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { AmbientBackground } from '../components/AmbientBackground';
 import { Button } from '../components/Button';
+import { Face } from '../components/Mark';
 import { MoodPicker } from '../components/MoodPicker';
+import { MusicStrip } from '../components/MusicStrip';
 import { PainPicker } from '../components/PainPicker';
 import { QuietPicker } from '../components/QuietPicker';
 import { RouteMap } from '../components/RouteMap';
 import { SplitsTable } from '../components/SplitsTable';
+import { YouLine } from '../components/YouLine';
 import { cueCountdown } from '../cues';
-import { deleteRun, listRuns } from '../db';
+import { deleteRun, listRuns, loadValue, saveValue } from '../db';
 import { HomeScreen } from './HomeScreen';
+import { countdownFootage, type Footage } from '../footage';
 import { distanceUnit, formatDistance, formatDistanceNumber, formatDuration, formatElevation, formatPace, formatSpeedAsPace } from '../geo';
+import { compare, youVsYou, type RunFacts } from '../progress';
 import { useSettings } from '../settings';
-import { ensurePermissions, getState, lap, pauseRun, resumeRun, startRun, stopRun, subscribe, TrackingState } from '../tracking';
+import { finishSurprise, type Surprise } from '../surprises';
+import { ensurePermissions, getState, lap, pauseRun, resumeRun, startRun, stopRun, subscribe, TrackingState, unsavedPoints } from '../tracking';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import { applyEnergy, type PainLevel } from '../training/adapt';
 import { loadPlan, savePlan, todaySession } from '../training/store';
 import type { Session } from '../training/types';
 import { formatLeft, stepLine } from '../training/workout';
 import type { Mood, Quiet, Run } from '../types';
+import { cachedWeather } from '../weather';
 import { beginWorkout, endWorkout, subscribeWorkout, type GuidedRun } from '../workoutRun';
+import { liveFacts, recordRunFacts } from '../you';
 
 type Phase = 'idle' | 'countdown' | 'active' | 'finish';
 
-export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0 }: { onSaved: (runId: number, extra?: { pain: PainLevel | null; sessionId: string | null }) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number }) {
+/** Ids of the once-only finish lines already used (src/surprises.ts). */
+const SEEN_KEY = 'surprises.seen';
+
+export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0 }: { onSaved: (runId: number, share?: boolean, extra?: { pain: PainLevel | null; sessionId: string | null }) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number }) {
   const { settings } = useSettings();
   const km = settings.unitsKm;
   const [track, setTrack] = useState<TrackingState>(getState());
@@ -36,10 +48,17 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   const [note, setNote] = useState('');
   // Final numbers are frozen the moment the user taps Stop.
   const [final, setFinal] = useState<TrackingState | null>(null);
+  // This run's bests and the runs before it, for the one you-vs-you line.
+  const [live, setLive] = useState<{ run: RunFacts; history: RunFacts[] } | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
   const [mapFront, setMapFront] = useState(false);
+  const [countFootage, setCountFootage] = useState<Footage>('cobbles');
+  // The finish line for this run, when it has earned one; otherwise finishLine().
+  const [surprise, setSurprise] = useState<Surprise | null>(null);
   const veil = useRef(new Animated.Value(1)).current;
+  // Heights of the words and the numbers laid over the finish map, so the route is framed between them.
+  const [finishPad, setFinishPad] = useState({ top: 140, bottom: 170 });
   // The plan, when there is one: today's session (or the one opened from the
   // Train tab), the guided steps during the run, and the pain line after.
   const [hasPlan, setHasPlan] = useState(false);
@@ -119,6 +138,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
       Alert.alert('Background location', 'Without "Always" location the run may stop recording when the screen is off. You can change this in Settings later.');
     }
     if (settings.countdownS > 0) {
+      setCountFootage(countdownFootage());
       setPhase('countdown');
       let n = settings.countdownS;
       setCount(n);
@@ -164,18 +184,32 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     else pauseRun();
   }
 
-  function onStop() {
+  async function onStop() {
     const s = getState();
     if (s.status !== 'paused') pauseRun();
-    setFinal(getState());
+    const f = getState();
+    setFinal(f);
     setPhase('finish');
+    setSurprise(await pickSurprise(f, runs, km));
+    if (f.runId != null) {
+      liveFacts({ runId: f.runId, startedAt: f.startedAt ?? Date.now(), distanceM: f.distanceM, durationS: f.durationS, elevationGainM: f.elevationGainM, unsaved: unsavedPoints() })
+        .then(setLive)
+        .catch(() => {});
+    }
   }
 
-  async function onSave() {
+  async function onSave(share = false) {
+    const startedAt = final?.startedAt ?? Date.now();
+    const durationS = final?.durationS ?? 0;
     const id = await stopRun({ moodAfter, quiet, note: note.trim() || null });
+    if (id != null && surprise?.once) {
+      const seen = (await loadValue<string[]>(SEEN_KEY).catch(() => null)) ?? [];
+      saveValue(SEEN_KEY, [...seen, surprise.id]).catch(() => {});
+    }
+    if (id != null) await recordRunFacts(id, startedAt, durationS).catch(() => {});
     const extra = { pain, sessionId: guided?.session.id ?? null };
     reset();
-    if (id != null) onSaved(id, extra);
+    if (id != null) onSaved(id, share, extra);
   }
 
   function onDiscard() {
@@ -203,6 +237,8 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     setQuiet(null);
     setNote('');
     setFinal(null);
+    setSurprise(null);
+    setLive(null);
     setMapFront(false);
     veil.setValue(1);
   }
@@ -213,32 +249,50 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   }
 
   // ---- Countdown -------------------------------------------------------------
+  // Feet on the ground behind the numbers, under an ink veil so the count stays cream.
   if (phase === 'countdown') {
     return (
-      <View style={[styles.screenInk, styles.center]}>
-        <Text style={styles.countdown}>{count}</Text>
-        <Button title="Cancel" variant="onInk" onPress={cancelCountdown} style={{ marginTop: spacing.xl, width: 160 }} />
-      </View>
+      <AmbientBackground style={countFootage} still={settings.batteryMode === 'saver'}>
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(43,39,51,0.55)' }]} />
+        <View style={[styles.center, { flex: 1, padding: spacing.md }]}>
+          <Text style={styles.countdown}>{count}</Text>
+          <Button title="Cancel" variant="onInk" onPress={cancelCountdown} style={{ marginTop: spacing.xl, width: 160 }} />
+        </View>
+      </AmbientBackground>
     );
   }
 
   // ---- Finish ----------------------------------------------------------------
   if (phase === 'finish' && final) {
     const partialKm = final.currentKm.distanceM > 20 ? { index: final.splits.length + 1, ...final.currentKm } : null;
+    const mapH = Math.round(Dimensions.get('window').height * 0.62);
+    const you = live ? youVsYou(compare({ ...live.run, moodBefore, moodAfter }, live.history), km) : null;
     return (
       <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
-        <View style={styles.finishHero}>
-          <Text style={[type.eyebrow, { color: colors.mintDeep }]}>Run done</Text>
-          <Text style={styles.finishTitle}>{finishLine()}</Text>
-          <View style={styles.statRow}>
-            <Stat value={formatDistanceNumber(final.distanceM, km)} label={distanceUnit(km)} big />
-            <Stat value={formatDuration(final.durationS)} label="time" />
-            <Stat value={formatPace(final.distanceM, final.durationS, km)} label={`/${distanceUnit(km)}`} />
-            <Stat value={formatElevation(final.elevationGainM, km)} label="climb" />
+        {/* The run, framed: your route fills the space between the words and the numbers. */}
+        <View style={{ height: mapH, backgroundColor: colors.mintSoft }}>
+          <RouteMap
+            path={final.path}
+            fill
+            interactive={false}
+            fitPadding={{ top: finishPad.top + 24, right: 36, bottom: finishPad.bottom + 24, left: 36 }}
+          />
+          <View style={styles.finishTop} pointerEvents="none" onLayout={(e) => setFinishPad((p) => ({ ...p, top: e.nativeEvent.layout.y + e.nativeEvent.layout.height }))}>
+            <Text style={[type.eyebrow, { color: colors.mintDeep }]}>Run done</Text>
+            <Text style={styles.finishTitle}>{surprise?.line ?? finishLine()}</Text>
+          </View>
+          <View style={styles.finishCard} onLayout={(e) => setFinishPad((p) => ({ ...p, bottom: mapH - e.nativeEvent.layout.y }))}>
+            <View style={styles.statRow}>
+              <Stat value={formatDistanceNumber(final.distanceM, km)} label={distanceUnit(km)} big />
+              <Stat value={formatDuration(final.durationS)} label="time" />
+              <Stat value={formatPace(final.distanceM, final.durationS, km)} label={`/${distanceUnit(km)}`} />
+              <Stat value={formatElevation(final.elevationGainM, km)} label="climb" />
+            </View>
+            <Recharge before={moodBefore} after={moodAfter} />
           </View>
         </View>
         <View style={{ padding: spacing.md, paddingTop: spacing.lg, gap: spacing.lg }}>
-          <RouteMap path={final.path} height={180} />
+          {you && <YouLine title={you.title} detail={you.detail} />}
           <MoodPicker title="And your energy now?" value={moodAfter} onChange={setMoodAfter} />
           <QuietPicker value={quiet} onChange={setQuiet} />
           <TextInput style={styles.note} placeholder="A note, if you want one" placeholderTextColor={colors.inkMuted} value={note} onChangeText={setNote} multiline />
@@ -247,8 +301,9 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
           {final.laps.length > 0 && <SplitsTable title="Laps" rows={final.laps} km={km} />}
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
             <Button title="Discard" variant="danger" onPress={onDiscard} style={{ flex: 0, paddingHorizontal: 22 }} />
-            <Button title="Keep it" onPress={onSave} style={{ flex: 1 }} />
+            <Button title="Keep it" onPress={() => onSave()} style={{ flex: 1 }} />
           </View>
+          <Button title="Keep it and share with someone" variant="secondary" onPress={() => onSave(true)} style={{ marginTop: -spacing.sm }} />
         </View>
       </ScrollView>
     );
@@ -298,6 +353,8 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         )}
 
         <View style={{ flex: 1 }} pointerEvents="none" />
+
+        {settings.musicStrip && <MusicStrip appKey={settings.musicApp} />}
 
         <View style={{ alignItems: 'center' }}>
           <Pressable onPress={toggleMap} accessibilityRole="button" accessibilityLabel={mapFront ? 'Show numbers' : 'Show map'} style={({ pressed }) => [styles.mapToggle, pressed && { opacity: 0.85 }]}>
@@ -415,9 +472,39 @@ function Stat({ value, label, big }: { value: string; label: string; big?: boole
   );
 }
 
+/** Energy before → after, the run's recharge. Fills in as you pick below. */
+function Recharge({ before, after }: { before: Mood | null; after: Mood | null }) {
+  if (before == null && after == null) {
+    return <Text style={styles.rechargeText}>How’s your energy now? Pick it below.</Text>;
+  }
+  const d = before != null && after != null ? after - before : null;
+  const verdict =
+    d == null ? (after == null ? 'and now? Pick it below.' : '') : d > 0 ? `Recharged +${d}` : d === 0 ? 'Held steady' : 'Spent. That counts too.';
+  return (
+    <View style={styles.recharge}>
+      <View style={styles.rechargeFaces}>
+        {before != null && <Face level={before} size={28} />}
+        {before != null && after != null && <Text style={styles.rechargeArrow}>→</Text>}
+        {after != null && <Face level={after} size={28} />}
+      </View>
+      {!!verdict && <Text style={[styles.rechargeText, d != null && d > 0 && { color: colors.mintDeep, fontFamily: fonts.bodySemi }]}>{verdict}</Text>}
+    </View>
+  );
+}
+
 function finishLine(): string {
   const lines = ['Nobody saw that.\nWhich was the plan.', 'That’s one.\nQuietly logged.', 'Done.\nGo be unavailable.', 'Legs did the talking.'];
   return lines[Math.floor(Date.now() / 60000) % lines.length];
+}
+
+/** The rare line, from this run, the runs before it, the last weather reading and what's been said already. */
+async function pickSurprise(f: TrackingState, history: Run[], metric: boolean): Promise<Surprise | null> {
+  try {
+    const [seen, w] = await Promise.all([loadValue<string[]>(SEEN_KEY), cachedWeather()]);
+    return finishSurprise({ startedAt: f.startedAt ?? Date.now(), distanceM: f.distanceM, durationS: f.durationS }, history, w?.sky ?? null, seen ?? [], metric);
+  } catch {
+    return null;
+  }
 }
 
 const styles = StyleSheet.create({
@@ -429,11 +516,16 @@ const styles = StyleSheet.create({
   tileValue: { fontFamily: fonts.display, fontSize: 30, lineHeight: 34, color: colors.text, fontVariant: ['tabular-nums'] },
   tileLabel: { fontFamily: fonts.bodySemi, fontSize: 12, marginTop: 2 },
   countdown: { fontFamily: fonts.displayLight, fontSize: 140, color: colors.cream, fontVariant: ['tabular-nums'] },
-  finishHero: { padding: spacing.md, paddingTop: spacing.lg, gap: 14 },
+  finishTop: { position: 'absolute', top: 0, left: 0, right: 0, padding: spacing.md, paddingTop: spacing.lg, paddingBottom: 14, gap: 10, backgroundColor: 'rgba(246,241,234,0.9)' },
+  finishCard: { position: 'absolute', left: spacing.md, right: spacing.md, bottom: spacing.md, padding: spacing.md, gap: 12, borderRadius: radius.lg, backgroundColor: 'rgba(246,241,234,0.94)' },
+  recharge: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  rechargeFaces: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.lilacSoft, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 2 },
+  rechargeArrow: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.lilacDeep },
+  rechargeText: { flex: 1, fontFamily: fonts.body, fontSize: 14, color: colors.inkMuted },
   finishTitle: { fontFamily: fonts.display, fontSize: 38, lineHeight: 42, letterSpacing: -0.8, color: colors.text },
-  statRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 18, marginTop: 6 },
+  statRow: { flexDirection: 'row', alignItems: 'flex-end', flexWrap: 'wrap', columnGap: 16, rowGap: 6 },
   statValue: { fontFamily: fonts.displayLight, fontSize: 34, lineHeight: 38, letterSpacing: -1, color: colors.text, fontVariant: ['tabular-nums'] },
-  statValueBig: { fontSize: 60, lineHeight: 60, letterSpacing: -3 },
+  statValueBig: { fontSize: 52, lineHeight: 54, letterSpacing: -2.5 },
   statLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: colors.inkMuted },
   live: { flex: 1, backgroundColor: colors.ink },
   veil: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(43,39,51,0.66)' },
