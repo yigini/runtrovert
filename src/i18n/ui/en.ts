@@ -213,9 +213,6 @@ export const en = {
     oneMoment: 'One moment…',
     share: 'Share',
   },
-  skyGlyph: {
-    translate05: 'translate(0 -5)',
-  },
   tipLine: {
     opensAllTheTips: 'Opens all the tips',
     nobodyTellsYou: 'Nobody tells you',
@@ -310,7 +307,7 @@ export const en = {
     yourRuns: 'Your runs',
     monthSoFarSpoken: (month: string, runs: number, distance: string, duration: string) => `${month} so far: ${runs} ${runs === 1 ? 'run' : 'runs'}, ${distance}, ${duration} running.`,
     monthSoFar: (month: string) => `${month} so far`,
-    runsLabel: (n: number) => (n === 1 ? 'run' : 'runs'),
+    runsLabel: (n: number): string => (n === 1 ? 'run' : 'runs'),
     running: 'running',
     noRunsYet: 'No runs yet.',
     yourRunsWillStayOn: 'Your runs will stay on this phone. Nobody else sees them.',
@@ -481,7 +478,7 @@ export const en = {
     deleteRun2: 'Delete run',
   },
   run: {
-    unitWord: (km: boolean) => (km ? 'kilometres' : 'miles'),
+    unitWord: (km: boolean): string => (km ? 'kilometres' : 'miles'),
     thenSpoken: (next: string) => ` Then ${next}.`,
     lastBlockSpoken: ' Last block.',
     leftInThisBlock: 'left in this block.',
