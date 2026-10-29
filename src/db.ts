@@ -42,6 +42,12 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
           at_duration_s REAL NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_splits_run ON splits(run_id, kind, idx);
+        CREATE TABLE IF NOT EXISTS run_facts (
+          run_id INTEGER PRIMARY KEY REFERENCES runs(id) ON DELETE CASCADE,
+          v INTEGER NOT NULL,
+          efforts TEXT NOT NULL,
+          weather TEXT
+        );
         CREATE TABLE IF NOT EXISTS settings (
           key TEXT PRIMARY KEY,
           value TEXT NOT NULL
@@ -149,6 +155,7 @@ export async function deleteRun(runId: number) {
   await db.withTransactionAsync(async () => {
     await db.runAsync('DELETE FROM points WHERE run_id = ?', runId);
     await db.runAsync('DELETE FROM splits WHERE run_id = ?', runId);
+    await db.runAsync('DELETE FROM run_facts WHERE run_id = ?', runId);
     await db.runAsync('DELETE FROM runs WHERE id = ?', runId);
   });
 }
@@ -169,6 +176,39 @@ export async function getPoints(runId: number): Promise<Point[]> {
   const db = await getDb();
   const rows = await db.getAllAsync('SELECT * FROM points WHERE run_id = ? ORDER BY ts ASC', runId);
   return rows.map((r: any) => ({ id: r.id, runId: r.run_id, ts: r.ts, lat: r.lat, lon: r.lon, alt: r.alt, acc: r.acc }));
+}
+
+// ---- Run facts (bests found inside a run, the weather at the time) ------------
+
+export interface StoredFacts {
+  v: number;
+  efforts: Record<string, number>;
+  weather: unknown | null;
+}
+
+export async function loadAllFacts(): Promise<Map<number, StoredFacts>> {
+  const db = await getDb();
+  const rows = (await db.getAllAsync('SELECT * FROM run_facts')) as Array<{ run_id: number; v: number; efforts: string; weather: string | null }>;
+  const out = new Map<number, StoredFacts>();
+  for (const r of rows) {
+    try {
+      out.set(r.run_id, { v: r.v, efforts: JSON.parse(r.efforts), weather: r.weather ? JSON.parse(r.weather) : null });
+    } catch {
+      // A damaged row is simply recomputed.
+    }
+  }
+  return out;
+}
+
+export async function saveFacts(runId: number, f: StoredFacts): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    'INSERT OR REPLACE INTO run_facts (run_id, v, efforts, weather) VALUES (?, ?, ?, ?)',
+    runId,
+    f.v,
+    JSON.stringify(f.efforts),
+    f.weather == null ? null : JSON.stringify(f.weather),
+  );
 }
 
 /** Runs that were never finished (app killed mid-run). Cleaned up on launch. */

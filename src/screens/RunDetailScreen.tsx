@@ -1,22 +1,30 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../components/Button';
 import { RouteMap } from '../components/RouteMap';
+import { ShareSheet } from '../components/ShareSheet';
 import { SplitsTable } from '../components/SplitsTable';
+import { YouLine } from '../components/YouLine';
 import { deleteRun, getPoints, getRun, getSplits } from '../db';
 import { distanceUnit, estimateCalories, formatDistance, formatDuration, formatElevation, formatPace } from '../geo';
+import { compare, youVsYou, type RunFacts } from '../progress';
+import type { RunWeather } from '../shareLines';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import type { LatLon, Run, Split } from '../types';
+import { loadYou } from '../you';
 
 const MOOD = ['', 'Drained', 'Low', 'Okay', 'Good', 'Recharged'];
 const QUIET = { crowded: 'Crowded', some: 'Some people', empty: 'Empty' } as const;
 
-export function RunDetailScreen({ runId, onBack, onDeleted }: { runId: number; onBack: () => void; onDeleted: () => void }) {
+export function RunDetailScreen({ runId, onBack, onDeleted, shareOnOpen }: { runId: number; onBack: () => void; onDeleted: () => void; shareOnOpen?: boolean }) {
   const km = useSettings().settings.unitsKm;
   const [run, setRun] = useState<Run | null>(null);
   const [path, setPath] = useState<LatLon[]>([]);
   const [splits, setSplits] = useState<Split[]>([]);
+  const [facts, setFacts] = useState<RunFacts[] | null>(null);
+  const [weather, setWeather] = useState<RunWeather | null>(null);
+  const [sharing, setSharing] = useState(!!shareOnOpen);
 
   useEffect(() => {
     (async () => {
@@ -24,10 +32,21 @@ export function RunDetailScreen({ runId, onBack, onDeleted }: { runId: number; o
       const pts = await getPoints(runId);
       setPath(pts.map((p) => ({ latitude: p.lat, longitude: p.lon })));
       setSplits(await getSplits(runId));
+      const you = await loadYou().catch(() => null);
+      if (you) {
+        setFacts(you.facts);
+        setWeather(you.weather.get(runId) ?? null);
+      }
     })();
   }, [runId]);
 
+  const cmp = useMemo(() => {
+    const mine = facts?.find((f) => f.id === runId);
+    return mine && facts ? compare(mine, facts) : null;
+  }, [facts, runId]);
+
   if (!run) return <View style={styles.screen} />;
+  const line = cmp ? youVsYou(cmp, km) : null;
 
   const d = new Date(run.startedAt);
   const kmSplits = splits.filter((s) => s.kind === 'km');
@@ -56,6 +75,7 @@ export function RunDetailScreen({ runId, onBack, onDeleted }: { runId: number; o
       <Button title="‹ Back" variant="secondary" onPress={onBack} style={{ alignSelf: 'flex-start', height: 44, paddingHorizontal: 18 }} />
       <Text style={styles.date}>{d.toLocaleString(undefined, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</Text>
       <RouteMap path={path} height={260} />
+      {line && <YouLine title={line.title.replace('\n', ' ')} detail={line.detail} />}
       <View style={styles.grid}>
         <Cell label="Distance" value={formatDistance(run.distanceM, km)} />
         <Cell label="Time" value={formatDuration(run.durationS)} />
@@ -69,7 +89,9 @@ export function RunDetailScreen({ runId, onBack, onDeleted }: { runId: number; o
       {run.note ? <Text style={styles.note}>{run.note}</Text> : null}
       <SplitsTable title={`Splits per ${distanceUnit(km)}`} rows={kmSplits} km={km} partial={partial} />
       {laps.length > 0 && <SplitsTable title="Laps" rows={laps} km={km} />}
+      {cmp && <Button title="Share with someone" variant="secondary" onPress={() => setSharing(true)} style={{ marginTop: spacing.sm }} />}
       <Button title="Delete run" variant="danger" onPress={onDelete} style={{ marginTop: spacing.lg }} />
+      {cmp && <ShareSheet visible={sharing} onClose={() => setSharing(false)} run={run} path={path} cmp={cmp} weather={weather} km={km} />}
     </ScrollView>
   );
 }

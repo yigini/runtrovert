@@ -41,6 +41,7 @@ function Shell() {
   const { settings, ready, update } = useSettings();
   const [tab, setTab] = useState<Tab>('run');
   const [openRun, setOpenRun] = useState<number | null>(null);
+  const [shareOpen, setShareOpen] = useState(false); // open the share card on arrival ("Keep it and share")
   const [refreshKey, setRefreshKey] = useState(0);
   const [liveRun, setLiveRun] = useState(false);
   useEffect(() => subscribe((t) => setLiveRun(t.status !== 'idle')), []);
@@ -69,7 +70,8 @@ function Shell() {
     );
   }
 
-  function onSaved(runId: number) {
+  function onSaved(runId: number, share = false) {
+    setShareOpen(share);
     notifyAfterRun(settings);
     rescheduleReminders({ ...settings });
     setRefreshKey((k) => k + 1);
@@ -86,11 +88,24 @@ function Shell() {
         <View style={[{ flex: 1 }, tab !== 'run' && styles.hidden]}>
           <RunScreen onSaved={onSaved} />
         </View>
-        {tab === 'history' && openRun == null && <HistoryScreen onOpen={setOpenRun} refreshKey={refreshKey} />}
+        {tab === 'history' && openRun == null && (
+          <HistoryScreen
+            onOpen={(id) => {
+              setShareOpen(false);
+              setOpenRun(id);
+            }}
+            refreshKey={refreshKey}
+          />
+        )}
         {tab === 'history' && openRun != null && (
           <RunDetailScreen
+            key={openRun}
             runId={openRun}
-            onBack={() => setOpenRun(null)}
+            shareOnOpen={shareOpen}
+            onBack={() => {
+              setShareOpen(false);
+              setOpenRun(null);
+            }}
             onDeleted={() => {
               setOpenRun(null);
               setRefreshKey((k) => k + 1);
