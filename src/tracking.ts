@@ -3,16 +3,17 @@
  *   gps/engine   – where fixes come from (expo-location or Transistor)
  *   gps/kalman   – what to believe
  *   gps/sensors  – barometer elevation, pedometer gap fill
- *   gps/recovery – survive being killed
+ *   gps/recovery – survive being killed (gps/replay: fixes kept while dead)
  *
  * Everything the UI reads comes from subscribe()/getState().
  */
 import { AppState } from 'react-native';
 import { cueAutoPause, cueAutoResume, cueKmSplit, cueLap, setCueMode } from './cues';
-import { addPoints, addSplit, createRun, finishRun, getPoints, getRun, updateRunProgress } from './db';
+import { addPoints, addSplit, clearBufferedFixes, createRun, finishRun, getBufferedFixes, getPoints, getRun, updateRunProgress } from './db';
 import { getEngine } from './gps/engine';
 import { GpsFilter, type FilteredFix, type RawFix } from './gps/kalman';
 import { clearSnapshot, loadSnapshot, saveSnapshot, type RunSnapshot } from './gps/recovery';
+import { replayFixes } from './gps/replay';
 import { ElevationTracker, StepFusion } from './gps/sensors';
 import { rememberPlace } from './place';
 import { GPS_PROFILES, profileFor, readPower, type GpsProfileName } from './power';
@@ -172,11 +173,13 @@ function closeSegment() {
   accumulatedS = liveDuration();
   segmentStartedAt = null;
   filter.reset(); // don't bridge the gap with a straight line when we resume
+  steps.gap.breakTrack(Date.now());
 }
 
 function openSegment() {
   segmentStartedAt = Date.now();
   lastMovementTs = Date.now();
+  steps.gap.breakTrack(Date.now()); // steps taken while stopped don't count
 }
 
 /** Fixes recorded in this run that haven't been written to the database yet. */
@@ -216,7 +219,8 @@ async function persist(force = false) {
 
 // ---- Splits ----------------------------------------------------------------
 
-async function maybeCloseKmSplit() {
+/** quiet: closing splits found on recovery, too late to announce. */
+async function maybeCloseKmSplit(quiet = false) {
   const unit = splitUnitM();
   while (state.distanceM - kmMarkDistance >= unit) {
     const durationS = liveDuration();
@@ -233,6 +237,7 @@ async function maybeCloseKmSplit() {
       const row: Omit<Split, 'id' | 'runId'> = { kind: 'km', index, distanceM: unit, durationS: closedDur, atDistanceM: kmMarkDistance, atDurationS: kmMarkDuration };
       await addSplit(state.runId, row);
     }
+    if (quiet) continue;
     cueKmSplit(index, closedDur, kmMarkDuration, settings.unitsKm);
     splitNote(index, closedDur, kmMarkDistance, kmMarkDuration, settings.unitsKm);
   }
@@ -297,9 +302,11 @@ function onFixes(raws: RawFix[]) {
       continue;
     }
 
-    if (fix.stepM > 0) {
-      state.distanceM += fix.stepM;
-      steps.onGpsStep(fix.stepM, fix.ts);
+    // After a step-filled gap the first fix only adds what the steps didn't cover.
+    const closesGap = steps.gap.gapOpen;
+    const credit = steps.gap.onFix(fix);
+    if (fix.stepM > 0 || closesGap) {
+      state.distanceM += credit;
       pushPath({ latitude: fix.lat, longitude: fix.lon });
       pendingPoints.push({ ts: fix.ts, lat: fix.lat, lon: fix.lon, alt: fix.alt, acc: fix.acc });
     }
@@ -325,6 +332,8 @@ async function tick() {
     if (lastFixTs && now - lastFixTs > 10000) state.gps = 'lost';
     const filled = await steps.tick(now);
     if (filled > 0) {
+      // Steps cover the gap now; the filter must not also draw a line across it.
+      filter.reset();
       state.distanceM += filled;
       lastMovementTs = now;
       await maybeCloseKmSplit();
@@ -427,6 +436,7 @@ async function attachSensors() {
   state.halted = false;
   const engine = getEngine();
   engine.setListener(onFixes);
+  await clearBufferedFixes().catch(() => {}); // recording live again; anything kept is stale
   await elevation.start();
   await steps.start();
   if (tickTimer) clearInterval(tickTimer);
@@ -538,6 +548,7 @@ export async function stopRun(extra: { moodAfter: Mood | null; quiet: Quiet | nu
     note: extra.note,
   });
   await clearSnapshot();
+  await clearBufferedFixes().catch(() => {});
   await endRunNotes();
   resetState();
   emit();
@@ -563,6 +574,7 @@ async function recoverRunInner(): Promise<boolean> {
   const snap = await loadSnapshot();
   if (!snap) {
     await getEngine().stop(); // stray service from a crashed session with no snapshot
+    await clearBufferedFixes().catch(() => {});
     return false;
   }
   const run = await getRun(snap.runId);
@@ -582,16 +594,31 @@ async function recoverRunInner(): Promise<boolean> {
   lapMarkDistance = snap.lapMarkDistance;
   lapMarkDuration = snap.lapMarkDuration;
 
-  // Time between the last snapshot and now: if we were running, count it as
-  // paused rather than inventing distance we didn't record.
-  state.status = snap.status === 'running' ? 'running' : snap.status;
-  if (snap.status === 'running' && snap.segmentStartedAt != null) {
-    accumulatedS += (snap.savedAt - snap.segmentStartedAt) / 1000;
-  }
-  if (state.status === 'running') openSegment();
+  elevation.gainM = snap.elevationGainM ?? 0;
 
   const pts = await getPoints(snap.runId);
   state.path = pts.map((p) => ({ latitude: p.lat, longitude: p.lon }));
+
+  // Fixes the background task kept while the app was dead. Only a running
+  // run gets them: a paused one wasn't recording anyway.
+  const buffered = await getBufferedFixes().catch(() => []);
+  const last = pts.length ? pts[pts.length - 1] : null;
+  const replay = snap.status === 'running' ? replayFixes(last, buffered.filter((f) => f.ts > snap.savedAt)) : null;
+  if (replay && replay.points.length) {
+    state.distanceM += replay.distanceM;
+    for (const p of replay.points) pushPath({ latitude: p.lat, longitude: p.lon });
+    await addPoints(snap.runId, replay.points);
+  }
+
+  // Time: a running clock counts up to the last sign of movement (the last
+  // snapshot, or the last replayed fix that moved). The rest, up to now, is
+  // counted as paused rather than invented.
+  state.status = snap.status;
+  if (snap.status === 'running' && snap.segmentStartedAt != null) {
+    const until = Math.max(snap.savedAt, replay?.lastMovingTs ?? 0);
+    accumulatedS += Math.max(0, until - snap.segmentStartedAt) / 1000;
+  }
+  if (state.status === 'running') openSegment();
   // Rebuild split lists from what we know (durations come from the splits table via the detail screen).
   const { getSplits } = await import('./db');
   const splits = await getSplits(snap.runId);
@@ -602,7 +629,10 @@ async function recoverRunInner(): Promise<boolean> {
   lastPowerCheckAt = Date.now();
   await beginRunNotes(settings.runNotes);
   await attachSensors();
+  for (const alt of replay?.alts ?? []) elevation.pushGpsAltitude(alt); // no-op with a barometer
   if (!(await getEngine().isRunning())) await startEngine();
+  if (replay?.points.length) await maybeCloseKmSplit(true);
+  await persist(true);
   emit();
   return true;
 }
