@@ -1,9 +1,11 @@
 import React from 'react';
 import { Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { colors, fonts, radius, spacing } from '../theme';
-import { TIPS, tipsByTopic, type Tip } from '../tips';
+import { type Tip } from '../tips';
+import { localTips, localTipsByTopic } from '../i18n/voice';
 
-const GROUPS = tipsByTopic();
+const GROUPS = localTipsByTopic();
+const COUNT = localTips().length;
 const TINT = [colors.mint, colors.peach, colors.lilac, colors.butter, colors.sky];
 
 /** The whole list, grouped. Something to read on the sofa, not during the run. */
@@ -21,7 +23,7 @@ export function TipsScreen({ visible, today, hidden, onHidden, onClose }: { visi
             </Pressable>
           </View>
           <Text style={styles.sub}>
-            {TIPS.length} small things about running, from nipples to Pheidippides. Sources where it is medical. All of it lives on the phone.
+            {COUNT} small things about running, from nipples to Pheidippides. Sources where it is medical. All of it lives on the phone.
           </Text>
 
           {today ? (

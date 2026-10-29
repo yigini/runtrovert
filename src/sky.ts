@@ -1,4 +1,7 @@
 import type { Hour, Weather } from './forecast';
+import { finish } from './i18n/lang';
+import { voice } from './i18n/voice';
+import type { HeadlineSky } from './i18n/voice/types';
 
 // What the home screen says about the weather. Dry, a little on your side,
 // never a lecture. Pure functions so they can be checked off the phone.
@@ -28,19 +31,19 @@ export function headline(w: Weather, metric: boolean, now = Date.now()): string 
   const t = formatTemp(w.tempC, metric);
   const rainSoon = (w.hours[0]?.rainP ?? 0) >= 60;
   const day = new Date(now).toDateString();
-  let lines: string[];
-  if (w.sky === 'storm') lines = ['Thunder about.\nThe sofa is also a route.', 'Storms around.\nMaybe give it an hour.'];
-  else if (w.sky === 'snow') lines = ['Snow. Fresh tracks,\nall of them yours.', `${t} and snow.\nThe world went silent.`];
-  else if (w.sky === 'rain' || rainSoon) lines = [`${t} and rain.\nThe park is yours.`, 'Rain. Everyone else\nstayed in.'];
-  else if (w.sky === 'drizzle') lines = [`${t} and drizzle.\nEveryone else stayed in.`, 'Light rain. Just enough\nto keep people indoors.'];
-  else if (w.sky === 'fog') lines = ['Fog. The world\nwent quiet for you.', `${t} and fog.\nNobody can see you anyway.`];
-  else if (!w.isDay) lines = ['Dark out.\nFewer eyes, more stars.', `${t} under streetlights.\nThe roads are empty.`];
-  else if (w.feelsC <= 0) lines = [`${t}. Cold enough\nto keep the crowds home.`, `${t}. The keen ones\nare still in bed.`];
-  else if (w.tempC >= 27) lines = [`${t} already.\nGo early, or go slow.`, `${t}. Shade first,\npace second.`];
-  else if (w.windKmh >= 30) lines = ['Windy. Out against it,\nhome with it.', 'Wind’s up. Hard out,\neasy home.'];
-  else if (w.sky === 'clear') lines = [`${t} and clear.\nNo excuses, no audience.`, `${t} and blue.\nGo before it gets busy.`];
-  else lines = [`${t}, grey and still.\nGood for disappearing.`, `Overcast, ${t}.\nNobody’s looking up.`];
-  return pickFor(lines, day + w.sky);
+  const kind: HeadlineSky =
+    w.sky === 'storm' ? 'storm' :
+    w.sky === 'snow' ? 'snow' :
+    w.sky === 'rain' || rainSoon ? 'rain' :
+    w.sky === 'drizzle' ? 'drizzle' :
+    w.sky === 'fog' ? 'fog' :
+    !w.isDay ? 'dark' :
+    w.feelsC <= 0 ? 'cold' :
+    w.tempC >= 27 ? 'hot' :
+    w.windKmh >= 30 ? 'wind' :
+    w.sky === 'clear' ? 'clear' :
+    'grey';
+  return finish(pickFor(voice().sky.headline[kind](t), day + w.sky));
 }
 
 function score(h: Hour, i: number): number {
@@ -54,47 +57,38 @@ export function bestWindow(w: Weather, metric: boolean, now = Date.now()): Sugge
   const limit = Math.min(end.getTime(), now + 12 * 3600 * 1000);
   const hours = w.hours.filter((h) => h.t + 3600 * 1000 > now && h.t <= limit);
   if (!hours.length) return null;
-  if (hours.every((h) => h.rainP >= 70)) return { label: 'Best window', text: 'No dry hour left today. A shell, or tomorrow.' };
+  const v = voice().sky;
+  if (hours.every((h) => h.rainP >= 70)) return { label: v.bestWindow, text: finish(v.noDryHour) };
   let best = 0;
   hours.forEach((h, i) => {
     if (score(h, i) < score(hours[best], best)) best = i;
   });
   const h = hours[best];
-  const what = `${h.rainP < 20 ? 'dry' : `${h.rainP}% rain`}, ${formatTemp(h.tempC, metric)}`;
-  return { label: 'Best window', text: best === 0 ? `Now. ${cap(what)}.` : `From ${clock(h.t)}. ${cap(what)}.` };
+  const what = `${h.rainP < 20 ? v.dry : v.rainChance(h.rainP)}, ${formatTemp(h.tempC, metric)}`;
+  return { label: v.bestWindow, text: finish(best === 0 ? v.now(what) : v.from(clock(h.t), what)) };
 }
 
 export function wear(w: Weather): Suggestion {
+  const v = voice().sky;
   const f = w.feelsC;
-  let kit =
-    f <= -5 ? 'Thermal layer, gloves, hat' :
-    f <= 3 ? 'Long sleeves, gloves, a hat' :
-    f <= 8 ? 'Long sleeves, light gloves' :
-    f <= 13 ? 'Long sleeves or a light layer' :
-    f <= 19 ? 'T-shirt and shorts' :
-    f <= 24 ? 'Light kit. Bring water' :
-    'As little as is decent. Water';
+  const kit = v.kit[f <= -5 ? 0 : f <= 3 ? 1 : f <= 8 ? 2 : f <= 13 ? 3 : f <= 19 ? 4 : f <= 24 ? 5 : 6];
   const extras: string[] = [];
-  if (w.sky === 'rain' || w.sky === 'drizzle' || (w.hours[0]?.rainP ?? 0) >= 50) extras.push('a shell');
-  else if (w.windKmh >= 25) extras.push('something windproof');
-  if (!w.isDay) extras.push('something reflective');
-  if (extras.length) kit += `, plus ${extras.join(' and ')}`;
-  return { label: 'Wear', text: `${kit}.` };
+  if (w.sky === 'rain' || w.sky === 'drizzle' || (w.hours[0]?.rainP ?? 0) >= 50) extras.push(v.shell);
+  else if (w.windKmh >= 25) extras.push(v.windproof);
+  if (!w.isDay) extras.push(v.reflective);
+  return { label: v.wear, text: finish(v.kitWith(kit, extras)) };
 }
 
 export function light(w: Weather, now = Date.now()): Suggestion | null {
+  const v = voice().sky;
   if (w.sunset && now < w.sunset && (!w.sunrise || now >= w.sunrise)) {
     const soon = w.sunset - now < 90 * 60 * 1000;
-    return { label: 'Light', text: soon ? `Dark at ${clock(w.sunset)}. Take a light.` : `Daylight until ${clock(w.sunset)}.` };
+    return { label: v.light, text: finish(soon ? v.darkAt(clock(w.sunset)) : v.daylightUntil(clock(w.sunset))) };
   }
   const next = w.sunrise && now < w.sunrise ? w.sunrise : w.nextSunrise;
-  return next ? { label: 'Light', text: `Light again at ${clock(next)}. Wear something bright.` } : null;
+  return next ? { label: v.light, text: finish(v.lightAgain(clock(next))) } : null;
 }
 
 export function suggestions(w: Weather, metric: boolean, now = Date.now()): Suggestion[] {
   return [bestWindow(w, metric, now), wear(w), light(w, now)].filter((s): s is Suggestion => s != null);
-}
-
-function cap(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
 }
