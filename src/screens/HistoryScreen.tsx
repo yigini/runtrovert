@@ -28,6 +28,7 @@ export function HistoryScreen({
   onSection,
   onOpenPlace,
   onRunAgain,
+  onBringIn,
 }: {
   onOpen: (runId: number) => void;
   refreshKey: number;
@@ -35,6 +36,7 @@ export function HistoryScreen({
   onSection?: (s: RunsSection) => void;
   onOpenPlace?: (id: number) => void;
   onRunAgain?: (p: Place) => void;
+  onBringIn?: () => void;
 }) {
   const km = useSettings().settings.unitsKm;
   const [data, setData] = useState<YourRunsData | null>(null);
@@ -106,6 +108,11 @@ export function HistoryScreen({
         <View style={styles.empty}>
           <Text style={type.h2}>No runs yet.</Text>
           <Text style={[type.body, { color: colors.muted, textAlign: 'center' }]}>Your runs will stay on this phone. Nobody else sees them.</Text>
+          {onBringIn ? (
+            <Pressable onPress={onBringIn} accessibilityRole="button" hitSlop={8} style={({ pressed }) => [styles.bringIn, pressed && { opacity: 0.8 }]}>
+              <Text style={styles.bringInText}>Bring runs in from a watch or another app</Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
     );
@@ -246,6 +253,8 @@ const styles = StyleSheet.create({
   statValue: { fontFamily: fonts.display, fontSize: 24, lineHeight: 28, color: colors.text, fontVariant: ['tabular-nums'] },
   statLabel: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
   groupTitle: { marginTop: spacing.md, marginBottom: spacing.sm },
+  bringIn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.md, marginTop: spacing.sm },
+  bringInText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.lilacDeep, textDecorationLine: 'underline', textAlign: 'center' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: radius.lg, padding: 16 },
   thumb: { width: 48, height: 48, borderRadius: 16, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
