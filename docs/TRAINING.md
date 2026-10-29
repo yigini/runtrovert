@@ -27,7 +27,16 @@ Each plan has a gate (what it expects you to be doing already). With fewer than 
 
 ## The nine rules
 
-Every generated plan, for every day count, start volume, race distance and start weekday, passes these (`npm run test:plans`, 1,944 plans). Every adaptation goes back through the generator and the same checks.
+Every generated plan, for every day count, start volume, race distance and start weekday, passes these (`npm run test:plans`, 1,944 plans). Every adaptation goes back through the generator and the same checks. Every rebuild after a break (ease back in, pick up, start again) passes them too, from the day of the rebuild on, for every plan, day count and runner the plan's entry check lets in (`npm run test:rebuilds`, 5,814 rebuilds).
+
+How the generator keeps them on a rebuild, where its usual numbers are not enough:
+- Rule 2 is applied day by day, as the validator reads it: each run against the 30 days before it, earlier runs of the same week included. A run that comes out too big is cut (the long run stays a long run; anything else becomes an easy run). The profile's longest run stands in only in the plan's first two weeks, the same window the validator uses, and days before a rebuild's start never count.
+- Rule 3 is applied against the last two full build weeks, the ones before the rebuild included (`prevBases`). A week over the limit is laid out again on a smaller target, and as a last resort without its hard session.
+- Rule 6: a week too small for the smallest hard session (two intervals, three 400s) gets easy runs with strides instead. A week whose hard session tips it under the easy share goes without it.
+- Rule 4: light weeks follow the plan's own scale (its first full week), not the smaller restart.
+- Race week: on a small plan with many run days, an easy day becomes rest to stay under 60% of the peak. A rebuild with one week left lays out the race week.
+- Start running climbs on from the rung last run (one lower to ease back in), never past what the last 30 days allow, and gets the weeks to reach 30 minutes. Come back grows in minutes from the weeks before.
+- The validator does not judge skipped runs (they never happened), and the "first week against history" floor is three km per chosen run day.
 
 1. **Mostly easy.** ≥75% of each week's running minutes at easy or walking effort; ≥85% in Finish and no-race plans. (Seiler & Kjerland 2006; Stöggl & Sperlich 2014)
 2. **No single run more than 10% longer than the longest of the previous 30 days**, or half a kilometre when that is more. Race day is the one exception. (Frandsen et al. 2025, BJSM)
@@ -81,6 +90,7 @@ src/training/dates.ts       local-midnight day arithmetic
 src/workoutRun.ts           guided session glue: tracker tick → steps → cues
 src/screens/TrainScreen.tsx the tab
 scripts/test-plans.ts       npm run test:plans; `npm run test:plans -- half-improve` prints a plan
+scripts/test-rebuilds.ts    npm run test:rebuilds: every plan rebuilt after a break, four ways
 ```
 
 A plan is not medical advice. The health check and the pain line are there to send people to someone who can look at them.

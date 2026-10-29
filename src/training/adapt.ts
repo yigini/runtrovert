@@ -6,7 +6,7 @@
 
 import { planById, type PlanSpec, type RunnerProfile } from './catalogue';
 import { addDays, daysBetween, mondayOf, weekdayOf } from './dates';
-import { generate } from './generate';
+import { START_LADDER, generate } from './generate';
 import * as T from './sessions';
 import { paceSetFor, toSession, type PaceSet } from './sessions';
 import type { Plan, Session, Week } from './types';
@@ -101,7 +101,7 @@ function volumeBefore(plan: Plan, day: number, spec: PlanSpec): number {
  * included) and lay the rest out again from `startKm`. The generator applies
  * the same caps and rules as it did on day one.
  */
-function regenerateFrom(plan: Plan, spec: PlanSpec, firstDay: number, startKm: number, runner: RunnerProfile, gentleWeeks: number, reason: string, today: number = firstDay): { ok: true; plan: Plan } | { ok: false; message: string } {
+function regenerateFrom(plan: Plan, spec: PlanSpec, firstDay: number, startKm: number, runner: RunnerProfile, gentleWeeks: number, reason: string, today: number = firstDay, ladderStep = 0): { ok: true; plan: Plan } | { ok: false; message: string } {
   const p = clone(plan);
   const monday = mondayOf(firstDay);
   const frozen = p.weeks.filter((w) => w.start < monday);
@@ -128,6 +128,15 @@ function regenerateFrom(plan: Plan, spec: PlanSpec, firstDay: number, startKm: n
     history,
     weeks: remaining,
     gentleWeeks: firstWeekIndex - 1 + gentleWeeks,
+    // The last two full build weeks that stay, so the first new ones grow from them and not past them.
+    // Time-based plans count them in minutes of running, as the validator does.
+    prevBases: frozen
+      .filter((w) => !w.partial && (w.kind === 'build' || w.kind === 'base' || w.kind === 'peak'))
+      .slice(-2)
+      .map((w) => (spec.timeBased ? w.sessions.filter((s) => s.kind !== 'strength' && s.kind !== 'race').reduce((a, s) => a + s.minutes, 0) : w.targetKm)),
+    historyMin: spec.timeBased ? runSessions(p).filter((s) => !s.skipped && s.date < firstDay && daysBetween(s.date, firstDay) <= 30).map((s) => ({ date: s.date, min: runningMinutes(s) })) : undefined,
+    ladderFrom: spec.id === 'start' ? ladderRung(p, firstDay, ladderStep) : undefined,
+    firstFullKm: plan.weeks.find((w) => !w.partial && w.kind !== 'race')?.targetKm,
   });
   if (!res.ok) return { ok: false, message: res.message };
   // This week's earlier days stay as they were.
@@ -143,6 +152,28 @@ function regenerateFrom(plan: Plan, spec: PlanSpec, firstDay: number, startKm: n
   return { ok: true, plan: p };
 }
 
+/** Minutes of running in a session, walks left out: what the 30-day rule measures on a run/walk ladder. */
+function runningMinutes(s: Session): number {
+  return s.steps.filter((st) => st.effort !== 'walk').reduce((a, st) => a + (st.durationS ?? 0) / 60, 0);
+}
+
+/**
+ * Start running, rebuilt: the rung to climb on from. The last rung actually run
+ * (or one lower with `step` −1), never higher than the 30-day rule allows from
+ * what was run in the last 30 days: 25% more running, or three minutes.
+ */
+function ladderRung(plan: Plan, firstDay: number, step: number): number {
+  const recent = runSessions(plan).filter((s) => s.done && s.date < firstDay && daysBetween(s.date, firstDay) <= 30);
+  const longest = Math.max(0, ...recent.map(runningMinutes));
+  const rungMin = (r: number) => (START_LADDER[r].reps * START_LADDER[r].runS) / 60;
+  let allowed = 0;
+  for (let r = 0; r < START_LADDER.length; r++) if (rungMin(r) <= Math.max(longest * 1.25, longest + 3)) allowed = r;
+  const done = runSessions(plan).filter((s) => s.done && s.date < firstDay).sort((a, b) => b.date - a.date)[0];
+  const runS = done?.steps.find((st) => st.effort !== 'walk')?.durationS;
+  const last = done ? (done.kind === 'runwalk' ? Math.max(0, START_LADDER.findIndex((r) => r.runS === runS)) : START_LADDER.length - 1) : 0;
+  return Math.max(0, Math.min(last + step, allowed));
+}
+
 /**
  * After a gap: 'repeat' starts again at the last completed week's volume,
  * 'stepback' at 60% of it. Weeks already behind us are frozen.
@@ -151,7 +182,7 @@ export function rebuild(plan: Plan, spec: PlanSpec, today: number, runner: Runne
   const lastKm = lastCompletedWeekKm(plan, mondayOf(today)) ?? volumeBefore(plan, today, spec);
   const startKm = kind === 'stepback' ? lastKm * 0.6 : lastKm;
   const why = reason ?? (kind === 'stepback' ? 'Two weeks or more away: stepped back to 60% and rebuilt from there.' : kind === 'repeat' ? 'A week or more away: repeated the last completed week, then carried on.' : 'Rebuilt from today.');
-  return regenerateFrom(plan, spec, today, startKm, runner, kind === 'stepback' ? 2 : 1, why);
+  return regenerateFrom(plan, spec, today, startKm, runner, kind === 'stepback' ? 2 : 1, why, today, kind === 'stepback' ? -1 : 0);
 }
 
 // ---- Low energy -------------------------------------------------------------------
