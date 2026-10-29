@@ -20,7 +20,17 @@
         ],
         "NSLocationWhenInUseUsageDescription": "Runtrovert uses your location to record your runs. Nothing leaves your phone.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Runtrovert needs background location so your run keeps recording with the screen off. Nothing leaves your phone.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": [
+          "spotify",
+          "youtubemusic",
+          "music",
+          "deezer",
+          "tidal",
+          "soundcloud",
+          "pktc",
+          "podcasts"
+        ]
       },
       "icon": {
         "light": "./assets/icon.png",

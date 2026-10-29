@@ -1,0 +1,10 @@
+{
+  "name": "runtrovert-music",
+  "version": "0.1.0",
+  "description": "Play/pause/skip for whatever music app is playing, and a quiet duck for voice cues. No accounts, no network.",
+  "license": "MIT",
+  "author": "Runtrovert",
+  "homepage": "https://github.com/yigini/runtrovert",
+  "main": "index.ts",
+  "private": true
+}
