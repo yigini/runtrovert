@@ -4,12 +4,13 @@ import { AmbientBackground } from '../components/AmbientBackground';
 import { Button } from '../components/Button';
 import { Fade } from '../components/Fade';
 import { Mark } from '../components/Mark';
+import { WELCOME } from '../footage';
 import { colors, fonts, spacing } from '../theme';
 
 /** Shown once. The motto, the promise, then out of the way. */
 export function WelcomeScreen({ onDone }: { onDone: () => void }) {
   return (
-    <AmbientBackground>
+    <AmbientBackground style={WELCOME}>
       <Fade from="bottom" height="68%" strength={0.98} />
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <View style={styles.brand}>
