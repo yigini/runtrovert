@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AmbientBackground } from '../components/AmbientBackground';
 import { Button } from '../components/Button';
 import { Fade } from '../components/Fade';
@@ -61,7 +61,8 @@ export function HomeScreen({ runs, mood, onMood, onStart, planToday, planNext, o
     <AmbientBackground style={homeFootage(weather, now)} still={settings.batteryMode === 'saver'}>
       <Fade from="top" height="62%" strength={0.9} />
       <Fade from="bottom" height="42%" strength={0.92} />
-      <View style={styles.screen}>
+      {/* Words scroll when there are many of them; the start button never moves. */}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.screen} showsVerticalScrollIndicator={false}>
         <View style={styles.top}>
           <Text style={styles.eyebrow}>{dateLine(now)}</Text>
           <Mark size={30} tile={false} />
@@ -119,7 +120,9 @@ export function HomeScreen({ runs, mood, onMood, onStart, planToday, planNext, o
         ) : (
           <TipLine runs={runs} weather={weather} dark={evening} waiting={sky === null} />
         )}
+      </ScrollView>
 
+      <View style={styles.dock}>
         <MoodPicker inline title="Energy right now" value={mood} onChange={onMood} />
         <Button title={planToday && !planToday.done && !planToday.skipped ? 'Start today’s session' : 'Start run'} onPress={onStart} style={{ height: 62 }} />
         <Text style={styles.footer}>{footer(runs, now)}</Text>
@@ -188,7 +191,8 @@ function startOfDay(ms: number): number {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, padding: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md, gap: spacing.md },
+  screen: { flexGrow: 1, padding: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md, gap: spacing.md },
+  dock: { paddingHorizontal: spacing.lg, paddingTop: spacing.xs, paddingBottom: spacing.md, gap: spacing.sm },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   eyebrow: { fontFamily: fonts.bodySemi, fontSize: 12, letterSpacing: 2.5, textTransform: 'uppercase', color: colors.inkSoft },
   skyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: spacing.md },

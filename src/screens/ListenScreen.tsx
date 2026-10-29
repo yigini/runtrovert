@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { BackButton } from '../components/BackButton';
 import { listRuns } from '../db';
 import { useSettings } from '../settings';
 import { phoneLocale, refreshShelf, storedShelf } from '../shelf';
@@ -218,9 +219,7 @@ function KitShelf({ offers, onBack }: { offers: Offer[]; onBack: () => void }) {
   }
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xl }}>
-      <Pressable onPress={onBack} accessibilityRole="button">
-        <Text style={styles.link}>‹ Listen</Text>
-      </Pressable>
+      <BackButton label="Listen" onPress={onBack} />
       <Text style={styles.h1}>Kit & offers</Text>
       <Text style={styles.lede}>Paid for by them. Opened by you. Seen by nobody.</Text>
       {topics.length ? (

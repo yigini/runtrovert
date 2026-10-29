@@ -2,6 +2,7 @@ import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { BackButton } from '../components/BackButton';
 import { Button } from '../components/Button';
 import { PlanReminderCard } from '../components/PlanReminders';
 import { useSettings } from '../settings';
@@ -897,11 +898,7 @@ function RulesView({ onBack }: { onBack: () => void }) {
 // ---- Bits ----------------------------------------------------------------------------
 
 function Back({ onPress, label }: { onPress: () => void; label: string }) {
-  return (
-    <Pressable onPress={onPress} accessibilityRole="button" hitSlop={8} style={{ alignSelf: 'flex-start' }}>
-      <Text style={styles.link}>‹ {label}</Text>
-    </Pressable>
-  );
+  return <BackButton label={label} onPress={onPress} />;
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
