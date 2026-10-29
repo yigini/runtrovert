@@ -4,11 +4,12 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, BackHandler, Pressable, StyleSheet, Text, ToastAndroid, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { handleBack } from './src/back';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { OpenSettings } from './src/components/SettingsGear';
 import { discardUnfinishedRuns, getRun } from './src/db';
 import { HistoryScreen } from './src/screens/HistoryScreen';
 import { ListenScreen } from './src/screens/ListenScreen';
@@ -20,7 +21,7 @@ import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import { FEWER_ACTION, fewer, fewerMessage, notifyAfterRun, requestNotificationPermission, rescheduleReminders } from './src/notify';
 import { SettingsProvider, useSettings } from './src/settings';
 import { recoverRun, subscribe } from './src/tracking';
-import { colors, fonts, spacing } from './src/theme';
+import { colors, fonts, radius, spacing } from './src/theme';
 import type { PainLevel } from './src/training/adapt';
 import { schedulePlanReminders } from './src/training/remind';
 import { onRunSaved } from './src/training/store';
@@ -29,7 +30,9 @@ import { NEWS } from './src/whatsNew';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-type Tab = 'run' | 'train' | 'history' | 'listen' | 'settings';
+type Tab = 'run' | 'runs' | 'train';
+/** Opened over any tab: Settings from the gear, every Listen shelf from the sheet beside Start. */
+type Sub = 'settings' | 'listen' | null;
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({ DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold, Fraunces_300Light, Fraunces_400Regular_Italic, Fraunces_600SemiBold });
@@ -52,6 +55,9 @@ export default function App() {
 function Shell() {
   const { settings, ready, update } = useSettings();
   const [tab, setTab] = useState<Tab>('run');
+  const [sub, setSub] = useState<Sub>(null);
+  // Just run keeps the dusk map screen; the other two running layouts are on cream.
+  const [runInk, setRunInk] = useState(true);
   const [openRun, setOpenRun] = useState<number | null>(null);
   const [shareOpen, setShareOpen] = useState(false); // open the share card on arrival ("Keep it and share")
   const [refreshKey, setRefreshKey] = useState(0);
@@ -69,10 +75,12 @@ function Shell() {
     [],
   );
 
-  // The phone's back gesture: whatever is open on screen first (src/back.ts),
-  // then back to the Run tab, and only then out of the app, on a second press.
+  // The phone's back gesture: whatever is open on screen first (src/back.ts,
+  // Settings and the Listen shelves included), then back to the Run tab, and
+  // only then out of the app, on a second press.
   const nav = useRef({ tab });
   nav.current = { tab };
+  const openSettings = useCallback(() => setSub('settings'), []);
   const lastBack = useRef(0);
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -124,10 +132,12 @@ function Shell() {
       update({ notifyPerWeek: next });
       Alert.alert('Reminders', fewerMessage(next));
     } else if (data.kind === 'plan') {
+      setSub(null);
       setTab('train');
     } else if (data.kind === 'after-run' && typeof data.runId === 'number') {
+      setSub(null);
       setOpenRun(data.runId);
-      setTab('history');
+      setTab('runs');
     }
   }, [ready, response]);
 
@@ -154,7 +164,7 @@ function Shell() {
       .catch(() => {});
     setRefreshKey((k) => k + 1);
     setOpenRun(runId);
-    setTab('history');
+    setTab('runs');
     setSessionRequest(null);
     // Tick the day's session off the plan, and let pain ease the days ahead.
     try {
@@ -172,77 +182,88 @@ function Shell() {
       .catch(() => {});
   }
 
-  const inkMode = liveRun && !finishing && tab === 'run';
+  const inkMode = liveRun && !finishing && tab === 'run' && sub == null && runInk;
+  const go = (t: Tab) => {
+    setSub(null);
+    setTab(t);
+  };
   return (
-    <SafeAreaView style={[styles.root, inkMode && styles.rootInk]}>
-      <StatusBar style={inkMode ? 'light' : 'dark'} />
-      <View style={{ flex: 1 }}>
-        {/* RunScreen stays mounted so a live run survives tab switches. */}
-        <View style={[{ flex: 1 }, tab !== 'run' && styles.hidden]}>
-          <RunScreen onSaved={onSaved} requested={sessionRequest} onRequestTaken={() => setSessionRequest(null)} planKey={planKey} focused={tab === 'run'} onOpenPlan={() => setTab('train')} />
+    <OpenSettings.Provider value={openSettings}>
+      <SafeAreaView style={[styles.root, inkMode && styles.rootInk]}>
+        <StatusBar style={inkMode ? 'light' : 'dark'} />
+        <View style={{ flex: 1 }}>
+          {/* RunScreen stays mounted so a live run survives tab switches. */}
+          <View style={[{ flex: 1 }, (tab !== 'run' || sub != null) && styles.hidden]}>
+            <RunScreen
+              onSaved={onSaved}
+              requested={sessionRequest}
+              onRequestTaken={() => setSessionRequest(null)}
+              planKey={planKey}
+              focused={tab === 'run' && sub == null}
+              onOpenPlan={() => setTab('train')}
+              onBrowseListen={() => setSub('listen')}
+              onInk={setRunInk}
+            />
+          </View>
+          {sub === 'settings' && <SettingsScreen onBack={() => setSub(null)} onOpenListen={() => setSub('listen')} />}
+          {sub === 'listen' && <ListenScreen onBack={() => setSub(null)} />}
+          {sub == null && tab === 'train' && (
+            <TrainScreen
+              refreshKey={planKey + refreshKey}
+              onChanged={() => setPlanKey((k) => k + 1)}
+              onStartSession={(s) => {
+                setSessionRequest(s);
+                setTab('run');
+              }}
+            />
+          )}
+          {sub == null && tab === 'runs' && openRun == null && (
+            <HistoryScreen
+              onOpen={(id) => {
+                setShareOpen(false);
+                setOpenRun(id);
+              }}
+              refreshKey={refreshKey}
+            />
+          )}
+          {sub == null && tab === 'runs' && openRun != null && (
+            <RunDetailScreen
+              key={openRun}
+              runId={openRun}
+              shareOnOpen={shareOpen}
+              onBack={() => {
+                setShareOpen(false);
+                setOpenRun(null);
+              }}
+              onDeleted={() => {
+                setOpenRun(null);
+                setRefreshKey((k) => k + 1);
+              }}
+            />
+          )}
         </View>
-        {tab === 'train' && (
-          <TrainScreen
-            refreshKey={planKey + refreshKey}
-            onChanged={() => setPlanKey((k) => k + 1)}
-            onStartSession={(s) => {
-              setSessionRequest(s);
-              setTab('run');
-            }}
-          />
+        {!liveRun && sub == null && (
+          <View style={styles.tabs} accessibilityRole="tablist">
+            <TabButton label="Run" active={tab === 'run'} onPress={() => go('run')} />
+            <TabButton
+              label="Your runs"
+              active={tab === 'runs'}
+              onPress={() => {
+                setOpenRun(null);
+                go('runs');
+              }}
+            />
+            <TabButton label="Train" active={tab === 'train'} onPress={() => go('train')} />
+          </View>
         )}
-        {tab === 'history' && openRun == null && (
-          <HistoryScreen
-            onOpen={(id) => {
-              setShareOpen(false);
-              setOpenRun(id);
-            }}
-            refreshKey={refreshKey}
-          />
-        )}
-        {tab === 'history' && openRun != null && (
-          <RunDetailScreen
-            key={openRun}
-            runId={openRun}
-            shareOnOpen={shareOpen}
-            onBack={() => {
-              setShareOpen(false);
-              setOpenRun(null);
-            }}
-            onDeleted={() => {
-              setOpenRun(null);
-              setRefreshKey((k) => k + 1);
-            }}
-          />
-        )}
-        {tab === 'listen' && <ListenScreen />}
-        {tab === 'settings' && <SettingsScreen onOpenListen={() => setTab('listen')} />}
-      </View>
-      {!liveRun && (
-        <View style={styles.tabs}>
-          <TabButton label="Run" color={colors.mint} active={tab === 'run'} onPress={() => setTab('run')} />
-          <TabButton label="Train" color={colors.butter} active={tab === 'train'} onPress={() => setTab('train')} />
-          <TabButton
-            label="History"
-            color={colors.lilac}
-            active={tab === 'history'}
-            onPress={() => {
-              setOpenRun(null);
-              setTab('history');
-            }}
-          />
-          <TabButton label="Listen" color={colors.butter} active={tab === 'listen'} onPress={() => setTab('listen')} />
-          <TabButton label="Settings" color={colors.peach} active={tab === 'settings'} onPress={() => setTab('settings')} />
-        </View>
-      )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </OpenSettings.Provider>
   );
 }
 
-function TabButton({ label, color, active, onPress }: { label: string; color: string; active: boolean; onPress: () => void }) {
+function TabButton({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: active }} style={styles.tab}>
-      <View style={[styles.tabDot, { backgroundColor: active ? colors.ink : color }]} />
+    <Pressable onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: active }} style={({ pressed }) => [styles.tab, active && styles.tabActive, pressed && !active && { opacity: 0.7 }]}>
       <Text style={[styles.tabText, active && styles.tabTextActive]} numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.6}>
         {label}
       </Text>
@@ -254,10 +275,10 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.cream },
   rootInk: { backgroundColor: colors.ink },
   hidden: { display: 'none' },
-  tabs: { flexDirection: 'row', justifyContent: 'space-around', backgroundColor: colors.cream, paddingTop: 8, paddingBottom: spacing.sm + 2 },
-  // Five tabs share the width evenly, so a narrow phone or a big font never pushes one off the edge.
-  tab: { flex: 1, alignItems: 'center', gap: 5, paddingVertical: 6, paddingHorizontal: 2 },
-  tabDot: { width: 8, height: 8, borderRadius: 4 },
-  tabText: { fontFamily: fonts.bodySemi, fontSize: 11, color: colors.muted },
-  tabTextActive: { color: colors.text },
+  tabs: { flexDirection: 'row', gap: 6, backgroundColor: colors.cream, paddingHorizontal: spacing.md, paddingTop: 8, paddingBottom: spacing.sm + 2 },
+  // Three tabs share the width evenly, so a narrow phone or a big font never pushes one off the edge.
+  tab: { flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6, borderRadius: radius.pill },
+  tabActive: { backgroundColor: colors.ink },
+  tabText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.muted },
+  tabTextActive: { color: colors.cream },
 });

@@ -2,6 +2,6 @@
 // shown once. The store's update notes carry the rest. Bump the id with each
 // release that has something worth a line; leave it alone otherwise.
 export const NEWS = {
-  id: '2026-11-reminders',
-  text: 'New: reminders now learn your usual days, and skip the ones you’ve already run.',
+  id: '2026-11-todays-run',
+  text: 'New: pick today’s run. Clear my head keeps the screen empty and the phone quiet. Settings is the gear, top right.',
 };

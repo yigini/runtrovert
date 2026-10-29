@@ -16,9 +16,11 @@ import {
 } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { BackButton } from '../components/BackButton';
+import { Button } from '../components/Button';
 import { MusicStrip } from '../components/MusicStrip';
 import { listRuns } from '../db';
 import { appByKey, canControl, installedApps, installedPackages, type MusicApp } from '../music';
+import { dayKey } from '../presets';
 import { useSettings } from '../settings';
 import { coverFor, phoneLocale, refreshShelf, storedShelf } from '../shelf';
 import {
@@ -65,7 +67,7 @@ const LOCAL_TINT: Tint = { bg: colors.peach, fg: colors.peachDeep };
 
 type Picking = { kind: 'music' } | { kind: 'podcast'; then: Show | null };
 
-export function ListenScreen() {
+export function ListenScreen({ onBack }: { onBack?: () => void }) {
   const { settings, update } = useSettings();
   const { width } = useWindowDimensions();
   const [shelf, setShelf] = useState<Shelf | null>(null);
@@ -120,12 +122,7 @@ export function ListenScreen() {
       setPicking({ kind: 'podcast', then: show });
       return;
     }
-    const url = showLink(app, show);
-    if (url) {
-      const ok = await Linking.openURL(url).then(() => true, () => false);
-      if (ok) return;
-    }
-    Share.share({ message: show.feed, title: show.name }).catch(() => {});
+    await openShowIn(show, app);
   }
 
   if (kit && shelf) {
@@ -146,8 +143,9 @@ export function ListenScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ gap: spacing.lg, paddingBottom: spacing.xl }}>
+      {onBack ? <BackButton label="Start" onPress={onBack} /> : null}
       <View style={{ gap: spacing.sm }}>
-        <Text style={styles.h1}>Listen</Text>
+        <Text style={styles.h1} accessibilityRole="header">Listen</Text>
         <Text style={styles.lede}>Voices to take with you. Nobody here will ask you anything.</Text>
       </View>
 
@@ -309,6 +307,138 @@ export function ListenScreen() {
         }}
       />
     </ScrollView>
+  );
+}
+
+/** Opens a show in the chosen podcast app; if that fails, shares the feed instead. */
+async function openShowIn(show: Show, app: PodcastApp) {
+  const url = showLink(app, show);
+  if (url) {
+    const ok = await Linking.openURL(url).then(() => true, () => false);
+    if (ok) return;
+  }
+  Share.share({ message: show.feed, title: show.name }).catch(() => {});
+}
+
+/**
+ * Listen, one tap from Start: your sound, the player, two shows that fit your
+ * usual run and a way to run in silence today. Every shelf is one tap deeper.
+ */
+export function ListenSheet({ open, onClose, onBrowse }: { open: boolean; onClose: () => void; onBrowse: () => void }) {
+  const { settings, update } = useSettings();
+  const [shelf, setShelf] = useState<Shelf | null>(null);
+  const [usual, setUsual] = useState<number | null>(null);
+  const [musicApps, setMusicApps] = useState<MusicApp[]>([]);
+  const [picking, setPicking] = useState<Picking | null>(null);
+
+  // Only what's already on the phone: the sheet never downloads anything.
+  useEffect(() => {
+    if (!open) return;
+    let live = true;
+    storedShelf().then((s) => live && setShelf(s.shelf));
+    listRuns()
+      .then((runs) => live && setUsual(usualRunMin(runs.map((r) => r.durationS))))
+      .catch(() => {});
+    installedApps().then((a) => live && setMusicApps(a));
+    return () => {
+      live = false;
+    };
+  }, [open]);
+
+  const online = settings.listenDownload === 'on';
+  const today = new Date().toISOString().slice(0, 10);
+  const cc = shelf ? pickCountry(shelf, phoneLocale(), settings.podcastCountry) : null;
+  const two = useMemo(() => (shelf ? freshEpisodes([...localShows(shelf, cc), ...shelf.curated], today, usual).slice(0, 2) : []), [shelf, cc, usual, today]);
+  const podcastApp = PODCAST_APPS.find((a) => a.key === settings.podcastApp) ?? null;
+  const silent = settings.silentDay === dayKey(Date.now());
+  const tintOf = (show: Show): Tint => {
+    const g = shelf?.curated.find((c) => c.id === show.id)?.groups?.[0];
+    return g ? GROUP_TINT[g] : LOCAL_TINT;
+  };
+
+  return (
+    <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Close" accessibilityRole="button">
+        <Pressable style={[styles.sheet, { maxHeight: '94%' }]} onPress={() => {}} accessible={false}>
+          <View style={styles.grabber} />
+          <ScrollView contentContainerStyle={{ gap: spacing.md }} showsVerticalScrollIndicator={false}>
+            <View style={{ gap: 2 }}>
+              <Text style={styles.h2} accessibilityRole="header">Listen</Text>
+              <Text style={styles.lede}>Something to take with you. Or nothing at all.</Text>
+            </View>
+
+            <View style={styles.sound}>
+              <View style={styles.rowGap}>
+                <AppTile compact kind="music" label="Music" value={appByKey(settings.musicApp)?.name ?? "Phone's default"} onPress={() => setPicking({ kind: 'music' })} />
+                <AppTile compact kind="podcast" label="Podcasts" value={podcastApp ? short(podcastApp.label) : 'Ask each time'} onPress={() => setPicking({ kind: 'podcast', then: null })} />
+              </View>
+              <MusicStrip appKey={settings.musicApp} />
+            </View>
+
+            {two.length ? (
+              <View style={{ gap: spacing.sm }}>
+                <Text style={styles.sheetEyebrow}>{usual ? `Fits your usual ${usual} minutes` : 'New this week'}</Text>
+                {two.map((f) => (
+                  <Pressable
+                    key={f.show.id}
+                    onPress={() => (settings.podcastApp ? openShowIn(f.show, settings.podcastApp) : setPicking({ kind: 'podcast', then: f.show }))}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${f.ep.title}, ${f.show.name}${f.ep.min ? `, ${f.ep.min} minutes` : ''}. Opens in your podcast app.`}
+                    style={({ pressed }) => [styles.miniEp, pressed && { opacity: 0.85 }]}
+                  >
+                    <Cover show={f.show} size={56} tint={tintOf(f.show)} online={online} />
+                    <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                      <Text style={styles.epsTitle} numberOfLines={2}>
+                        {f.ep.title}
+                      </Text>
+                      <Text style={styles.hint} numberOfLines={1}>
+                        {f.show.name}
+                        {f.ep.min ? ` · ${f.ep.min} min` : ''} · {whenLabel(f.ep.date, today)}
+                      </Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+
+            <Pressable onPress={onBrowse} accessibilityRole="button" style={styles.sheetLine}>
+              <Text style={styles.sheetLineText}>Browse every shelf</Text>
+              <Text style={styles.sheetLineText} importantForAccessibility="no">›</Text>
+            </Pressable>
+            <View style={[styles.sheetLine, styles.sheetLineRule]}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={styles.sheetLineText}>Run in silence today</Text>
+                <Text style={styles.hint}>No voice, no buzz on today’s runs. Back to your usual cues tomorrow.</Text>
+              </View>
+              <Switch
+                value={silent}
+                onValueChange={(v) => update({ silentDay: v ? dayKey(Date.now()) : null })}
+                trackColor={{ true: colors.ink }}
+                accessibilityLabel="Run in silence today"
+              />
+            </View>
+            <Button title="Back to Start" onPress={onClose} />
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+      <AppSheet
+        picking={picking}
+        musicApps={musicApps}
+        musicApp={settings.musicApp}
+        podcastApp={settings.podcastApp}
+        onClose={() => setPicking(null)}
+        onMusic={(key) => {
+          update({ musicApp: key });
+          setPicking(null);
+        }}
+        onPodcast={(app) => {
+          const show = picking?.kind === 'podcast' ? picking.then : null;
+          update({ podcastApp: app });
+          setPicking(null);
+          if (show && app) openShowIn(show, app);
+        }}
+      />
+    </Modal>
   );
 }
 
@@ -549,14 +679,14 @@ function SheetRow({ label, note, on, onPress }: { label: string; note?: string; 
   );
 }
 
-function AppTile({ kind, label, value, onPress }: { kind: 'music' | 'podcast'; label: string; value: string; onPress: () => void }) {
+function AppTile({ kind, label, value, onPress, compact }: { kind: 'music' | 'podcast'; label: string; value: string; onPress: () => void; compact?: boolean }) {
   const tint = kind === 'music' ? { bg: colors.lilac, fg: colors.lilacDeep } : { bg: colors.butter, fg: colors.butterDeep };
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${label}: ${value}. Change`}
-      style={({ pressed }) => [styles.appTile, { backgroundColor: tint.bg }, pressed && { opacity: 0.85 }]}
+      style={({ pressed }) => [styles.appTile, compact && { minHeight: 0 }, { backgroundColor: tint.bg }, pressed && { opacity: 0.85 }]}
     >
       {kind === 'music' ? <NoteGlyph color={tint.fg} /> : <MicGlyph color={tint.fg} />}
       <Text style={[styles.appTileLabel, { color: tint.fg }]}>{label}</Text>
@@ -798,6 +928,11 @@ const styles = StyleSheet.create({
   offer: { backgroundColor: colors.white, borderRadius: radius.md, padding: 14, gap: 3 },
   paid: { fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 1.4, textTransform: 'uppercase', color: colors.peachDeep },
   code: { alignSelf: 'flex-start', fontFamily: fonts.bodySemi, fontSize: 14, letterSpacing: 1, color: colors.butterDeep, backgroundColor: colors.butter, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3, marginTop: 4 },
+  sheetEyebrow: { fontFamily: fonts.bodySemi, fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', color: colors.muted },
+  miniEp: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: radius.md, backgroundColor: colors.white },
+  sheetLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, minHeight: 48 },
+  sheetLineRule: { paddingTop: spacing.xs },
+  sheetLineText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.text },
   scrim: { flex: 1, backgroundColor: 'rgba(43,39,51,0.45)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.cream, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, padding: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
   sheetRow: { paddingVertical: 14, paddingHorizontal: 14, borderRadius: radius.md, backgroundColor: colors.white, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },

@@ -75,7 +75,7 @@ export function RunDetailScreen({ runId, onBack, onDeleted, shareOnOpen }: { run
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xl }}>
-      <BackButton label="History" onPress={onBack} />
+      <BackButton label="Your runs" onPress={onBack} />
       <Text style={styles.date}>{d.toLocaleString(undefined, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</Text>
       <RouteMap path={path} height={260} />
       {line && <YouLine title={line.title.replace('\n', ' ')} detail={line.detail} />}
