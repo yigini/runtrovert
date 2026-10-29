@@ -4,6 +4,7 @@ import { AmbientBackground } from '../components/AmbientBackground';
 import { Button } from '../components/Button';
 import { Fade } from '../components/Fade';
 import { Mark } from '../components/Mark';
+import { WELCOME } from '../footage';
 import { colors, fonts, spacing } from '../theme';
 
 /**
@@ -14,7 +15,7 @@ export function WelcomeScreen({ onDone }: { onDone: (reminders: boolean) => void
   const [step, setStep] = useState<'promise' | 'ask'>('promise');
   if (step === 'ask') return <AskStep onAnswer={onDone} />;
   return (
-    <AmbientBackground>
+    <AmbientBackground style={WELCOME}>
       <Fade from="bottom" height="68%" strength={0.98} />
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <View style={styles.brand}>

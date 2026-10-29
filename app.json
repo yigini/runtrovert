@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/bg-dusk-poster.png",
+      "image": "./assets/bg-dusk.jpg",
       "resizeMode": "cover",
       "backgroundColor": "#d9c9b8"
     },
@@ -81,7 +81,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/bg-dusk-poster.png",
+          "image": "./assets/bg-dusk.jpg",
           "resizeMode": "cover",
           "backgroundColor": "#d9c9b8"
         }

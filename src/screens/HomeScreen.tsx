@@ -6,9 +6,11 @@ import { Fade } from '../components/Fade';
 import { Mark } from '../components/Mark';
 import { MoodPicker } from '../components/MoodPicker';
 import { SkyGlyph } from '../components/SkyGlyph';
+import { homeFootage } from '../footage';
 import { TipLine } from '../components/TipLine';
 import { clock, formatTemp, headline, suggestions } from '../sky';
 import { useSettings } from '../settings';
+import { seasonalLine } from '../surprises';
 import { colors, fonts, spacing } from '../theme';
 import type { Mood, Run } from '../types';
 import { NEWS } from '../whatsNew';
@@ -49,10 +51,12 @@ export function HomeScreen({ runs, mood, onMood, onStart }: { runs: Run[]; mood:
   }, [refresh]);
 
   const weather = sky?.kind === 'ok' ? sky.weather : null;
+  // Dark text treatment for the tip line once the sun is low.
   const evening = weather ? !weather.isDay || (weather.sunset != null && weather.sunset - now < 60 * 60 * 1000) : new Date(now).getHours() >= 17 || new Date(now).getHours() < 6;
 
   return (
-    <AmbientBackground style={evening ? 'dusk' : 'tree'}>
+    // The footage follows the same reading as the headline; a still frame in battery saver.
+    <AmbientBackground style={homeFootage(weather, now)} still={settings.batteryMode === 'saver'}>
       <Fade from="top" height="62%" strength={0.9} />
       <Fade from="bottom" height="42%" strength={0.92} />
       <View style={styles.screen}>
@@ -65,7 +69,7 @@ export function HomeScreen({ runs, mood, onMood, onStart }: { runs: Run[]; mood:
         <Text style={styles.headline} accessibilityRole="header">
           {weather ? headline(weather, metric, now) : greeting(runs, now)}
         </Text>
-        <Text style={styles.sub}>{subline(runs, now)}</Text>
+        <Text style={styles.sub}>{seasonalLine(now) ?? subline(runs, now)}</Text>
 
         {weather ? (
           <View style={styles.list}>
