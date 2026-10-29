@@ -1,4 +1,5 @@
 import * as SQLite from 'expo-sqlite';
+import type { SourceKind } from './io/types';
 import { DEFAULT_SETTINGS, type Mood, type Point, type Quiet, type Run, type Settings, type Split, type SplitKind } from './types';
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
@@ -52,6 +53,14 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
           key TEXT PRIMARY KEY,
           value TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS run_sources (
+          run_id INTEGER PRIMARY KEY REFERENCES runs(id) ON DELETE CASCADE,
+          kind TEXT NOT NULL,
+          file_name TEXT,
+          external_id TEXT,
+          imported_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_run_sources_ext ON run_sources(external_id);
         CREATE TABLE IF NOT EXISTS route_sigs (
           run_id INTEGER PRIMARY KEY REFERENCES runs(id) ON DELETE CASCADE,
           v INTEGER NOT NULL,
@@ -192,6 +201,7 @@ export async function deleteRun(runId: number) {
     await db.runAsync('DELETE FROM points WHERE run_id = ?', runId);
     await db.runAsync('DELETE FROM splits WHERE run_id = ?', runId);
     await db.runAsync('DELETE FROM run_facts WHERE run_id = ?', runId);
+    await db.runAsync('DELETE FROM run_sources WHERE run_id = ?', runId);
     // A deleted run takes its line in a place's log with it; the place itself stays.
     await db.runAsync('DELETE FROM route_sigs WHERE run_id = ?', runId);
     await db.runAsync('DELETE FROM place_visits WHERE run_id = ?', runId);
@@ -215,6 +225,91 @@ export async function getPoints(runId: number): Promise<Point[]> {
   const db = await getDb();
   const rows = await db.getAllAsync('SELECT * FROM points WHERE run_id = ? ORDER BY ts ASC', runId);
   return rows.map((r: any) => ({ id: r.id, runId: r.run_id, ts: r.ts, lat: r.lat, lon: r.lon, alt: r.alt, acc: r.acc }));
+}
+
+// ---- Runs brought in from files (and later Health Connect) -----------------------
+// A run with a run_sources row came from somewhere else; every other run was
+// recorded here. The rest of the app treats both the same.
+
+export interface RunSource {
+  kind: SourceKind;
+  fileName: string | null;
+  externalId: string | null;
+  importedAt: number;
+}
+
+export async function getRunSource(runId: number): Promise<RunSource | null> {
+  const db = await getDb();
+  const r = (await db.getFirstAsync('SELECT * FROM run_sources WHERE run_id = ?', runId)) as any;
+  return r ? { kind: r.kind, fileName: r.file_name, externalId: r.external_id, importedAt: r.imported_at } : null;
+}
+
+/** Start, end, distance and any outside id of every finished run, for spotting one we already have. */
+export async function runSpans(): Promise<Array<{ startedAt: number; endedAt: number | null; distanceM: number; externalId: string | null }>> {
+  const db = await getDb();
+  const rows = (await db.getAllAsync(
+    'SELECT r.started_at, r.ended_at, r.distance_m, s.external_id FROM runs r LEFT JOIN run_sources s ON s.run_id = r.id WHERE r.ended_at IS NOT NULL',
+  )) as any[];
+  return rows.map((r) => ({ startedAt: r.started_at, endedAt: r.ended_at, distanceM: r.distance_m, externalId: r.external_id }));
+}
+
+/** A whole run from a file, in one go: the run, its points, its km splits and where it came from. */
+export async function addImportedRun(
+  run: { startedAt: number; endedAt: number; distanceM: number; durationS: number; elevationGainM: number },
+  points: Array<{ ts: number; lat: number; lon: number; alt: number | null }>,
+  splits: Array<Omit<Split, 'id' | 'runId' | 'kind'>>,
+  source: Omit<RunSource, 'importedAt'>,
+): Promise<number> {
+  const db = await getDb();
+  let id = 0;
+  await db.withTransactionAsync(async () => {
+    const res = await db.runAsync(
+      'INSERT INTO runs (started_at, ended_at, distance_m, duration_s, elevation_gain_m) VALUES (?, ?, ?, ?, ?)',
+      run.startedAt,
+      run.endedAt,
+      run.distanceM,
+      run.durationS,
+      run.elevationGainM,
+    );
+    id = res.lastInsertRowId;
+    const pt = await db.prepareAsync('INSERT INTO points (run_id, ts, lat, lon, alt, acc) VALUES (?, ?, ?, ?, ?, NULL)');
+    try {
+      for (const p of points) await pt.executeAsync(id, p.ts, p.lat, p.lon, p.alt);
+    } finally {
+      await pt.finalizeAsync();
+    }
+    for (const s of splits) {
+      await db.runAsync(
+        'INSERT INTO splits (run_id, kind, idx, distance_m, duration_s, at_distance_m, at_duration_s) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        id,
+        'km',
+        s.index,
+        s.distanceM,
+        s.durationS,
+        s.atDistanceM,
+        s.atDurationS,
+      );
+    }
+    await db.runAsync(
+      'INSERT INTO run_sources (run_id, kind, file_name, external_id, imported_at) VALUES (?, ?, ?, ?, ?)',
+      id,
+      source.kind,
+      source.fileName,
+      source.externalId,
+      Date.now(),
+    );
+  });
+  return id;
+}
+
+/** What "Everything you have" counts: runs recorded here, runs brought in, by where from. */
+export async function storedCounts(): Promise<{ runs: number; brought: Partial<Record<SourceKind, number>> }> {
+  const db = await getDb();
+  const total = (await db.getFirstAsync('SELECT COUNT(*) AS n FROM runs WHERE ended_at IS NOT NULL')) as { n: number };
+  const rows = (await db.getAllAsync('SELECT kind, COUNT(*) AS n FROM run_sources GROUP BY kind')) as Array<{ kind: SourceKind; n: number }>;
+  const brought: Partial<Record<SourceKind, number>> = {};
+  for (const r of rows) brought[r.kind] = r.n;
+  return { runs: total.n, brought };
 }
 
 // ---- Run facts (bests found inside a run, the weather at the time) ------------
