@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, spacing } from '../theme';
 import type { Mood } from '../types';
 import { Face } from './Mark';
+import { ui } from '../i18n/ui';
 
 const LABELS: Record<Mood, string> = { 1: 'Drained', 2: 'Low', 3: 'Okay', 4: 'Good', 5: 'Recharged' };
 const ON_FILL: Record<Mood, string> = { 1: colors.sky, 2: colors.lilac, 3: colors.butter, 4: colors.mint, 5: colors.peach };
@@ -23,7 +24,7 @@ export function MoodPicker({ value, onChange, title, inline }: { value: Mood | n
             key={m}
             onPress={() => onChange(m)}
             accessibilityRole="radio"
-            accessibilityLabel={`${LABELS[m]}, energy ${m} of 5`}
+            accessibilityLabel={ui().moodPicker.xEnergyXOf5(LABELS[m], m)}
             accessibilityState={{ checked: on }}
             hitSlop={4}
             style={[styles.face, { width: size, height: size, borderRadius: size / 2 }, on && { backgroundColor: ON_FILL[m] }]}

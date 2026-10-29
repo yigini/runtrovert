@@ -3,12 +3,13 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import { UNLOCKED_BUILD, UNLOCK_NAME, UNLOCK_PRICE } from '../unlock';
 import { openUnlock, useUnlockState, useUnlocked } from '../unlockState';
+import { ui } from '../i18n/ui';
 
 /** The top row of Settings, always there: the one permanent place the unlock lives. */
 export function UnlockSettingsRow() {
   const unlocked = useUnlocked();
   const { owned } = useUnlockState();
-  const detail = owned ? "It's yours. Thank you." : unlocked && UNLOCKED_BUILD ? 'Unlocked in this test build.' : `Plans, months of trends, backup. ${UNLOCK_PRICE}, one time.`;
+  const detail = owned ? ui().unlockRow.itSYoursThankYou : unlocked && UNLOCKED_BUILD ? ui().unlockRow.unlockedInThisTestBuild : ui().unlockRow.plansMonthsOfTrendsBackup(UNLOCK_PRICE);
   return (
     <Pressable onPress={openUnlock} accessibilityRole="button" accessibilityLabel={`${UNLOCK_NAME}. ${detail}`} style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]}>
       <View style={{ flex: 1, gap: 2 }}>
@@ -26,9 +27,7 @@ export function UnlockSettingsRow() {
 export function MoneyNote() {
   return (
     <View style={styles.money}>
-      <Text style={[type.eyebrow, { color: colors.butterDeep }]} accessibilityRole="header">
-        How this app makes money
-      </Text>
+      <Text style={[type.eyebrow, { color: colors.butterDeep }]} accessibilityRole="header">{ui().unlockRow.howThisAppMakesMoney}</Text>
       <Text style={styles.moneyText}>
         One optional payment,{' '}
         <Text style={styles.link} onPress={openUnlock} accessibilityRole="link">

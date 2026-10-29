@@ -4,6 +4,7 @@ import type { Change, Insight, Patterns } from '../patterns';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import { useUnlocked } from '../unlockState';
 import { LockGlyph, LockRow } from './LockRow';
+import { ui } from '../i18n/ui';
 
 /**
  * Your runs › Patterns: your own before and after energy answers, counted.
@@ -17,7 +18,7 @@ export function PatternsView({ patterns }: { patterns: Patterns | null }) {
   return (
     <View style={{ gap: spacing.md }}>
       <View style={styles.hero} accessible accessibilityLabel={`${first.line} ${first.detail}`}>
-        <Text style={[type.eyebrow, { color: colors.lilacDeep }]}>What you told the app</Text>
+        <Text style={[type.eyebrow, { color: colors.lilacDeep }]}>{ui().patternsView.whatYouToldTheApp}</Text>
         <Text style={styles.heroLine}>{first.line}</Text>
         {first.changes ? <Dots changes={first.changes} /> : null}
         <Text style={[type.small, { color: colors.lilacDeep }]}>{first.detail}</Text>
@@ -25,18 +26,14 @@ export function PatternsView({ patterns }: { patterns: Patterns | null }) {
 
       {unlocked ? (
         <>
-          <Text style={[type.eyebrow, { marginTop: spacing.sm }]} accessibilityRole="header">
-            More patterns
-          </Text>
+          <Text style={[type.eyebrow, { marginTop: spacing.sm }]} accessibilityRole="header">{ui().patternsView.morePatterns}</Text>
           {more.map((i) => (
             <InsightCard key={i.key} insight={i} />
           ))}
         </>
       ) : (
         <>
-          <Text style={[type.eyebrow, { marginTop: spacing.sm }]} accessibilityRole="header">
-            More patterns, once there’s enough
-          </Text>
+          <Text style={[type.eyebrow, { marginTop: spacing.sm }]} accessibilityRole="header">{ui().patternsView.morePatternsOnceThereS}</Text>
           <View>
             {more.map((i) => (
               <View key={i.key} style={styles.locked} accessible accessibilityLabel={`${i.title}. Locked.`}>
@@ -45,10 +42,10 @@ export function PatternsView({ patterns }: { patterns: Patterns | null }) {
               </View>
             ))}
           </View>
-          <LockRow title="These read months of runs" detail="They come with Everything, once. The one above stays free." />
+          <LockRow title={ui().patternsView.theseReadMonthsOfRuns} detail={ui().patternsView.theyComeWithEverythingOnce} />
         </>
       )}
-      <Text style={type.small}>Counted on this phone from the faces you pick before and after a run. Skip a question and that run simply isn’t counted.</Text>
+      <Text style={type.small}>{ui().patternsView.countedOnThisPhoneFrom}</Text>
     </View>
   );
 }

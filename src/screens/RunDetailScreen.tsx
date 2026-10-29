@@ -18,6 +18,7 @@ import { colors, fonts, radius, spacing, type } from '../theme';
 import type { StatPoint } from '../runStats';
 import type { LatLon, Mood, Run, Split } from '../types';
 import { loadYou } from '../you';
+import { ui } from '../i18n/ui';
 
 export function RunDetailScreen({
   runId,
@@ -82,17 +83,17 @@ export function RunDetailScreen({
     try {
       await shareRunGpx(runId);
     } catch (e) {
-      Alert.alert('Couldn’t save the GPX', String((e as Error)?.message ?? e));
+      Alert.alert(ui().runDetail.couldnTSaveTheGpx, String((e as Error)?.message ?? e));
     } finally {
       setSaving(false);
     }
   }
 
   function onDelete() {
-    Alert.alert('Delete run?', 'This cannot be undone.', [
-      { text: 'Keep', style: 'cancel' },
+    Alert.alert(ui().runDetail.deleteRun, ui().runDetail.thisCannotBeUndone, [
+      { text: ui().runDetail.keep, style: 'cancel' },
       {
-        text: 'Delete',
+        text: ui().runDetail.delete,
         style: 'destructive',
         onPress: async () => {
           await deleteRun(runId);
@@ -105,11 +106,11 @@ export function RunDetailScreen({
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xl }}>
-      <BackButton label="Your runs" onPress={onBack} />
+      <BackButton label={ui().runDetail.yourRuns} onPress={onBack} />
       <Text style={styles.date}>{d.toLocaleString(undefined, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</Text>
       {source ? (
         <Text style={styles.source}>
-          Brought in from {source.kind === 'health' ? 'Health Connect' : source.fileName ?? `a ${source.kind.toUpperCase()} file`} on{' '}
+          Brought in from {source.kind === 'health' ? ui().runDetail.healthConnect : source.fileName ?? ui().runDetail.aXFile(source.kind.toUpperCase())} on{' '}
           {new Date(source.importedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'long' })}.
         </Text>
       ) : null}
@@ -117,8 +118,8 @@ export function RunDetailScreen({
         <Pressable
           onPress={() => onOpenPlace(place.id)}
           accessibilityRole="button"
-          accessibilityLabel={`One of your places: ${place.name}`}
-          accessibilityHint="Opens this place"
+          accessibilityLabel={ui().runDetail.oneOfYourPlacesX(place.name)}
+          accessibilityHint={ui().runDetail.opensThisPlace}
           hitSlop={8}
           style={({ pressed }) => [styles.place, pressed && { opacity: 0.85 }]}
         >
@@ -130,7 +131,7 @@ export function RunDetailScreen({
       <RunStatsView run={run} points={points} splits={kmSplits} laps={laps} partial={partial} sun={weather} km={km} />
       {run.moodAfter == null && run.endedAt != null ? (
         <MoodPicker
-          title="And your energy now?"
+          title={ui().runDetail.andYourEnergyNow}
           value={null}
           onChange={(m: Mood) => {
             setRun({ ...run, moodAfter: m });
@@ -139,9 +140,9 @@ export function RunDetailScreen({
         />
       ) : null}
       {run.note ? <Text style={styles.note}>{run.note}</Text> : null}
-      {cmp && <Button title="Share with someone" variant="secondary" onPress={() => setSharing(true)} style={{ marginTop: spacing.sm }} />}
-      {path.length > 1 ? <Button title={saving ? 'Saving…' : 'Save as GPX'} variant="secondary" onPress={onSaveGpx} disabled={saving} /> : null}
-      <Button title="Delete run" variant="danger" onPress={onDelete} style={{ marginTop: spacing.lg }} />
+      {cmp && <Button title={ui().runDetail.shareWithSomeone} variant="secondary" onPress={() => setSharing(true)} style={{ marginTop: spacing.sm }} />}
+      {path.length > 1 ? <Button title={saving ? ui().runDetail.saving : ui().runDetail.saveAsGpx} variant="secondary" onPress={onSaveGpx} disabled={saving} /> : null}
+      <Button title={ui().runDetail.deleteRun2} variant="danger" onPress={onDelete} style={{ marginTop: spacing.lg }} />
       {cmp && <ShareSheet visible={sharing} onClose={() => setSharing(false)} run={run} path={path} cmp={cmp} weather={weather} km={km} />}
     </ScrollView>
   );

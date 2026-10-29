@@ -3,6 +3,7 @@
 
 import { EFFORT_LABEL } from './sessions';
 import type { Step } from './types';
+import { ui } from '../i18n/ui';
 
 export interface WorkoutState {
   steps: Step[];
@@ -63,14 +64,14 @@ export function stepLine(s: Step): string {
 
 /** What the voice says when a step begins. Short, because you are running. */
 export function stepCue(s: Step | null, finished: boolean): string {
-  if (finished || !s) return 'That is the session. Easy to the door.';
+  if (finished || !s) return ui().workout.thatIsTheSessionEasy;
   const size = s.durationS != null ? formatMin(s.durationS) : formatM(s.distanceM ?? 0);
   return `${stepName(s)}, ${size}.`;
 }
 
 /** What the block is, in a word or two: "Warm up", "Walk", "Comfortably hard". */
 export function stepName(s: Step): string {
-  return s.kind === 'warm' ? 'Warm up' : s.kind === 'cool' ? 'Cool down' : s.kind === 'walk' ? 'Walk' : s.kind === 'jog' || s.kind === 'float' ? 'Jog' : s.kind === 'stride' ? 'Stride' : s.label.split('.')[0];
+  return s.kind === 'warm' ? ui().workout.warmUp : s.kind === 'cool' ? ui().workout.coolDown : s.kind === 'walk' ? ui().workout.walk : s.kind === 'jog' || s.kind === 'float' ? ui().workout.jog : s.kind === 'stride' ? ui().workout.stride : s.label.split('.')[0];
 }
 
 /** How it should feel, after the name: "Full sentences." Empty when the label says nothing more. */
@@ -87,7 +88,7 @@ export function formatMin(sec: number): string {
   if (sec < 60) return `${Math.round(sec)} s`;
   const m = Math.floor(sec / 60);
   const s = Math.round(sec % 60);
-  return s ? `${m} min ${s} s` : `${m} min`;
+  return s ? ui().workout.xMinXS(m, s) : `${m} min`;
 }
 
 export function formatM(m: number): string {
@@ -98,7 +99,7 @@ export function formatLeft(v: WorkoutView): string {
   if (v.leftS != null) {
     const m = Math.floor(v.leftS / 60);
     const s = Math.floor(v.leftS % 60);
-    return `${m}:${String(s).padStart(2, '0')} left`;
+    return ui().workout.xXLeft(m, String(s).padStart(2, '0'));
   }
   if (v.leftM != null) return `${formatM(v.leftM)} left`;
   return '';

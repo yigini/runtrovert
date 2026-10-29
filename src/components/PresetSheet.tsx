@@ -3,6 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { PRESETS, type RunPreset } from '../presets';
 import { colors, fonts, radius, spacing } from '../theme';
 import { Button } from './Button';
+import { ui } from '../i18n/ui';
 
 /**
  * "What kind of run today?" The three presets side by side, with what each
@@ -11,14 +12,12 @@ import { Button } from './Button';
 export function PresetSheet({ open, value, onPick, onClose }: { open: boolean; value: RunPreset; onPick: (p: RunPreset) => void; onClose: () => void }) {
   return (
     <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Close" accessibilityRole="button">
+      <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel={ui().presetSheet.close} accessibilityRole="button">
         <Pressable style={styles.sheet} onPress={() => {}} accessible={false}>
           <View style={styles.grabber} />
           <ScrollView contentContainerStyle={{ gap: spacing.sm + 4 }} showsVerticalScrollIndicator={false}>
-            <Text style={styles.h2} accessibilityRole="header">
-              What kind of run today?
-            </Text>
-            <Text style={styles.small}>Pick how much comes in with you. It’s remembered, so next time you just press Start.</Text>
+            <Text style={styles.h2} accessibilityRole="header">{ui().presetSheet.whatKindOfRunToday}</Text>
+            <Text style={styles.small}>{ui().presetSheet.pickHowMuchComesIn}</Text>
             <View accessibilityRole="radiogroup" style={{ gap: spacing.sm + 2 }}>
               {PRESETS.map((p) => {
                 const on = p.key === value;
@@ -33,7 +32,7 @@ export function PresetSheet({ open, value, onPick, onClose }: { open: boolean; v
                   >
                     <View style={styles.optTop}>
                       <Text style={styles.name}>{p.name}</Text>
-                      {on ? <Text style={styles.last}>Picked</Text> : null}
+                      {on ? <Text style={styles.last}>{ui().presetSheet.picked}</Text> : null}
                     </View>
                     <Dial k="On screen" v={p.screen} on={on} />
                     <Dial k="Voice" v={p.voice} on={on} />
@@ -42,8 +41,8 @@ export function PresetSheet({ open, value, onPick, onClose }: { open: boolean; v
                 );
               })}
             </View>
-            <Text style={styles.small}>All three are free. My plan needs a plan from the Train tab; without one it runs as Just run.</Text>
-            <Button title="Done" onPress={onClose} style={{ marginTop: spacing.xs }} />
+            <Text style={styles.small}>{ui().presetSheet.allThreeAreFreeMy}</Text>
+            <Button title={ui().presetSheet.done} onPress={onClose} style={{ marginTop: spacing.xs }} />
           </ScrollView>
         </Pressable>
       </Pressable>

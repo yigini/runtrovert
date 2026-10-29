@@ -7,6 +7,7 @@
 // under plain Node. Saving the state and the React hook live in unlockState.ts.
 
 import type { Plan } from './training/types';
+import { ui } from './i18n/ui';
 
 /**
  * GitHub test APKs have everything unlocked. Store builds set
@@ -95,6 +96,6 @@ export function openWeeks(plan: Plan): Plan {
 
 /** The Train line, for a plan of `weeks` weeks (null for an ongoing plan). */
 export function trainLine(weeks: number | null): string {
-  const rest = weeks && weeks > 1 ? `Weeks 2 to ${weeks}` : 'The weeks after';
-  return `Week 1 is yours to try. ${rest} come with ${UNLOCK_NAME}, whenever you're ready. Free runs never stop.`;
+  const rest = weeks && weeks > 1 ? ui().unlock.weeks2ToX(weeks) : ui().unlock.theWeeksAfter;
+  return ui().unlock.week1IsYoursTo(rest, UNLOCK_NAME);
 }

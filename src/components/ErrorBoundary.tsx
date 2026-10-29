@@ -1,6 +1,7 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { colors, fonts, spacing } from '../theme';
+import { ui } from '../i18n/ui';
 
 /**
  * If anything throws during render, show the error instead of a silent close.
@@ -16,8 +17,8 @@ export class ErrorBoundary extends React.Component<{ children: React.ReactNode }
     const e = this.state.error;
     return (
       <ScrollView style={styles.screen} contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
-        <Text style={styles.h}>Something broke.</Text>
-        <Text style={styles.p}>Nothing was lost. Please screenshot this and send it along.</Text>
+        <Text style={styles.h}>{ui().errorBoundary.somethingBroke}</Text>
+        <Text style={styles.p}>{ui().errorBoundary.nothingWasLostPleaseScreenshot}</Text>
         <Text style={styles.code}>{String(e?.message ?? e)}</Text>
         <Text style={styles.code}>{String(e?.stack ?? '').slice(0, 1500)}</Text>
       </ScrollView>

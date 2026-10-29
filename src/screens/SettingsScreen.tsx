@@ -11,6 +11,7 @@ import { MoneyNote, UnlockSettingsRow } from '../components/UnlockRow';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import type { BatteryMode, CueMode, ListenDownload, NotifyPerWeek } from '../types';
+import { ui } from '../i18n/ui';
 
 const BATTERY: Array<{ key: BatteryMode; label: string; hint: string }> = [
   { key: 'auto', label: 'Auto', hint: 'Full GPS until the battery drops to 25% or the phone is in low-power mode, then eases off.' },
@@ -46,27 +47,27 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onBack }: { onO
   async function onSendNow() {
     const ok = await sendLineNow();
     setStatus(await notificationStatus());
-    if (ok) Alert.alert('On its way', 'Lock your phone. One arrives in five seconds, the way they will on a Tuesday morning.');
-    else Alert.alert('Notifications are off', 'Turn on notifications for Runtrovert in your phone settings to get reminders and run notes.');
+    if (ok) Alert.alert(ui().settings.onItsWay, ui().settings.lockYourPhoneOneArrives);
+    else Alert.alert(ui().settings.notificationsAreOff, ui().settings.turnOnNotificationsForRuntrovert);
   }
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ gap: spacing.lg, paddingBottom: spacing.xl }}>
-      {onBack ? <BackButton label="Back" onPress={onBack} /> : null}
-      <Text style={styles.h1} accessibilityRole="header">Settings</Text>
+      {onBack ? <BackButton label={ui().settings.back} onPress={onBack} /> : null}
+      <Text style={styles.h1} accessibilityRole="header">{ui().settings.settings}</Text>
       <UnlockSettingsRow />
 
-      <Section title="Today's run" bg={colors.lilac} fg={colors.lilacDeep}>
-        <Pressable onPress={() => setPresets(true)} accessibilityRole="button" accessibilityHint="Shows the three presets and what each one brings" style={({ pressed }) => [styles.option, pressed && { opacity: 0.85 }]}>
+      <Section title={ui().settings.todaySRun} bg={colors.lilac} fg={colors.lilacDeep}>
+        <Pressable onPress={() => setPresets(true)} accessibilityRole="button" accessibilityHint={ui().settings.showsTheThreePresetsAnd} style={({ pressed }) => [styles.option, pressed && { opacity: 0.85 }]}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.optionLabel}>What each preset shows</Text>
-            <Text style={styles.optionHint}>{preset ? `Picked: ${preset.name}. ` : ''}Clear my head, Just run, Follow my plan. Pick one on the Run tab.</Text>
+            <Text style={styles.optionLabel}>{ui().settings.whatEachPresetShows}</Text>
+            <Text style={styles.optionHint}>{preset ? ui().settings.pickedX(preset.name) : ''}Clear my head, Just run, Follow my plan. Pick one on the Run tab.</Text>
           </View>
           <Text style={styles.chev} importantForAccessibility="no">›</Text>
         </Pressable>
       </Section>
 
-      <Section title="Cues" bg={colors.lilac} fg={colors.lilacDeep}>
+      <Section title={ui().settings.cues} bg={colors.lilac} fg={colors.lilacDeep}>
         {CUES.map((c) => {
           const on = settings.cueMode === c.key;
           return (
@@ -80,36 +81,36 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onBack }: { onO
         })}
       </Section>
 
-      <Section title="Running" bg={colors.mint} fg={colors.mintDeep}>
-        <Row label="Auto-pause" hint="Pause when you stop at a crossing; resume when you move.">
+      <Section title={ui().settings.running} bg={colors.mint} fg={colors.mintDeep}>
+        <Row label={ui().settings.autoPause} hint={ui().settings.pauseWhenYouStopAt}>
           <Switch value={settings.autoPause} onValueChange={(v) => update({ autoPause: v })} trackColor={{ true: colors.ink }} />
         </Row>
-        <Row label="Countdown" hint="Seconds before the run starts.">
+        <Row label={ui().settings.countdown} hint={ui().settings.secondsBeforeTheRunStarts}>
           <Segmented
             value={String(settings.countdownS)}
             options={['0', '3', '5', '10']}
             onChange={(v) => update({ countdownS: Number(v) })}
           />
         </Row>
-        <Row label="Lock screen and watch" hint="Live distance and time on the lock screen, a short note at each km. Wear OS and Apple Watch show them too.">
+        <Row label={ui().settings.lockScreenAndWatch} hint={ui().settings.liveDistanceAndTimeOn}>
           <Switch value={settings.runNotes} onValueChange={(v) => update({ runNotes: v })} trackColor={{ true: colors.ink }} />
         </Row>
-        <Row label="Units">
+        <Row label={ui().settings.units}>
           <Segmented value={settings.unitsKm ? 'km' : 'mi'} options={['km', 'mi']} onChange={(v) => update({ unitsKm: v === 'km' })} />
         </Row>
       </Section>
 
-      <Section title="Music & podcasts" bg={colors.lilac} fg={colors.lilacDeep}>
+      <Section title={ui().settings.musicPodcasts} bg={colors.lilac} fg={colors.lilacDeep}>
         <Text style={styles.musicNote}>
-          {appByKey(settings.musicApp)?.name ?? "Phone's default"} for music, {PODCAST_APPS.find((a) => a.key === settings.podcastApp)?.label ?? 'ask each time'} for
+          {appByKey(settings.musicApp)?.name ?? ui().settings.phoneSDefault} for music, {PODCAST_APPS.find((a) => a.key === settings.podcastApp)?.label ?? ui().settings.askEachTime} for
           podcasts, music strip {settings.musicStrip ? 'on' : 'off'} during runs. All of it lives in Listen, the lilac button beside Start, where you can try the controls.
         </Text>
         <Pressable onPress={onOpenListen} accessibilityRole="button" style={[styles.option, styles.optionOn, { alignItems: 'center' }]}>
-          <Text style={[styles.optionLabel, styles.optionLabelOn]}>Open Listen</Text>
+          <Text style={[styles.optionLabel, styles.optionLabelOn]}>{ui().settings.openListen}</Text>
         </Pressable>
       </Section>
 
-      <Section title="Battery" bg={colors.sky} fg={colors.skyDeep}>
+      <Section title={ui().settings.battery} bg={colors.sky} fg={colors.skyDeep}>
         {BATTERY.map((b) => {
           const on = settings.batteryMode === b.key;
           return (
@@ -121,14 +122,14 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onBack }: { onO
             </Pressable>
           );
         })}
-        <Row label="Keep screen on" hint="Only during a run. Costs a lot of battery; the lock screen shows your numbers anyway.">
+        <Row label={ui().settings.keepScreenOn} hint={ui().settings.onlyDuringARunCosts}>
           <Switch value={settings.keepScreenOn} onValueChange={(v) => update({ keepScreenOn: v })} trackColor={{ true: colors.ink }} />
         </Row>
       </Section>
 
-      <Section title="Quiet reminders" bg={colors.butter} fg={colors.butterDeep}>
+      <Section title={ui().settings.quietReminders} bg={colors.butter} fg={colors.butterDeep}>
         {status !== 'granted' ? (
-          <Row label="Notifications are off" hint="So no reminders and no lock-screen numbers during runs. Your call, and nothing else changes.">
+          <Row label={ui().settings.notificationsAreOff} hint={ui().settings.soNoRemindersAndNo}>
             <Pressable
               onPress={async () => {
                 await turnOnNotifications();
@@ -136,90 +137,82 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onBack }: { onO
               }}
               style={styles.turnOn}
               accessibilityRole="button"
-              accessibilityLabel="Turn on notifications"
+              accessibilityLabel={ui().settings.turnOnNotifications}
             >
-              <Text style={styles.turnOnText}>Turn on</Text>
+              <Text style={styles.turnOnText}>{ui().settings.turnOn}</Text>
             </Pressable>
           </Row>
         ) : null}
-        <Text style={styles.promise}>
-          The deal: never more than you pick here, one a day at most, nothing between 9 pm and 7 am, never a streak or a sound. Each one has a “Fewer, please” button.
-        </Text>
-        <Row label="Per week" hint="Short, dry, never a streak. Skips days you’ve already run, eases off if ignored. With a training plan, the plan takes over: a note on plan days with the session, nothing on rest days.">
+        <Text style={styles.promise}>{ui().settings.theDealNeverMoreThan}</Text>
+        <Row label={ui().settings.perWeek} hint={ui().settings.shortDryNeverAStreak}>
           <Segmented
             value={String(settings.notifyPerWeek)}
             options={['0', '1', '3', '5']}
             onChange={(v) => update({ notifyPerWeek: Number(v) as NotifyPerWeek })}
           />
         </Row>
-        <Row stack label="At" hint={settings.notifyAuto ? 'Auto: about 45 minutes before you usually run, on the days you usually run. 8:00 on Mon, Wed, Fri until there are a few runs to go on.' : 'Local time, on weekdays.'}>
+        <Row stack label={ui().settings.at} hint={settings.notifyAuto ? ui().settings.autoAbout45MinutesBefore : ui().settings.localTimeOnWeekdays}>
           <Segmented
             value={settings.notifyAuto ? 'Auto' : String(settings.notifyHour)}
             options={['Auto', '7', '8', '12', '17', '19']}
+            labels={{ Auto: ui().settings.auto }}
             onChange={(v) => (v === 'Auto' ? update({ notifyAuto: true }) : update({ notifyAuto: false, notifyHour: Number(v), notifyMinute: 0 }))}
           />
         </Row>
-        <Row label="After a run" hint="One quiet note fifteen minutes after you save, or a nudge to log your energy if you skipped it. Never after 21:00.">
+        <Row label={ui().settings.afterARun} hint={ui().settings.oneQuietNoteFifteenMinutes}>
           <Switch value={settings.afterRunNote} onValueChange={(v) => update({ afterRunNote: v })} trackColor={{ true: colors.ink }} />
         </Row>
-        <Pressable onPress={() => setPreview(previewLine())} style={styles.preview} accessibilityRole="button" accessibilityLabel={`Sounds like: ${preview}`} accessibilityHint="Shows another example">
-          <Text style={styles.previewLabel}>Sounds like</Text>
+        <Pressable onPress={() => setPreview(previewLine())} style={styles.preview} accessibilityRole="button" accessibilityLabel={ui().settings.soundsLikeX(preview)} accessibilityHint={ui().settings.showsAnotherExample}>
+          <Text style={styles.previewLabel}>{ui().settings.soundsLike}</Text>
           <Text style={styles.previewText}>{preview}</Text>
-          <Text style={styles.previewHint}>tap for another</Text>
+          <Text style={styles.previewHint}>{ui().settings.tapForAnother}</Text>
         </Pressable>
         <Pressable onPress={onSendNow} style={styles.sendNow} accessibilityRole="button">
-          <Text style={styles.sendNowText}>Send me one now</Text>
+          <Text style={styles.sendNowText}>{ui().settings.sendMeOneNow}</Text>
         </Pressable>
       </Section>
 
-      <Section title="Map" bg={colors.mint} fg={colors.mintDeep}>
+      <Section title={ui().settings.map} bg={colors.mint} fg={colors.mintDeep}>
         <Row
-          label="Plain map"
-          hint="Your route, the live dot and the zoom work the same on a plain ground. No streets or names, and nothing is fetched. Off, the streets come from OpenFreeMap, which sees the area on screen and your IP address."
+          label={ui().settings.plainMap}
+          hint={ui().settings.yourRouteTheLiveDot}
         >
           <Switch value={settings.plainMap} onValueChange={(v) => update({ plainMap: v, mapNoticeSeen: true })} trackColor={{ true: colors.ink }} />
         </Row>
       </Section>
 
-      <Section title="The sky" bg={colors.sky} fg={colors.skyDeep}>
-        <Row label="Local weather on the home screen" hint="A location rounded to about 1 km goes to Open-Meteo and a forecast comes back. No key, no account, no cookies. Besides map tiles and the Listen list, it is the only thing the app fetches.">
+      <Section title={ui().settings.theSky} bg={colors.sky} fg={colors.skyDeep}>
+        <Row label={ui().settings.localWeatherOnTheHome} hint={ui().settings.aLocationRoundedToAbout}>
           <Switch value={settings.weather} onValueChange={(v) => update({ weather: v })} trackColor={{ true: colors.ink }} />
         </Row>
       </Section>
 
-      <Section title="Listen" bg={colors.butter} fg={colors.butterDeep}>
-        <Row label="Daily list" hint="When you open Listen, download today's shows, episodes and covers from GitHub. One file, the same for everyone, so the request says nothing about you; GitHub sees normal connection details such as your IP address.">
+      <Section title={ui().settings.listen} bg={colors.butter} fg={colors.butterDeep}>
+        <Row label={ui().settings.dailyList} hint={ui().settings.whenYouOpenListenDownload}>
           <Segmented
-            value={{ ask: 'Ask', on: 'On', off: 'Off' }[settings.listenDownload]}
-            options={['Ask', 'On', 'Off']}
-            onChange={(v) => update({ listenDownload: v.toLowerCase() as ListenDownload })}
+            value={settings.listenDownload}
+            options={['ask', 'on', 'off']}
+            labels={{ ask: ui().settings.ask, on: ui().settings.on, off: ui().settings.off }}
+            onChange={(v) => update({ listenDownload: v as ListenDownload })}
           />
         </Row>
-        <Row label="Kit & offers" hint="A shelf of running kit from paying sponsors, at the bottom of Listen. Only there, only when you open it. Off hides it for good.">
+        <Row label={ui().settings.kitOffers} hint={ui().settings.aShelfOfRunningKit}>
           <Switch value={!settings.offersHidden} onValueChange={(v) => update({ offersHidden: !v })} trackColor={{ true: colors.ink }} />
         </Row>
       </Section>
 
-      <Section title="Your data" bg={colors.peach} fg={colors.peachDeep}>
-        <Pressable onPress={onOpenEverything} accessibilityRole="button" accessibilityHint="Bring runs in from GPX or FIT files, or take them out" style={({ pressed }) => [styles.option, pressed && { opacity: 0.85 }]}>
+      <Section title={ui().settings.yourData} bg={colors.peach} fg={colors.peachDeep}>
+        <Pressable onPress={onOpenEverything} accessibilityRole="button" accessibilityHint={ui().settings.bringRunsInFromGpx} style={({ pressed }) => [styles.option, pressed && { opacity: 0.85 }]}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.optionLabel}>Everything you have</Text>
-            <Text style={styles.optionHint}>Bring runs in from a watch or another app as GPX or FIT, and take them out again. All on this phone.</Text>
+            <Text style={styles.optionLabel}>{ui().settings.everythingYouHave}</Text>
+            <Text style={styles.optionHint}>{ui().settings.bringRunsInFromA}</Text>
           </View>
           <Text style={[styles.chev, { color: colors.peachDeep }]} importantForAccessibility="no">›</Text>
         </Pressable>
       </Section>
 
-      <Section title="Privacy" bg={colors.white} fg={colors.muted}>
-        <Text style={styles.privacy}>
-          Runtrovert has no server. Your runs, routes, places, notes and settings are saved on this phone, and in the phone's own backup to your Google or Apple
-          account if you have backups on. We can't see them even if we wanted to. Reminders are written and scheduled on the phone. No push service, no
-          server, nothing that knows when or whether you ran. The app fetches three things: map tiles unless you chose Plain map, the weather if you leave it
-          on, and the Listen list if you said yes, which is one file that's the same for everyone. Like any website, each of those sees your IP address. The
-          map service also sees which area is on screen, and the weather service a location rounded to about 1 km. Your route itself is never sent. Podcasts
-          play in your own podcast app; we never see what you play. Sponsors pay a flat fee for a place on the Kit & offers shelf and never learn who opened
-          it or what was tapped. Delete the app and it's gone from this phone; a phone backup keeps a copy until it's replaced.
-        </Text>
+      <Section title={ui().settings.privacy} bg={colors.white} fg={colors.muted}>
+        <Text style={styles.privacy}>{ui().settings.runtrovertHasNoServerYour}</Text>
         <MoneyNote />
       </Section>
       <PresetSheet open={presets} value={settings.runPreset ?? 'just'} onPick={(p) => update({ runPreset: p })} onClose={() => setPresets(false)} />
@@ -256,14 +249,16 @@ function Row({ label, hint, stack, children }: { label: string; hint?: string; s
   );
 }
 
-function Segmented({ value, options, onChange, accessibilityLabel, accessibilityHint }: { value: string; options: string[]; onChange: (v: string) => void; accessibilityLabel?: string; accessibilityHint?: string }) {
+// options are the stored values; labels, when given, are what the person reads.
+function Segmented({ value, options, labels, onChange, accessibilityLabel, accessibilityHint }: { value: string; options: string[]; labels?: Record<string, string>; onChange: (v: string) => void; accessibilityLabel?: string; accessibilityHint?: string }) {
   return (
     <View style={[styles.seg, { flexWrap: 'wrap' }]} accessibilityRole="radiogroup" accessibilityLabel={accessibilityLabel} accessibilityHint={accessibilityHint}>
       {options.map((o) => {
         const on = o === value;
+        const label = labels?.[o] ?? o;
         return (
-          <Pressable key={o} onPress={() => onChange(o)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={accessibilityLabel ? `${accessibilityLabel}: ${o}` : o} style={[styles.segItem, on && styles.segItemOn]}>
-            <Text style={[styles.segText, on && styles.segTextOn]}>{o}</Text>
+          <Pressable key={o} onPress={() => onChange(o)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={accessibilityLabel ? `${accessibilityLabel}: ${label}` : label} style={[styles.segItem, on && styles.segItemOn]}>
+            <Text style={[styles.segText, on && styles.segTextOn]}>{label}</Text>
           </Pressable>
         );
       })}

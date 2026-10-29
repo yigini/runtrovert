@@ -14,6 +14,7 @@ import type { Place } from '../placeStore';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import type { Quiet, Run } from '../types';
+import { ui } from '../i18n/ui';
 
 const QUIET_BG: Record<Quiet, string> = { crowded: colors.peach, some: colors.butter, empty: colors.mint };
 const QUIET_FG: Record<Quiet, string> = { crowded: colors.peachDeep, some: colors.butterDeep, empty: colors.mintDeep };
@@ -54,9 +55,7 @@ export function HistoryScreen({
   const title = (
     <View style={{ gap: spacing.sm + 4 }}>
       <View style={styles.topRow}>
-        <Text style={type.h1} accessibilityRole="header">
-          Your runs
-        </Text>
+        <Text style={type.h1} accessibilityRole="header">{ui().history.yourRuns}</Text>
         <SettingsGear />
       </View>
       {onSection ? <Sections value={section} onChange={onSection} /> : null}
@@ -90,9 +89,9 @@ export function HistoryScreen({
       <View
         style={styles.month}
         accessible
-        accessibilityLabel={`${monthName} so far: ${month.runs} ${month.runs === 1 ? 'run' : 'runs'}, ${spokenDistance(month.distanceM, km)}, ${spokenDuration(month.durationS)} running.`}
+        accessibilityLabel={ui().history.xSoFarXX(monthName, month.runs, month.runs === 1 ? 'run' : 'runs', spokenDistance(month.distanceM, km), spokenDuration(month.durationS))}
       >
-        <Text style={[type.eyebrow, styles.monthTitle]}>{monthName} so far</Text>
+        <Text style={[type.eyebrow, styles.monthTitle]}>{ui().history.xSoFar(monthName)}</Text>
         <Stat value={String(month.runs)} label={month.runs === 1 ? 'run' : 'runs'} />
         <Stat value={month.runs ? formatDistanceNumber(month.distanceM, km) : '0'} label={distanceUnit(km)} />
         <Stat value={hoursMinutes(month.durationS)} label="running" />
@@ -106,11 +105,11 @@ export function HistoryScreen({
       <View style={styles.screen}>
         {header}
         <View style={styles.empty}>
-          <Text style={type.h2}>No runs yet.</Text>
-          <Text style={[type.body, { color: colors.muted, textAlign: 'center' }]}>Your runs will stay on this phone. Nobody else sees them.</Text>
+          <Text style={type.h2}>{ui().history.noRunsYet}</Text>
+          <Text style={[type.body, { color: colors.muted, textAlign: 'center' }]}>{ui().history.yourRunsWillStayOn}</Text>
           {onBringIn ? (
             <Pressable onPress={onBringIn} accessibilityRole="button" hitSlop={8} style={({ pressed }) => [styles.bringIn, pressed && { opacity: 0.8 }]}>
-              <Text style={styles.bringInText}>Bring runs in from a watch or another app</Text>
+              <Text style={styles.bringInText}>{ui().history.bringRunsInFromA}</Text>
             </Pressable>
           ) : null}
         </View>
@@ -151,9 +150,9 @@ function hoursMinutes(s: number): string {
 
 function Sections({ value, onChange }: { value: RunsSection; onChange: (s: RunsSection) => void }) {
   const items: Array<{ key: RunsSection; label: string }> = [
-    { key: 'runs', label: 'Runs' },
-    { key: 'places', label: 'Places' },
-    { key: 'patterns', label: 'Patterns' },
+    { key: 'runs', label: ui().history.runs },
+    { key: 'places', label: ui().history.places },
+    { key: 'patterns', label: ui().history.patterns },
   ];
   return (
     <View style={styles.seg} accessibilityRole="tablist">
@@ -192,7 +191,7 @@ function RunRow({ run, km, place, onPress }: { run: Run; km: boolean; place: str
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityHint="Opens this run"
+      accessibilityHint={ui().history.opensThisRun}
       accessibilityLabel={[
         `${d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}, ${time}`,
         place,
@@ -220,7 +219,7 @@ function RunRow({ run, km, place, onPress }: { run: Run; km: boolean; place: str
         </Text>
         <Text style={styles.rowSub}>
           {formatPace(run.distanceM, run.durationS, km)} /{km ? 'km' : 'mi'}
-          {delta != null ? ` · energy ${delta > 0 ? '+' : ''}${delta}` : ''}
+          {delta != null ? ui().history.energyXX(delta > 0 ? '+' : '', delta) : ''}
         </Text>
       </View>
     </Pressable>

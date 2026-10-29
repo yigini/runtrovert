@@ -7,6 +7,7 @@ import { weekdayName } from './i18n/lang';
 import { voice } from './i18n/voice';
 import { inQuietHours, planReminders, type PlannedReminder } from './reminderPlan';
 import type { NotifyPerWeek, Settings } from './types';
+import { ui } from './i18n/ui';
 
 const CHANNEL = 'runtrovert-quiet';
 const CATEGORY = 'reminder'; // carries the "Fewer, please" button
@@ -40,7 +41,7 @@ export async function ensureChannel() {
 
 async function ensureCategory() {
   await Notifications.setNotificationCategoryAsync(CATEGORY, [
-    { identifier: FEWER_ACTION, buttonTitle: 'Fewer, please', options: { opensAppToForeground: true } },
+    { identifier: FEWER_ACTION, buttonTitle: ui().notify.fewerPlease, options: { opensAppToForeground: true } },
   ]).catch(() => {});
 }
 
@@ -197,8 +198,8 @@ export function fewer(perWeek: NotifyPerWeek): NotifyPerWeek {
 }
 
 export function fewerMessage(perWeek: NotifyPerWeek): string {
-  if (perWeek === 0) return 'No more reminders. Settings can bring them back.';
-  return `Fewer it is. ${perWeek === 1 ? 'One' : 'Three'} a week from now on.`;
+  if (perWeek === 0) return ui().notify.noMoreRemindersSettingsCan;
+  return ui().notify.fewerItIsXA(perWeek === 1 ? 'One' : 'Three');
 }
 
 /**

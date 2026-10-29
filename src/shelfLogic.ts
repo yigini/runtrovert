@@ -1,4 +1,5 @@
 import type { PodcastApp } from './types';
+import { ui } from './i18n/ui';
 
 // The Listen tab's rules, kept free of React Native so `npm run test:shelf` can
 // check them in Node. The data comes from scripts/build-shelf.mjs.
@@ -156,7 +157,7 @@ export function whenLabel(date: string, today: string): string {
   const d = Math.round((Date.parse(today) - Date.parse(date)) / 86400000);
   if (d <= 0) return 'today';
   if (d === 1) return 'yesterday';
-  if (d < 7) return `${d} days ago`;
+  if (d < 7) return ui().shelfLogic.xDaysAgo(d);
   return date;
 }
 

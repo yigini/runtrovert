@@ -1,3 +1,4 @@
+import { ui } from './i18n/ui';
 // Words for screen readers. The screen says "4.21" and "26:05"; TalkBack and
 // VoiceOver should say "4.21 kilometres" and "26 minutes 5 seconds", not a
 // clock time or a bare number.
@@ -29,15 +30,15 @@ export function spokenDuration(s: number): string {
 
 /** "5 minutes 32 seconds per kilometre", or "no pace yet". Same cut-offs as formatPace. */
 export function spokenPace(distanceM: number, durationS: number, km = true): string {
-  if (distanceM < 50 || durationS < 10) return 'no pace yet';
+  if (distanceM < 50 || durationS < 10) return ui().a11y.noPaceYet;
   const secPerUnit = durationS / (distanceM / (km ? 1000 : MILE_M));
-  if (!isFinite(secPerUnit) || secPerUnit > 60 * 60) return 'no pace yet';
+  if (!isFinite(secPerUnit) || secPerUnit > 60 * 60) return ui().a11y.noPaceYet;
   return `${spokenDuration(Math.round(secPerUnit))} per ${km ? 'kilometre' : 'mile'}`;
 }
 
 /** The live run in one sentence, for the numbers block on the run screen. */
 export function spokenRun(t: { distanceM: number; durationS: number }, km = true): string {
-  return `${spokenDistance(t.distanceM, km)}, ${spokenDuration(t.durationS)}, average ${spokenPace(t.distanceM, t.durationS, km)}`;
+  return ui().a11y.xXAverageX(spokenDistance(t.distanceM, km), spokenDuration(t.durationS), spokenPace(t.distanceM, t.durationS, km));
 }
 
 /**

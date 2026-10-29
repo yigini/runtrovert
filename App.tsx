@@ -33,6 +33,7 @@ import { onRunSaved } from './src/training/store';
 import type { Session } from './src/training/types';
 import { loadUnlock } from './src/unlockState';
 import { NEWS } from './src/whatsNew';
+import { ui } from './src/i18n/ui';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -150,7 +151,7 @@ function Shell() {
     if (response.actionIdentifier === FEWER_ACTION) {
       const next = fewer(settingsRef.current.notifyPerWeek);
       update({ notifyPerWeek: next });
-      Alert.alert('Reminders', fewerMessage(next));
+      Alert.alert(ui().app.reminders, fewerMessage(next));
     } else if (data.kind === 'plan') {
       setSub(null);
       setTab('train');
@@ -191,7 +192,7 @@ function Shell() {
       const run = await getRun(runId);
       if (run) {
         const r = await onRunSaved(run, extra?.pain ?? null, extra?.sessionId ?? null);
-        if (r.advice) Alert.alert('Noted', r.advice);
+        if (r.advice) Alert.alert(ui().app.noted, r.advice);
       }
     } catch {
       // no plan, or nothing to change
@@ -309,9 +310,9 @@ function Shell() {
         </View>
         {!liveRun && sub == null && (
           <View style={styles.tabs} accessibilityRole="tablist">
-            <TabButton label="Run" active={tab === 'run'} onPress={() => go('run')} />
+            <TabButton label={ui().app.run} active={tab === 'run'} onPress={() => go('run')} />
             <TabButton
-              label="Your runs"
+              label={ui().app.yourRuns}
               active={tab === 'runs'}
               onPress={() => {
                 setOpenRun(null);
@@ -320,7 +321,7 @@ function Shell() {
                 go('runs');
               }}
             />
-            <TabButton label="Train" active={tab === 'train'} onPress={() => go('train')} />
+            <TabButton label={ui().app.train} active={tab === 'train'} onPress={() => go('train')} />
           </View>
         )}
         <UnlockHost />

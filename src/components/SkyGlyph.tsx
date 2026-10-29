@@ -2,6 +2,7 @@ import React from 'react';
 import Svg, { Circle, G, Path } from 'react-native-svg';
 import type { Sky } from '../forecast';
 import { colors } from '../theme';
+import { ui } from '../i18n/ui';
 
 // Weather marks drawn with the same hand as the logo: one thick round stroke,
 // one solid dot where it helps. No emoji, no clip-art.

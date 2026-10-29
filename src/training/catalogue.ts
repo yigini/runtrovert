@@ -1,3 +1,4 @@
+import { ui } from '../i18n/ui';
 // The fourteen plans. Each row is a shape (weeks, days, caps, taper) that the
 // generator fills from the runner's own starting point. No React Native
 // imports: `npm run test:plans` checks everything here under plain Node.
@@ -358,11 +359,11 @@ export type GateResult = { ok: true } | { ok: false; reason: string; bridge: str
 export function checkGate(spec: PlanSpec, r: RunnerProfile): GateResult {
   const g = spec.gate;
   const short: string[] = [];
-  if (g.weeklyKm != null && r.weeklyKm < g.weeklyKm * 0.8) short.push(`about ${g.weeklyKm} km a week (you: ${Math.round(r.weeklyKm)})`);
-  if (g.longestKm != null && r.longestKm30 < g.longestKm * 0.8) short.push(`a recent run of ${g.longestKm} km (you: ${r.longestKm30.toFixed(1)})`);
-  if (g.runsPerWeek != null && r.runsPerWeek < g.runsPerWeek - 0.5) short.push(`${g.runsPerWeek} runs a week (you: ${r.runsPerWeek.toFixed(1)})`);
+  if (g.weeklyKm != null && r.weeklyKm < g.weeklyKm * 0.8) short.push(ui().catalogue.aboutXKmAWeek(g.weeklyKm, Math.round(r.weeklyKm)));
+  if (g.longestKm != null && r.longestKm30 < g.longestKm * 0.8) short.push(ui().catalogue.aRecentRunOfX(g.longestKm, r.longestKm30.toFixed(1)));
+  if (g.runsPerWeek != null && r.runsPerWeek < g.runsPerWeek - 0.5) short.push(ui().catalogue.xRunsAWeekYou(g.runsPerWeek, r.runsPerWeek.toFixed(1)));
   if (!short.length) return { ok: true };
-  return { ok: false, reason: `This plan expects ${short.join(', ')}.`, bridge: bridgeFor(spec) };
+  return { ok: false, reason: ui().catalogue.thisPlanExpectsX(short.join(', ')), bridge: bridgeFor(spec) };
 }
 
 /** Days a week that make sense for this volume: about 4 km a run at least, unless the plan is time-based. */
@@ -374,7 +375,7 @@ export function daysFit(spec: PlanSpec, r: RunnerProfile, days: number): boolean
 
 function bridgeFor(spec: PlanSpec): string | null {
   if (spec.tier === 'race') return spec.goal === 'marathon' ? 'marathon-improve' : spec.goal === 'half' ? 'half-improve' : '10k-improve';
-  if (spec.tier === 'improve') return `${spec.goal}-finish`;
+  if (spec.tier === 'improve') return ui().catalogue.xFinish(spec.goal);
   if (spec.goal === 'marathon') return 'half-finish';
   if (spec.goal === 'half') return '10k-finish';
   if (spec.goal === '10k') return '5k-finish';

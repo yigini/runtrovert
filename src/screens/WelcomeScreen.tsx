@@ -6,6 +6,7 @@ import { Fade } from '../components/Fade';
 import { Mark } from '../components/Mark';
 import { WELCOME } from '../footage';
 import { colors, fonts, spacing } from '../theme';
+import { ui } from '../i18n/ui';
 
 /**
  * Shown once. The motto, the promise, then one question about reminders, in
@@ -20,23 +21,23 @@ export function WelcomeScreen({ onDone }: { onDone: (reminders: boolean) => void
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <View style={styles.brand}>
           <Mark size={34} tile={false} />
-          <Text style={styles.brandText}>Runtrovert</Text>
+          <Text style={styles.brandText}>{ui().welcome.runtrovert}</Text>
         </View>
         <View style={{ flex: 1, minHeight: 220 }} />
         <Text style={styles.h1} accessibilityRole="header">
-          <Text style={{ fontFamily: fonts.displayLight }}>Run alone.{'\n'}</Text>
+          <Text style={{ fontFamily: fonts.displayLight }}>{ui().welcome.runAlone}</Text>
           Not lonely.
         </Text>
-        <Text style={styles.lede}>A running app with no feed, no followers and no cheering. Your runs are saved on this phone. We never see them.</Text>
+        <Text style={styles.lede}>{ui().welcome.aRunningAppWithNo}</Text>
 
         <View style={styles.list}>
-          <Item title="No account" text="Nothing to sign up for. Nothing to forget." />
-          <Item title="No analytics, no annoying ads" text="Street maps come from OpenFreeMap, which sees the area on screen. The weather gets a location rounded to about 1 km. Settings turns either off." />
-          <Item title="No subscription" text="Tracking and history are free for good." />
+          <Item title={ui().welcome.noAccount} text={ui().welcome.nothingToSignUpFor} />
+          <Item title={ui().welcome.noAnalyticsNoAnnoyingAds} text={ui().welcome.streetMapsComeFromOpenfreemap} />
+          <Item title={ui().welcome.noSubscription} text={ui().welcome.trackingAndHistoryAreFree} />
         </View>
 
-        <Button title="I like that" onPress={() => setStep('ask')} style={{ minHeight: 62, marginTop: spacing.md }} />
-        <Text style={styles.footer}>Delete the app and it’s gone from this phone.</Text>
+        <Button title={ui().welcome.iLikeThat} onPress={() => setStep('ask')} style={{ minHeight: 62, marginTop: spacing.md }} />
+        <Text style={styles.footer}>{ui().welcome.deleteTheAppAndIt}</Text>
       </ScrollView>
     </AmbientBackground>
   );
@@ -48,23 +49,19 @@ function AskStep({ onAnswer }: { onAnswer: (yes: boolean) => void }) {
       <Fade from="bottom" height="68%" strength={0.98} />
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <View style={{ flex: 1, minHeight: 160 }} />
-        <Text style={styles.h2} accessibilityRole="header">
-          A nudge now{'\n'}and then?
-        </Text>
-        <Text style={styles.lede}>
-          Three short notes a week to get you out the door: Monday, Wednesday and Friday at 8. Once you’ve run a few times they move to your usual days.
-        </Text>
+        <Text style={styles.h2} accessibilityRole="header">{ui().welcome.aNudgeNowAndThen}</Text>
+        <Text style={styles.lede}>{ui().welcome.threeShortNotesAWeek}</Text>
 
         <View style={styles.list}>
-          <Item title="Never more than you picked" text="Three a week unless you change it, five at the very most. One reminder a day, tops. Nothing after 9 pm or before 7." />
-          <Item title="Never a guilt trip" text="No streaks, no “you missed a day”, no sounds, no red badges." />
-          <Item title="Easy to quieten" text="Every note has a “Fewer, please” button. They skip days you’ve already run, and go silent if you stop opening the app." />
-          <Item title="Written on this phone" text="Not sent from anywhere. No server knows you exist. Also puts distance and time on your lock screen while you run." />
+          <Item title={ui().welcome.neverMoreThanYouPicked} text={ui().welcome.threeAWeekUnlessYou} />
+          <Item title={ui().welcome.neverAGuiltTrip} text={ui().welcome.noStreaksNoYouMissed} />
+          <Item title={ui().welcome.easyToQuieten} text={ui().welcome.everyNoteHasAFewer} />
+          <Item title={ui().welcome.writtenOnThisPhone} text={ui().welcome.notSentFromAnywhereNo} />
         </View>
 
-        <Button title="Yes, quietly" onPress={() => onAnswer(true)} style={{ minHeight: 62, marginTop: spacing.md }} />
-        <Button title="Not now" variant="secondary" onPress={() => onAnswer(false)} style={{ minHeight: 52 }} />
-        <Text style={styles.footer}>If one ever annoys you, that’s a bug. Settings has the switch.</Text>
+        <Button title={ui().welcome.yesQuietly} onPress={() => onAnswer(true)} style={{ minHeight: 62, marginTop: spacing.md }} />
+        <Button title={ui().welcome.notNow} variant="secondary" onPress={() => onAnswer(false)} style={{ minHeight: 52 }} />
+        <Text style={styles.footer}>{ui().welcome.ifOneEverAnnoysYou}</Text>
       </ScrollView>
     </AmbientBackground>
   );

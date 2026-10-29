@@ -9,6 +9,7 @@ import { pickAndImport, shareAllRuns } from '../io/store';
 import type { SourceKind } from '../io/types';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import { useUnlocked } from '../unlockState';
+import { ui } from '../i18n/ui';
 
 // "Everything you have": what's stored, bringing runs in from a watch or
 // another app, and taking them all out again. Files pass through the phone's
@@ -36,9 +37,9 @@ export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; on
   }, [key]);
 
   async function bringIn() {
-    setBusy('Reading the files…');
+    setBusy(ui().everything.readingTheFiles);
     try {
-      const t = await pickAndImport((done, total) => total > 3 && setBusy(`Reading the files… ${done} of ${total}`));
+      const t = await pickAndImport((done, total) => total > 3 && setBusy(ui().everything.readingTheFilesXOf(done, total)));
       if (t) {
         setLine(importLine(t));
         if (t.added) {
@@ -47,19 +48,19 @@ export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; on
         }
       }
     } catch (e) {
-      Alert.alert('Couldn’t read those files', String((e as Error)?.message ?? e));
+      Alert.alert(ui().everything.couldnTReadThoseFiles, String((e as Error)?.message ?? e));
     } finally {
       setBusy(null);
     }
   }
 
   async function takeOut(format: 'gpx' | 'fit') {
-    setBusy('Writing your runs…');
+    setBusy(ui().everything.writingYourRuns);
     try {
-      const r = await shareAllRuns(format, (done, total) => setBusy(`Writing your runs… ${done} of ${total}`));
-      if (r.skipped) setLine(`${r.files} runs in the zip. ${r.skipped} had no route, so GPX had nothing to hold; FIT keeps their numbers.`);
+      const r = await shareAllRuns(format, (done, total) => setBusy(ui().everything.writingYourRunsXOf(done, total)));
+      if (r.skipped) setLine(ui().everything.xRunsInTheZip(r.files, r.skipped));
     } catch (e) {
-      Alert.alert('Couldn’t write the zip', String((e as Error)?.message ?? e));
+      Alert.alert(ui().everything.couldnTWriteTheZip, String((e as Error)?.message ?? e));
     } finally {
       setBusy(null);
     }
@@ -70,60 +71,48 @@ export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; on
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xl }}>
-      <BackButton label="Settings" onPress={onBack} />
-      <Text style={type.h1} accessibilityRole="header">
-        Everything you have
-      </Text>
-      <Text style={type.body}>Your runs are yours to bring here and to take anywhere. It all happens on this phone.</Text>
+      <BackButton label={ui().everything.settings} onPress={onBack} />
+      <Text style={type.h1} accessibilityRole="header">{ui().everything.everythingYouHave}</Text>
+      <Text style={type.body}>{ui().everything.yourRunsAreYoursTo}</Text>
 
       <View style={[styles.card, { backgroundColor: colors.white }]}>
-        <Text style={type.eyebrow}>On this phone</Text>
+        <Text style={type.eyebrow}>{ui().everything.onThisPhone}</Text>
         <View style={styles.kv}>
-          <Text style={styles.k}>Runs</Text>
+          <Text style={styles.k}>{ui().everything.runs}</Text>
           <Text style={styles.v}>{counts ? counts.runs : '…'}</Text>
         </View>
         {counts ? (
           <View style={[styles.kv, styles.kvLast]}>
-            <Text style={styles.k}>Recorded here</Text>
+            <Text style={styles.k}>{ui().everything.recordedHere}</Text>
             <Text style={styles.v}>{counts.runs - broughtTotal}</Text>
           </View>
         ) : null}
         {brought.map(([kind, n]) => (
           <View key={kind} style={[styles.kv, styles.kvLast]}>
-            <Text style={styles.k}>Brought in {FROM[kind as SourceKind]}</Text>
+            <Text style={styles.k}>{ui().everything.broughtInX(FROM[kind as SourceKind])}</Text>
             <Text style={styles.v}>{n}</Text>
           </View>
         ))}
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.mint }]}>
-        <Text style={[type.eyebrow, { color: colors.mintDeep }]} accessibilityRole="header">
-          Bring runs in
-        </Text>
-        <Text style={styles.text}>
-          GPX or FIT files from a watch or another app. Pick as many as you like. Runs that are already here are noticed and left alone, and rides, walks and
-          planned routes stay out. They join Your runs, your bests and your places like any other run.
-        </Text>
-        <Text style={styles.hint}>
-          From Garmin Connect, Strava, Coros or Suunto: export the activity as GPX, or as the original FIT file, then pick it here. Zipped files need unzipping
-          first.
-        </Text>
-        <Button title="Choose files" onPress={bringIn} disabled={!!busy} />
+        <Text style={[type.eyebrow, { color: colors.mintDeep }]} accessibilityRole="header">{ui().everything.bringRunsIn}</Text>
+        <Text style={styles.text}>{ui().everything.gpxOrFitFilesFrom}</Text>
+        <Text style={styles.hint}>{ui().everything.fromGarminConnectStravaCoros}</Text>
+        <Button title={ui().everything.chooseFiles} onPress={bringIn} disabled={!!busy} />
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.lilac }]}>
-        <Text style={[type.eyebrow, { color: colors.lilacDeep }]} accessibilityRole="header">
-          Take them out
-        </Text>
-        <Text style={styles.text}>One run: open it in Your runs and tap Save as GPX. That stays free.</Text>
+        <Text style={[type.eyebrow, { color: colors.lilacDeep }]} accessibilityRole="header">{ui().everything.takeThemOut}</Text>
+        <Text style={styles.text}>{ui().everything.oneRunOpenItIn}</Text>
         {unlocked ? (
           <>
-            <Text style={styles.text}>All your runs: one zip with a file per run, for another app, a watch platform or your own backup.</Text>
-            <Button title="All runs as GPX" variant="secondary" onPress={() => takeOut('gpx')} disabled={!!busy} />
-            <Button title="All runs as FIT" variant="secondary" onPress={() => takeOut('fit')} disabled={!!busy} />
+            <Text style={styles.text}>{ui().everything.allYourRunsOneZip}</Text>
+            <Button title={ui().everything.allRunsAsGpx} variant="secondary" onPress={() => takeOut('gpx')} disabled={!!busy} />
+            <Button title={ui().everything.allRunsAsFit} variant="secondary" onPress={() => takeOut('fit')} disabled={!!busy} />
           </>
         ) : (
-          <LockRow title="All your runs as GPX or FIT" />
+          <LockRow title={ui().everything.allYourRunsAsGpx} />
         )}
       </View>
 
@@ -135,9 +124,7 @@ export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; on
       ) : null}
 
       <View style={[styles.card, { backgroundColor: colors.white }]}>
-        <Text style={type.eyebrow} accessibilityRole="header">
-          What happens, and what doesn't
-        </Text>
+        <Text style={type.eyebrow} accessibilityRole="header">{ui().everything.whatHappensAndWhatDoesn}</Text>
         {HAPPENS.map((h) => (
           <Text key={h} style={styles.text}>
             {h}

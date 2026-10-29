@@ -3,6 +3,7 @@ import * as Speech from 'expo-speech';
 import type { CueMode } from './types';
 import { formatDuration, formatPace } from './geo';
 import { duck } from './music';
+import { ui } from './i18n/ui';
 
 /**
  * Cues never shout. Voice is a single calm sentence; haptic is a short pattern;
@@ -78,26 +79,26 @@ export async function cueKmSplit(km: number, splitDurationS: number, totalDurati
 export async function cueLap(lap: number, lapDurationS: number) {
   if (mode === 'silent') return;
   await buzz(Haptics.NotificationFeedbackType.Success);
-  if (mode === 'voice') say(`Lap ${lap}, ${formatDuration(lapDurationS).replace(':', ' ')}.`);
+  if (mode === 'voice') say(ui().cues.lapXX(lap, formatDuration(lapDurationS).replace(':', ' ')));
 }
 
 export async function cueAutoPause() {
   if (mode === 'silent') return;
   await buzz('triple');
-  if (mode === 'voice') say('Paused.');
+  if (mode === 'voice') say(ui().cues.paused);
 }
 
 export async function cueAutoResume() {
   if (mode === 'silent') return;
   await buzz(Haptics.NotificationFeedbackType.Success);
-  if (mode === 'voice') say('Resumed.');
+  if (mode === 'voice') say(ui().cues.resumed);
 }
 
 export async function cueCountdown(n: number) {
   // Countdown is always haptic-only unless voice is on; never jarring.
   if (mode === 'silent') return;
   await buzz(n === 0 ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning);
-  if (mode === 'voice') say(n === 0 ? 'Go.' : String(n));
+  if (mode === 'voice') say(n === 0 ? ui().cues.go : String(n));
 }
 
 /** A guided session moved on to its next step: two taps, and the step in a few words. */

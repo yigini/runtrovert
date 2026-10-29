@@ -13,6 +13,7 @@ import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import type { LatLon } from '../types';
 import { useUnlocked } from '../unlockState';
+import { ui } from '../i18n/ui';
 
 /**
  * One of your places: its loop, your notes as tags, every dated note on how
@@ -48,24 +49,24 @@ export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeI
   if (!place || !summary) {
     return (
       <View style={styles.screen}>
-        <BackButton label="Your places" onPress={onBack} />
+        <BackButton label={ui().place.yourPlaces} onPress={onBack} />
       </View>
     );
   }
 
   const since = summary.since ? new Date(summary.since).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : null;
   const facts = [
-    summary.count === 1 ? 'Run once' : `Run ${summary.count} times`,
+    summary.count === 1 ? ui().place.runOnce : ui().place.runXTimes(summary.count),
     since ? `since ${since}` : null,
-    summary.bestPace ? `quickest ${formatPace(1000, summary.bestPace, km)} /${km ? 'km' : 'mi'}` : null,
+    summary.bestPace ? ui().place.quickestXX(formatPace(1000, summary.bestPace, km), km ? 'km' : 'mi') : null,
   ];
   const factLine = facts.filter(Boolean).join(' · ');
 
   function forget() {
-    Alert.alert(`Forget ${place!.name}?`, 'The place and its notes go. Your runs stay.', [
-      { text: 'Keep it', style: 'cancel' },
+    Alert.alert(ui().place.forgetX(place!.name), ui().place.thePlaceAndItsNotes, [
+      { text: ui().place.keepIt, style: 'cancel' },
       {
-        text: 'Forget',
+        text: ui().place.forget,
         style: 'destructive',
         onPress: async () => {
           await deletePlace(placeId).catch(() => {});
@@ -81,15 +82,15 @@ export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeI
     <View style={{ flex: 1, backgroundColor: colors.cream }}>
       <ScrollView contentContainerStyle={styles.screen}>
         <View style={styles.topRow}>
-          <BackButton label="Your places" onPress={onBack} />
-          <Button title="Edit" variant="secondary" onPress={() => setEditing(true)} style={styles.edit} />
+          <BackButton label={ui().place.yourPlaces} onPress={onBack} />
+          <Button title={ui().place.edit} variant="secondary" onPress={() => setEditing(true)} style={styles.edit} />
         </View>
         <RouteMap path={path} height={190} interactive={false} />
         <Text style={type.h1} accessibilityRole="header">
           {place.name}
         </Text>
         {place.tags.length ? (
-          <View style={styles.tags} accessibilityLabel={`Your notes: ${place.tags.join(', ')}`}>
+          <View style={styles.tags} accessibilityLabel={ui().place.yourNotesX(place.tags.join(', '))}>
             {place.tags.map((t) => (
               <Text key={t} style={styles.tag}>
                 {t}
@@ -101,16 +102,14 @@ export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeI
           {formatDistance(place.distanceM, km)} · {factLine}
         </Text>
 
-        <Text style={[type.eyebrow, { marginTop: spacing.sm }]} accessibilityRole="header">
-          Your notes, dated
-        </Text>
+        <Text style={[type.eyebrow, { marginTop: spacing.sm }]} accessibilityRole="header">{ui().place.yourNotesDated}</Text>
         <View>
-          {visits.length === 0 ? <Text style={type.small}>Nothing yet. Each run here adds a line.</Text> : null}
+          {visits.length === 0 ? <Text style={type.small}>{ui().place.nothingYetEachRunHere}</Text> : null}
           {visits.map((v) => {
             const when = new Date(v.at);
             const label = `${when.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })} ${when.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
             return (
-              <View key={v.id} style={styles.log} accessible accessibilityLabel={[label, v.busy ? BUSY_LABEL[v.busy] : 'no rating', v.note].filter(Boolean).join('. ')}>
+              <View key={v.id} style={styles.log} accessible accessibilityLabel={[label, v.busy ? BUSY_LABEL[v.busy] : ui().place.noRating, v.note].filter(Boolean).join('. ')}>
                 <Text style={styles.logWhen}>{label}</Text>
                 <Text style={styles.logBusy}>{v.busy ? BUSY_LABEL[v.busy] : '–'}</Text>
                 <Text style={styles.logNote} numberOfLines={2}>
@@ -121,12 +120,10 @@ export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeI
           })}
         </View>
 
-        <LockRow title="When it’s usually quiet here" detail="Read from months of your notes. Everything, once." />
+        <LockRow title={ui().place.whenItSUsuallyQuiet} detail={ui().place.readFromMonthsOfYour} />
         {unlocked ? (
           <View style={styles.patterns}>
-            <Text style={type.eyebrow} accessibilityRole="header">
-              When it’s usually quiet here
-            </Text>
+            <Text style={type.eyebrow} accessibilityRole="header">{ui().place.whenItSUsuallyQuiet}</Text>
             {patterns.length ? (
               patterns.map((p) => (
                 <Text key={p.text} style={styles.pattern}>
@@ -134,14 +131,14 @@ export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeI
                 </Text>
               ))
             ) : (
-              <Text style={type.small}>Three or more notes at the same day and time make a pattern. Keep noting how busy it is.</Text>
+              <Text style={type.small}>{ui().place.threeOrMoreNotesAt}</Text>
             )}
-            <Text style={type.small}>From your own notes only. Not a promise about who’ll be there next time.</Text>
+            <Text style={type.small}>{ui().place.fromYourOwnNotesOnly}</Text>
           </View>
         ) : null}
 
-        <Button title="Run this again" onPress={() => onRunAgain(place)} style={{ marginTop: spacing.sm }} />
-        {summary.last ? <Text style={[type.small, { textAlign: 'center' }]}>Last run {lastWhen(summary.last.at)}</Text> : null}
+        <Button title={ui().place.runThisAgain} onPress={() => onRunAgain(place)} style={{ marginTop: spacing.sm }} />
+        {summary.last ? <Text style={[type.small, { textAlign: 'center' }]}>{ui().place.lastRunX(lastWhen(summary.last.at))}</Text> : null}
       </ScrollView>
       <SavePlaceSheet
         open={editing}

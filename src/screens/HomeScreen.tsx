@@ -25,6 +25,7 @@ import type { Plan, Session } from '../training/types';
 import type { Mood, Run } from '../types';
 import { NEWS } from '../whatsNew';
 import { cachedWeather, getWeather, type Weather, type WeatherResult } from '../weather';
+import { ui } from '../i18n/ui';
 
 /**
  * The first thing you see. Footage, the sky in a sentence, three plain
@@ -95,11 +96,11 @@ export function HomeScreen({ runs, mood, onMood, onStart, onRunFree, planToday, 
         {weather ? <SkyRow w={weather} metric={metric} /> : null}
         {back ? (
           <>
-            <Text style={styles.awayLine}>{away} days since your last run</Text>
+            <Text style={styles.awayLine}>{ui().home.xDaysSinceYourLast(away)}</Text>
             <Text style={styles.headline} accessibilityRole="header" maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>
-              {'Welcome back.\nNothing to catch up on.'}
+              {ui().home.welcomeBackNothingToCatch}
             </Text>
-            <Text style={styles.backSub}>{plan && !adjusted ? 'Run however you like today. Your plan waits until you decide what to do with it.' : 'Run however you like today.'}</Text>
+            <Text style={styles.backSub}>{plan && !adjusted ? ui().home.runHoweverYouLikeToday : ui().home.runHoweverYouLikeToday2}</Text>
           </>
         ) : (
           <>
@@ -111,15 +112,15 @@ export function HomeScreen({ runs, mood, onMood, onStart, onRunFree, planToday, 
         )}
         {/* The plan's day, tappable through to the Train tab, with whether a reminder will come. Not after a break. */}
         {back ? null : planToday ? (
-          <Pressable onPress={onOpenPlan} disabled={!onOpenPlan} style={styles.plan} accessibilityRole="button" accessibilityHint="Opens your plan">
-            <Text style={styles.planLabel}>{planToday.done ? 'Today’s session, done' : planToday.skipped ? 'Today’s session, set aside' : 'Today, from your plan'}  ›</Text>
+          <Pressable onPress={onOpenPlan} disabled={!onOpenPlan} style={styles.plan} accessibilityRole="button" accessibilityHint={ui().home.opensYourPlan}>
+            <Text style={styles.planLabel}>{planToday.done ? ui().home.todaySSessionDone : planToday.skipped ? ui().home.todaySSessionSetAside : ui().home.todayFromYourPlan}  ›</Text>
             <Text style={styles.planText}>{planToday.title}</Text>
             <Text style={styles.planHint}>{planToday.summary}</Text>
             <PlanReminderLine />
           </Pressable>
         ) : planNext ? (
-          <Pressable onPress={onOpenPlan} disabled={!onOpenPlan} style={styles.plan} accessibilityRole="button" accessibilityHint="Opens your plan">
-            <Text style={styles.planLabel}>Rest day, from your plan  ›</Text>
+          <Pressable onPress={onOpenPlan} disabled={!onOpenPlan} style={styles.plan} accessibilityRole="button" accessibilityHint={ui().home.opensYourPlan}>
+            <Text style={styles.planLabel}>{ui().home.restDayFromYourPlan}</Text>
             <Text style={styles.planText}>
               Next: {WEEKDAY_LONG[weekdayOf(planNext.date)]}, {planNext.title.charAt(0).toLowerCase() + planNext.title.slice(1)}
             </Text>
@@ -138,20 +139,20 @@ export function HomeScreen({ runs, mood, onMood, onStart, onRunFree, planToday, 
           </View>
         ) : sky?.kind === 'no-permission' ? (
           <Pressable onPress={() => refresh(true)} style={styles.ask} accessibilityRole="button">
-            <Text style={styles.askText}>Show the local sky →</Text>
-            <Text style={styles.askHint}>Uses a rough location, about 1 km. Nothing else leaves the phone.</Text>
+            <Text style={styles.askText}>{ui().home.showTheLocalSky}</Text>
+            <Text style={styles.askHint}>{ui().home.usesARoughLocationAbout}</Text>
           </Pressable>
         ) : sky?.kind === 'unavailable' ? (
-          <Text style={styles.askHint}>No forecast right now. Offline suits us fine.</Text>
+          <Text style={styles.askHint}>{ui().home.noForecastRightNowOffline}</Text>
         ) : null}
 
         <View style={{ flex: 1 }} />
 
         {/* One quiet line at a time: what's new until it's dismissed, then the daily tip. */}
         {settings.seenNews !== NEWS.id ? (
-          <Pressable onPress={() => update({ seenNews: NEWS.id })} style={styles.news} accessibilityRole="button" accessibilityHint="Dismisses this line">
+          <Pressable onPress={() => update({ seenNews: NEWS.id })} style={styles.news} accessibilityRole="button" accessibilityHint={ui().home.dismissesThisLine}>
             <Text style={styles.newsText}>{NEWS.text}</Text>
-            <Text style={styles.newsDismiss}>Got it</Text>
+            <Text style={styles.newsDismiss}>{ui().home.gotIt}</Text>
           </Pressable>
         ) : (
           <TipLine runs={runs} weather={weather} dark={evening} waiting={sky === null} />
@@ -160,19 +161,19 @@ export function HomeScreen({ runs, mood, onMood, onStart, onRunFree, planToday, 
 
       {back && !others ? (
         <View style={styles.dock}>
-          <MoodPicker inline title="Energy right now" value={mood} onChange={onMood} />
+          <MoodPicker inline title={ui().home.energyRightNow} value={mood} onChange={onMood} />
           <View style={styles.startRow}>
-            <Button title="Run freely today" onPress={onRunFree ?? onStart} style={{ minHeight: 62, flex: 1 }} />
-            <Pressable onPress={() => setListen(true)} accessibilityRole="button" accessibilityLabel="Listen" accessibilityHint="Music, podcasts, or a silent run" style={({ pressed }) => [styles.listen, pressed && { opacity: 0.85 }]}>
+            <Button title={ui().home.runFreelyToday} onPress={onRunFree ?? onStart} style={{ minHeight: 62, flex: 1 }} />
+            <Pressable onPress={() => setListen(true)} accessibilityRole="button" accessibilityLabel={ui().home.listen} accessibilityHint={ui().home.musicPodcastsOrASilent} style={({ pressed }) => [styles.listen, pressed && { opacity: 0.85 }]}>
               <HeadphonesGlyph />
             </Pressable>
           </View>
-          <Text style={styles.todayLine}>{plan ? 'Starts as Just run. No targets, nothing counted against the plan.' : 'Starts as Just run. No targets.'}</Text>
+          <Text style={styles.todayLine}>{plan ? ui().home.startsAsJustRunNo : ui().home.startsAsJustRunNo2}</Text>
           {plan ? (
-            <Pressable onPress={() => setAdjust(true)} accessibilityRole="button" accessibilityHint="Choose what happens to your plan" style={({ pressed }) => [styles.adjust, pressed && { opacity: 0.9 }]}>
+            <Pressable onPress={() => setAdjust(true)} accessibilityRole="button" accessibilityHint={ui().home.chooseWhatHappensToYour} style={({ pressed }) => [styles.adjust, pressed && { opacity: 0.9 }]}>
               <View style={{ flex: 1, gap: 3 }}>
-                <Text style={styles.adjustLabel}>{adjusted ? `${plan.name} · ${choiceLine(adjusted)}` : `${plan.name} · ${plan.status === 'paused' ? 'paused' : 'last run'} at week ${stoppedWeek(plan, lastRunAt, now).index}`}</Text>
-                <Text style={styles.adjustText}>{adjusted ? 'Change what happens to my plan' : 'Adjust my plan'}</Text>
+                <Text style={styles.adjustLabel}>{adjusted ? `${plan.name} · ${choiceLine(adjusted)}` : ui().home.xXAtWeekX(plan.name, plan.status === 'paused' ? 'paused' : 'last run', stoppedWeek(plan, lastRunAt, now).index)}</Text>
+                <Text style={styles.adjustText}>{adjusted ? ui().home.changeWhatHappensToMy : ui().home.adjustMyPlan}</Text>
               </View>
               <Text style={styles.adjustArrow} accessibilityElementsHidden importantForAccessibility="no">
                 ›
@@ -180,18 +181,18 @@ export function HomeScreen({ runs, mood, onMood, onStart, onRunFree, planToday, 
             </Pressable>
           ) : null}
           <Pressable onPress={() => setOthers(true)} accessibilityRole="button" hitSlop={10} style={{ alignSelf: 'center' }}>
-            <Text style={styles.todayLink}>Other ways to run</Text>
+            <Text style={styles.todayLink}>{ui().home.otherWaysToRun}</Text>
           </Pressable>
         </View>
       ) : (
       <View style={styles.dock}>
         <View style={styles.todayHead}>
-          <Text style={styles.todayLabel} accessibilityRole="header">Today’s run</Text>
+          <Text style={styles.todayLabel} accessibilityRole="header">{ui().home.todaySRun}</Text>
           <Pressable onPress={() => setPresetSheet(true)} accessibilityRole="button" hitSlop={10}>
-            <Text style={styles.todayLink}>What each one shows</Text>
+            <Text style={styles.todayLink}>{ui().home.whatEachOneShows}</Text>
           </Pressable>
         </View>
-        <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel="Today’s run">
+        <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel={ui().home.todaySRun}>
           {PRESETS.map((p) => {
             const on = p.key === picked;
             return (
@@ -211,10 +212,10 @@ export function HomeScreen({ runs, mood, onMood, onStart, onRunFree, planToday, 
           })}
         </View>
         <Text style={styles.todayLine}>{presetLine(picked, preset, sessionToday, settings.runPreset != null)}</Text>
-        <MoodPicker inline title="Energy right now" value={mood} onChange={onMood} />
+        <MoodPicker inline title={ui().home.energyRightNow} value={mood} onChange={onMood} />
         <View style={styles.startRow}>
-          <Button title={preset === 'plan' ? 'Start today’s session' : 'Start'} onPress={onStart} style={{ minHeight: 62, flex: 1 }} />
-          <Pressable onPress={() => setListen(true)} accessibilityRole="button" accessibilityLabel="Listen" accessibilityHint="Music, podcasts, or a silent run" style={({ pressed }) => [styles.listen, pressed && { opacity: 0.85 }]}>
+          <Button title={preset === 'plan' ? ui().home.startTodaySSession : ui().home.start} onPress={onStart} style={{ minHeight: 62, flex: 1 }} />
+          <Pressable onPress={() => setListen(true)} accessibilityRole="button" accessibilityLabel={ui().home.listen} accessibilityHint={ui().home.musicPodcastsOrASilent} style={({ pressed }) => [styles.listen, pressed && { opacity: 0.85 }]}>
             <HeadphonesGlyph />
           </Pressable>
         </View>
@@ -249,8 +250,8 @@ export function HomeScreen({ runs, mood, onMood, onStart, onRunFree, planToday, 
 
 /** The line under the chips: what the pick brings, and that it's remembered. */
 function presetLine(picked: ReturnType<typeof effectivePreset>, preset: ReturnType<typeof effectivePreset>, sessionToday: boolean, remembered: boolean): string {
-  if (picked === 'plan' && !sessionToday) return 'Nothing on the plan today, so this one runs as Just run. Plans live in Train.';
-  return `${presetInfo(preset).line}${remembered ? ' Same as last time.' : ''}`;
+  if (picked === 'plan' && !sessionToday) return ui().home.nothingOnThePlanToday;
+  return `${presetInfo(preset).line}${remembered ? ui().home.sameAsLastTime : ''}`;
 }
 
 function HeadphonesGlyph() {
@@ -263,7 +264,7 @@ function HeadphonesGlyph() {
 }
 
 function SkyRow({ w, metric }: { w: Weather; metric: boolean }) {
-  const feels = Math.round(w.feelsC) !== Math.round(w.tempC) ? ` · feels ${formatTemp(w.feelsC, metric)}` : '';
+  const feels = Math.round(w.feelsC) !== Math.round(w.tempC) ? ui().home.feelsX(formatTemp(w.feelsC, metric)) : '';
   return (
     <View style={styles.skyRow}>
       <SkyGlyph sky={w.sky} isDay={w.isDay} size={26} />
@@ -284,19 +285,19 @@ function dateLine(now: number): string {
 function greeting(runs: Run[], now: number): string {
   const h = new Date(now).getHours();
   const last = runs[0]?.startedAt;
-  if (last && now - last < 36 * 3600 * 1000) return 'Rest day.\nOr a quiet one.';
-  if (h < 11) return 'Quiet morning.\nGo before the world does.';
-  if (h < 17) return 'Slow afternoon.\nThe path is empty.';
-  return 'Dusk run?\nFewer eyes now.';
+  if (last && now - last < 36 * 3600 * 1000) return ui().home.restDayOrAQuiet;
+  if (h < 11) return ui().home.quietMorningGoBeforeThe;
+  if (h < 17) return ui().home.slowAfternoonThePathIs;
+  return ui().home.duskRunFewerEyesNow;
 }
 
 function subline(runs: Run[], now: number): string {
-  if (!runs.length) return 'The first one is just a walk that speeds up.';
+  if (!runs.length) return ui().home.theFirstOneIsJust;
   const days = Math.floor((startOfDay(now) - startOfDay(runs[0].startedAt)) / 86400000);
-  if (days <= 0) return 'You already ran today. Nobody’s counting.';
-  if (days === 1) return 'You ran yesterday. Easy is allowed.';
-  if (days < 7) return `Last run ${new Date(runs[0].startedAt).toLocaleDateString(undefined, { weekday: 'long' })}. Legs remember.`;
-  return `${days} days since the last one. No guilt, just a door.`;
+  if (days <= 0) return ui().home.youAlreadyRanTodayNobody;
+  if (days === 1) return ui().home.youRanYesterdayEasyIs;
+  if (days < 7) return ui().home.lastRunXLegsRemember(new Date(runs[0].startedAt).toLocaleDateString(undefined, { weekday: 'long' }));
+  return ui().home.xDaysSinceTheLast(days);
 }
 
 function footer(runs: Run[], now: number): string {
@@ -306,11 +307,11 @@ function footer(runs: Run[], now: number): string {
     return s.getMonth() === d.getMonth() && s.getFullYear() === d.getFullYear();
   }).length;
   const deltas = runs.filter((r) => r.moodBefore != null && r.moodAfter != null).map((r) => (r.moodAfter as number) - (r.moodBefore as number));
-  const parts = ['Run alone. Not lonely.'];
+  const parts = [ui().home.runAloneNotLonely];
   if (month) parts.push(`${month} ${month === 1 ? 'run' : 'runs'} in ${d.toLocaleDateString(undefined, { month: 'long' })}`);
   if (deltas.length) {
     const avg = deltas.reduce((a, b) => a + b, 0) / deltas.length;
-    parts.push(`energy ${avg >= 0 ? '+' : ''}${avg.toFixed(1)} after`);
+    parts.push(ui().home.energyXXAfter(avg >= 0 ? '+' : '', avg.toFixed(1)));
   }
   return parts.join('  ·  ');
 }

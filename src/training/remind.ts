@@ -13,6 +13,7 @@ import type { Settings } from '../types';
 import { DAY_MS, dayStart } from './dates';
 import { planSessionOpen } from '../unlock';
 import { loadPlan, runSessions } from './store';
+import { ui } from '../i18n/ui';
 
 const CHANNEL = 'runtrovert-quiet';
 const HORIZON_DAYS = 14;
@@ -55,7 +56,7 @@ export async function schedulePlanReminders(settings: Settings): Promise<void> {
     date.setHours(settings.notifyHour, settings.notifyMinute, 0, 0);
     if (date.getTime() <= now + 60_000) continue;
     await Notifications.scheduleNotificationAsync({
-      content: { title: s.kind === 'race' ? 'Race day' : TITLES[i % TITLES.length], body: `${s.title}. ${s.summary}`, sound: false, data: { kind: 'plan', sessionId: s.id } },
+      content: { title: s.kind === 'race' ? ui().remind.raceDay : TITLES[i % TITLES.length], body: `${s.title}. ${s.summary}`, sound: false, data: { kind: 'plan', sessionId: s.id } },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date, channelId: CHANNEL },
     });
   }

@@ -4,6 +4,7 @@ import { listRuns } from '../db';
 import { colors, fonts, spacing, type } from '../theme';
 import { UNLOCK_NAME, shouldNudge, unlockState } from '../unlock';
 import { openUnlock, updateUnlock } from '../unlockState';
+import { ui } from '../i18n/ui';
 
 /**
  * The finish screen's one line about the unlock, the first time a run ends
@@ -32,7 +33,7 @@ export function UnlockNudge() {
   return (
     <View style={styles.wrap}>
       <Text style={styles.text}>
-        {count === 10 ? 'Ten' : count} runs in. If you'd like to see how they add up over months, there's{' '}
+        {count === 10 ? ui().unlockNudge.ten : count} runs in. If you'd like to see how they add up over months, there's{' '}
         <Text style={styles.link} onPress={openUnlock} accessibilityRole="link">
           {UNLOCK_NAME}
         </Text>
@@ -47,7 +48,7 @@ export function UnlockNudge() {
         hitSlop={8}
         style={styles.notNow}
       >
-        <Text style={[type.small, { textDecorationLine: 'underline' }]}>Not now (we won't bring it up again)</Text>
+        <Text style={[type.small, { textDecorationLine: 'underline' }]}>{ui().unlockNudge.notNowWeWonT}</Text>
       </Pressable>
     </View>
   );

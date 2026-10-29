@@ -6,6 +6,7 @@ import { colors, fonts, radius, spacing, type } from '../theme';
 import type { Quiet } from '../types';
 import { Button } from './Button';
 import { RouteShape } from './RouteShape';
+import { ui } from '../i18n/ui';
 
 const BUSY_ORDER: Quiet[] = ['empty', 'some', 'crowded'];
 
@@ -60,27 +61,25 @@ export function SavePlaceSheet({
 
   return (
     <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Close" accessibilityRole="button">
+      <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel={ui().savePlaceSheet.close} accessibilityRole="button">
         <Pressable style={styles.sheet} onPress={() => {}} accessible={false}>
           <View style={styles.grabber} />
           <ScrollView contentContainerStyle={{ gap: spacing.md }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <Text style={styles.h2} accessibilityRole="header">
-              {editing ? 'Edit this place' : 'Keep this as a place'}
+              {editing ? ui().savePlaceSheet.editThisPlace : ui().savePlaceSheet.keepThisAsAPlace}
             </Text>
             <View style={styles.nameRow}>
               {sig ? <RouteShape sig={sig} size={72} /> : null}
               <View style={{ flex: 1, gap: 4 }}>
-                <Text style={type.eyebrow} nativeID="placeName">
-                  Name
-                </Text>
+                <Text style={type.eyebrow} nativeID="placeName">{ui().savePlaceSheet.name}</Text>
                 <TextInput
                   value={name}
                   onChangeText={setName}
                   style={styles.input}
                   maxLength={40}
-                  accessibilityLabel="Name of this place"
+                  accessibilityLabel={ui().savePlaceSheet.nameOfThisPlace}
                   accessibilityLabelledBy="placeName"
-                  placeholder="After-work escape"
+                  placeholder={ui().savePlaceSheet.afterWorkEscape}
                   placeholderTextColor={colors.inkMuted}
                   returnKeyType="done"
                 />
@@ -89,8 +88,8 @@ export function SavePlaceSheet({
 
             {onBusy ? (
               <View style={{ gap: spacing.sm }}>
-                <Text style={type.eyebrow}>How busy was it today?</Text>
-                <View style={styles.busyRow} accessibilityRole="radiogroup" accessibilityLabel="How busy was it today?">
+                <Text style={type.eyebrow}>{ui().savePlaceSheet.howBusyWasItToday}</Text>
+                <View style={styles.busyRow} accessibilityRole="radiogroup" accessibilityLabel={ui().savePlaceSheet.howBusyWasItToday}>
                   {BUSY_ORDER.map((q) => {
                     const on = busy === q;
                     return (
@@ -104,7 +103,7 @@ export function SavePlaceSheet({
             ) : null}
 
             <View style={{ gap: spacing.sm }}>
-              <Text style={type.eyebrow}>Your notes</Text>
+              <Text style={type.eyebrow}>{ui().savePlaceSheet.yourNotes}</Text>
               <View style={styles.tags}>
                 {all.map((t) => {
                   const on = tags.includes(t);
@@ -123,24 +122,24 @@ export function SavePlaceSheet({
                     onBlur={addOwn}
                     maxLength={24}
                     style={[styles.chip, styles.chipInput]}
-                    accessibilityLabel="Your own note"
-                    placeholder="your own"
+                    accessibilityLabel={ui().savePlaceSheet.yourOwnNote}
+                    placeholder={ui().savePlaceSheet.yourOwn}
                     placeholderTextColor={colors.inkMuted}
                     returnKeyType="done"
                   />
                 ) : (
-                  <Pressable onPress={() => setAdding(true)} accessibilityRole="button" accessibilityLabel="Add your own note" style={styles.chip}>
-                    <Text style={styles.chipText}>+ your own</Text>
+                  <Pressable onPress={() => setAdding(true)} accessibilityRole="button" accessibilityLabel={ui().savePlaceSheet.addYourOwnNote} style={styles.chip}>
+                    <Text style={styles.chipText}>{ui().savePlaceSheet.yourOwn2}</Text>
                   </Pressable>
                 )}
               </View>
             </View>
 
-            <Text style={styles.small}>Dated and kept on this phone. These are your own observations, not a promise about who’ll be there next time.</Text>
-            <Button title={editing ? 'Save' : 'Keep this place'} disabled={!name.trim()} onPress={() => onSave({ name: name.trim(), tags })} />
+            <Text style={styles.small}>{ui().savePlaceSheet.datedAndKeptOnThis}</Text>
+            <Button title={editing ? ui().savePlaceSheet.save : ui().savePlaceSheet.keepThisPlace} disabled={!name.trim()} onPress={() => onSave({ name: name.trim(), tags })} />
             {onDelete ? (
               <Pressable onPress={onDelete} accessibilityRole="button" hitSlop={8} style={styles.forget}>
-                <Text style={styles.forgetText}>Forget this place</Text>
+                <Text style={styles.forgetText}>{ui().savePlaceSheet.forgetThisPlace}</Text>
               </Pressable>
             ) : null}
           </ScrollView>
