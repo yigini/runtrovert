@@ -39,6 +39,7 @@ export function RouteMap({
   fitPadding,
   markers,
   fps,
+  ghost,
 }: {
   path: LatLon[];
   here?: LatLon | null;
@@ -56,6 +57,8 @@ export function RouteMap({
   markers?: boolean;
   /** Cap the frame rate; a map behind the numbers doesn't need 60 fps. */
   fps?: number;
+  /** A place's loop, drawn faintly under the live line: "Run this again". */
+  ghost?: LatLon[] | null;
 }) {
   const { settings, ready, update } = useSettings();
   const plain = offline || settings.plainMap || !settings.mapNoticeSeen;
@@ -84,6 +87,13 @@ export function RouteMap({
     }),
     [path],
   );
+  const ghostLine = useMemo(
+    () =>
+      ghost && ghost.length > 1
+        ? { type: 'Feature' as const, properties: {}, geometry: { type: 'LineString' as const, coordinates: ghost.map((p) => [p.longitude, p.latitude]) } }
+        : null,
+    [ghost],
+  );
 
   // Declarative camera. For a whole route we work out centre and zoom ourselves
   // once the view has a size (see mapFit.ts): MapLibre's own bounds fit can run
@@ -102,7 +112,7 @@ export function RouteMap({
           ? { center: [head.longitude, head.latitude] as [number, number], zoom: 15.5, duration: 0 }
           : null;
   // Until we can fit, start near the run rather than over the globe.
-  const start = path[0] ?? head;
+  const start = path[0] ?? head ?? ghost?.[0];
   const ground = <View style={fill ? styles.fill : [styles.wrap, { height }]} onLayout={onLayout} />;
   // Nowhere to put the camera yet: plain ground until we know, not a world map.
   if (!start) return ground;
@@ -127,6 +137,11 @@ export function RouteMap({
         preferredFramesPerSecond={fps}
       >
         {view ? <Camera initialViewState={initial} {...view} /> : <Camera initialViewState={initial} />}
+        {ghostLine && (
+          <GeoJSONSource id="ghost" data={ghostLine}>
+            <Layer id="ghost-line" type="line" paint={{ 'line-color': colors.lilac, 'line-width': 6, 'line-opacity': 0.9, 'line-dasharray': [1.2, 1.4] }} layout={{ 'line-cap': 'round', 'line-join': 'round' }} />
+          </GeoJSONSource>
+        )}
         {path.length > 1 && (
           <GeoJSONSource id="route" data={line}>
             <Layer id="route-casing" type="line" paint={{ 'line-color': colors.cream, 'line-width': 8, 'line-opacity': 0.9 }} layout={{ 'line-cap': 'round', 'line-join': 'round' }} />

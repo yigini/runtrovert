@@ -61,6 +61,28 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
           imported_at INTEGER NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_run_sources_ext ON run_sources(external_id);
+        CREATE TABLE IF NOT EXISTS route_sigs (
+          run_id INTEGER PRIMARY KEY REFERENCES runs(id) ON DELETE CASCADE,
+          v INTEGER NOT NULL,
+          sig TEXT
+        );
+        CREATE TABLE IF NOT EXISTS places (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          tags TEXT NOT NULL DEFAULT '[]',
+          created_at INTEGER NOT NULL,
+          distance_m REAL NOT NULL,
+          sig TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS place_visits (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          place_id INTEGER NOT NULL REFERENCES places(id) ON DELETE CASCADE,
+          run_id INTEGER,
+          at INTEGER NOT NULL,
+          busy TEXT,
+          note TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_visits_place ON place_visits(place_id, at);
         CREATE TABLE IF NOT EXISTS bg_fixes (
           ts INTEGER PRIMARY KEY,
           lat REAL NOT NULL,
@@ -180,6 +202,9 @@ export async function deleteRun(runId: number) {
     await db.runAsync('DELETE FROM splits WHERE run_id = ?', runId);
     await db.runAsync('DELETE FROM run_facts WHERE run_id = ?', runId);
     await db.runAsync('DELETE FROM run_sources WHERE run_id = ?', runId);
+    // A deleted run takes its line in a place's log with it; the place itself stays.
+    await db.runAsync('DELETE FROM route_sigs WHERE run_id = ?', runId);
+    await db.runAsync('DELETE FROM place_visits WHERE run_id = ?', runId);
     await db.runAsync('DELETE FROM runs WHERE id = ?', runId);
   });
 }

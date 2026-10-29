@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
 import { Button } from '../components/Button';
 import { MoodPicker } from '../components/MoodPicker';
@@ -9,6 +9,7 @@ import { RunStatsView } from '../components/RunStats';
 import { YouLine } from '../components/YouLine';
 import { deleteRun, getPoints, getRun, getRunSource, getSplits, setMoodAfter, type RunSource } from '../db';
 import { shareRunGpx } from '../io/store';
+import { placeForRun, type Place } from '../placeStore';
 import { forgetRun } from '../training/store';
 import { compare, youVsYou, type RunFacts } from '../progress';
 import type { RunWeather } from '../shareLines';
@@ -18,7 +19,19 @@ import type { StatPoint } from '../runStats';
 import type { LatLon, Mood, Run, Split } from '../types';
 import { loadYou } from '../you';
 
-export function RunDetailScreen({ runId, onBack, onDeleted, shareOnOpen }: { runId: number; onBack: () => void; onDeleted: () => void; shareOnOpen?: boolean }) {
+export function RunDetailScreen({
+  runId,
+  onBack,
+  onDeleted,
+  onOpenPlace,
+  shareOnOpen,
+}: {
+  runId: number;
+  onBack: () => void;
+  onDeleted: () => void;
+  onOpenPlace?: (id: number) => void;
+  shareOnOpen?: boolean;
+}) {
   const km = useSettings().settings.unitsKm;
   const [run, setRun] = useState<Run | null>(null);
   const [path, setPath] = useState<LatLon[]>([]);
@@ -29,6 +42,7 @@ export function RunDetailScreen({ runId, onBack, onDeleted, shareOnOpen }: { run
   const [sharing, setSharing] = useState(!!shareOnOpen);
   const [source, setSource] = useState<RunSource | null>(null);
   const [saving, setSaving] = useState(false);
+  const [place, setPlace] = useState<Place | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -38,6 +52,7 @@ export function RunDetailScreen({ runId, onBack, onDeleted, shareOnOpen }: { run
       setPoints(pts.map((p) => ({ ts: p.ts, lat: p.lat, lon: p.lon, alt: p.alt })));
       setSplits(await getSplits(runId));
       setSource(await getRunSource(runId).catch(() => null));
+      setPlace(await placeForRun(runId).catch(() => null));
       const you = await loadYou().catch(() => null);
       if (you) {
         setFacts(you.facts);
@@ -98,6 +113,18 @@ export function RunDetailScreen({ runId, onBack, onDeleted, shareOnOpen }: { run
           {new Date(source.importedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'long' })}.
         </Text>
       ) : null}
+      {place && onOpenPlace ? (
+        <Pressable
+          onPress={() => onOpenPlace(place.id)}
+          accessibilityRole="button"
+          accessibilityLabel={`One of your places: ${place.name}`}
+          accessibilityHint="Opens this place"
+          hitSlop={8}
+          style={({ pressed }) => [styles.place, pressed && { opacity: 0.85 }]}
+        >
+          <Text style={styles.placeText}>{place.name} ›</Text>
+        </Pressable>
+      ) : null}
       <RouteMap path={path} height={260} />
       {line && <YouLine title={line.title.replace('\n', ' ')} detail={line.detail} />}
       <RunStatsView run={run} points={points} splits={kmSplits} laps={laps} partial={partial} sun={weather} km={km} />
@@ -124,5 +151,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.cream, padding: spacing.md, paddingTop: spacing.lg },
   source: { ...type.small, marginTop: -spacing.sm },
   date: { fontFamily: fonts.display, fontSize: 22, lineHeight: 26, color: colors.text },
+  place: { alignSelf: 'flex-start', minHeight: 36, justifyContent: 'center', backgroundColor: colors.mint, borderRadius: radius.pill, paddingHorizontal: 14 },
+  placeText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.mintDeep },
   note: { fontFamily: fonts.body, color: colors.text, fontSize: 15, lineHeight: 22, backgroundColor: colors.butter, borderRadius: radius.lg, padding: spacing.md },
 });

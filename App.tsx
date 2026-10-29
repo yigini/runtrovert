@@ -11,10 +11,11 @@ import { handleBack } from './src/back';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { OpenSettings } from './src/components/SettingsGear';
 import { discardUnfinishedRuns, getRun } from './src/db';
-import { HistoryScreen } from './src/screens/HistoryScreen';
+import { HistoryScreen, type RunsSection } from './src/screens/HistoryScreen';
 import { ListenScreen } from './src/screens/ListenScreen';
 import { RunDetailScreen } from './src/screens/RunDetailScreen';
-import { RunScreen } from './src/screens/RunScreen';
+import { PlaceScreen } from './src/screens/PlaceScreen';
+import { RunScreen, type Ghost } from './src/screens/RunScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { TrainScreen } from './src/screens/TrainScreen';
 import { UnlockHost } from './src/screens/UnlockScreen';
@@ -26,6 +27,7 @@ import { startBilling } from './src/billing';
 import { recoverRun, subscribe } from './src/tracking';
 import { colors, fonts, radius, spacing } from './src/theme';
 import type { PainLevel } from './src/training/adapt';
+import type { Place } from './src/placeStore';
 import { schedulePlanReminders } from './src/training/remind';
 import { onRunSaved } from './src/training/store';
 import type { Session } from './src/training/types';
@@ -64,6 +66,12 @@ function Shell() {
   // Just run keeps the dusk map screen; the other two running layouts are on cream.
   const [runInk, setRunInk] = useState(true);
   const [openRun, setOpenRun] = useState<number | null>(null);
+  const [runsSection, setRunsSection] = useState<RunsSection>('runs');
+  const [openPlace, setOpenPlace] = useState<number | null>(null);
+  // A place opened from a run's page: back goes to that run again.
+  const [placeFrom, setPlaceFrom] = useState<number | null>(null);
+  // "Run this again" from a place, waiting on the Run tab to start.
+  const [ghost, setGhost] = useState<Ghost | null>(null);
   const [shareOpen, setShareOpen] = useState(false); // open the share card on arrival ("Keep it and share")
   const [refreshKey, setRefreshKey] = useState(0);
   const [liveRun, setLiveRun] = useState(false);
@@ -194,6 +202,13 @@ function Shell() {
       .catch(() => {});
   }
 
+  function runAgain(p: Place) {
+    setOpenPlace(null);
+    setPlaceFrom(null);
+    setGhost({ placeId: p.id, name: p.name, path: p.sig.pts.map(([latitude, longitude]) => ({ latitude, longitude })) });
+    go('run');
+  }
+
   const inkMode = liveRun && !finishing && tab === 'run' && sub == null && runInk;
   const go = (t: Tab) => {
     setSub(null);
@@ -213,8 +228,11 @@ function Shell() {
               planKey={planKey}
               focused={tab === 'run' && sub == null}
               onOpenPlan={() => setTab('train')}
+              onPlanChanged={() => setPlanKey((k) => k + 1)}
               onBrowseListen={() => setSub('listen')}
               onInk={setRunInk}
+              ghost={ghost}
+              onGhostTaken={() => setGhost(null)}
             />
           </View>
           {sub === 'settings' && (
@@ -239,7 +257,7 @@ function Shell() {
               }}
             />
           )}
-          {sub == null && tab === 'runs' && openRun == null && (
+          {sub == null && tab === 'runs' && openRun == null && openPlace == null && (
             <HistoryScreen
               onOpen={(id) => {
                 setShareOpen(false);
@@ -250,7 +268,22 @@ function Shell() {
                 setEverythingFrom(null);
                 setSub('everything');
               }}
+              section={runsSection}
+              onSection={setRunsSection}
+              onOpenPlace={setOpenPlace}
+              onRunAgain={runAgain}
             />
+          )}
+          {sub == null && tab === 'runs' && openRun == null && openPlace != null && (
+            <PlaceScreen
+              key={openPlace}
+              placeId={openPlace}
+              onBack={() => {
+                setOpenPlace(null);
+                if (placeFrom != null) setOpenRun(placeFrom);
+                setPlaceFrom(null);
+              }}
+              onChanged={() => setRefreshKey((k) => k + 1)} onRunAgain={runAgain} />
           )}
           {sub == null && tab === 'runs' && openRun != null && (
             <RunDetailScreen
@@ -265,6 +298,12 @@ function Shell() {
                 setOpenRun(null);
                 setRefreshKey((k) => k + 1);
               }}
+              onOpenPlace={(id) => {
+                setPlaceFrom(openRun);
+                setShareOpen(false);
+                setOpenRun(null);
+                setOpenPlace(id);
+              }}
             />
           )}
         </View>
@@ -276,6 +315,8 @@ function Shell() {
               active={tab === 'runs'}
               onPress={() => {
                 setOpenRun(null);
+                setOpenPlace(null);
+                setPlaceFrom(null);
                 go('runs');
               }}
             />

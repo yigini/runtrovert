@@ -212,7 +212,7 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onBack }: { onO
 
       <Section title="Privacy" bg={colors.white} fg={colors.muted}>
         <Text style={styles.privacy}>
-          Runtrovert has no server. Your runs, routes, notes and settings are saved on this phone, and in the phone's own backup to your Google or Apple
+          Runtrovert has no server. Your runs, routes, places, notes and settings are saved on this phone, and in the phone's own backup to your Google or Apple
           account if you have backups on. We can't see them even if we wanted to. Reminders are written and scheduled on the phone. No push service, no
           server, nothing that knows when or whether you ran. The app fetches three things: map tiles unless you chose Plain map, the weather if you leave it
           on, and the Listen list if you said yes, which is one file that's the same for everyone. Like any website, each of those sees your IP address. The

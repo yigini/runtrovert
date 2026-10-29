@@ -53,11 +53,14 @@
     "test:recording": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-recording.ts",
     "test:tips": "node --experimental-strip-types scripts/test-tips.ts",
     "test:presets": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-presets.ts",
+    "test:comeback": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-comeback.ts",
     "test:stats": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-stats.ts",
     "test:unlock": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-unlock.ts",
     "test:io": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-io.ts",
     "samples:io": "node --experimental-strip-types scripts/make-io-samples.ts",
-    "test": "npm run sim:gps && npm run test:mapfit && npm run test:reminders && npm run test:plans && npm run test:shelf && npm run test:progress && npm run test:tips && npm run test:stats && npm run test:recording && npm run test:a11y && npm run test:presets && npm run test:unlock && npm run test:io"
+    "test:places": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-places.ts",
+    "test:patterns": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-patterns.ts",
+    "test": "npm run sim:gps && npm run test:mapfit && npm run test:reminders && npm run test:plans && npm run test:shelf && npm run test:progress && npm run test:tips && npm run test:stats && npm run test:recording && npm run test:a11y && npm run test:presets && npm run test:comeback && npm run test:unlock && npm run test:places && npm run test:patterns && npm run test:io"
   },
   "private": true
 }

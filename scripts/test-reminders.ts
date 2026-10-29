@@ -1,4 +1,4 @@
-import { inQuietHours, learnRhythm, planReminders, type PlanInput } from '../src/reminderPlan.ts';
+import { awayDays, inQuietHours, learnRhythm, planReminders, type PlanInput } from '../src/reminderPlan.ts';
 
 // Checks the reminder rules with fixed dates. Local time throughout, like the phone.
 let failed = 0;
@@ -62,8 +62,11 @@ const base: PlanInput = { now, perWeek: 3, hour: 8, minute: 0, auto: true, runSt
   const weekOne = p.filter((x) => x.at < now + 7 * DAY);
   check('ignored three times: one a week', weekOne.length === 1, String(weekOne.length));
   check('backed-off line is gentle', weekOne[0].kind === 'quiet');
-  const gap = planReminders({ ...base, runStarts: [now - 10 * DAY] });
-  check('ten days off: gap lines', gap[0].kind === 'gap');
+  const gap = planReminders({ ...base, runStarts: [now - 8 * DAY] });
+  check('eight days off: gap lines', gap[0].kind === 'gap');
+  check('eight days off: quiet from day ten', gap.every((r) => awayDays(now - 8 * DAY, r.at) < 10), gap.map((r) => fmt(r.at)).join(', '));
+  check('ten days off: nothing until the next run', planReminders({ ...base, runStarts: [now - 10 * DAY] }).length === 0);
+  check('eighteen days off: nothing until the next run', planReminders({ ...base, perWeek: 5, runStarts: [now - 18 * DAY] }).length === 0);
 }
 
 {
