@@ -1,5 +1,8 @@
 import type { Sky } from './forecast';
 import type { Run } from './types';
+import { finish } from './i18n/lang';
+import { voice } from './i18n/voice';
+import type { SurpriseId } from './i18n/voice/types';
 
 // The rare lines. A handful of moments the app notices and says one dry thing
 // about, on the finish screen or under the home headline. Never a notification,
@@ -48,38 +51,40 @@ export function finishSurprise(run: Finished, history: Run[], sky: Sky | null, s
   const start = new Date(run.startedAt);
   const fresh = (id: string) => !seen.includes(id);
 
+  const v = voice().surprises;
+  const say = (id: SurpriseId) => finish(v.lines[id]);
   const once: Array<[string, boolean, string]> = [
-    ['first-run', count === 1, 'That’s one.\nNobody saw. Perfect.'],
-    ['marathon', km >= 42.1 && longestBefore < 42.1 * KM, 'A marathon.\nAlone, on purpose.'],
-    ['half', km >= 21.05 && longestBefore < 21.05 * KM, 'Half a marathon.\nWhole person.'],
-    ['ten', km >= 10 && longestBefore < 10 * KM, 'Ten.\nThe number agrees with you.'],
-    ['run-100', count === 100, 'A hundred runs.\nStill nobody clapping. Still good.'],
-    ['run-50', count === 50, 'Fifty runs.\nThe quiet kind of habit.'],
+    ['first-run', count === 1, say('first-run')],
+    ['marathon', km >= 42.1 && longestBefore < 42.1 * KM, say('marathon')],
+    ['half', km >= 21.05 && longestBefore < 21.05 * KM, say('half')],
+    ['ten', km >= 10 && longestBefore < 10 * KM, say('ten')],
+    ['run-100', count === 100, say('run-100')],
+    ['run-50', count === 50, say('run-50')],
     [
       `anniversary-${start.getFullYear()}`,
       history.length > 0 && sameDayOfYear(new Date(history[history.length - 1].startedAt), start) && start.getFullYear() > new Date(history[history.length - 1].startedAt).getFullYear(),
-      'A year ago you went out alone.\nYou kept doing it.',
+      say('anniversary'),
     ],
-    [`first-snow-${winterOf(start)}`, sky === 'snow', 'First snow of the year.\nYou were out in it.'],
+    [`first-snow-${winterOf(start)}`, sky === 'snow', say('first-snow')],
   ];
   for (const [id, hit, line] of once) if (hit && fresh(id)) return { id, line, once: true };
 
-  if (history.length >= 5 && run.distanceM > longestBefore + 500) return { id: 'longest', line: 'Longest yet.\nTell no one.', once: false };
+  if (history.length >= 5 && run.distanceM > longestBefore + 500) return { id: 'longest', line: say('longest'), once: false };
 
   const unit = metric ? KM : MILE;
   const whole = Math.round(run.distanceM / unit);
   if (whole >= 3 && Math.abs(run.distanceM - whole * unit) <= 20) {
-    return { id: 'round', line: `${whole}.00 ${metric ? 'km' : 'mi'}.\nSuspiciously neat.`, once: false };
+    return { id: 'round', line: finish(v.round(whole, metric)), once: false };
   }
 
-  if (hash(String(run.startedAt)) % 40 === 0) return { id: 'rare', line: 'You passed nobody\nyou had to talk to.', once: false };
+  if (hash(String(run.startedAt)) % 40 === 0) return { id: 'rare', line: say('rare'), once: false };
 
-  if (sky === 'rain' || sky === 'drizzle') return { id: 'rain', line: 'Wet. Done.\nSmugness permitted.', once: false };
-  if (sky === 'snow') return { id: 'snow', line: 'Snow run.\nFootprints are the only proof.', once: false };
+  if (sky === 'rain' || sky === 'drizzle') return { id: 'rain', line: say('rain'), once: false };
+  if (sky === 'snow') return { id: 'snow', line: say('snow'), once: false };
 
   const h = start.getHours();
-  if (h < 6) return { id: 'early', line: 'Up before the opinions.', once: false };
-  if (h >= 22) return { id: 'late', line: 'Night run.\nThe streets kept it to themselves.', once: false };
+  if (h < 6) return { id: 'early', line: say('early'), once: false };
+  if (h >= 22) return { id: 'late', line: say('late'), once: false };
 
   return null;
 }
@@ -88,15 +93,6 @@ export function finishSurprise(run: Finished, history: Run[], sky: Sky | null, s
 export function seasonalLine(now = Date.now()): string | null {
   const d = new Date(now);
   const key = `${d.getMonth() + 1}-${d.getDate()}`;
-  const lines: Record<string, string> = {
-    '1-1': 'New year. Same road. Good.',
-    '2-14': 'Valentine’s. The route stays loyal.',
-    '2-29': 'A day that mostly doesn’t exist. Use it.',
-    '6-21': 'Longest day. No need to rush it.',
-    '10-31': 'Everyone’s in costume. You’re in shorts.',
-    '12-21': 'Shortest day. A short run counts.',
-    '12-25': 'Quiet streets today. Finally.',
-    '12-31': 'Last run of the year, or first of the next. Both fine.',
-  };
-  return lines[key] ?? null;
+  const line = voice().surprises.seasonal[key];
+  return line ? finish(line) : null;
 }

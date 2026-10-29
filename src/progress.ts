@@ -5,6 +5,9 @@
 // The rules: compare in weeks, not days (six-week windows, medians), name the
 // method behind every number, and say nothing when nothing stands out.
 
+import { finish, monthName } from './i18n/lang';
+import { voice } from './i18n/voice';
+
 export type EffortKey = '1k' | 'mile' | '5k' | '10k' | 'half' | 'full';
 
 export const EFFORTS: Array<{ key: EffortKey; m: number; label: string }> = [
@@ -353,41 +356,27 @@ export function formatClock(s: number): string {
   return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${m}:${String(sec).padStart(2, '0')}`;
 }
 
-function margin(s: number): string {
-  const t = Math.round(s);
-  if (t < 60) return `${t} s`;
-  return formatClock(t);
-}
-
-function gapWords(days: number): string {
-  if (days < 21) return `${Math.round(days / 7) === 1 ? 'a week' : `${days} days`}`;
-  if (days < 60) return `${Math.round(days / 7)} weeks`;
-  return `${Math.round(days / 30)} months`;
-}
-
-const TWO = ['', 'one face', 'two faces', 'three faces', 'four faces'];
-
 /**
  * The single you-vs-you line: a headline and one detail sentence. A best wins,
  * then a comeback, a longest run, a big recharge, then the baseline. Returns
  * null when nothing stands out, which is most runs, and that's fine.
  */
 export function youVsYou(c: Comparison, km = true): { title: string; detail: string } | null {
+  const y = voice().you;
+  const line = (l: { title: string; detail: string }) => ({ title: finish(l.title), detail: finish(l.detail) });
   if (c.best) {
-    if (c.best.marginS == null) return { title: `Your first ${c.best.label}.`, detail: `${formatClock(c.best.seconds)}. The first one is always a best.` };
-    const when = c.best.previousAt ? ` (${new Date(c.best.previousAt).toLocaleDateString(undefined, { month: 'long' })})` : '';
-    return { title: `New ${c.best.label} best.\nNobody saw. You'll know.`, detail: `${formatClock(c.best.seconds)}, ${margin(c.best.marginS)} quicker than your last best${when}.` };
+    if (c.best.marginS == null) return line(y.bestFirst(c.best.key, formatClock(c.best.seconds)));
+    return line(y.best(c.best.key, formatClock(c.best.seconds), c.best.marginS, c.best.previousAt ? monthName(c.best.previousAt) : null));
   }
-  if (c.gapDays != null && c.gapDays >= 14) return { title: 'Welcome back.', detail: `First run in ${gapWords(c.gapDays)}. The legs remember more than you'd think.` };
-  if (c.recentBest) return { title: `Fastest ${c.recentBest.label} in 90 days.`, detail: `${formatClock(c.recentBest.seconds)}. Not an all-time best, but the best of this stretch.` };
-  if (c.longest === 'ever') return { title: 'Your longest run yet.', detail: 'Further than any run on this phone.' };
-  if (c.longest === 'months') return { title: 'Longest run in two months.', detail: 'Further than anything in the last 60 days.' };
-  if (c.recharge != null && c.recharge >= 2) return { title: `Came back ${TWO[c.recharge]} lighter.`, detail: 'That counts as much as the pace does.' };
+  if (c.gapDays != null && c.gapDays >= 14) return line(y.welcomeBack(c.gapDays));
+  if (c.recentBest) return line(y.recentBest(c.recentBest.key, formatClock(c.recentBest.seconds)));
+  if (c.longest === 'ever') return line(y.longestEver);
+  if (c.longest === 'months') return line(y.longestMonths);
+  if (c.recharge != null && c.recharge >= 2) return line(y.recharge(c.recharge));
   if (c.baselineDeltaS != null) {
-    const per = km ? 's/km' : 's/mi';
     const d = Math.round(Math.abs(c.baselineDeltaS) * (km ? 1 : 1.609344));
-    if (c.baselineDeltaS <= -5) return { title: `${d} ${per} quicker than your usual.`, detail: 'Compared with your last six weeks, hills allowed for.' };
-    if (c.baselineDeltaS >= 10 && c.recharge != null && c.recharge >= 1) return { title: 'Slower than usual. Good run.', detail: 'You came back lighter, which was the point.' };
+    if (c.baselineDeltaS <= -5) return line(y.quicker(d, km));
+    if (c.baselineDeltaS >= 10 && c.recharge != null && c.recharge >= 1) return line(y.slowerGood);
   }
   return null;
 }

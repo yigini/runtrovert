@@ -3,7 +3,8 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 import { loadValue, saveValue } from '../db';
 import { TipsScreen } from '../screens/TipsScreen';
 import { colors, fonts } from '../theme';
-import { TIPS, contextsFor, pickTip, type Tip } from '../tips';
+import { contextsFor, pickTip, type Tip } from '../tips';
+import { localTips } from '../i18n/voice';
 import type { Run } from '../types';
 import type { Weather } from '../weather';
 
@@ -25,7 +26,8 @@ export function TipLine({ runs, weather, dark, waiting }: { runs: Run[]; weather
     (async () => {
       const off = (await loadValue<boolean>('tips.hidden')) ?? false;
       const today = await loadValue<{ day: string; id: string }>('tips.today');
-      let t = today?.day === day ? TIPS.find((x) => x.id === today.id) : undefined;
+      const tips = localTips();
+      let t = today?.day === day ? tips.find((x) => x.id === today.id) : undefined;
       if (!t) {
         const last = runs[0];
         const ctx = contextsFor({
@@ -39,8 +41,8 @@ export function TipLine({ runs, weather, dark, waiting }: { runs: Run[]; weather
           dark,
         });
         const seen = (await loadValue<string[]>('tips.seen')) ?? [];
-        t = pickTip(ctx, seen, day);
-        const nextSeen = seen.length >= TIPS.length - 1 ? [t.id] : [...seen, t.id];
+        t = pickTip(ctx, seen, day, tips);
+        const nextSeen = seen.length >= tips.length - 1 ? [t.id] : [...seen, t.id];
         await saveValue('tips.seen', nextSeen);
         await saveValue('tips.today', { day, id: t.id });
       }
