@@ -8,6 +8,7 @@ import * as Notifications from 'expo-notifications';
 import { ensureChannel } from '../notify';
 import type { Settings } from '../types';
 import { DAY_MS, dayStart } from './dates';
+import { planSessionOpen } from '../unlock';
 import { loadPlan, runSessions } from './store';
 
 const CHANNEL = 'runtrovert-quiet';
@@ -29,6 +30,8 @@ export async function schedulePlanReminders(settings: Settings): Promise<void> {
   const today = dayStart(now);
   const upcoming = runSessions(plan)
     .filter((s) => !s.skipped && !s.done && s.kind !== 'rest' && s.date >= today && s.date < today + HORIZON_DAYS * DAY_MS)
+    // Weeks the plan can't guide yet get the ordinary reminders, which never mention the unlock.
+    .filter((s) => planSessionOpen(plan, s.id))
     .slice(0, MAX_PLAN_PENDING);
   if (!upcoming.length) return;
   const until = upcoming[upcoming.length - 1].date + DAY_MS;
