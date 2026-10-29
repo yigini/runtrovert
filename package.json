@@ -11,6 +11,7 @@
     "expo-file-system": "~58.0.13",
     "expo-font": "~58.0.10",
     "expo-haptics": "~58.0.7",
+    "expo-iap": "^6.3.0",
     "expo-keep-awake": "~58.0.3",
     "expo-location": "~58.0.19",
     "expo-notifications": "~58.1.6",
@@ -36,8 +37,8 @@
   },
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "sim:gps": "node --experimental-strip-types scripts/sim-gps.ts",
     "test:mapfit": "node --experimental-strip-types scripts/test-map-fit.ts",
@@ -53,7 +54,8 @@
     "test:tips": "node --experimental-strip-types scripts/test-tips.ts",
     "test:presets": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-presets.ts",
     "test:stats": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-stats.ts",
-    "test": "npm run sim:gps && npm run test:mapfit && npm run test:reminders && npm run test:plans && npm run test:shelf && npm run test:progress && npm run test:tips && npm run test:stats && npm run test:recording && npm run test:a11y && npm run test:presets"
+    "test:unlock": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-unlock.ts",
+    "test": "npm run sim:gps && npm run test:mapfit && npm run test:reminders && npm run test:plans && npm run test:shelf && npm run test:progress && npm run test:tips && npm run test:stats && npm run test:recording && npm run test:a11y && npm run test:presets && npm run test:unlock"
   },
   "private": true
 }
