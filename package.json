@@ -37,7 +37,9 @@
     "web": "expo start --web",
     "sim:gps": "node --experimental-strip-types scripts/sim-gps.ts",
     "icons": "node scripts/make-icons.mjs",
-    "bg": "node scripts/make-bg-video.mjs"
+    "bg": "node scripts/make-bg-video.mjs",
+    "shelf": "node scripts/build-shelf.mjs src/shelfBundled.json",
+    "test:shelf": "node --experimental-strip-types scripts/test-shelf.ts"
   },
   "private": true
 }

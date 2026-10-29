@@ -1,0 +1,48 @@
+name: Listen shelf
+
+# Every morning: rebuild shelf.json (hand-picked shows, each country's running podcasts,
+# sponsor offers) and publish it on the `shelf` branch. The app downloads it from
+# https://raw.githubusercontent.com/yigini/runtrovert/shelf/shelf.json. No server.
+# Also runs when content/ changes on main, so an edit shows up within minutes.
+
+on:
+  schedule:
+    - cron: '23 4 * * *'
+  push:
+    branches: [main]
+    paths: ['content/**', 'scripts/build-shelf.mjs']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: shelf
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build shelf.json
+        run: |
+          mkdir -p out
+          node scripts/build-shelf.mjs out/shelf.json
+
+      # One commit, force-pushed, so the branch never grows a history of daily files.
+      - name: Publish to the shelf branch
+        working-directory: out
+        run: |
+          git init -q -b shelf
+          git config user.name "runtrovert-shelf"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add shelf.json
+          git commit -qm "shelf $(date -u +%F)"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" shelf

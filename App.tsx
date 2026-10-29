@@ -8,6 +8,7 @@ import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { discardUnfinishedRuns } from './src/db';
 import { HistoryScreen } from './src/screens/HistoryScreen';
+import { ListenScreen } from './src/screens/ListenScreen';
 import { RunDetailScreen } from './src/screens/RunDetailScreen';
 import { RunScreen } from './src/screens/RunScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
@@ -19,7 +20,7 @@ import { colors, fonts, spacing } from './src/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-type Tab = 'run' | 'history' | 'settings';
+type Tab = 'run' | 'history' | 'listen' | 'settings';
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({ DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold, Fraunces_300Light, Fraunces_400Regular_Italic, Fraunces_600SemiBold });
@@ -97,6 +98,7 @@ function Shell() {
             }}
           />
         )}
+        {tab === 'listen' && <ListenScreen />}
         {tab === 'settings' && <SettingsScreen />}
       </View>
       {!liveRun && (
@@ -111,6 +113,7 @@ function Shell() {
               setTab('history');
             }}
           />
+          <TabButton label="Listen" color={colors.butter} active={tab === 'listen'} onPress={() => setTab('listen')} />
           <TabButton label="Settings" color={colors.peach} active={tab === 'settings'} onPress={() => setTab('settings')} />
         </View>
       )}

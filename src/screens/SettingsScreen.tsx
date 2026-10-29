@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { previewLine, rescheduleReminders, sendLineNow } from '../notify';
+import { PODCAST_APPS } from '../shelfLogic';
 import { onBatteryModeChanged } from '../tracking';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
-import type { BatteryMode, CueMode, NotifyPerWeek } from '../types';
+import type { BatteryMode, CueMode, ListenDownload, NotifyPerWeek } from '../types';
 
 const BATTERY: Array<{ key: BatteryMode; label: string; hint: string }> = [
   { key: 'auto', label: 'Auto', hint: 'Full GPS until the battery drops to 25% or the phone is in low-power mode, then eases off.' },
@@ -119,15 +120,39 @@ export function SettingsScreen() {
       </Section>
 
       <Section title="The sky" bg={colors.sky} fg={colors.skyDeep}>
-        <Row label="Local weather on the home screen" hint="A location rounded to about 1 km goes to Open-Meteo and a forecast comes back. No key, no account, no cookies. Besides map tiles, it is the only thing the app fetches.">
+        <Row label="Local weather on the home screen" hint="A location rounded to about 1 km goes to Open-Meteo and a forecast comes back. No key, no account, no cookies. Besides map tiles and the Listen list, it is the only thing the app fetches.">
           <Switch value={settings.weather} onValueChange={(v) => update({ weather: v })} trackColor={{ true: colors.ink }} />
+        </Row>
+      </Section>
+
+      <Section title="Listen" bg={colors.butter} fg={colors.butterDeep}>
+        <Row label="Daily list" hint="When you open Listen, download today's shows and episodes. One file, the same for everyone, so nothing about you is sent.">
+          <Segmented
+            value={{ ask: 'Ask', on: 'On', off: 'Off' }[settings.listenDownload]}
+            options={['Ask', 'On', 'Off']}
+            onChange={(v) => update({ listenDownload: v.toLowerCase() as ListenDownload })}
+          />
+        </Row>
+        <Text style={[styles.optionHint, { marginTop: 0 }]}>Open shows in</Text>
+        {[{ key: null, label: 'Ask me' }, ...PODCAST_APPS.filter((a) => (Platform.OS === 'ios' ? a.ios : a.android))].map((a) => {
+          const on = settings.podcastApp === a.key;
+          return (
+            <Pressable key={a.label} onPress={() => update({ podcastApp: a.key })} style={[styles.option, { paddingVertical: 10 }, on && styles.optionOn]}>
+              <Text style={[styles.optionLabel, { fontSize: 14 }, on && styles.optionLabelOn]}>{a.label}</Text>
+            </Pressable>
+          );
+        })}
+        <Row label="Kit & offers" hint="A shelf of running kit from paying sponsors, at the bottom of Listen. Only there, only when you open it. Off hides it for good.">
+          <Switch value={!settings.offersHidden} onValueChange={(v) => update({ offersHidden: !v })} trackColor={{ true: colors.ink }} />
         </Row>
       </Section>
 
       <Section title="Privacy" bg={colors.white} fg={colors.muted}>
         <Text style={styles.privacy}>
           Runtrovert has no server. Your runs, routes, notes and settings live only here. We can't see them even if we wanted to.
-          Reminders are generated on the phone. Map tiles and the weather are the only things fetched, and the weather only if you leave it on. Delete the app and it's all gone.
+          Reminders are generated on the phone. The app fetches three things: map tiles, the weather if you leave it on, and the Listen list if you said
+          yes, which is one file that's the same for everyone. Podcasts play in your own podcast app; we never see what you play. Sponsors pay a flat fee for a
+          place on the Kit & offers shelf and never learn who opened it or what was tapped. Delete the app and it's all gone.
         </Text>
       </Section>
     </ScrollView>

@@ -49,6 +49,12 @@ export type NotifyPerWeek = 0 | 1 | 3 | 5;
 /** best: 1 Hz navigation GPS. saver: coarser, slower fixes. auto: best until the battery is low. */
 export type BatteryMode = 'auto' | 'best' | 'saver';
 
+/** Where "Open" on the Listen tab sends a show. null = ask the first time. */
+export type PodcastApp = 'apple' | 'spotify' | 'youtube' | 'pocketcasts' | 'antennapod' | 'share';
+
+/** The daily Listen list: ask on first open, then download when the tab is opened, or never. */
+export type ListenDownload = 'ask' | 'on' | 'off';
+
 export interface Settings {
   cueMode: CueMode;
   autoPause: boolean;
@@ -62,6 +68,11 @@ export interface Settings {
   runNotes: boolean; // live stats on the lock screen and a note per km (watches mirror these)
   batteryMode: BatteryMode;
   keepScreenOn: boolean; // during a run only
+  listenDownload: ListenDownload;
+  podcastApp: PodcastApp | null;
+  podcastCountry: string | null; // Apple storefront code; null = the phone's region
+  offersHidden: boolean; // Kit & offers switched off for good
+  offerTopics: string[]; // what the runner wants to see there; stays on the phone
   onboarded: boolean;
 }
 
@@ -78,5 +89,10 @@ export const DEFAULT_SETTINGS: Settings = {
   runNotes: true,
   batteryMode: 'auto',
   keepScreenOn: false,
+  listenDownload: 'ask',
+  podcastApp: null,
+  podcastCountry: null,
+  offersHidden: false,
+  offerTopics: [],
   onboarded: false,
 };
