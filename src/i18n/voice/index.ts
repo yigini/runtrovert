@@ -6,11 +6,12 @@ import { en } from './en';
 import { de } from './de';
 import { es } from './es';
 import { fr } from './fr';
+import { it } from './it';
 import { pt } from './pt';
 import { tr } from './tr';
 import type { VoicePack } from './types';
 
-export const PACKS: Partial<Record<Lang, VoicePack>> = { en, de, es, fr, pt, tr };
+export const PACKS: Partial<Record<Lang, VoicePack>> = { en, de, es, fr, it, pt, tr };
 
 export function voice(): VoicePack {
   return PACKS[lang()] ?? en;
