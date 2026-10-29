@@ -30,6 +30,13 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit -p tsconfig.json
 
+      # Pure-code checks (GPS simulation, map fit, reminders, plans, shelf, progress, tips).
+      # Reminders run twice: the rules use local time, so a daylight-saving zone catches fixture slips.
+      - name: Logic tests
+        run: |
+          npm test
+          TZ=Europe/Rome npm run test:reminders
+
       - name: Generate native project
         run: npx expo prebuild --platform android --no-install
 

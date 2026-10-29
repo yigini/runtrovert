@@ -31,8 +31,9 @@ const base: PlanInput = { now, perWeek: 3, hour: 8, minute: 0, auto: true, runSt
   // Tue and Thu evenings, ~18:00, for 4 weeks.
   const runs: number[] = [];
   for (let w = 1; w <= 4; w++) {
-    runs.push(at(2026, 10, 27, 18, 5) - w * 7 * DAY); // Tuesdays
-    runs.push(at(2026, 10, 29, 17, 55) - w * 7 * DAY); // Thursdays
+    // Calendar days, not 24 h blocks, so a daylight-saving change keeps the wall-clock time.
+    runs.push(at(2026, 10, 27 - w * 7, 18, 5)); // Tuesdays
+    runs.push(at(2026, 10, 29 - w * 7, 17, 55)); // Thursdays
   }
   runs.push(at(2026, 10, 27, 18, 5)); // and this Tuesday
   const thursdays = runs;
