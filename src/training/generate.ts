@@ -13,6 +13,7 @@ import { addDays, daysBetween, mondayOf, offsetInWeek, weekdayOf } from './dates
 import type { Paces } from './paces';
 import * as T from './sessions';
 import { measure, paceSetFor, toSession, type PaceSet } from './sessions';
+import { easyShare, hardWorkOver, minEasyShare } from './rules';
 import type { PlanSetup, Session, Week, WeekKind } from './types';
 
 export interface GenerateOptions {
@@ -25,10 +26,18 @@ export interface GenerateOptions {
   firstDay?: number; // nothing is planned before this day (default: setup.startDate)
   startKm?: number;
   longestKm?: number; // the longest run of the last 30 days, if different from the profile
-  /** Rebuilds: runs already in the plan (done, or still to come before `firstDay`) within the last 30 days. When given, nothing else is assumed. */
+  /** Rebuilds: runs already in the plan (done, or still to come before `firstDay`) within the last 30 days. */
   history?: Array<{ date: number; km: number }>;
   weeks?: number; // how many weeks to lay out (default: to the race, or the plan's length)
   gentleWeeks?: number; // leading weeks with no hard sessions (default 2, counted from week 1)
+  /** Rebuilds: the last two full build weeks before this generation (km, oldest first), so the first new weeks grow from them. */
+  prevBases?: number[];
+  /** Rebuilds of Start running: the rung of the ladder to begin on (0-based), instead of the week number. */
+  ladderFrom?: number;
+  /** Rebuilds: the first full week of the plan as it was (km). Lighter weeks follow the plan's own scale, not the smaller restart. */
+  firstFullKm?: number;
+  /** Rebuilds of time-based plans: running minutes of the runs already in the plan within the last 30 days. */
+  historyMin?: Array<{ date: number; min: number }>;
 }
 
 export type GenerateResult = { ok: true; weeks: Week[]; peakKm: number; assumedLongestKm: number } | { ok: false; error: 'too-short' | 'too-long' | 'days'; message: string };
@@ -41,8 +50,9 @@ const MIN_WEEK_FLOOR_KM = 2.5; // an easy day is never shorter than this
 const STRENGTH_PER_WEEK = 2;
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
-/** The most a run may grow past the longest of the last 30 days: 10%, or half a kilometre when that is more. */
-const jump = (km: number) => r1(Math.max(km * 1.1, km + 0.5));
+const EXCESS_TOL = 0.3; // under the validator's rounding tolerance, so a passed check here passes there
+/** The most a run may grow past the longest of the last 30 days: 10%, or half a kilometre when that is more. Nothing in the window, nothing to measure against. */
+const jump = (km: number) => (km > 0 ? r1(Math.max(km * 1.1, km + 0.5)) : Infinity);
 const round5 = (n: number) => Math.max(5, Math.round(n / 5) * 5);
 
 export function generate(o: GenerateOptions): GenerateResult {
@@ -76,7 +86,7 @@ export function generate(o: GenerateOptions): GenerateResult {
     w.sessions = w.sessions.filter((s) => s.date >= firstDay && (setup.raceDate == null || s.date <= setup.raceDate));
     if (w === weeks[0] && firstDay > w.start) w.partial = true;
   }
-  addStrength(weeks, setup);
+  addStrength(weeks, setup, firstDay);
   const peakKm = Math.max(...weeks.map((w) => w.targetKm));
   return { ok: true, weeks, peakKm, assumedLongestKm };
 }
@@ -98,7 +108,8 @@ function distanceWeeks(o: GenerateOptions, nWeeks: number, firstMonday: number, 
   const peak = spec.peakKm[days];
   const lightEvery = setup.extraRecovery ? 3 : 4;
   const taperFactors = spec.raceKm != null ? TAPER[spec.taperWeeks] ?? [] : [];
-  const taperN = Math.min(taperFactors.length, Math.max(nWeeks - 1, 0));
+  // A rebuild close to the race can leave a single week: it is the race week.
+  const taperN = Math.min(taperFactors.length, nWeeks <= 1 ? nWeeks : nWeeks - 1);
   const buildN = nWeeks - taperN;
 
   const floor = days * MIN_WEEK_FLOOR_KM;
@@ -106,10 +117,11 @@ function distanceWeeks(o: GenerateOptions, nWeeks: number, firstMonday: number, 
 
   // Which build weeks are light. Never week 1 of the whole plan, never the week before the taper.
   const absIndex = (i: number) => firstWeekIndex + i; // i is 0-based within this generation
+  let firstFullActual: number | undefined; // the plan's scale, as the validator reads it: its first full week
   const isLight = (i: number) => {
     const w = absIndex(i);
     if (w === 1 || i >= buildN || days <= 2) return false; // two runs a week is its own recovery
-    if (startKm < 15) return false; // under 15 km a week, floors would decide the week, not the cut
+    if ((o.firstFullKm ?? firstFullActual ?? startKm) < 15) return false; // under 15 km a week, floors would decide the week, not the cut
     if (w % lightEvery !== 0) return false;
     return taperN === 0 ? true : i < buildN - 1;
   };
@@ -120,13 +132,14 @@ function distanceWeeks(o: GenerateOptions, nWeeks: number, firstMonday: number, 
   const weeks: Week[] = [];
   let prevBuild = startKm;
   let prevLong = 0;
-  let peakActual = 0;
+  let peakActual = buildN === 0 ? startKm : 0;
+  // Full build weeks so far, as the validator reads them for the +10% / +30% check.
+  const bases: number[] = [...(o.prevBases ?? [])];
   // Every run laid out so far, dated, so the 10% cap is read off a real 30-day window.
-  // With no history at all (a new plan), the profile's longest run stands in for the first two weeks.
+  // In the plan's first two weeks the profile's longest run stands in, exactly as the validator reads it.
   const longHistory: Array<{ date: number; km: number }> = [...(o.history ?? [])];
-  const assume = longHistory.length === 0;
   const longestInWindow = (date: number) => {
-    let max = assume && daysBetween(firstDay, date) < 14 ? assumedLongest : 0;
+    let max = daysBetween(setup.startDate, date) < 14 ? assumedLongest : 0;
     for (const h of longHistory) if (h.date < date && daysBetween(h.date, date) <= 30) max = Math.max(max, h.km);
     return max;
   };
@@ -137,7 +150,8 @@ function distanceWeeks(o: GenerateOptions, nWeeks: number, firstMonday: number, 
     let kind: WeekKind;
     let target: number;
     if (i >= buildN) {
-      const f = taperFactors[i - buildN];
+      // A shortened taper keeps its last, smallest weeks, so race week stays the smallest.
+      const f = taperFactors[taperFactors.length - taperN + (i - buildN)];
       kind = i === nWeeks - 1 ? 'race' : 'taper';
       target = r1(peakActual * f);
     } else if (isLight(i)) {
@@ -149,17 +163,41 @@ function distanceWeeks(o: GenerateOptions, nWeeks: number, firstMonday: number, 
     }
 
     const buildPos = buildN > 1 ? i / (buildN - 1) : 1; // 0 → 1 across the build
+    const partial = i === 0 && firstDay > start;
+    const growing = kind === 'build' || kind === 'base' || kind === 'peak';
+    // Floors, strides and a first quality session can push a small week past its growth limit.
+    // Then the week is laid out again on a smaller target, and as a last resort without the hard session.
+    const b1 = bases[bases.length - 1];
+    const b2 = bases[bases.length - 2];
+    const limit = growing && !partial && b1 != null ? Math.min(b1 * MAX_GROWTH, b2 != null ? b2 * 1.3 : Infinity) : Infinity;
     const ctx: WeekCtx = { spec, setup, paces, index, start, kind, target, buildPos, gentle: index <= gentle, longCap: longestInWindow, prevLong, taperIndex: i - buildN, taperN };
-    const sessions = buildWeekSessions(ctx);
-    const actualKm = r1(sessions.filter((s) => s.kind !== 'race').reduce((a, s) => a + s.km, 0));
+    // Days before the start are dropped here, so they never count as runs in anyone's 30-day window.
+    const lay = () => keepHardWorkLimits(keepSingleRunRule(buildWeekSessions(ctx).filter((s) => s.date >= firstDay), longestInWindow, spec, paces), longestInWindow, spec, paces);
+    let sessions = lay();
+    const total = (list: Session[]) => r1(list.filter((s) => s.kind !== 'race').reduce((a, s) => a + s.km, 0));
+    for (let attempt = 0; attempt < 6 && total(sessions) > limit + EXCESS_TOL; attempt++) {
+      if (attempt >= 3) ctx.gentle = true;
+      ctx.target = r1(Math.max(ctx.target - (total(sessions) - limit) - 0.2, 1));
+      sessions = lay();
+    }
+    // A week cut down to its limit keeps its hard session at full size, so it can tip under the easy share: then the week goes without it.
+    const runsOf = (list: Session[]) => list.filter((s) => s.kind !== 'strength' && s.kind !== 'race');
+    if (growing && !ctx.gentle && (easyShare(runsOf(sessions), paces) ?? 1) < minEasyShare(spec)) {
+      ctx.gentle = true;
+      sessions = lay();
+    }
+    const actualKm = total(sessions);
     const long = sessions.find((s) => s.kind === 'long');
     if (long) prevLong = long.km;
     for (const s of sessions) if (s.kind !== 'strength' && s.kind !== 'race' && s.km > 0) longHistory.push({ date: s.date, km: s.km });
     weeks.push({ index, start, kind, targetKm: actualKm, sessions });
-    if (kind === 'build' || kind === 'base' || kind === 'peak') {
-      prevBuild = actualKm;
-      peakActual = Math.max(peakActual, actualKm);
+    if (growing) {
+      // A week begun mid-way grows on from what it was meant to be, not from its few remaining days.
+      prevBuild = partial ? Math.max(actualKm, ctx.target) : actualKm;
+      if (!partial || peakActual === 0) peakActual = Math.max(peakActual, actualKm); // the validator reads the peak off full weeks
+      if (!partial) bases.push(actualKm);
     }
+    if (!partial && firstFullActual == null && kind !== 'race') firstFullActual = actualKm;
   }
   return weeks;
 }
@@ -213,6 +251,14 @@ function buildWeekSessions(c: WeekCtx): Session[] {
       const minutes = Math.max(15, Math.min(35, Math.floor((capKm * paces.easy) / 60 / 5) * 5));
       fixed.push(toSession(T.easyWithStrides(minutes, 4), idOf(d), dateOf(d), paces));
     }
+    // A small plan with many run days can still come out over the week's budget: then an easy day
+    // or two becomes rest. Race week is about being rested, not about the count of runs.
+    const total = () => fixed.reduce((a, s) => a + s.km, 0);
+    while (total() > c.target + 0.3) {
+      const easiest = fixed.filter((s) => s.kind === 'strides' || s.kind === 'easy').sort((a, b) => a.date - b.date)[0];
+      if (!easiest) break;
+      fixed.splice(fixed.indexOf(easiest), 1);
+    }
     sessions.push(...fixed);
     sessions.push(toSession(T.raceDay(spec), `w${c.index}race`, setup.raceDate, paces));
     return sessions.sort((a, b) => a.date - b.date);
@@ -228,7 +274,7 @@ function buildWeekSessions(c: WeekCtx): Session[] {
   longKm = Math.max(r1(longKm), 2);
   const hasRacePace = (spec.tier === 'improve' || spec.tier === 'race') && spec.goal !== '5k' && c.buildPos >= 0.5 && c.kind !== 'light' && c.kind !== 'taper';
   const rpShare = spec.qualityDays >= 2 ? 0.25 : 0.2 + 0.15 * c.buildPos;
-  const rpKm = hasRacePace ? Math.min(Math.round(longKm * rpShare), spec.goal === 'marathon' ? 12 : spec.goal === 'half' ? 7 : 3) : 0;
+  const rpKm = hasRacePace ? Math.min(Math.round(longKm * rpShare), Math.floor(longKm * 0.4), spec.goal === 'marathon' ? 12 : spec.goal === 'half' ? 7 : 3) : 0;
   const raceLabel = spec.goal === 'marathon' ? 'Marathon effort. Short sentences.' : spec.goal === 'half' ? 'Half-marathon effort. A few words.' : 'Steady. Short sentences.';
   const long = toSession(T.longRun(longKm, rpKm, raceLabel, spec.goal), idOf(longDay), longDate, paces);
   sessions.push(long);
@@ -279,6 +325,53 @@ function buildWeekSessions(c: WeekCtx): Session[] {
   }
   balance(sessions, c.target, caps, spec.longShare, paces);
   return sessions.sort((a, b) => a.date - b.date);
+}
+
+/**
+ * Rule 6 on a small week: a hard session has a smallest sensible size (two
+ * intervals, three 400s), and a week cut down to its limits can be too small to
+ * hold it. Then the hard sessions become easy runs with strides, which keep the
+ * legs quick and count as the taper's intensity.
+ */
+function keepHardWorkLimits(sessions: Session[], before: (date: number) => number, spec: PlanSpec, paces: PaceSet): Session[] {
+  const runs = sessions.filter((s) => s.kind !== 'strength' && s.kind !== 'race');
+  const K = r1(runs.reduce((a, s) => a + s.km, 0));
+  if (K <= 0 || hardWorkOver(runs, K, paces).length === 0) return sessions;
+  const out = sessions.map((s) => (s.hard && s.kind !== 'race' ? Object.assign(toSession(T.easyWithStrides(Math.max(15, Math.round((s.minutes * 0.6) / 5) * 5), 6), s.id, s.date, paces), { note: s.note }) : s));
+  return keepSingleRunRule(out, before, spec, paces);
+}
+
+/**
+ * Rule 2, read the way the validator reads it: day by day, each run against the
+ * longest of the 30 days before it, earlier runs of the same week included. A run
+ * that comes out too big (a quality session, a race-week sharpener, a long run in
+ * a small window) is cut to fit: the long run stays a long run, anything else
+ * becomes an easy run. Then the long run is held to its share of what is left.
+ */
+function keepSingleRunRule(sessions: Session[], before: (date: number) => number, spec: PlanSpec, paces: PaceSet): Session[] {
+  const out = [...sessions].sort((a, b) => a.date - b.date);
+  const laid: Array<{ date: number; km: number }> = [];
+  for (const [k, s] of out.entries()) {
+    if (s.kind === 'strength' || s.km <= 0) continue;
+    if (s.kind !== 'race') {
+      let max = before(s.date);
+      for (const l of laid) if (l.date < s.date) max = Math.max(max, l.km);
+      const cap = jump(max);
+      if (s.km > cap + 0.05) {
+        if (s.kind === 'long') out[k] = toSession(T.longRun(Math.max(Math.floor(cap * 10) / 10, 1), 0, '', spec.goal), s.id, s.date, paces);
+        else out[k] = toSession(T.easyRun(Math.max(10, Math.floor((cap * paces.easy) / 60))), s.id, s.date, paces);
+        out[k].note = s.note;
+      }
+    }
+    laid.push({ date: out[k].date, km: out[k].km });
+  }
+  const long = out.find((s) => s.kind === 'long');
+  const total = out.filter((s) => s.kind !== 'race' && s.kind !== 'strength').reduce((a, s) => a + s.km, 0);
+  if (long && long.km > spec.longShare * total + 0.3) {
+    const i = out.indexOf(long);
+    out[i] = toSession(T.longRun(Math.max(Math.floor(spec.longShare * total * 10) / 10, 1), 0, '', spec.goal), long.id, long.date, paces);
+  }
+  return out;
 }
 
 /** Minutes for an easy day: to the nearest five, never over its cap, at the floor when the floor fits. */
@@ -361,6 +454,8 @@ function qualityDraft(kind: QualityKind, weekKm: number, scale: number, pos: num
     }
     case 'reps': {
       const workKm = Math.min(0.05 * weekKm, 8) * scale;
+      // Too small a week for three 400s inside the 5% limit: strides do the same job without the load.
+      if (1.2 > 0.05 * weekKm + 0.3) return T.easyWithStrides(20, 6);
       const reps = Math.max(3, Math.min(12, Math.floor(workKm / 0.4)));
       return T.repetitions(reps, 400);
     }
@@ -400,7 +495,7 @@ export function pickQualityDays(runDays: number[], longDay: number, n: number): 
 // ---- Time-based plans (start, come back) -------------------------------------------
 
 /** Start running: a fixed ladder. Running minutes per session grow ≤ 25% a week, with walks between. */
-const START_LADDER: Array<{ reps: number; runS: number; walkS: number }> = [
+export const START_LADDER: Array<{ reps: number; runS: number; walkS: number }> = [
   { reps: 9, runS: 60, walkS: 60 },
   { reps: 7, runS: 90, walkS: 90 },
   { reps: 6, runS: 120, walkS: 90 },
@@ -417,17 +512,21 @@ function timeBasedWeeks(o: GenerateOptions, nWeeks: number, firstMonday: number,
   const weeks: Week[] = [];
 
   if (spec.id === 'start') {
-    for (let i = 0; i < nWeeks; i++) {
+    // A rebuild climbs on from the rung it is given, and gets the weeks to reach the 30 minutes.
+    const from = o.ladderFrom ?? firstWeekIndex - 1;
+    const n = o.ladderFrom != null ? Math.max(nWeeks, START_LADDER.length + 1 - from) : nWeeks;
+    for (let i = 0; i < n; i++) {
       const index = firstWeekIndex + i;
       const start = addDays(firstMonday, 7 * i);
-      const rung = START_LADDER[Math.min(index - 1, START_LADDER.length - 1)];
+      const pos = from + i;
+      const rung = START_LADDER[Math.min(pos, START_LADDER.length - 1)];
       const sessions = runDays.map((d, k) => {
         const date = addDays(start, offsetInWeek(d));
-        const last = index >= 9;
+        const last = pos >= START_LADDER.length;
         const draft = last ? T.continuous(k === runDays.length - 1 ? 30 : 25, k === runDays.length - 1 ? 'Run 30 min. The whole thing.' : undefined) : T.runWalk(rung.reps, rung.runS, rung.walkS);
         return toSession(draft, `w${index}d${offsetInWeek(d)}`, date, paces);
       });
-      weeks.push({ index, start, kind: index >= 9 ? 'peak' : 'build', targetKm: r1(sessions.reduce((a, s) => a + s.km, 0)), sessions });
+      weeks.push({ index, start, kind: pos >= START_LADDER.length ? 'peak' : 'build', targetKm: r1(sessions.reduce((a, s) => a + s.km, 0)), sessions });
     }
     return weeks;
   }
@@ -438,27 +537,62 @@ function timeBasedWeeks(o: GenerateOptions, nWeeks: number, firstMonday: number,
   const startMin = Math.min(Math.max(targetMin / Math.pow(1.1, Math.max(nWeeks - 1, 1)), 50), 90);
   const growth = Math.min(1.1, Math.max(1, Math.pow(targetMin / startMin, 1 / Math.max(nWeeks - 1, 1))));
   let weekMin = startMin;
+  const firstDay = o.firstDay ?? setup.startDate;
+  // Rebuilds: the minutes already run, and the last full weeks, so the weeks ahead grow from them (rules 2 and 3 in minutes).
+  const laid: Array<{ date: number; min: number }> = [...(o.historyMin ?? [])];
+  const bases: number[] = [...(o.prevBases ?? [])];
+  const assumedMin = (assumedLongest(o) * runner.easyPaceSPerKm) / 60;
+  const capAt = (date: number, extra: Array<{ date: number; min: number }>) => {
+    let max = daysBetween(setup.startDate, date) < 14 ? assumedMin : 0;
+    for (const l of [...laid, ...extra]) if (l.date < date && daysBetween(l.date, date) <= 30) max = Math.max(max, l.min);
+    return max > 0 ? Math.floor(Math.max(max * 1.25, max + 3)) : Infinity;
+  };
   for (let i = 0; i < nWeeks; i++) {
     const index = firstWeekIndex + i;
     const start = addDays(firstMonday, 7 * i);
-    const longMin = Math.round(weekMin * 0.4);
-    const easyMin = Math.round((weekMin - longMin) / Math.max(runDays.length - 1, 1));
-    const sessions = runDays.map((d) => {
-      const date = addDays(start, offsetInWeek(d));
-      const minutes = d === setup.longRunDay ? longMin : easyMin;
-      const draft = index <= 2 ? T.continuous(minutes, `Run ${minutes} min, walk breaks welcome`) : T.continuous(minutes);
-      if (d === setup.longRunDay) draft.kind = 'long';
-      return toSession(draft, `w${index}d${offsetInWeek(d)}`, date, paces);
-    });
+    const partial = i === 0 && firstDay > start;
+    const b1 = bases[bases.length - 1];
+    const b2 = bases[bases.length - 2];
+    const limit = !partial && b1 != null ? Math.min(b1 * 1.1, b2 != null ? b2 * 1.3 : Infinity) : Infinity;
+    const layWeek = (wm: number) => {
+      const longMin = Math.round(wm * 0.4);
+      const easyMin = Math.round((wm - longMin) / Math.max(runDays.length - 1, 1));
+      const out: Array<{ session: Session; min: number }> = [];
+      const local: Array<{ date: number; min: number }> = [];
+      for (const d of runDays) {
+        const date = addDays(start, offsetInWeek(d));
+        if (date < firstDay) continue;
+        const cap = capAt(date, local);
+        const minutes = Math.max(10, Math.min(d === setup.longRunDay ? longMin : easyMin, cap));
+        const draft = index <= 2 ? T.continuous(minutes, `Run ${minutes} min, walk breaks welcome`) : T.continuous(minutes);
+        if (d === setup.longRunDay) draft.kind = 'long';
+        out.push({ session: toSession(draft, `w${index}d${offsetInWeek(d)}`, date, paces), min: minutes });
+        local.push({ date, min: minutes });
+      }
+      return out;
+    };
+    // The validator counts a week in session minutes, walks included: shrink until it fits.
+    let laidOut = layWeek(weekMin);
+    for (let k = 0; k < 6; k++) {
+      const v = laidOut.reduce((a, x) => a + x.session.minutes, 0);
+      if (v <= limit + 0.5) break;
+      weekMin = Math.max(weekMin - (v - limit) - 1, 10);
+      laidOut = layWeek(weekMin);
+    }
+    const sessions = laidOut.map((x) => x.session);
+    for (const x of laidOut) laid.push({ date: x.session.date, min: x.min });
+    const vol = sessions.reduce((a, s) => a + s.minutes, 0);
+    if (!partial) bases.push(vol);
     weeks.push({ index, start, kind: i === nWeeks - 1 ? 'peak' : 'build', targetKm: r1(sessions.reduce((a, s) => a + s.km, 0)), sessions });
-    weekMin *= growth;
+    weekMin *= growth; // from what the week was cut to, if it was
+
   }
   return weeks;
 }
 
 // ---- Strength, on days off, never the day before the long run --------------------------
 
-function addStrength(weeks: Week[], setup: PlanSetup) {
+function addStrength(weeks: Week[], setup: PlanSetup, firstDay: number) {
   const dayBeforeLong = (setup.longRunDay + 6) % 7;
   for (const w of weeks) {
     if (w.kind === 'race') continue;
@@ -474,7 +608,7 @@ function addStrength(weeks: Week[], setup: PlanSetup) {
     const picked = candidates.filter((d) => runDates.has(addDays(d, -1))).concat(candidates.filter((d) => !runDates.has(addDays(d, -1)))).slice(0, STRENGTH_PER_WEEK);
     const first = w.sessions[0]?.date ?? w.start;
     for (const date of picked) {
-      if (date < first && w.index === 1) continue;
+      if (date < firstDay || (date < first && w.index === 1)) continue;
       const s = toSession(T.strength(), `w${w.index}s${offsetInWeek(weekdayOf(date))}`, date, { easy: 1, steady: 1, race: 1, threshold: 1, interval: 1, reps: 1 });
       w.sessions.push(s);
     }
