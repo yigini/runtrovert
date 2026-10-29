@@ -117,7 +117,6 @@ export function YouSection({ km, refreshKey }: { km: boolean; refreshKey: number
       </View>
       <LockRow title="Trends over months" detail="Fitness, usual pace and rhythm. Comes with Everything, once" />
       <Text style={type.small}>Only ever compared with your own runs. The 5 km estimate uses Riegel’s formula on your best efforts over 3 km; pace is a six-week median with hills allowed for.</Text>
-      <Text style={[type.eyebrow, { marginTop: spacing.sm }]}>Every run</Text>
     </View>
   );
 }

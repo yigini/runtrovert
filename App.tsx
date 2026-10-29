@@ -66,6 +66,8 @@ function Shell() {
   const [openRun, setOpenRun] = useState<number | null>(null);
   const [runsSection, setRunsSection] = useState<RunsSection>('runs');
   const [openPlace, setOpenPlace] = useState<number | null>(null);
+  // A place opened from a run's page: back goes to that run again.
+  const [placeFrom, setPlaceFrom] = useState<number | null>(null);
   // "Run this again" from a place, waiting on the Run tab to start.
   const [ghost, setGhost] = useState<Ghost | null>(null);
   const [shareOpen, setShareOpen] = useState(false); // open the share card on arrival ("Keep it and share")
@@ -200,6 +202,7 @@ function Shell() {
 
   function runAgain(p: Place) {
     setOpenPlace(null);
+    setPlaceFrom(null);
     setGhost({ placeId: p.id, name: p.name, path: p.sig.pts.map(([latitude, longitude]) => ({ latitude, longitude })) });
     go('run');
   }
@@ -255,7 +258,15 @@ function Shell() {
             />
           )}
           {sub == null && tab === 'runs' && openRun == null && openPlace != null && (
-            <PlaceScreen key={openPlace} placeId={openPlace} onBack={() => setOpenPlace(null)} onChanged={() => setRefreshKey((k) => k + 1)} onRunAgain={runAgain} />
+            <PlaceScreen
+              key={openPlace}
+              placeId={openPlace}
+              onBack={() => {
+                setOpenPlace(null);
+                if (placeFrom != null) setOpenRun(placeFrom);
+                setPlaceFrom(null);
+              }}
+              onChanged={() => setRefreshKey((k) => k + 1)} onRunAgain={runAgain} />
           )}
           {sub == null && tab === 'runs' && openRun != null && (
             <RunDetailScreen
@@ -270,6 +281,12 @@ function Shell() {
                 setOpenRun(null);
                 setRefreshKey((k) => k + 1);
               }}
+              onOpenPlace={(id) => {
+                setPlaceFrom(openRun);
+                setShareOpen(false);
+                setOpenRun(null);
+                setOpenPlace(id);
+              }}
             />
           )}
         </View>
@@ -282,6 +299,7 @@ function Shell() {
               onPress={() => {
                 setOpenRun(null);
                 setOpenPlace(null);
+                setPlaceFrom(null);
                 go('runs');
               }}
             />
