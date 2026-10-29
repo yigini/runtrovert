@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { previewLine, rescheduleReminders, sendLineNow } from '../notify';
+import { Alert, AppState, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { notificationStatus, previewLine, sendLineNow, turnOnNotifications, type NotifyStatus } from '../notify';
 import { onBatteryModeChanged } from '../tracking';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
@@ -22,16 +22,22 @@ export function SettingsScreen() {
   const { settings, update } = useSettings();
   const [preview, setPreview] = useState(previewLine());
 
-  // Any change to the reminder settings re-lays the schedule.
+  const [status, setStatus] = useState<NotifyStatus>('granted');
+  // App.tsx re-plans reminders when these settings change. Here we only keep the
+  // permission line honest, including after a trip to the phone's settings.
   useEffect(() => {
-    rescheduleReminders(settings);
-  }, [settings.notifyPerWeek, settings.notifyHour, settings.notifyMinute]);
+    const check = () => notificationStatus().then(setStatus).catch(() => {});
+    check();
+    const sub = AppState.addEventListener('change', (s) => s === 'active' && check());
+    return () => sub.remove();
+  }, []);
   useEffect(() => {
     onBatteryModeChanged();
   }, [settings.batteryMode]);
 
   async function onSendNow() {
     const ok = await sendLineNow();
+    setStatus(await notificationStatus());
     if (ok) Alert.alert('On its way', 'Lock your phone. One arrives in five seconds, the way they will on a Tuesday morning.');
     else Alert.alert('Notifications are off', 'Turn on notifications for Runtrovert in your phone settings to get reminders and run notes.');
   }
@@ -91,21 +97,35 @@ export function SettingsScreen() {
       </Section>
 
       <Section title="Quiet reminders" bg={colors.butter} fg={colors.butterDeep}>
-        <Row label="Per week" hint="Short, dry, never a streak. Weekends left alone.">
+        {status !== 'granted' ? (
+          <Row label="Notifications are off" hint="So no reminders and no lock-screen numbers during runs. Your call, and nothing else changes.">
+            <Pressable
+              onPress={async () => {
+                await turnOnNotifications();
+                setStatus(await notificationStatus());
+              }}
+              style={styles.turnOn}
+              accessibilityRole="button"
+            >
+              <Text style={styles.turnOnText}>Turn on</Text>
+            </Pressable>
+          </Row>
+        ) : null}
+        <Row label="Per week" hint="Short, dry, never a streak. Skips days you’ve already run, eases off if ignored.">
           <Segmented
             value={String(settings.notifyPerWeek)}
             options={['0', '1', '3', '5']}
             onChange={(v) => update({ notifyPerWeek: Number(v) as NotifyPerWeek })}
           />
         </Row>
-        <Row label="At" hint="Local time.">
+        <Row stack label="At" hint={settings.notifyAuto ? 'Auto: about 45 minutes before you usually run, on the days you usually run. 8:00 on Mon, Wed, Fri until there are a few runs to go on.' : 'Local time, on weekdays.'}>
           <Segmented
-            value={String(settings.notifyHour)}
-            options={['7', '8', '12', '17', '19']}
-            onChange={(v) => update({ notifyHour: Number(v), notifyMinute: 0 })}
+            value={settings.notifyAuto ? 'Auto' : String(settings.notifyHour)}
+            options={['Auto', '7', '8', '12', '17', '19']}
+            onChange={(v) => (v === 'Auto' ? update({ notifyAuto: true }) : update({ notifyAuto: false, notifyHour: Number(v), notifyMinute: 0 }))}
           />
         </Row>
-        <Row label="After a run" hint="One quiet note a few minutes after you save.">
+        <Row label="After a run" hint="One quiet note fifteen minutes after you save, or a nudge to log your energy if you skipped it. Never after 21:00.">
           <Switch value={settings.afterRunNote} onValueChange={(v) => update({ afterRunNote: v })} trackColor={{ true: colors.ink }} />
         </Row>
         <Pressable onPress={() => setPreview(previewLine())} style={styles.preview}>
@@ -143,10 +163,10 @@ function Section({ title, bg, fg, children }: { title: string; bg: string; fg: s
   );
 }
 
-function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Row({ label, hint, stack, children }: { label: string; hint?: string; stack?: boolean; children: React.ReactNode }) {
   return (
-    <View style={styles.row}>
-      <View style={{ flex: 1, paddingRight: spacing.md }}>
+    <View style={[styles.row, stack && styles.rowStack]}>
+      <View style={stack ? undefined : { flex: 1, paddingRight: spacing.md }}>
         <Text style={styles.optionLabel}>{label}</Text>
         {hint ? <Text style={styles.optionHint}>{hint}</Text> : null}
       </View>
@@ -182,6 +202,7 @@ const styles = StyleSheet.create({
   optionHint: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, marginTop: 2 },
   check: { color: colors.cream, fontSize: 18 },
   row: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.cream, borderRadius: radius.md, padding: 14 },
+  rowStack: { flexDirection: 'column', alignItems: 'flex-start', gap: spacing.sm },
   seg: { flexDirection: 'row', backgroundColor: colors.white, borderRadius: radius.pill, padding: 3 },
   segItem: { paddingVertical: 7, paddingHorizontal: 13, borderRadius: radius.pill },
   segItemOn: { backgroundColor: colors.ink },
@@ -193,5 +214,7 @@ const styles = StyleSheet.create({
   previewText: { fontFamily: fonts.body, color: colors.text, fontSize: 15, lineHeight: 22 },
   sendNow: { backgroundColor: colors.ink, borderRadius: radius.pill, paddingVertical: 12, alignItems: 'center' },
   sendNowText: { fontFamily: fonts.bodySemi, color: colors.cream, fontSize: 14 },
+  turnOn: { backgroundColor: colors.ink, borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 14 },
+  turnOnText: { fontFamily: fonts.bodySemi, color: colors.cream, fontSize: 13 },
   previewHint: { fontFamily: fonts.body, color: colors.muted, fontSize: 12, textAlign: 'right' },
 });

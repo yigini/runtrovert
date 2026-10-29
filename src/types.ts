@@ -46,6 +46,9 @@ export type CueMode = 'silent' | 'haptic' | 'voice';
 
 export type NotifyPerWeek = 0 | 1 | 3 | 5;
 
+/** unasked: never shown. yes: tapped "Yes, quietly". no: tapped "Not now", so never asked again. */
+export type NotifyAsk = 'unasked' | 'yes' | 'no';
+
 /** best: 1 Hz navigation GPS. saver: coarser, slower fixes. auto: best until the battery is low. */
 export type BatteryMode = 'auto' | 'best' | 'saver';
 
@@ -57,6 +60,9 @@ export interface Settings {
   notifyPerWeek: NotifyPerWeek;
   notifyHour: number; // 0–23, local
   notifyMinute: number;
+  notifyAuto: boolean; // follow your usual days and time once there are a few runs
+  notifyAsk: NotifyAsk; // our own one-time question at the end of the welcome
+  seenNews: string; // id of the last "What's new" line dismissed
   afterRunNote: boolean; // a quiet "run saved" notification
   weather: boolean; // fetch the local forecast for the home screen (Open-Meteo, coarse location)
   runNotes: boolean; // live stats on the lock screen and a note per km (watches mirror these)
@@ -73,6 +79,9 @@ export const DEFAULT_SETTINGS: Settings = {
   notifyPerWeek: 3,
   notifyHour: 8,
   notifyMinute: 0,
+  notifyAuto: true,
+  notifyAsk: 'unasked',
+  seenNews: '',
   afterRunNote: true,
   weather: true,
   runNotes: true,

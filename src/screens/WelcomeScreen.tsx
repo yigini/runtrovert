@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AmbientBackground } from '../components/AmbientBackground';
 import { Button } from '../components/Button';
@@ -6,8 +6,13 @@ import { Fade } from '../components/Fade';
 import { Mark } from '../components/Mark';
 import { colors, fonts, spacing } from '../theme';
 
-/** Shown once. The motto, the promise, then out of the way. */
-export function WelcomeScreen({ onDone }: { onDone: () => void }) {
+/**
+ * Shown once. The motto, the promise, then one question about reminders, in
+ * our words, before the system prompt. "Not now" is final: we never ask again.
+ */
+export function WelcomeScreen({ onDone }: { onDone: (reminders: boolean) => void }) {
+  const [step, setStep] = useState<'promise' | 'ask'>('promise');
+  if (step === 'ask') return <AskStep onAnswer={onDone} />;
   return (
     <AmbientBackground>
       <Fade from="bottom" height="68%" strength={0.98} />
@@ -29,8 +34,29 @@ export function WelcomeScreen({ onDone }: { onDone: () => void }) {
           <Item title="No subscription" text="Tracking and history are free for good." />
         </View>
 
-        <Button title="I like that" onPress={onDone} style={{ height: 62, marginTop: spacing.md }} />
+        <Button title="I like that" onPress={() => setStep('ask')} style={{ height: 62, marginTop: spacing.md }} />
         <Text style={styles.footer}>Delete the app and it’s all gone.</Text>
+      </ScrollView>
+    </AmbientBackground>
+  );
+}
+
+function AskStep({ onAnswer }: { onAnswer: (yes: boolean) => void }) {
+  return (
+    <AmbientBackground>
+      <Fade from="bottom" height="68%" strength={0.98} />
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+        <View style={{ flex: 1, minHeight: 260 }} />
+        <Text style={styles.h2} accessibilityRole="header">
+          A nudge now{'\n'}and then?
+        </Text>
+        <Text style={styles.lede}>
+          Three short notes a week, Monday, Wednesday and Friday at 8. Dry, never a streak. Once you’ve run a few times they move to your usual days.
+        </Text>
+        <Text style={styles.itemText}>Written on this phone, not sent from anywhere. Also puts distance and time on your lock screen while you run.</Text>
+        <Button title="Yes, quietly" onPress={() => onAnswer(true)} style={{ height: 62, marginTop: spacing.md }} />
+        <Button title="Not now" variant="secondary" onPress={() => onAnswer(false)} style={{ height: 52 }} />
+        <Text style={styles.footer}>You can change all of it in Settings.</Text>
       </ScrollView>
     </AmbientBackground>
   );
@@ -51,6 +77,7 @@ const styles = StyleSheet.create({
   brand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   brandText: { fontFamily: fonts.bodySemi, fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', color: colors.ink },
   h1: { fontFamily: fonts.display, fontSize: 58, lineHeight: 60, letterSpacing: -2, color: colors.ink },
+  h2: { fontFamily: fonts.display, fontSize: 44, lineHeight: 48, letterSpacing: -1.2, color: colors.ink },
   lede: { fontFamily: fonts.body, fontSize: 17, lineHeight: 25, color: colors.ink, maxWidth: 320 },
   list: { gap: 12, marginTop: 6, paddingLeft: 14, borderLeftWidth: 2, borderLeftColor: colors.ink },
   itemTitle: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.ink },
