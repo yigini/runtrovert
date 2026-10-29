@@ -15,6 +15,7 @@ import {
   type ImageSourcePropType,
 } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import { BackButton } from '../components/BackButton';
 import { MusicStrip } from '../components/MusicStrip';
 import { listRuns } from '../db';
 import { appByKey, canControl, installedApps, installedPackages, type MusicApp } from '../music';
@@ -632,9 +633,7 @@ function KitShelf({ offers, onBack }: { offers: Offer[]; onBack: () => void }) {
   }
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xl }}>
-      <Pressable onPress={onBack} accessibilityRole="button">
-        <Text style={styles.link}>‹ Listen</Text>
-      </Pressable>
+      <BackButton label="Listen" onPress={onBack} />
       <Text style={styles.h1}>Kit & offers</Text>
       <Text style={styles.lede}>Paid for by them. Opened by you. Seen by nobody.</Text>
       {topics.length ? (
