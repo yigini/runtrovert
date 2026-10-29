@@ -10,24 +10,27 @@ import { MusicStrip } from '../components/MusicStrip';
 import { QuietPicker } from '../components/QuietPicker';
 import { RouteMap } from '../components/RouteMap';
 import { SplitsTable } from '../components/SplitsTable';
+import { YouLine } from '../components/YouLine';
 import { cueCountdown } from '../cues';
 import { deleteRun, listRuns, loadValue, saveValue } from '../db';
 import { HomeScreen } from './HomeScreen';
 import { countdownFootage, type Footage } from '../footage';
 import { distanceUnit, formatDistance, formatDistanceNumber, formatDuration, formatElevation, formatPace, formatSpeedAsPace } from '../geo';
+import { compare, youVsYou, type RunFacts } from '../progress';
 import { useSettings } from '../settings';
 import { finishSurprise, type Surprise } from '../surprises';
-import { ensurePermissions, getState, lap, pauseRun, resumeRun, startRun, stopRun, subscribe, TrackingState } from '../tracking';
+import { ensurePermissions, getState, lap, pauseRun, resumeRun, startRun, stopRun, subscribe, TrackingState, unsavedPoints } from '../tracking';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import type { Mood, Quiet, Run } from '../types';
 import { cachedWeather } from '../weather';
+import { liveFacts, recordRunFacts } from '../you';
 
 type Phase = 'idle' | 'countdown' | 'active' | 'finish';
 
 /** Ids of the once-only finish lines already used (src/surprises.ts). */
 const SEEN_KEY = 'surprises.seen';
 
-export function RunScreen({ onSaved }: { onSaved: (runId: number) => void }) {
+export function RunScreen({ onSaved }: { onSaved: (runId: number, share?: boolean) => void }) {
   const { settings } = useSettings();
   const km = settings.unitsKm;
   const [track, setTrack] = useState<TrackingState>(getState());
@@ -39,6 +42,8 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number) => void }) {
   const [note, setNote] = useState('');
   // Final numbers are frozen the moment the user taps Stop.
   const [final, setFinal] = useState<TrackingState | null>(null);
+  // This run's bests and the runs before it, for the one you-vs-you line.
+  const [live, setLive] = useState<{ run: RunFacts; history: RunFacts[] } | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
   const [mapFront, setMapFront] = useState(false);
@@ -127,17 +132,25 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number) => void }) {
     const f = getState();
     setFinal(f);
     setPhase('finish');
+    if (f.runId != null) {
+      liveFacts({ runId: f.runId, startedAt: f.startedAt ?? Date.now(), distanceM: f.distanceM, durationS: f.durationS, elevationGainM: f.elevationGainM, unsaved: unsavedPoints() })
+        .then(setLive)
+        .catch(() => {});
+    }
     setSurprise(await pickSurprise(f, runs, km));
   }
 
-  async function onSave() {
+  async function onSave(share = false) {
+    const startedAt = final?.startedAt ?? Date.now();
+    const durationS = final?.durationS ?? 0;
     const id = await stopRun({ moodAfter, quiet, note: note.trim() || null });
+    if (id != null) await recordRunFacts(id, startedAt, durationS).catch(() => {});
     if (id != null && surprise?.once) {
       const seen = (await loadValue<string[]>(SEEN_KEY).catch(() => null)) ?? [];
       saveValue(SEEN_KEY, [...seen, surprise.id]).catch(() => {});
     }
     reset();
-    if (id != null) onSaved(id);
+    if (id != null) onSaved(id, share);
   }
 
   function onDiscard() {
@@ -162,6 +175,7 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number) => void }) {
     setQuiet(null);
     setNote('');
     setFinal(null);
+    setLive(null);
     setSurprise(null);
     setMapFront(false);
     veil.setValue(1);
@@ -190,6 +204,7 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number) => void }) {
   if (phase === 'finish' && final) {
     const partialKm = final.currentKm.distanceM > 20 ? { index: final.splits.length + 1, ...final.currentKm } : null;
     const mapH = Math.round(Dimensions.get('window').height * 0.62);
+    const you = live ? youVsYou(compare({ ...live.run, moodBefore, moodAfter }, live.history), km) : null;
     return (
       <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
         {/* The run, framed: your route fills the space between the words and the numbers. */}
@@ -215,6 +230,7 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number) => void }) {
           </View>
         </View>
         <View style={{ padding: spacing.md, paddingTop: spacing.lg, gap: spacing.lg }}>
+          {you && <YouLine title={you.title} detail={you.detail} />}
           <MoodPicker title="And your energy now?" value={moodAfter} onChange={setMoodAfter} />
           <QuietPicker value={quiet} onChange={setQuiet} />
           <TextInput style={styles.note} placeholder="A note, if you want one" placeholderTextColor={colors.inkMuted} value={note} onChangeText={setNote} multiline />
@@ -222,8 +238,9 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number) => void }) {
           {final.laps.length > 0 && <SplitsTable title="Laps" rows={final.laps} km={km} />}
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
             <Button title="Discard" variant="danger" onPress={onDiscard} style={{ flex: 0, paddingHorizontal: 22 }} />
-            <Button title="Keep it" onPress={onSave} style={{ flex: 1 }} />
+            <Button title="Keep it" onPress={() => onSave()} style={{ flex: 1 }} />
           </View>
+          <Button title="Keep it and share with someone" variant="secondary" onPress={() => onSave(true)} style={{ marginTop: -spacing.sm }} />
         </View>
       </ScrollView>
     );

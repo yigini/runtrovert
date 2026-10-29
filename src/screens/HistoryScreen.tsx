@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { YouSection } from '../components/YouSection';
 import { listRuns } from '../db';
 import { formatDistance, formatDuration, formatPace } from '../geo';
 import { useSettings } from '../settings';
@@ -36,6 +37,7 @@ export function HistoryScreen({ onOpen, refreshKey }: { onOpen: (runId: number) 
         <Stat value={formatPace(monthM, monthS, km)} label={`avg /${km ? 'km' : 'mi'}`} />
         <Stat value={month.length ? `${emptyCount} / ${month.length}` : '—'} label="empty routes" />
       </View>
+      <YouSection km={km} refreshKey={refreshKey} />
     </View>
   );
 
