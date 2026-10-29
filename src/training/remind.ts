@@ -2,10 +2,13 @@
 // day's session as the note, at the hour the runner already chose, and rest
 // days stay silent (a nudge on a rest day would argue with the plan). Nothing
 // extra on top, and with reminders off there is nothing at all. Paused plans
-// hand the days back to the ordinary reminders.
+// hand the days back to the ordinary reminders. Ten days without a run and
+// the plan goes quiet too, until the next run (Run home says welcome back).
 
 import * as Notifications from 'expo-notifications';
+import { listRuns } from '../db';
 import { ensureChannel } from '../notify';
+import { AWAY_QUIET_DAYS, awayDays } from '../reminderPlan';
 import type { Settings } from '../types';
 import { DAY_MS, dayStart } from './dates';
 import { loadPlan, runSessions } from './store';
@@ -27,8 +30,11 @@ export async function schedulePlanReminders(settings: Settings): Promise<void> {
 
   const now = Date.now();
   const today = dayStart(now);
+  const runs = await listRuns().catch(() => []);
+  const lastRun = runs.length ? Math.max(...runs.map((r) => r.startedAt)) : null;
   const upcoming = runSessions(plan)
     .filter((s) => !s.skipped && !s.done && s.kind !== 'rest' && s.date >= today && s.date < today + HORIZON_DAYS * DAY_MS)
+    .filter((s) => lastRun == null || awayDays(lastRun, s.date) < AWAY_QUIET_DAYS)
     .slice(0, MAX_PLAN_PENDING);
   if (!upcoming.length) return;
   const until = upcoming[upcoming.length - 1].date + DAY_MS;
