@@ -46,7 +46,8 @@
     "bg": "node scripts/make-bg-video.mjs",
     "shelf": "node scripts/build-shelf.mjs src/shelfBundled.json",
     "test:shelf": "node --experimental-strip-types scripts/test-shelf.ts",
-    "test:progress": "node --experimental-strip-types scripts/test-progress.ts"
+    "test:progress": "node --experimental-strip-types scripts/test-progress.ts",
+    "test:stats": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-stats.ts"
   },
   "private": true
 }
