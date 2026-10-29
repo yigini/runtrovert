@@ -12,6 +12,7 @@ import { QuietPicker } from '../components/QuietPicker';
 import { RouteMap } from '../components/RouteMap';
 import { SplitsTable } from '../components/SplitsTable';
 import { YouLine } from '../components/YouLine';
+import { useBack } from '../back';
 import { cueCountdown } from '../cues';
 import { deleteRun, listRuns, loadValue, saveValue } from '../db';
 import { HomeScreen } from './HomeScreen';
@@ -20,10 +21,10 @@ import { distanceUnit, formatDistance, formatDistanceNumber, formatDuration, for
 import { compare, youVsYou, type RunFacts } from '../progress';
 import { useSettings } from '../settings';
 import { finishSurprise, type Surprise } from '../surprises';
-import { ensurePermissions, getState, lap, pauseRun, resumeRun, startRun, stopRun, subscribe, TrackingState, unsavedPoints } from '../tracking';
+import { continueRun, ensurePermissions, getState, haltRun, lap, pauseRun, resumeRun, startRun, stopRun, subscribe, TrackingState, unsavedPoints } from '../tracking';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import { applyEnergy, type PainLevel } from '../training/adapt';
-import { loadPlan, savePlan, todaySession } from '../training/store';
+import { loadPlan, nextSession, savePlan, todaySession } from '../training/store';
 import type { Session } from '../training/types';
 import { formatLeft, stepLine } from '../training/workout';
 import type { Mood, Quiet, Run } from '../types';
@@ -35,8 +36,10 @@ type Phase = 'idle' | 'countdown' | 'active' | 'finish';
 
 /** Ids of the once-only finish lines already used (src/surprises.ts). */
 const SEEN_KEY = 'surprises.seen';
+/** Under this, Stop asks before making a run of it: a pocket tap is not a run. */
+const TINY_RUN_M = 50;
 
-export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0 }: { onSaved: (runId: number, share?: boolean, extra?: { pain: PainLevel | null; sessionId: string | null }) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number }) {
+export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0, focused = true, onOpenPlan }: { onSaved: (runId: number, share?: boolean, extra?: { pain: PainLevel | null; sessionId: string | null }) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number; focused?: boolean; onOpenPlan?: () => void }) {
   const { settings } = useSettings();
   const km = settings.unitsKm;
   const [track, setTrack] = useState<TrackingState>(getState());
@@ -63,6 +66,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   // Train tab), the guided steps during the run, and the pain line after.
   const [hasPlan, setHasPlan] = useState(false);
   const [planSession, setPlanSession] = useState<Session | null>(null);
+  const [planNext, setPlanNext] = useState<Session | null>(null); // the next session, on a rest day
   const [pain, setPain] = useState<PainLevel | null>(null);
   const [guided, setGuided] = useState<GuidedRun | null>(null);
   const session = requested ?? planSession;
@@ -88,6 +92,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         const active = p && p.status === 'active' ? p : null;
         setHasPlan(!!active);
         setPlanSession(active ? todaySession(active) : null);
+        setPlanNext(active && !todaySession(active) ? nextSession(active) : null);
       })
       .catch(() => {});
   }, [phase, planKey]);
@@ -150,18 +155,26 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
           if (countdownRef.current) clearInterval(countdownRef.current);
           countdownRef.current = null;
           cueCountdown(0);
-          if (session && !session.done && !session.skipped) beginWorkout(session);
-          await startRun(moodBefore);
-          setPhase('active');
+          await go();
         } else {
           cueCountdown(n);
         }
       }, 1000);
     } else {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      if (session && !session.done && !session.skipped) beginWorkout(session);
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      await go();
+    }
+  }
+
+  async function go() {
+    if (session && !session.done && !session.skipped) beginWorkout(session);
+    try {
       await startRun(moodBefore);
       setPhase('active');
+    } catch {
+      endWorkout();
+      await discardNow();
+      Alert.alert('Couldn’t start recording.', 'Location didn’t answer. Try again in a moment.');
     }
   }
 
@@ -184,10 +197,46 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     else pauseRun();
   }
 
+  // The phone's back gesture never drops a run on the floor.
+  useBack(() => {
+    if (phase === 'countdown') {
+      cancelCountdown();
+    } else if (phase === 'active') {
+      Alert.alert('Still recording.', 'The run keeps going until you stop it.', [
+        { text: 'Keep running', style: 'cancel' },
+        { text: 'Finish run', onPress: () => void onStop() },
+      ]);
+    } else if (phase === 'finish') {
+      Alert.alert('Keep this run?', 'Pick one before you go.', [
+        { text: 'Not yet', style: 'cancel' },
+        { text: 'Discard', style: 'destructive', onPress: () => void discardNow() },
+        { text: 'Keep it', onPress: () => void onSave() },
+      ]);
+    }
+    return true;
+  }, focused && phase !== 'idle');
+
   async function onStop() {
-    const s = getState();
-    if (s.status !== 'paused') pauseRun();
+    // Sensors off the moment you stop: nothing records behind the finish screen.
+    await haltRun();
     const f = getState();
+    if (f.distanceM < TINY_RUN_M) {
+      Alert.alert(
+        'Barely moved.',
+        `${formatDuration(f.durationS)} and ${formatDistance(f.distanceM, km)}. Keep it anyway?`,
+        [
+          { text: 'Carry on', style: 'cancel', onPress: () => void continueRun() },
+          { text: 'Discard', style: 'destructive', onPress: () => void discardNow() },
+          { text: 'Keep it', onPress: () => void showFinish(f) },
+        ],
+        { cancelable: false },
+      );
+      return;
+    }
+    await showFinish(f);
+  }
+
+  async function showFinish(f: TrackingState) {
     setFinal(f);
     setPhase('finish');
     setSurprise(await pickSurprise(f, runs, km));
@@ -215,16 +264,18 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   function onDiscard() {
     Alert.alert('Discard run?', 'This cannot be undone.', [
       { text: 'Keep', style: 'cancel' },
-      {
-        text: 'Discard',
-        style: 'destructive',
-        onPress: async () => {
-          const id = await stopRun({ moodAfter: null, quiet: null, note: null });
-          if (id != null) await deleteRun(id);
-          reset();
-        },
-      },
+      { text: 'Discard', style: 'destructive', onPress: () => void discardNow() },
     ]);
+  }
+
+  async function discardNow() {
+    try {
+      const id = await stopRun({ moodAfter: null, quiet: null, note: null });
+      if (id != null) await deleteRun(id);
+    } catch {
+      // nothing left to tidy
+    }
+    reset();
   }
 
   function reset() {
@@ -245,7 +296,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
 
   // ---- Idle ------------------------------------------------------------------
   if (phase === 'idle') {
-    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} planToday={session} />;
+    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} planToday={session} planNext={requested ? null : planNext} onOpenPlan={onOpenPlan} />;
   }
 
   // ---- Countdown -------------------------------------------------------------
@@ -273,6 +324,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         <View style={{ height: mapH, backgroundColor: colors.mintSoft }}>
           <RouteMap
             path={final.path}
+            here={final.here}
             fill
             interactive={false}
             fitPadding={{ top: finishPad.top + 24, right: 36, bottom: finishPad.bottom + 24, left: 36 }}

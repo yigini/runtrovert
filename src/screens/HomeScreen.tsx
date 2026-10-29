@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AmbientBackground } from '../components/AmbientBackground';
 import { Button } from '../components/Button';
 import { Fade } from '../components/Fade';
 import { Mark } from '../components/Mark';
 import { MoodPicker } from '../components/MoodPicker';
+import { PlanReminderLine } from '../components/PlanReminders';
 import { SkyGlyph } from '../components/SkyGlyph';
 import { TipLine } from '../components/TipLine';
 import { homeFootage } from '../footage';
@@ -12,6 +13,7 @@ import { clock, formatTemp, headline, suggestions } from '../sky';
 import { useSettings } from '../settings';
 import { seasonalLine } from '../surprises';
 import { colors, fonts, spacing } from '../theme';
+import { WEEKDAY_LONG, weekdayOf } from '../training/dates';
 import type { Session } from '../training/types';
 import type { Mood, Run } from '../types';
 import { NEWS } from '../whatsNew';
@@ -21,7 +23,7 @@ import { cachedWeather, getWeather, type Weather, type WeatherResult } from '../
  * The first thing you see. Footage, the sky in a sentence, three plain
  * suggestions, and the start button. No cards: the words sit on the picture.
  */
-export function HomeScreen({ runs, mood, onMood, onStart, planToday }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; planToday?: Session | null }) {
+export function HomeScreen({ runs, mood, onMood, onStart, planToday, planNext, onOpenPlan }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; planToday?: Session | null; planNext?: Session | null; onOpenPlan?: () => void }) {
   const { settings, update } = useSettings();
   const metric = settings.unitsKm;
   const [sky, setSky] = useState<WeatherResult | null>(null);
@@ -59,7 +61,8 @@ export function HomeScreen({ runs, mood, onMood, onStart, planToday }: { runs: R
     <AmbientBackground style={homeFootage(weather, now)} still={settings.batteryMode === 'saver'}>
       <Fade from="top" height="62%" strength={0.9} />
       <Fade from="bottom" height="42%" strength={0.92} />
-      <View style={styles.screen}>
+      {/* Words scroll when there are many of them; the start button never moves. */}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.screen} showsVerticalScrollIndicator={false}>
         <View style={styles.top}>
           <Text style={styles.eyebrow}>{dateLine(now)}</Text>
           <Mark size={30} tile={false} />
@@ -70,12 +73,22 @@ export function HomeScreen({ runs, mood, onMood, onStart, planToday }: { runs: R
           {weather ? headline(weather, metric, now) : greeting(runs, now)}
         </Text>
         <Text style={styles.sub}>{seasonalLine(now) ?? subline(runs, now)}</Text>
+        {/* The plan's day, tappable through to the Train tab, with whether a reminder will come. */}
         {planToday ? (
-          <View style={styles.plan}>
-            <Text style={styles.planLabel}>{planToday.done ? 'Today’s session, done' : planToday.skipped ? 'Today’s session, set aside' : 'Today, from your plan'}</Text>
+          <Pressable onPress={onOpenPlan} disabled={!onOpenPlan} style={styles.plan} accessibilityRole="button" accessibilityHint="Opens your plan">
+            <Text style={styles.planLabel}>{planToday.done ? 'Today’s session, done' : planToday.skipped ? 'Today’s session, set aside' : 'Today, from your plan'}  ›</Text>
             <Text style={styles.planText}>{planToday.title}</Text>
             <Text style={styles.planHint}>{planToday.summary}</Text>
-          </View>
+            <PlanReminderLine />
+          </Pressable>
+        ) : planNext ? (
+          <Pressable onPress={onOpenPlan} disabled={!onOpenPlan} style={styles.plan} accessibilityRole="button" accessibilityHint="Opens your plan">
+            <Text style={styles.planLabel}>Rest day, from your plan  ›</Text>
+            <Text style={styles.planText}>
+              Next: {WEEKDAY_LONG[weekdayOf(planNext.date)]}, {planNext.title.charAt(0).toLowerCase() + planNext.title.slice(1)}
+            </Text>
+            <PlanReminderLine />
+          </Pressable>
         ) : null}
 
         {weather ? (
@@ -107,7 +120,9 @@ export function HomeScreen({ runs, mood, onMood, onStart, planToday }: { runs: R
         ) : (
           <TipLine runs={runs} weather={weather} dark={evening} waiting={sky === null} />
         )}
+      </ScrollView>
 
+      <View style={styles.dock}>
         <MoodPicker inline title="Energy right now" value={mood} onChange={onMood} />
         <Button title={planToday && !planToday.done && !planToday.skipped ? 'Start today’s session' : 'Start run'} onPress={onStart} style={{ height: 62 }} />
         <Text style={styles.footer}>{footer(runs, now)}</Text>
@@ -176,7 +191,8 @@ function startOfDay(ms: number): number {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, padding: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md, gap: spacing.md },
+  screen: { flexGrow: 1, padding: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md, gap: spacing.md },
+  dock: { paddingHorizontal: spacing.lg, paddingTop: spacing.xs, paddingBottom: spacing.md, gap: spacing.sm },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   eyebrow: { fontFamily: fonts.bodySemi, fontSize: 12, letterSpacing: 2.5, textTransform: 'uppercase', color: colors.inkSoft },
   skyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: spacing.md },

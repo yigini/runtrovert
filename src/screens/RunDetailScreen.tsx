@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BackButton } from '../components/BackButton';
 import { Button } from '../components/Button';
 import { MoodPicker } from '../components/MoodPicker';
 import { RouteMap } from '../components/RouteMap';
@@ -7,6 +8,7 @@ import { ShareSheet } from '../components/ShareSheet';
 import { SplitsTable } from '../components/SplitsTable';
 import { YouLine } from '../components/YouLine';
 import { deleteRun, getPoints, getRun, getSplits, setMoodAfter } from '../db';
+import { forgetRun } from '../training/store';
 import { distanceUnit, estimateCalories, formatDistance, formatDuration, formatElevation, formatPace } from '../geo';
 import { compare, youVsYou, type RunFacts } from '../progress';
 import type { RunWeather } from '../shareLines';
@@ -65,6 +67,7 @@ export function RunDetailScreen({ runId, onBack, onDeleted, shareOnOpen }: { run
         style: 'destructive',
         onPress: async () => {
           await deleteRun(runId);
+          await forgetRun(runId).catch(() => {});
           onDeleted();
         },
       },
@@ -73,7 +76,7 @@ export function RunDetailScreen({ runId, onBack, onDeleted, shareOnOpen }: { run
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xl }}>
-      <Button title="‹ Back" variant="secondary" onPress={onBack} style={{ alignSelf: 'flex-start', height: 44, paddingHorizontal: 18 }} />
+      <BackButton label="History" onPress={onBack} />
       <Text style={styles.date}>{d.toLocaleString(undefined, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</Text>
       <RouteMap path={path} height={260} />
       {line && <YouLine title={line.title.replace('\n', ' ')} detail={line.detail} />}
