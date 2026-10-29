@@ -5,24 +5,23 @@ import { Button } from '../components/Button';
 import { MoodPicker } from '../components/MoodPicker';
 import { RouteMap } from '../components/RouteMap';
 import { ShareSheet } from '../components/ShareSheet';
-import { SplitsTable } from '../components/SplitsTable';
+import { RunStatsView } from '../components/RunStats';
 import { YouLine } from '../components/YouLine';
 import { deleteRun, getPoints, getRun, getSplits, setMoodAfter } from '../db';
-import { distanceUnit, estimateCalories, formatDistance, formatDuration, formatElevation, formatPace } from '../geo';
+import { forgetRun } from '../training/store';
 import { compare, youVsYou, type RunFacts } from '../progress';
 import type { RunWeather } from '../shareLines';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
+import type { StatPoint } from '../runStats';
 import type { LatLon, Mood, Run, Split } from '../types';
 import { loadYou } from '../you';
-
-const MOOD = ['', 'Drained', 'Low', 'Okay', 'Good', 'Recharged'];
-const QUIET = { crowded: 'Crowded', some: 'Some people', empty: 'Empty' } as const;
 
 export function RunDetailScreen({ runId, onBack, onDeleted, shareOnOpen }: { runId: number; onBack: () => void; onDeleted: () => void; shareOnOpen?: boolean }) {
   const km = useSettings().settings.unitsKm;
   const [run, setRun] = useState<Run | null>(null);
   const [path, setPath] = useState<LatLon[]>([]);
+  const [points, setPoints] = useState<StatPoint[]>([]);
   const [splits, setSplits] = useState<Split[]>([]);
   const [facts, setFacts] = useState<RunFacts[] | null>(null);
   const [weather, setWeather] = useState<RunWeather | null>(null);
@@ -33,6 +32,7 @@ export function RunDetailScreen({ runId, onBack, onDeleted, shareOnOpen }: { run
       setRun(await getRun(runId));
       const pts = await getPoints(runId);
       setPath(pts.map((p) => ({ latitude: p.lat, longitude: p.lon })));
+      setPoints(pts.map((p) => ({ ts: p.ts, lat: p.lat, lon: p.lon, alt: p.alt })));
       setSplits(await getSplits(runId));
       const you = await loadYou().catch(() => null);
       if (you) {
@@ -66,6 +66,7 @@ export function RunDetailScreen({ runId, onBack, onDeleted, shareOnOpen }: { run
         style: 'destructive',
         onPress: async () => {
           await deleteRun(runId);
+          await forgetRun(runId).catch(() => {});
           onDeleted();
         },
       },
@@ -78,16 +79,7 @@ export function RunDetailScreen({ runId, onBack, onDeleted, shareOnOpen }: { run
       <Text style={styles.date}>{d.toLocaleString(undefined, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</Text>
       <RouteMap path={path} height={260} />
       {line && <YouLine title={line.title.replace('\n', ' ')} detail={line.detail} />}
-      <View style={styles.grid}>
-        <Cell label="Distance" value={formatDistance(run.distanceM, km)} />
-        <Cell label="Time" value={formatDuration(run.durationS)} />
-        <Cell label={`Pace /${distanceUnit(km)}`} value={formatPace(run.distanceM, run.durationS, km)} />
-        <Cell label="Climb" value={formatElevation(run.elevationGainM, km)} />
-        <Cell label="Calories (est.)" value={`${estimateCalories(run.distanceM)} kcal`} />
-        <Cell label="Route" value={run.quiet ? QUIET[run.quiet] : '–'} />
-        <Cell label="Energy before" value={run.moodBefore ? MOOD[run.moodBefore] : '–'} />
-        <Cell label="Energy after" value={run.moodAfter ? MOOD[run.moodAfter] : '–'} />
-      </View>
+      <RunStatsView run={run} points={points} splits={kmSplits} laps={laps} partial={partial} sun={weather} km={km} />
       {run.moodAfter == null && run.endedAt != null ? (
         <MoodPicker
           title="And your energy now?"
@@ -99,8 +91,6 @@ export function RunDetailScreen({ runId, onBack, onDeleted, shareOnOpen }: { run
         />
       ) : null}
       {run.note ? <Text style={styles.note}>{run.note}</Text> : null}
-      <SplitsTable title={`Splits per ${distanceUnit(km)}`} rows={kmSplits} km={km} partial={partial} />
-      {laps.length > 0 && <SplitsTable title="Laps" rows={laps} km={km} />}
       {cmp && <Button title="Share with someone" variant="secondary" onPress={() => setSharing(true)} style={{ marginTop: spacing.sm }} />}
       <Button title="Delete run" variant="danger" onPress={onDelete} style={{ marginTop: spacing.lg }} />
       {cmp && <ShareSheet visible={sharing} onClose={() => setSharing(false)} run={run} path={path} cmp={cmp} weather={weather} km={km} />}
@@ -108,21 +98,8 @@ export function RunDetailScreen({ runId, onBack, onDeleted, shareOnOpen }: { run
   );
 }
 
-function Cell({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.cell}>
-      <Text style={styles.cellValue}>{value}</Text>
-      <Text style={styles.cellLabel}>{label}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.cream, padding: spacing.md, paddingTop: spacing.lg },
   date: { fontFamily: fonts.display, fontSize: 22, lineHeight: 26, color: colors.text },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm + 2 },
-  cell: { width: '47%', flexGrow: 1, backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md },
-  cellValue: { fontFamily: fonts.display, fontSize: 22, lineHeight: 26, color: colors.text },
-  cellLabel: { fontFamily: fonts.bodySemi, fontSize: 11, color: colors.muted, marginTop: 2, textTransform: 'uppercase', letterSpacing: 1 },
   note: { fontFamily: fonts.body, color: colors.text, fontSize: 15, lineHeight: 22, backgroundColor: colors.butter, borderRadius: radius.lg, padding: spacing.md },
 });

@@ -10,21 +10,22 @@ import { MusicStrip } from '../components/MusicStrip';
 import { PainPicker } from '../components/PainPicker';
 import { QuietPicker } from '../components/QuietPicker';
 import { RouteMap } from '../components/RouteMap';
-import { SplitsTable } from '../components/SplitsTable';
+import { RunStatsView } from '../components/RunStats';
 import { YouLine } from '../components/YouLine';
 import { useBack } from '../back';
 import { cueCountdown } from '../cues';
-import { deleteRun, listRuns, loadValue, saveValue } from '../db';
+import { deleteRun, getPoints, listRuns, loadValue, saveValue } from '../db';
 import { HomeScreen } from './HomeScreen';
 import { countdownFootage, type Footage } from '../footage';
 import { distanceUnit, formatDistance, formatDistanceNumber, formatDuration, formatElevation, formatPace, formatSpeedAsPace } from '../geo';
 import { compare, youVsYou, type RunFacts } from '../progress';
+import type { StatPoint } from '../runStats';
 import { useSettings } from '../settings';
 import { finishSurprise, type Surprise } from '../surprises';
 import { continueRun, ensurePermissions, getState, haltRun, lap, pauseRun, resumeRun, startRun, stopRun, subscribe, TrackingState, unsavedPoints } from '../tracking';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import { applyEnergy, type PainLevel } from '../training/adapt';
-import { loadPlan, savePlan, todaySession } from '../training/store';
+import { loadPlan, nextSession, savePlan, todaySession } from '../training/store';
 import type { Session } from '../training/types';
 import { formatLeft, stepLine } from '../training/workout';
 import type { Mood, Quiet, Run } from '../types';
@@ -39,7 +40,7 @@ const SEEN_KEY = 'surprises.seen';
 /** Under this, Stop asks before making a run of it: a pocket tap is not a run. */
 const TINY_RUN_M = 50;
 
-export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0, focused = true }: { onSaved: (runId: number, share?: boolean, extra?: { pain: PainLevel | null; sessionId: string | null }) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number; focused?: boolean }) {
+export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0, focused = true, onOpenPlan }: { onSaved: (runId: number, share?: boolean, extra?: { pain: PainLevel | null; sessionId: string | null }) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number; focused?: boolean; onOpenPlan?: () => void }) {
   const { settings } = useSettings();
   const km = settings.unitsKm;
   const [track, setTrack] = useState<TrackingState>(getState());
@@ -53,6 +54,8 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   const [final, setFinal] = useState<TrackingState | null>(null);
   // This run's bests and the runs before it, for the one you-vs-you line.
   const [live, setLive] = useState<{ run: RunFacts; history: RunFacts[] } | null>(null);
+  // Every fix of the run on the finish screen, for the charts: what's saved plus what isn't yet.
+  const [finishPoints, setFinishPoints] = useState<StatPoint[]>([]);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
   const [mapFront, setMapFront] = useState(false);
@@ -66,6 +69,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   // Train tab), the guided steps during the run, and the pain line after.
   const [hasPlan, setHasPlan] = useState(false);
   const [planSession, setPlanSession] = useState<Session | null>(null);
+  const [planNext, setPlanNext] = useState<Session | null>(null); // the next session, on a rest day
   const [pain, setPain] = useState<PainLevel | null>(null);
   const [guided, setGuided] = useState<GuidedRun | null>(null);
   const session = requested ?? planSession;
@@ -84,6 +88,25 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   useEffect(() => {
     if (phase === 'idle') listRuns().then(setRuns);
   }, [phase]);
+
+  useEffect(() => {
+    const runId = final?.runId;
+    if (phase !== 'finish' || runId == null) {
+      setFinishPoints([]);
+      return;
+    }
+    let alive = true;
+    getPoints(runId)
+      .then((saved) => {
+        const seen = new Set(saved.map((p) => p.ts));
+        const all = [...saved.map((p) => ({ ts: p.ts, lat: p.lat, lon: p.lon, alt: p.alt })), ...unsavedPoints().filter((p) => !seen.has(p.ts))];
+        if (alive) setFinishPoints(all.sort((a, b) => a.ts - b.ts));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [phase, final?.runId]);
   useEffect(() => {
     if (phase !== 'idle') return;
     loadPlan()
@@ -91,6 +114,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         const active = p && p.status === 'active' ? p : null;
         setHasPlan(!!active);
         setPlanSession(active ? todaySession(active) : null);
+        setPlanNext(active && !todaySession(active) ? nextSession(active) : null);
       })
       .catch(() => {});
   }, [phase, planKey]);
@@ -134,7 +158,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   async function begin() {
     const perm = await ensurePermissions();
     if (!perm.ok) {
-      Alert.alert('Location needed', 'Runtrovert can only record a run with location access. Nothing leaves your phone.');
+      Alert.alert('Location needed', 'Runtrovert can only record a run with location access. Your runs are saved on this phone, not on a server of ours.');
       return;
     }
     if (!perm.background) {
@@ -294,7 +318,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
 
   // ---- Idle ------------------------------------------------------------------
   if (phase === 'idle') {
-    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} planToday={session} />;
+    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} planToday={session} planNext={requested ? null : planNext} onOpenPlan={onOpenPlan} />;
   }
 
   // ---- Countdown -------------------------------------------------------------
@@ -347,8 +371,15 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
           <QuietPicker value={quiet} onChange={setQuiet} />
           <TextInput style={styles.note} placeholder="A note, if you want one" placeholderTextColor={colors.inkMuted} value={note} onChangeText={setNote} multiline />
           {hasPlan && <PainPicker value={pain} onChange={setPain} />}
-          <SplitsTable title={`Splits per ${distanceUnit(km)}`} rows={final.splits} km={km} partial={partialKm} />
-          {final.laps.length > 0 && <SplitsTable title="Laps" rows={final.laps} km={km} />}
+          <RunStatsView
+            run={{ startedAt: final.startedAt ?? Date.now(), endedAt: finishPoints.length ? finishPoints[finishPoints.length - 1].ts : null, distanceM: final.distanceM, durationS: final.durationS, elevationGainM: final.elevationGainM, quiet, moodBefore, moodAfter }}
+            points={finishPoints}
+            splits={final.splits}
+            laps={final.laps}
+            partial={partialKm}
+            km={km}
+            hero={false}
+          />
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
             <Button title="Discard" variant="danger" onPress={onDiscard} style={{ flex: 0, paddingHorizontal: 22 }} />
             <Button title="Keep it" onPress={() => onSave()} style={{ flex: 1 }} />

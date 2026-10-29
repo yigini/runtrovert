@@ -28,6 +28,11 @@ free for commercial use, no attribution required). Raw clips are not in the repo
 | bg-grey-city | 5310959 |
 | bg-farm-aerial | 15928220 |
 | bg-trail-bridge | 5677457 |
+| bg-rice-field | 18274390 |
+| bg-blade-stride | 6022795 |
+| bg-park-trees | 7062128 |
+| bg-track-day | 8533455 |
+| bg-dirt-track | 15928226 |
 
 The same list lives in `src/footage.ts` (`PEXELS`).
 

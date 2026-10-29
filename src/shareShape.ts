@@ -1,6 +1,7 @@
 // The route on a share card is a bare line on a pastel ground: no map, no
-// streets, and the first and last 300 m cut off so it never starts at a front
-// door. Pure, so `npm run test:progress` can check it under plain Node.
+// streets, and the first and last 300 m cut off so it doesn't start at a front
+// door. The shape can still be recognisable, so the share sheet keeps it off
+// by default. Pure, so `npm run test:progress` can check it under plain Node.
 
 import type { LatLon } from './types';
 

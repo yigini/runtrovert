@@ -18,7 +18,8 @@ OUT=${2:?out dir}
 shift 2
 mkdir -p "$OUT"
 
-# name|source file|start s|x|y   (x,y = where the runner sits, 0..1, used to place the 9:16 crop)
+# name|source file|start s|x|y[|end s]   (x,y = where the runner sits, 0..1, used to place the 9:16 crop;
+# end, when given, stops the loop before the runner turns to camera or walks out of frame)
 CLIPS='
 sunset-beach|7444958-uhd_3840_2160_30fps.mp4|0|0.62|0.5
 mist-beach|8636806-uhd_2560_1440_25fps.mp4|3|0.50|0.5
@@ -39,16 +40,22 @@ winter-city|7218876-uhd_2160_3840_24fps.mp4|0|0.5|0.50
 grey-city|5310959-uhd_2160_3840_25fps.mp4|2|0.5|0.50
 farm-aerial|15928220_2160_3840_60fps.mp4|1|0.5|0.50
 trail-bridge|5677457-uhd_3840_2160_24fps.mp4|2|0.50|0.5
+rice-field|18274390-hd_1920_1080_24fps.mp4|11|0.45|0.5|17.5
+blade-stride|6022795-uhd_3840_2160_25fps.mp4|6.5|0.50|0.5
+park-trees|7062128-uhd_3840_2160_25fps.mp4|4|0.40|0.5|10.5
+track-day|8533455-uhd_3840_2160_25fps.mp4|0|0.25|0.5|5
+dirt-track|15928226_2160_3840_60fps.mp4|8|0.5|0.50
 '
 
 FADE=1.2
 LOOP=8
 
 grade() {
-  local name=$1 src=$2 start=$3 x=$4 y=$5
+  local name=$1 src=$2 start=$3 x=$4 y=$5 stop=${6:-}
   local in="$RAW/$src"
   local dur
   dur=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$in")
+  [ -n "$stop" ] && dur=$stop
   dur=$(echo "$dur - $start" | bc -l)
   # Short sources are slowed (up to 1.5x) so there's room for the loop + fade.
   local slow
@@ -76,10 +83,10 @@ format=yuv420p"
   ffmpeg -nostdin -v error -y -ss "$(echo "$L/2" | bc -l)" -i "$OUT/bg-$name.mp4" -frames:v 1 -q:v 5 "$OUT/bg-$name.jpg"
 }
 
-while IFS='|' read -r name src start x y; do
+while IFS='|' read -r name src start x y stop; do
   [ -z "$name" ] && continue
   if [ $# -gt 0 ]; then
     case " $* " in *" $name "*) ;; *) continue ;; esac
   fi
-  grade "$name" "$src" "$start" "$x" "$y"
+  grade "$name" "$src" "$start" "$x" "$y" "$stop"
 done <<< "$CLIPS"

@@ -24,7 +24,7 @@ Everything stays on the phone.
 - **Cues**: Silent / Haptic / Voice (one calm sentence per km, no cheering)
 - **Units**: metric or imperial, everywhere
 - Energy check-in before and after each run (1–5), route busyness rating, optional note
-- Local SQLite storage — runs, GPS points, splits, settings; nothing leaves the device
+- Local SQLite storage — runs, GPS points, splits, settings; never sent anywhere (the phone's own backup includes it if that's on)
 - History, run detail with splits table and estimated calories, delete
 - **The sky**: the home screen reads the local weather (Open-Meteo, no key; location rounded to ~1 km; switch in Settings) and writes the headline from it, plus best window, what to wear and when it gets dark. Besides map tiles it is the only network call
 - **First-launch privacy screen** — opens on the motto, says the promise, once
