@@ -25,10 +25,17 @@ export function phoneLocale(): string {
   }
 }
 
+/**
+ * Languages the whole app speaks, interface included. Until a language's
+ * interface text is in, the phone's language doesn't switch to it, so nobody
+ * gets German reminders inside English screens.
+ */
+export const SHIPPED: Lang[] = ['en'];
+
 /** The language for a locale, English when we don't speak it. Portugal gets Brazilian Portuguese. */
 export function langFor(locale: string): Lang {
-  const code = locale.replace('_', '-').split('-')[0].toLowerCase();
-  return (LANGS.some((l) => l.code === code) ? code : 'en') as Lang;
+  const code = locale.replace('_', '-').split('-')[0].toLowerCase() as Lang;
+  return SHIPPED.includes(code) ? code : 'en';
 }
 
 /** Swiss German writes ss, never ß. */
