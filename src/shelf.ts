@@ -1,5 +1,7 @@
+import type { ImageSourcePropType } from 'react-native';
 import { loadValue, saveValue } from './db';
-import { isShelf, type Shelf } from './shelfLogic';
+import { BUNDLED_ART } from './shelfArt';
+import { isShelf, type Shelf, type Show } from './shelfLogic';
 import bundled from './shelfBundled.json';
 
 // The Listen list. The app ships with a copy (src/shelfBundled.json) and, if the
@@ -9,6 +11,16 @@ import bundled from './shelfBundled.json';
 // and nothing else. Nothing is fetched until the tab is opened.
 
 export const SHELF_URL = 'https://raw.githubusercontent.com/yigini/runtrovert/shelf/shelf.json';
+
+// Covers live beside the list. Hand-picked ones also ship inside the app.
+export const ART_URL = 'https://raw.githubusercontent.com/yigini/runtrovert/shelf/art/';
+
+/** A show's cover: the shipped one, else the published one when downloads are on, else none. */
+export function coverFor(show: Show, online: boolean): ImageSourcePropType | null {
+  const local = BUNDLED_ART[show.id];
+  if (local) return local;
+  return online && show.art ? { uri: `${ART_URL}${show.id}.jpg` } : null;
+}
 
 const KEY = 'shelf';
 const FRESH_MS = 12 * 3600 * 1000;

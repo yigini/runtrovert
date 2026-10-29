@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { checkOffer, cleanUrl, parseFeedHead, speaks } from './build-shelf.mjs';
-import { filterOffers, fitsRun, localShows, offersFor, parseLocale, pickCountry, showLink, usualRunMin, type Shelf, type Show } from '../src/shelfLogic.ts';
+import { filterOffers, fitsRun, freshEpisodes, whenLabel, localShows, offersFor, parseLocale, pickCountry, showLink, usualRunMin, type Shelf, type Show } from '../src/shelfLogic.ts';
 
 // Rules for the Listen tab and Kit & offers. Run: npm run test:shelf
 
@@ -58,5 +58,17 @@ assert.equal(speaks(['tr'], 'ru', 'Бегу'), false);
 assert.equal(speaks(['tr'], 'en', 'Koşver Gitsin'), true, 'hosts that stamp every feed "en"');
 assert.equal(speaks(['tr'], 'en', 'Inside Running'), false);
 assert.equal(speaks(['en'], 'en', ''), true);
+
+
+// "New for your run": one episode per show, recent only, fitting ones first
+const ep = (date: string, min: number | null) => ({ title: date, date, min });
+const withEp = (id: number, ...latest: ReturnType<typeof ep>[]): Show => ({ ...show(id, 'en'), latest });
+const fresh = freshEpisodes([withEp(1, ep('2026-10-28', 90)), withEp(2, ep('2026-10-20', 41)), withEp(3, ep('2026-09-01', 40)), withEp(4), withEp(1, ep('2026-10-29', 40))], '2026-10-29', 40);
+assert.deepEqual(fresh.map((f) => f.show.id), [2, 1], 'fits first, old and empty shows left out, no repeats');
+assert.equal(fresh[0].fits, true);
+assert.equal(whenLabel('2026-10-29', '2026-10-29'), 'today');
+assert.equal(whenLabel('2026-10-28', '2026-10-29'), 'yesterday');
+assert.equal(whenLabel('2026-10-25', '2026-10-29'), '4 days ago');
+assert.equal(whenLabel('2026-10-01', '2026-10-29'), '2026-10-01');
 
 console.log('shelf: all checks pass');

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, AppState, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { canControl, installedApps, type MusicApp } from '../music';
+import { Alert, AppState, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { appByKey } from '../music';
 import { notificationStatus, previewLine, sendLineNow, turnOnNotifications, type NotifyStatus } from '../notify';
 import { PODCAST_APPS } from '../shelfLogic';
 import { onBatteryModeChanged } from '../tracking';
@@ -20,13 +20,9 @@ const CUES: Array<{ key: CueMode; label: string; hint: string }> = [
   { key: 'voice', label: 'Voice', hint: 'One calm sentence per km. No cheering.' },
 ];
 
-export function SettingsScreen() {
+export function SettingsScreen({ onOpenListen }: { onOpenListen: () => void }) {
   const { settings, update } = useSettings();
   const [preview, setPreview] = useState(previewLine());
-  const [musicApps, setMusicApps] = useState<MusicApp[]>([]);
-  useEffect(() => {
-    installedApps().then(setMusicApps);
-  }, []);
 
   const [status, setStatus] = useState<NotifyStatus>('granted');
   // App.tsx re-plans reminders when these settings change. Here we only keep the
@@ -85,26 +81,14 @@ export function SettingsScreen() {
         </Row>
       </Section>
 
-      <Section title="Music" bg={colors.lilac} fg={colors.lilacDeep}>
-        <Row
-          label="Music on the run screen"
-          hint={
-            canControl
-              ? 'Previous, play and next for whatever is playing, plus a button that opens your app. No login, nothing read.'
-              : 'A button that opens your music app. Your lock screen and Control Center handle the rest.'
-          }
-        >
-          <Switch value={settings.musicStrip} onValueChange={(v) => update({ musicStrip: v })} trackColor={{ true: colors.ink }} />
-        </Row>
-        {[{ key: null, name: "Phone's default" } as { key: string | null; name: string }, ...musicApps].map((a) => {
-          const on = settings.musicApp === a.key;
-          return (
-            <Pressable key={a.key ?? 'default'} onPress={() => update({ musicApp: a.key })} style={[styles.option, on && styles.optionOn]}>
-              <Text style={[styles.optionLabel, on && styles.optionLabelOn]}>{a.name}</Text>
-            </Pressable>
-          );
-        })}
-        <Text style={styles.musicNote}>Voice cues lower your music for a moment instead of talking over it.</Text>
+      <Section title="Music & podcasts" bg={colors.lilac} fg={colors.lilacDeep}>
+        <Text style={styles.musicNote}>
+          {appByKey(settings.musicApp)?.name ?? "Phone's default"} for music, {PODCAST_APPS.find((a) => a.key === settings.podcastApp)?.label ?? 'ask each time'} for
+          podcasts, music strip {settings.musicStrip ? 'on' : 'off'} during runs. All of it lives on the Listen tab now, where you can try the controls.
+        </Text>
+        <Pressable onPress={onOpenListen} accessibilityRole="button" style={[styles.option, styles.optionOn, { alignItems: 'center' }]}>
+          <Text style={[styles.optionLabel, styles.optionLabelOn]}>Open Listen</Text>
+        </Pressable>
       </Section>
 
       <Section title="Battery" bg={colors.sky} fg={colors.skyDeep}>
@@ -183,15 +167,6 @@ export function SettingsScreen() {
             onChange={(v) => update({ listenDownload: v.toLowerCase() as ListenDownload })}
           />
         </Row>
-        <Text style={[styles.optionHint, { marginTop: 0 }]}>Open shows in</Text>
-        {[{ key: null, label: 'Ask me' }, ...PODCAST_APPS.filter((a) => (Platform.OS === 'ios' ? a.ios : a.android))].map((a) => {
-          const on = settings.podcastApp === a.key;
-          return (
-            <Pressable key={a.label} onPress={() => update({ podcastApp: a.key })} style={[styles.option, { paddingVertical: 10 }, on && styles.optionOn]}>
-              <Text style={[styles.optionLabel, { fontSize: 14 }, on && styles.optionLabelOn]}>{a.label}</Text>
-            </Pressable>
-          );
-        })}
         <Row label="Kit & offers" hint="A shelf of running kit from paying sponsors, at the bottom of Listen. Only there, only when you open it. Off hides it for good.">
           <Switch value={!settings.offersHidden} onValueChange={(v) => update({ offersHidden: !v })} trackColor={{ true: colors.ink }} />
         </Row>
