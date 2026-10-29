@@ -1,7 +1,7 @@
 import { useKeepAwake } from 'expo-keep-awake';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Dimensions, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Animated, Dimensions, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button } from '../components/Button';
 import { MoodPicker } from '../components/MoodPicker';
 import { QuietPicker } from '../components/QuietPicker';
@@ -19,7 +19,6 @@ import { colors, fonts, radius, spacing, type } from '../theme';
 import type { Mood, Quiet, Run } from '../types';
 
 type Phase = 'idle' | 'countdown' | 'active' | 'finish';
-const W = Dimensions.get('window').width;
 
 export function RunScreen({ onSaved }: { onSaved: (runId: number) => void }) {
   const { settings } = useSettings();
@@ -36,7 +35,8 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number) => void }) {
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
   const [line] = useState(previewLine());
-  const [page, setPage] = useState(0);
+  const [mapFront, setMapFront] = useState(false);
+  const veil = useRef(new Animated.Value(1)).current;
 
   useKeepAwake();
   useEffect(() => subscribe(setTrack), []);
@@ -87,6 +87,13 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number) => void }) {
     setPhase('idle');
   }
 
+  function toggleMap() {
+    Haptics.selectionAsync();
+    const next = !mapFront;
+    setMapFront(next);
+    Animated.timing(veil, { toValue: next ? 0 : 1, duration: 260, useNativeDriver: true }).start();
+  }
+
   function onPauseResume() {
     Haptics.selectionAsync();
     if (track.status === 'paused') resumeRun();
@@ -128,6 +135,8 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number) => void }) {
     setQuiet(null);
     setNote('');
     setFinal(null);
+    setMapFront(false);
+    veil.setValue(1);
   }
 
   // ---- Idle ------------------------------------------------------------------
@@ -209,92 +218,117 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number) => void }) {
   }
 
   // ---- Active ----------------------------------------------------------------
+  // The map is always there, edge to edge, under a dusk veil. The numbers sit
+  // on top. Tap "Map" and the veil lifts, the numbers shrink to one strip and
+  // the map takes your fingers.
   const paused = track.status === 'paused';
   const autoPaused = track.status === 'autopaused';
-  const pages = [
-    <MetricsPage key="main" km={km} t={track} />,
-    <SplitPage key="split" km={km} t={track} />,
-    <View key="map" style={{ width: W - spacing.md * 2 }}>
-      <RouteMap path={track.path} here={track.here} follow height={380} />
-    </View>,
-  ];
+  const halted = paused || autoPaused;
+  const H = Dimensions.get('window').height;
 
   return (
-    <View style={styles.screenInk}>
-      <View style={styles.liveTop}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View style={[styles.dot, { backgroundColor: paused || autoPaused ? colors.butter : colors.mint }]} />
-          <Text style={[type.eyebrow, { color: paused || autoPaused ? colors.butter : colors.mint, letterSpacing: 1.5 }]}>{autoPaused ? 'Auto-paused' : paused ? 'Paused' : 'Recording'}</Text>
-        </View>
-        <Text style={[type.eyebrow, { color: colors.onInkMuted, letterSpacing: 1.5 }]}>GPS {track.gps}</Text>
-      </View>
-      <FlatList
-        data={pages}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={(_, i) => String(i)}
-        renderItem={({ item }) => item}
-        onMomentumScrollEnd={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / (W - spacing.md * 2)))}
-        style={{ flexGrow: 0 }}
+    <View style={styles.live}>
+      <RouteMap
+        path={track.path}
+        here={track.here}
+        follow
+        fill
+        interactive={mapFront}
+        fps={mapFront ? undefined : 20}
+        focusPadding={mapFront ? { top: 120, right: 0, bottom: 140, left: 0 } : { top: H * 0.5, right: 0, bottom: 150, left: 0 }}
       />
-      <View style={styles.dots}>
-        {[0, 1, 2].map((i) => (
-          <View key={i} style={[styles.pageDot, i === page && styles.pageDotOn]} />
-        ))}
-      </View>
-      <View style={{ flex: 1 }} />
-      <View style={styles.controls}>
-        <Pressable onPress={onPauseResume} accessibilityLabel={paused ? 'Resume' : 'Pause'} style={styles.roundBtn}>
-          <Text style={styles.roundGlyph}>{paused ? '▶' : '❚❚'}</Text>
-        </Pressable>
-        <Button title="Lap" variant="secondary" onPress={() => lap()} style={{ flex: 1, height: 64 }} disabled={paused} />
-        <Pressable onPress={onStop} accessibilityLabel="Stop" style={[styles.roundBtn, { backgroundColor: colors.peach }]}>
-          <View style={styles.stopSquare} />
-        </Pressable>
+      <Animated.View pointerEvents="none" style={[styles.veil, { opacity: veil }]} />
+
+      <View style={styles.liveLayer} pointerEvents="box-none">
+        <View style={styles.liveTop}>
+          <View style={styles.statusPill}>
+            <View style={[styles.dot, { backgroundColor: halted ? colors.butter : colors.mint }]} />
+            <Text style={[styles.statusText, { color: halted ? colors.butter : colors.mint }]}>{autoPaused ? 'Auto-paused' : paused ? 'Paused' : 'Recording'}</Text>
+          </View>
+          <View style={styles.statusPill}>
+            <Text style={[styles.statusText, { color: colors.onInkMuted }]}>{gpsLabel(track.gps)}</Text>
+          </View>
+        </View>
+
+        {mapFront ? (
+          <View style={styles.strip}>
+            <StripStat value={formatDistanceNumber(track.distanceM, km)} label={distanceUnit(km)} />
+            <StripStat value={formatDuration(track.durationS)} label="time" />
+            <StripStat value={formatPace(track.distanceM, track.durationS, km)} label={`avg /${distanceUnit(km)}`} />
+          </View>
+        ) : (
+          <LiveNumbers km={km} t={track} />
+        )}
+
+        <View style={{ flex: 1 }} pointerEvents="none" />
+
+        <View style={{ alignItems: 'center' }}>
+          <Pressable onPress={toggleMap} accessibilityRole="button" accessibilityLabel={mapFront ? 'Show numbers' : 'Show map'} style={({ pressed }) => [styles.mapToggle, pressed && { opacity: 0.85 }]}>
+            <Text style={styles.mapToggleText}>{mapFront ? 'Numbers' : 'Map'}</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.controls}>
+          <Pressable onPress={onPauseResume} accessibilityLabel={paused ? 'Resume' : 'Pause'} style={styles.roundBtn}>
+            <Text style={styles.roundGlyph}>{paused ? '▶' : '❚❚'}</Text>
+          </Pressable>
+          <Pressable onPress={() => lap()} disabled={paused} accessibilityRole="button" style={({ pressed }) => [styles.lapBtn, pressed && { opacity: 0.85 }, paused && { opacity: 0.4 }]}>
+            <Text style={styles.lapText}>Lap</Text>
+          </Pressable>
+          <Pressable onPress={onStop} accessibilityLabel="Stop" style={[styles.roundBtn, { backgroundColor: colors.peach }]}>
+            <View style={styles.stopSquare} />
+          </Pressable>
+        </View>
       </View>
     </View>
   );
 }
 
-function MetricsPage({ km, t }: { km: boolean; t: TrackingState }) {
+function LiveNumbers({ km, t }: { km: boolean; t: TrackingState }) {
+  const cur = t.currentKm;
   return (
-    <View style={{ width: W - spacing.md * 2, gap: spacing.sm }}>
+    <View style={{ gap: spacing.md }} pointerEvents="none">
       <View style={styles.hero}>
-        <Text style={styles.heroValue}>{formatDistanceNumber(t.distanceM, km)}</Text>
+        <Text style={styles.heroValue} adjustsFontSizeToFit numberOfLines={1}>{formatDistanceNumber(t.distanceM, km)}</Text>
         <Text style={styles.heroUnit}>{km ? 'kilometres' : 'miles'}</Text>
       </View>
-      <View style={styles.tiles}>
-        <Tile bg={colors.mint} fg={colors.mintDeep} value={formatDuration(t.durationS)} label="time" />
-        <Tile bg={colors.peach} fg={colors.peachDeep} value={formatPace(t.distanceM, t.durationS, km)} label={`avg /${distanceUnit(km)}`} />
+      <View style={styles.numRow}>
+        <LiveStat value={formatDuration(t.durationS)} label="time" color={colors.mint} />
+        <LiveStat value={formatPace(t.distanceM, t.durationS, km)} label={`avg /${distanceUnit(km)}`} color={colors.peach} />
+        <LiveStat value={formatSpeedAsPace(t.speedMps, km)} label="right now" color={colors.lilac} />
       </View>
-      <View style={styles.tiles}>
-        <Tile bg={colors.lilac} fg={colors.lilacDeep} value={formatSpeedAsPace(t.speedMps, km)} label="right now" />
-        <Tile bg={colors.butter} fg={colors.butterDeep} value={formatElevation(t.elevationGainM, km)} label="climb" />
+      <Text style={styles.splitLine}>
+        {km ? 'km' : 'mile'} {t.splits.length + 1} · {formatPace(cur.distanceM, cur.durationS, km)} · climb {formatElevation(t.elevationGainM, km)}
+      </Text>
+    </View>
+  );
+}
+
+function LiveStat({ value, label, color }: { value: string; label: string; color: string }) {
+  return (
+    <View style={styles.liveStat}>
+      <Text style={styles.liveStatValue} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <View style={[styles.statDot, { backgroundColor: color }]} />
+        <Text style={styles.liveStatLabel}>{label}</Text>
       </View>
     </View>
   );
 }
 
-function SplitPage({ km, t }: { km: boolean; t: TrackingState }) {
-  const cur = t.currentKm;
-  const last = t.splits[t.splits.length - 1];
+function StripStat({ value, label }: { value: string; label: string }) {
   return (
-    <View style={{ width: W - spacing.md * 2, gap: spacing.sm }}>
-      <View style={styles.hero}>
-        <Text style={styles.heroValue}>{formatPace(cur.distanceM, cur.durationS, km)}</Text>
-        <Text style={styles.heroUnit}>this {km ? 'km' : 'mile'}</Text>
-      </View>
-      <View style={styles.tiles}>
-        <Tile bg={colors.mint} fg={colors.mintDeep} value={formatDistance(cur.distanceM, km)} label={`${km ? 'km' : 'mile'} ${t.splits.length + 1}`} />
-        <Tile bg={colors.peach} fg={colors.peachDeep} value={formatDuration(cur.durationS)} label="split time" />
-      </View>
-      <View style={styles.tiles}>
-        <Tile bg={colors.lilac} fg={colors.lilacDeep} value={last ? formatPace(last.distanceM, last.durationS, km) : '–'} label="last split" />
-        <Tile bg={colors.butter} fg={colors.butterDeep} value={formatDuration(t.currentLap.durationS)} label="lap" />
-      </View>
+    <View style={{ flex: 1, alignItems: 'center' }}>
+      <Text style={styles.stripValue} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+      <Text style={styles.stripLabel}>{label}</Text>
     </View>
   );
+}
+
+function gpsLabel(q: TrackingState['gps']): string {
+  if (q === 'searching') return 'Finding you…';
+  if (q === 'lost') return 'GPS lost';
+  return `GPS ${q}`;
 }
 
 function Tile({ bg, fg, value, label, small }: { bg: string; fg: string; value: string; label: string; small?: boolean }) {
@@ -355,17 +389,32 @@ const styles = StyleSheet.create({
   countdown: { fontFamily: fonts.displayLight, fontSize: 140, color: colors.cream, fontVariant: ['tabular-nums'] },
   finishHero: { backgroundColor: colors.mint, borderBottomLeftRadius: 40, borderBottomRightRadius: 40, padding: spacing.md, paddingTop: spacing.lg, gap: 12 },
   finishTitle: { fontFamily: fonts.display, fontSize: 32, lineHeight: 36, letterSpacing: -0.5, color: colors.text },
-  liveTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: spacing.sm },
+  live: { flex: 1, backgroundColor: colors.ink },
+  veil: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(43,39,51,0.66)' },
+  liveLayer: { flex: 1, padding: spacing.md, paddingTop: spacing.sm, gap: spacing.md },
+  liveTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(43,39,51,0.72)', borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 7 },
+  statusText: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase' },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  hero: { alignItems: 'center', paddingVertical: spacing.md },
-  heroValue: { fontFamily: fonts.displayLight, fontSize: 104, lineHeight: 104, letterSpacing: -4, color: colors.cream, fontVariant: ['tabular-nums'] },
-  heroUnit: { fontFamily: fonts.bodySemi, fontSize: 14, letterSpacing: 3, textTransform: 'uppercase', color: colors.onInkMuted },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, paddingVertical: 4 },
-  pageDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#5a5370' },
-  pageDotOn: { width: 18, backgroundColor: colors.cream },
+  hero: { alignItems: 'center', paddingTop: spacing.lg },
+  heroValue: { fontFamily: fonts.displayLight, fontSize: 112, lineHeight: 116, letterSpacing: -4, color: colors.cream, fontVariant: ['tabular-nums'] },
+  heroUnit: { fontFamily: fonts.bodySemi, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: colors.onInkMuted },
+  numRow: { flexDirection: 'row', gap: spacing.sm },
+  liveStat: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: radius.lg, backgroundColor: 'rgba(246,241,234,0.08)' },
+  liveStatValue: { fontFamily: fonts.display, fontSize: 28, lineHeight: 32, color: colors.cream, fontVariant: ['tabular-nums'] },
+  liveStatLabel: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.onInkMuted },
+  statDot: { width: 6, height: 6, borderRadius: 3 },
+  splitLine: { textAlign: 'center', fontFamily: fonts.body, fontSize: 14, color: colors.onInkMuted, fontVariant: ['tabular-nums'] },
+  strip: { flexDirection: 'row', backgroundColor: 'rgba(43,39,51,0.82)', borderRadius: radius.lg, paddingVertical: 12, paddingHorizontal: spacing.sm },
+  stripValue: { fontFamily: fonts.display, fontSize: 24, lineHeight: 28, color: colors.cream, fontVariant: ['tabular-nums'] },
+  stripLabel: { fontFamily: fonts.bodySemi, fontSize: 11, color: colors.onInkMuted },
+  mapToggle: { backgroundColor: 'rgba(246,241,234,0.92)', borderRadius: radius.pill, paddingHorizontal: 22, paddingVertical: 10 },
+  mapToggleText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.ink },
   controls: { flexDirection: 'row', gap: spacing.sm + 2, alignItems: 'center', paddingBottom: spacing.sm },
-  roundBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.inkSoft, alignItems: 'center', justifyContent: 'center' },
+  roundBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   roundGlyph: { color: colors.cream, fontSize: 18, fontFamily: fonts.bodyBold },
+  lapBtn: { flex: 1, height: 64, borderRadius: radius.pill, backgroundColor: 'rgba(232,226,245,0.94)', alignItems: 'center', justifyContent: 'center' },
+  lapText: { fontFamily: fonts.bodySemi, fontSize: 17, color: colors.lilacDeep },
   stopSquare: { width: 20, height: 20, borderRadius: 5, backgroundColor: colors.ink },
   note: { minHeight: 72, backgroundColor: colors.white, borderRadius: radius.lg, padding: spacing.md, color: colors.text, fontFamily: fonts.body, fontSize: 15, textAlignVertical: 'top' },
 });
