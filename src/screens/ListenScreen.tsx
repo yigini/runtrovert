@@ -5,6 +5,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   Share,
   StyleSheet,
@@ -104,6 +105,17 @@ export function ListenScreen({ onBack }: { onBack?: () => void }) {
     };
   }, [settings.listenDownload]);
 
+  // Pull down for today's list now, whatever the age of the one on the phone.
+  const [pulling, setPulling] = useState(false);
+  async function pull() {
+    if (settings.listenDownload !== 'on') return;
+    setPulling(true);
+    const s = await refreshShelf(true);
+    setShelf(s.shelf);
+    setFetchedAt(s.fetchedAt);
+    setPulling(false);
+  }
+
   const online = settings.listenDownload === 'on';
   const locale = phoneLocale();
   const cc = shelf ? pickCountry(shelf, locale, settings.podcastCountry) : null;
@@ -143,7 +155,11 @@ export function ListenScreen({ onBack }: { onBack?: () => void }) {
   ) : null;
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={{ gap: spacing.lg, paddingBottom: spacing.xl }}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={{ gap: spacing.lg, paddingBottom: spacing.xl }}
+      refreshControl={settings.listenDownload === 'on' ? <RefreshControl refreshing={pulling} onRefresh={pull} tintColor={colors.ink} colors={[colors.ink]} /> : undefined}
+    >
       {onBack ? <BackButton label={ui().listen.start} onPress={onBack} /> : null}
       <View style={{ gap: spacing.sm }}>
         <Text style={styles.h1} accessibilityRole="header">{ui().listen.listen}</Text>

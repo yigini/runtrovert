@@ -23,7 +23,7 @@ export function coverFor(show: Show, online: boolean): ImageSourcePropType | nul
 }
 
 const KEY = 'shelf';
-const FRESH_MS = 12 * 3600 * 1000;
+const FRESH_MS = 3 * 3600 * 1000; // the list changes daily and links fill in over a few runs; 150 KB is cheap
 
 interface Stored {
   shelf: Shelf;
@@ -39,7 +39,7 @@ export async function storedShelf(): Promise<{ shelf: Shelf; fetchedAt: number |
   return { shelf: BUNDLED, fetchedAt: null };
 }
 
-/** Download today's list if the stored one is older than half a day. Never throws. */
+/** Download today's list if the stored one is more than three hours old (or always, with force). Never throws. */
 export async function refreshShelf(force = false): Promise<{ shelf: Shelf; fetchedAt: number | null }> {
   const current = await storedShelf();
   if (!force && current.fetchedAt && Date.now() - current.fetchedAt < FRESH_MS) return current;
