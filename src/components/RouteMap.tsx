@@ -31,7 +31,32 @@ function boundsFor(path: LatLon[]): [number, number, number, number] | null {
   return [minLon, minLat, maxLon, maxLat]; // west, south, east, north
 }
 
-export function RouteMap({ path, here, follow, height = 220, offline = false }: { path: LatLon[]; here?: LatLon | null; follow?: boolean; height?: number; offline?: boolean }) {
+type ViewPadding = { top: number; right: number; bottom: number; left: number };
+
+export function RouteMap({
+  path,
+  here,
+  follow,
+  height = 220,
+  offline = false,
+  fill = false,
+  interactive = true,
+  focusPadding,
+  fps,
+}: {
+  path: LatLon[];
+  here?: LatLon | null;
+  follow?: boolean;
+  height?: number;
+  offline?: boolean;
+  /** Fill the parent edge to edge (live run background) instead of a rounded card. */
+  fill?: boolean;
+  interactive?: boolean;
+  /** Where the live dot should sit when following, e.g. below overlaid numbers. */
+  focusPadding?: ViewPadding;
+  /** Cap the frame rate; a map behind the numbers doesn't need 60 fps. */
+  fps?: number;
+}) {
   const last = path[path.length - 1];
   // Live position wins over the route's end: we may be standing still, or the
   // filter may still be waiting for an accurate fix before it draws a line.
@@ -52,7 +77,7 @@ export function RouteMap({ path, here, follow, height = 220, offline = false }: 
   const padding = { top: 28, right: 28, bottom: 28, left: 28 };
   const view =
     follow && head
-      ? { center: [head.longitude, head.latitude] as [number, number], zoom: 16, duration: 600, easing: 'ease' as const }
+      ? { center: [head.longitude, head.latitude] as [number, number], zoom: 16, padding: focusPadding, duration: 600, easing: 'ease' as const }
       : bounds
         ? { bounds, padding, duration: 0 }
         : head
@@ -60,8 +85,21 @@ export function RouteMap({ path, here, follow, height = 220, offline = false }: 
           : null;
 
   return (
-    <View style={[styles.wrap, { height }]}>
-      <MapLibreMap style={StyleSheet.absoluteFill} mapStyle={offline ? BLANK_STYLE : MAP_STYLE} logo={false} attribution={!offline} compass={false}>
+    <View style={fill ? styles.fill : [styles.wrap, { height }]} pointerEvents={interactive ? 'auto' : 'none'}>
+      <MapLibreMap
+        style={StyleSheet.absoluteFill}
+        mapStyle={offline ? BLANK_STYLE : MAP_STYLE}
+        logo={false}
+        attribution={!offline}
+        attributionPosition={fill ? { top: 60, right: 12 } : undefined}
+        compass={false}
+        dragPan={interactive}
+        touchZoom={interactive}
+        doubleTapZoom={interactive}
+        touchRotate={false}
+        touchPitch={false}
+        preferredFramesPerSecond={fps}
+      >
         {view ? <Camera {...view} /> : <Camera initialViewState={{ zoom: 1 }} />}
         {path.length > 1 && (
           <GeoJSONSource id="route" data={line}>
@@ -81,4 +119,5 @@ export function RouteMap({ path, here, follow, height = 220, offline = false }: 
 
 const styles = StyleSheet.create({
   wrap: { borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.mintSoft },
+  fill: { ...StyleSheet.absoluteFill, backgroundColor: colors.inkSoft },
 });
