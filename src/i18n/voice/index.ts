@@ -4,11 +4,12 @@ import { finish, lang, type Lang } from '../lang';
 import { TIPS, tipsByTopic, type Tip, type TipTopic } from '../../tips';
 import { en } from './en';
 import { de } from './de';
+import { es } from './es';
 import { fr } from './fr';
 import { tr } from './tr';
 import type { VoicePack } from './types';
 
-export const PACKS: Partial<Record<Lang, VoicePack>> = { en, de, fr, tr };
+export const PACKS: Partial<Record<Lang, VoicePack>> = { en, de, es, fr, tr };
 
 export function voice(): VoicePack {
   return PACKS[lang()] ?? en;
