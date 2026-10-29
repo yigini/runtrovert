@@ -5,9 +5,10 @@ import { de } from './de';
 import { fr } from './fr';
 import { en, type Strings } from './en';
 import { es } from './es';
+import { pt } from './pt';
 
 /** Every interface language. A language listed in SHIPPED (lang.ts) must be here. */
-export const UI: Partial<Record<Lang, Strings>> = { en, de, fr, es };
+export const UI: Partial<Record<Lang, Strings>> = { en, de, fr, es, pt };
 
 export function ui(): Strings {
   const l = lang();
