@@ -4,8 +4,8 @@ import { parse, type Weather } from './forecast';
 
 export type { Hour, Sky, Weather } from './forecast';
 
-// The local sky, for the home screen. Besides map tiles this is the app's
-// one network call: a location rounded to ~1 km goes to Open-Meteo (no key, no account, no
+// The local sky, for the home screen. Besides map tiles and the opt-in Listen list
+// (src/shelf.ts) this is the app's one network call: a location rounded to ~1 km goes to Open-Meteo (no key, no account, no
 // cookies) and a forecast comes back. Nothing else is sent, and it can be
 // switched off in Settings. The last reading is kept on the phone so the
 // home screen never waits on the network.

@@ -1,17 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../components/Button';
+import { MoodPicker } from '../components/MoodPicker';
 import { RouteMap } from '../components/RouteMap';
 import { ShareSheet } from '../components/ShareSheet';
 import { SplitsTable } from '../components/SplitsTable';
 import { YouLine } from '../components/YouLine';
-import { deleteRun, getPoints, getRun, getSplits } from '../db';
+import { deleteRun, getPoints, getRun, getSplits, setMoodAfter } from '../db';
 import { distanceUnit, estimateCalories, formatDistance, formatDuration, formatElevation, formatPace } from '../geo';
 import { compare, youVsYou, type RunFacts } from '../progress';
 import type { RunWeather } from '../shareLines';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
-import type { LatLon, Run, Split } from '../types';
+import type { LatLon, Mood, Run, Split } from '../types';
 import { loadYou } from '../you';
 
 const MOOD = ['', 'Drained', 'Low', 'Okay', 'Good', 'Recharged'];
@@ -86,6 +87,16 @@ export function RunDetailScreen({ runId, onBack, onDeleted, shareOnOpen }: { run
         <Cell label="Energy before" value={run.moodBefore ? MOOD[run.moodBefore] : '–'} />
         <Cell label="Energy after" value={run.moodAfter ? MOOD[run.moodAfter] : '–'} />
       </View>
+      {run.moodAfter == null && run.endedAt != null ? (
+        <MoodPicker
+          title="And your energy now?"
+          value={null}
+          onChange={(m: Mood) => {
+            setRun({ ...run, moodAfter: m });
+            setMoodAfter(runId, m).catch(() => {});
+          }}
+        />
+      ) : null}
       {run.note ? <Text style={styles.note}>{run.note}</Text> : null}
       <SplitsTable title={`Splits per ${distanceUnit(km)}`} rows={kmSplits} km={km} partial={partial} />
       {laps.length > 0 && <SplitsTable title="Laps" rows={laps} km={km} />}

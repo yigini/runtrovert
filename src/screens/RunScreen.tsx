@@ -2,25 +2,33 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Dimensions, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { AmbientBackground } from '../components/AmbientBackground';
 import { Button } from '../components/Button';
 import { Face } from '../components/Mark';
 import { MoodPicker } from '../components/MoodPicker';
+import { MusicStrip } from '../components/MusicStrip';
 import { QuietPicker } from '../components/QuietPicker';
 import { RouteMap } from '../components/RouteMap';
 import { SplitsTable } from '../components/SplitsTable';
 import { YouLine } from '../components/YouLine';
 import { cueCountdown } from '../cues';
-import { deleteRun, listRuns } from '../db';
+import { deleteRun, listRuns, loadValue, saveValue } from '../db';
 import { HomeScreen } from './HomeScreen';
+import { countdownFootage, type Footage } from '../footage';
 import { distanceUnit, formatDistance, formatDistanceNumber, formatDuration, formatElevation, formatPace, formatSpeedAsPace } from '../geo';
 import { compare, youVsYou, type RunFacts } from '../progress';
 import { useSettings } from '../settings';
+import { finishSurprise, type Surprise } from '../surprises';
 import { ensurePermissions, getState, lap, pauseRun, resumeRun, startRun, stopRun, subscribe, TrackingState, unsavedPoints } from '../tracking';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import type { Mood, Quiet, Run } from '../types';
+import { cachedWeather } from '../weather';
 import { liveFacts, recordRunFacts } from '../you';
 
 type Phase = 'idle' | 'countdown' | 'active' | 'finish';
+
+/** Ids of the once-only finish lines already used (src/surprises.ts). */
+const SEEN_KEY = 'surprises.seen';
 
 export function RunScreen({ onSaved }: { onSaved: (runId: number, share?: boolean) => void }) {
   const { settings } = useSettings();
@@ -39,6 +47,9 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number, share?: boolea
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
   const [mapFront, setMapFront] = useState(false);
+  const [countFootage, setCountFootage] = useState<Footage>('cobbles');
+  // The finish line for this run, when it has earned one; otherwise finishLine().
+  const [surprise, setSurprise] = useState<Surprise | null>(null);
   const veil = useRef(new Animated.Value(1)).current;
   // Heights of the words and the numbers laid over the finish map, so the route is framed between them.
   const [finishPad, setFinishPad] = useState({ top: 140, bottom: 170 });
@@ -71,6 +82,7 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number, share?: boolea
       Alert.alert('Background location', 'Without "Always" location the run may stop recording when the screen is off. You can change this in Settings later.');
     }
     if (settings.countdownS > 0) {
+      setCountFootage(countdownFootage());
       setPhase('countdown');
       let n = settings.countdownS;
       setCount(n);
@@ -114,7 +126,7 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number, share?: boolea
     else pauseRun();
   }
 
-  function onStop() {
+  async function onStop() {
     const s = getState();
     if (s.status !== 'paused') pauseRun();
     const f = getState();
@@ -125,6 +137,7 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number, share?: boolea
         .then(setLive)
         .catch(() => {});
     }
+    setSurprise(await pickSurprise(f, runs, km));
   }
 
   async function onSave(share = false) {
@@ -132,6 +145,10 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number, share?: boolea
     const durationS = final?.durationS ?? 0;
     const id = await stopRun({ moodAfter, quiet, note: note.trim() || null });
     if (id != null) await recordRunFacts(id, startedAt, durationS).catch(() => {});
+    if (id != null && surprise?.once) {
+      const seen = (await loadValue<string[]>(SEEN_KEY).catch(() => null)) ?? [];
+      saveValue(SEEN_KEY, [...seen, surprise.id]).catch(() => {});
+    }
     reset();
     if (id != null) onSaved(id, share);
   }
@@ -159,6 +176,7 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number, share?: boolea
     setNote('');
     setFinal(null);
     setLive(null);
+    setSurprise(null);
     setMapFront(false);
     veil.setValue(1);
   }
@@ -169,12 +187,16 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number, share?: boolea
   }
 
   // ---- Countdown -------------------------------------------------------------
+  // Feet on the ground behind the numbers, under an ink veil so the count stays cream.
   if (phase === 'countdown') {
     return (
-      <View style={[styles.screenInk, styles.center]}>
-        <Text style={styles.countdown}>{count}</Text>
-        <Button title="Cancel" variant="onInk" onPress={cancelCountdown} style={{ marginTop: spacing.xl, width: 160 }} />
-      </View>
+      <AmbientBackground style={countFootage} still={settings.batteryMode === 'saver'}>
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(43,39,51,0.55)' }]} />
+        <View style={[styles.center, { flex: 1, padding: spacing.md }]}>
+          <Text style={styles.countdown}>{count}</Text>
+          <Button title="Cancel" variant="onInk" onPress={cancelCountdown} style={{ marginTop: spacing.xl, width: 160 }} />
+        </View>
+      </AmbientBackground>
     );
   }
 
@@ -195,7 +217,7 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number, share?: boolea
           />
           <View style={styles.finishTop} pointerEvents="none" onLayout={(e) => setFinishPad((p) => ({ ...p, top: e.nativeEvent.layout.y + e.nativeEvent.layout.height }))}>
             <Text style={[type.eyebrow, { color: colors.mintDeep }]}>Run done</Text>
-            <Text style={styles.finishTitle}>{finishLine()}</Text>
+            <Text style={styles.finishTitle}>{surprise?.line ?? finishLine()}</Text>
           </View>
           <View style={styles.finishCard} onLayout={(e) => setFinishPad((p) => ({ ...p, bottom: mapH - e.nativeEvent.layout.y }))}>
             <View style={styles.statRow}>
@@ -268,6 +290,8 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number, share?: boolea
         )}
 
         <View style={{ flex: 1 }} pointerEvents="none" />
+
+        {settings.musicStrip && <MusicStrip appKey={settings.musicApp} />}
 
         <View style={{ alignItems: 'center' }}>
           <Pressable onPress={toggleMap} accessibilityRole="button" accessibilityLabel={mapFront ? 'Show numbers' : 'Show map'} style={({ pressed }) => [styles.mapToggle, pressed && { opacity: 0.85 }]}>
@@ -379,6 +403,16 @@ function Recharge({ before, after }: { before: Mood | null; after: Mood | null }
 function finishLine(): string {
   const lines = ['Nobody saw that.\nWhich was the plan.', 'That’s one.\nQuietly logged.', 'Done.\nGo be unavailable.', 'Legs did the talking.'];
   return lines[Math.floor(Date.now() / 60000) % lines.length];
+}
+
+/** The rare line, from this run, the runs before it, the last weather reading and what's been said already. */
+async function pickSurprise(f: TrackingState, history: Run[], metric: boolean): Promise<Surprise | null> {
+  try {
+    const [seen, w] = await Promise.all([loadValue<string[]>(SEEN_KEY), cachedWeather()]);
+    return finishSurprise({ startedAt: f.startedAt ?? Date.now(), distanceM: f.distanceM, durationS: f.durationS }, history, w?.sky ?? null, seen ?? [], metric);
+  } catch {
+    return null;
+  }
 }
 
 const styles = StyleSheet.create({
