@@ -1,21 +1,18 @@
 import type { Weather } from './forecast';
 
-// Which background loop the sky gets. The home screen already writes its
+// Which background loop the sky gets. Every loop is someone running, nothing else. The home screen already writes its
 // headline from the weather; the footage follows the same reading, so fog
 // looks like fog and a hot day looks hot. Pure, so it runs under plain Node.
 // The clips themselves are required in components/AmbientBackground.tsx.
 
 export type Footage =
-  | 'dusk' // lone figure on a ridge, last light
   | 'tree' // distant runner past a big tree, summer
   | 'sunset-beach' // runner along the surf, sun on the water
   | 'mist-beach' // grey beach, fog, runner from behind
   | 'snow-plain' // white field, one figure in blue
   | 'grey-path' // overcast park path, runner from behind
   | 'green-hill' // green slope, blue sky
-  | 'dunes' // sand and heat haze
   | 'rock-coast' // rocky shore, runner from behind
-  | 'cobbles' // shoes on old stone, close
   | 'forest-path' // woodland path, runner from behind
   | 'green-tunnel' // summer trail under trees
   | 'dirt-road' // aerial, runner and long shadow on a farm track
@@ -28,23 +25,19 @@ export type Footage =
   | 'farm-aerial' // aerial, lanes between fields
   | 'trail-bridge' // legs on a forest footbridge
   | 'rice-field' // ripe paddy under a grey sky, runner from behind
-  | 'blade-stride' // close on a running blade and a shoe
   | 'park-trees' // bare park trees, runner in a hood
   | 'track-day' // empty red track, one runner far off
   | 'dirt-track'; // low aerial over a dirt track, big clouds
 
 /** Pexels video ids, for assets/CREDITS.md. Licence: free use, no attribution required. */
 export const PEXELS: Record<Footage, number> = {
-  dusk: 15177808,
   tree: 12000664,
   'sunset-beach': 7444958,
   'mist-beach': 8636806,
   'snow-plain': 7038131,
   'grey-path': 5114847,
   'green-hill': 15627765,
-  dunes: 5442785,
   'rock-coast': 5929358,
-  cobbles: 3209242,
   'forest-path': 14936182,
   'green-tunnel': 15294983,
   'dirt-road': 15479756,
@@ -57,7 +50,6 @@ export const PEXELS: Record<Footage, number> = {
   'farm-aerial': 15928220,
   'trail-bridge': 5677457,
   'rice-field': 18274390,
-  'blade-stride': 6022795,
   'park-trees': 7062128,
   'track-day': 8533455,
   'dirt-track': 15928226,
@@ -71,10 +63,10 @@ const POOLS: Record<Scene, Footage[]> = {
   snow: ['snow-plain', 'winter-city'],
   rain: ['grey-city', 'grey-path', 'mist-beach'],
   fog: ['mist-beach', 'grey-beach', 'forest-path'],
-  night: ['night-track', 'dusk'],
-  dusk: ['dusk', 'sunset-beach'],
+  night: ['night-track'],
+  dusk: ['sunset-beach'],
   cold: ['winter-city', 'snow-plain', 'rock-coast', 'park-trees'],
-  heat: ['dunes', 'dirt-road', 'field-pine', 'rice-field'],
+  heat: ['dirt-road', 'field-pine', 'rice-field', 'dirt-track'],
   wind: ['rock-coast', 'grey-beach', 'farm-aerial', 'dirt-track', 'rice-field'],
   clear: ['tree', 'green-hill', 'dirt-road', 'field-pine', 'farm-aerial', 'rock-coast', 'green-tunnel', 'dirt-track', 'track-day'],
   cloud: ['grey-path', 'grey-beach', 'forest-path', 'green-tunnel', 'grey-city', 'park-trees', 'rice-field', 'track-day'],
@@ -82,8 +74,8 @@ const POOLS: Record<Scene, Footage[]> = {
 
 /** Behind the motto, once. */
 export const WELCOME: Footage = 'seawall';
-/** Behind the countdown: feet, not faces. */
-export const COUNTDOWN: Footage[] = ['cobbles', 'trail-bridge', 'green-tunnel', 'blade-stride'];
+/** Behind the countdown: runners already on their way. */
+export const COUNTDOWN: Footage[] = ['trail-bridge', 'green-tunnel', 'forest-path'];
 
 /** Same order of precedence as the headline in sky.ts, so words and picture agree. */
 export function sceneFor(w: Weather | null, now = Date.now()): Scene {
