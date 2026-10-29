@@ -1,23 +1,25 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Pressable, ScrollView, SectionList, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { spokenDistance, spokenDuration, spokenPace } from '../a11y';
+import { patternFormat, PatternsView } from '../components/PatternsView';
 import { PlacesList } from '../components/PlacesList';
 import { SettingsGear } from '../components/SettingsGear';
 import { YouSection } from '../components/YouSection';
-import { listRuns } from '../db';
-import { formatDistance, formatDuration, formatPace } from '../geo';
+import { distanceUnit, formatDistance, formatDistanceNumber, formatDuration, formatPace } from '../geo';
+import { energyPatterns, groupRuns, monthSummary } from '../patterns';
+import { loadYourRuns, patternRuns, type YourRunsData } from '../patternStore';
+import { BUSY_LABEL } from '../places';
 import type { Place } from '../placeStore';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import type { Quiet, Run } from '../types';
 
-const QUIET_LABEL: Record<Quiet, string> = { crowded: 'crowded', some: 'some people', empty: 'empty' };
 const QUIET_BG: Record<Quiet, string> = { crowded: colors.peach, some: colors.butter, empty: colors.mint };
 const QUIET_FG: Record<Quiet, string> = { crowded: colors.peachDeep, some: colors.butterDeep, empty: colors.mintDeep };
 
-/** Your runs is split in sections; Places is the runner's own route memory. */
-export type RunsSection = 'runs' | 'places';
+/** Your runs is split in three: every run, the places you kept, and patterns in your own answers. */
+export type RunsSection = 'runs' | 'places' | 'patterns';
 
 export function HistoryScreen({
   onOpen,
@@ -35,26 +37,25 @@ export function HistoryScreen({
   onRunAgain?: (p: Place) => void;
 }) {
   const km = useSettings().settings.unitsKm;
-  const [runs, setRuns] = useState<Run[]>([]);
-  const load = useCallback(async () => setRuns(await listRuns()), []);
+  const [data, setData] = useState<YourRunsData | null>(null);
+  const load = useCallback(async () => setData(await loadYourRuns()), []);
   useEffect(() => {
-    load();
+    load().catch(() => setData({ runs: [], placeOf: new Map(), places: [] }));
   }, [load, refreshKey]);
 
-  const now = new Date();
-  const month = runs.filter((r) => new Date(r.startedAt).getMonth() === now.getMonth() && new Date(r.startedAt).getFullYear() === now.getFullYear());
-  const monthM = month.reduce((a, r) => a + r.distanceM, 0);
-  const monthS = month.reduce((a, r) => a + r.durationS, 0);
-  const emptyCount = month.filter((r) => r.quiet === 'empty').length;
+  const now = Date.now();
+  const runs = data?.runs ?? [];
+  const names = useMemo(() => new Map((data?.places ?? []).map((p) => [p.id, p.name])), [data]);
+  const groups = useMemo(() => groupRuns(runs, now, (t) => new Date(t).toLocaleDateString(undefined, { month: 'long' })), [runs]);
+  const patterns = useMemo(() => (data ? energyPatterns(patternRuns(data), data.places, now, patternFormat(km)) : null), [data, km]);
 
   const title = (
     <View style={{ gap: spacing.sm + 4 }}>
-      <View>
-        <View style={styles.topRow}>
-          <Text style={type.eyebrow}>{now.toLocaleDateString(undefined, { month: 'long' })}</Text>
-          <SettingsGear />
-        </View>
-        <Text style={type.h1} accessibilityRole="header">Your runs.</Text>
+      <View style={styles.topRow}>
+        <Text style={type.h1} accessibilityRole="header">
+          Your runs
+        </Text>
+        <SettingsGear />
       </View>
       {onSection ? <Sections value={section} onChange={onSection} /> : null}
     </View>
@@ -68,19 +69,37 @@ export function HistoryScreen({
     );
   }
 
+  if (section === 'patterns') {
+    return (
+      <View style={styles.screen}>
+        <ScrollView contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xl }} showsVerticalScrollIndicator={false}>
+          {title}
+          <PatternsView patterns={patterns} />
+        </ScrollView>
+      </View>
+    );
+  }
+
+  const month = monthSummary(runs, now);
+  const monthName = new Date(now).toLocaleDateString(undefined, { month: 'long' });
   const header = (
     <View style={{ gap: spacing.md, marginBottom: spacing.sm }}>
       {title}
-      <View style={styles.tiles}>
-        <Stat value={formatDistance(monthM, km).replace(/ .*/, '')} label={`${km ? 'km' : 'mi'} this month`} />
-        <Stat value={formatPace(monthM, monthS, km)} label={`avg /${km ? 'km' : 'mi'}`} />
-        <Stat value={month.length ? `${emptyCount} / ${month.length}` : '—'} label="empty routes" />
+      <View
+        style={styles.month}
+        accessible
+        accessibilityLabel={`${monthName} so far: ${month.runs} ${month.runs === 1 ? 'run' : 'runs'}, ${spokenDistance(month.distanceM, km)}, ${spokenDuration(month.durationS)} running.`}
+      >
+        <Text style={[type.eyebrow, styles.monthTitle]}>{monthName} so far</Text>
+        <Stat value={String(month.runs)} label={month.runs === 1 ? 'run' : 'runs'} />
+        <Stat value={month.runs ? formatDistanceNumber(month.distanceM, km) : '0'} label={distanceUnit(km)} />
+        <Stat value={hoursMinutes(month.durationS)} label="running" />
       </View>
       <YouSection km={km} refreshKey={refreshKey} />
     </View>
   );
 
-  if (runs.length === 0) {
+  if (data && runs.length === 0) {
     return (
       <View style={styles.screen}>
         {header}
@@ -94,22 +113,40 @@ export function HistoryScreen({
 
   return (
     <View style={styles.screen}>
-      <FlatList
-        data={runs}
+      <SectionList
+        sections={groups}
         keyExtractor={(r) => String(r.id)}
         ListHeaderComponent={header}
-        contentContainerStyle={{ gap: spacing.sm + 2, paddingBottom: spacing.xl }}
+        stickySectionHeadersEnabled={false}
+        renderSectionHeader={({ section: s }) => (
+          <Text style={[type.eyebrow, styles.groupTitle]} accessibilityRole="header">
+            {s.title}
+          </Text>
+        )}
+        ItemSeparatorComponent={() => <View style={{ height: spacing.sm + 2 }} />}
+        contentContainerStyle={{ paddingBottom: spacing.xl }}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => <RunRow run={item} km={km} onPress={() => onOpen(item.id)} />}
+        renderItem={({ item }) => {
+          const pid = data?.placeOf.get(item.id);
+          return <RunRow run={item} km={km} place={pid != null ? names.get(pid) ?? null : null} onPress={() => onOpen(item.id)} />;
+        }}
       />
     </View>
   );
+}
+
+/** "5 h 12", "48 min", "0 min". */
+function hoursMinutes(s: number): string {
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  return h > 0 ? `${h} h ${String(m).padStart(2, '0')}` : `${m} min`;
 }
 
 function Sections({ value, onChange }: { value: RunsSection; onChange: (s: RunsSection) => void }) {
   const items: Array<{ key: RunsSection; label: string }> = [
     { key: 'runs', label: 'Runs' },
     { key: 'places', label: 'Places' },
+    { key: 'patterns', label: 'Patterns' },
   ];
   return (
     <View style={styles.seg} accessibilityRole="tablist">
@@ -127,19 +164,20 @@ function Sections({ value, onChange }: { value: RunsSection; onChange: (s: RunsS
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <View style={styles.stat} accessible accessibilityLabel={`${label}: ${value === '—' || value === '–' ? 'none yet' : value}`}>
+    <View style={styles.stat}>
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
 }
 
-function RunRow({ run, km, onPress }: { run: Run; km: boolean; onPress: () => void }) {
+function RunRow({ run, km, place, onPress }: { run: Run; km: boolean; place: string | null; onPress: () => void }) {
   const d = new Date(run.startedAt);
   const date = d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' });
   const time = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
   const delta = run.moodBefore != null && run.moodAfter != null ? run.moodAfter - run.moodBefore : null;
   const q = run.quiet;
+  const busy = q ? BUSY_LABEL[q].toLowerCase() : null;
   const bg = q ? QUIET_BG[q] : colors.lilac;
   const fg = q ? QUIET_FG[q] : colors.lilacDeep;
 
@@ -150,10 +188,11 @@ function RunRow({ run, km, onPress }: { run: Run; km: boolean; onPress: () => vo
       accessibilityHint="Opens this run"
       accessibilityLabel={[
         `${d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}, ${time}`,
+        place,
         `${spokenDistance(run.distanceM, km)} in ${spokenDuration(run.durationS)}`,
         spokenPace(run.distanceM, run.durationS, km),
         delta != null ? `energy ${delta > 0 ? 'up' : delta < 0 ? 'down' : 'steady'}${delta ? ` ${Math.abs(delta)}` : ''}` : null,
-        q ? `${QUIET_LABEL[q]} route` : null,
+        busy,
       ]
         .filter(Boolean)
         .join('. ')}
@@ -167,7 +206,7 @@ function RunRow({ run, km, onPress }: { run: Run; km: boolean; onPress: () => vo
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={[styles.rowMeta, { color: fg }]}>
           {date} · {time}
-          {q ? ` · ${QUIET_LABEL[q]}` : ''}
+          {place ? ` · ${place}` : busy ? ` · ${busy}` : ''}
         </Text>
         <Text style={styles.rowMain}>
           {formatDistance(run.distanceM, km)} · {formatDuration(run.durationS)}
@@ -194,17 +233,19 @@ function shapeFor(id: number): string {
 }
 
 const styles = StyleSheet.create({
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: -10, marginRight: -10 },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginRight: -10 },
   screen: { flex: 1, backgroundColor: colors.cream, padding: spacing.md, paddingTop: spacing.lg },
   seg: { flexDirection: 'row', backgroundColor: '#ece5da', borderRadius: radius.pill, padding: 4, gap: 4 },
-  segItem: { flex: 1, minHeight: 40, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  segItem: { flex: 1, minHeight: 44, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   segOn: { backgroundColor: colors.white },
   segText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.muted },
   segTextOn: { color: colors.text },
-  tiles: { flexDirection: 'row', gap: spacing.sm + 2 },
-  stat: { flex: 1, backgroundColor: colors.white, borderRadius: radius.md, padding: 12 },
-  statValue: { fontFamily: fonts.display, fontSize: 22, lineHeight: 26, color: colors.text },
-  statLabel: { fontFamily: fonts.bodySemi, fontSize: 11, color: colors.muted },
+  month: { flexDirection: 'row', flexWrap: 'wrap', backgroundColor: colors.white, borderRadius: radius.lg, paddingVertical: 16, paddingHorizontal: 18, rowGap: 8 },
+  monthTitle: { width: '100%' },
+  stat: { flex: 1 },
+  statValue: { fontFamily: fonts.display, fontSize: 24, lineHeight: 28, color: colors.text, fontVariant: ['tabular-nums'] },
+  statLabel: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
+  groupTitle: { marginTop: spacing.md, marginBottom: spacing.sm },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: radius.lg, padding: 16 },
   thumb: { width: 48, height: 48, borderRadius: 16, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
