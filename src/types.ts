@@ -55,6 +55,7 @@ export interface Settings {
   notifyHour: number; // 0–23, local
   notifyMinute: number;
   afterRunNote: boolean; // a quiet "run saved" notification
+  weather: boolean; // fetch the local forecast for the home screen (Open-Meteo, coarse location)
   onboarded: boolean;
 }
 
@@ -67,5 +68,6 @@ export const DEFAULT_SETTINGS: Settings = {
   notifyHour: 8,
   notifyMinute: 0,
   afterRunNote: true,
+  weather: true,
   onboarded: false,
 };

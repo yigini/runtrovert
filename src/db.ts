@@ -247,3 +247,19 @@ export async function saveSeenLines(ids: string[]): Promise<void> {
   const db = await getDb();
   await db.runAsync('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', 'seenLines', JSON.stringify(ids));
 }
+
+/** Small JSON values that aren't settings (the last weather reading, for one). */
+export async function loadValue<T>(key: string): Promise<T | null> {
+  const db = await getDb();
+  const row = (await db.getFirstAsync('SELECT value FROM settings WHERE key = ?', key)) as { value: string } | null;
+  try {
+    return row ? (JSON.parse(row.value) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveValue(key: string, value: unknown): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', key, JSON.stringify(value));
+}

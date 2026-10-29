@@ -26,7 +26,8 @@ Everything stays on the phone.
 - Energy check-in before and after each run (1–5), route busyness rating, optional note
 - Local SQLite storage — runs, GPS points, splits, settings; nothing leaves the device
 - History, run detail with splits table and estimated calories, delete
-- **First-launch privacy screen** — says the one thing the app is about, once
+- **The sky**: the home screen reads the local weather (Open-Meteo, no key; location rounded to ~1 km; switch in Settings) and writes the headline from it, plus best window, what to wear and when it gets dark. Besides map tiles it is the only network call
+- **First-launch privacy screen** — opens on the motto, says the promise, once
 - **Quiet reminders**: local-only notifications, 0/1/3/5 a week at a chosen hour, ~100 original lines that adapt to whether you ran yesterday or a week ago, never repeat for months, never mention streaks; optional one-line note 15 min after a run
 
 Not yet (stages 3–6): heart rate, watch apps, training plans, insights, quiet map, export/import, Health sync, unlock, widgets, i18n.

@@ -79,10 +79,16 @@ export function SettingsScreen() {
         </Pressable>
       </Section>
 
+      <Section title="The sky" bg={colors.sky} fg={colors.skyDeep}>
+        <Row label="Local weather on the home screen" hint="A location rounded to about 1 km goes to Open-Meteo and a forecast comes back. No key, no account, no cookies. Besides map tiles, it is the only thing the app fetches.">
+          <Switch value={settings.weather} onValueChange={(v) => update({ weather: v })} trackColor={{ true: colors.ink }} />
+        </Row>
+      </Section>
+
       <Section title="Privacy" bg={colors.white} fg={colors.muted}>
         <Text style={styles.privacy}>
           Runtrovert has no server. Your runs, routes, notes and settings live only here. We can't see them even if we wanted to.
-          Reminders are generated on the phone; nothing is sent anywhere. Delete the app and it's all gone.
+          Reminders are generated on the phone. Map tiles and the weather are the only things fetched, and the weather only if you leave it on. Delete the app and it's all gone.
         </Text>
       </Section>
     </ScrollView>
