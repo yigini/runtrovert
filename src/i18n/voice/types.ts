@@ -68,6 +68,8 @@ export interface SkyVoice {
   bestWindow: string;
   noDryHour: string;
   dry: string;
+  /** Between the rain and the temperature in "dry, 12°"; Japanese uses 、. Defaults to ", ". */
+  sep?: string;
   rainChance(p: number): string;
   /** what is "dry, 12°" or "30% rain, 12°". */
   now(what: string): string;

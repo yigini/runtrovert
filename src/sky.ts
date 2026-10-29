@@ -64,7 +64,7 @@ export function bestWindow(w: Weather, metric: boolean, now = Date.now()): Sugge
     if (score(h, i) < score(hours[best], best)) best = i;
   });
   const h = hours[best];
-  const what = `${h.rainP < 20 ? v.dry : v.rainChance(h.rainP)}, ${formatTemp(h.tempC, metric)}`;
+  const what = `${h.rainP < 20 ? v.dry : v.rainChance(h.rainP)}${v.sep ?? ', '}${formatTemp(h.tempC, metric)}`;
   return { label: v.bestWindow, text: finish(best === 0 ? v.now(what) : v.from(clock(h.t), what)) };
 }
 
