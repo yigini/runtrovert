@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, AppState, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { BackButton } from '../components/BackButton';
+import { PresetSheet } from '../components/PresetSheet';
 import { appByKey } from '../music';
 import { notificationStatus, previewLine, sendLineNow, turnOnNotifications, type NotifyStatus } from '../notify';
+import { presetInfo } from '../presets';
 import { PODCAST_APPS } from '../shelfLogic';
 import { onBatteryModeChanged } from '../tracking';
+import { MoneyNote, UnlockSettingsRow } from '../components/UnlockRow';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import type { BatteryMode, CueMode, ListenDownload, NotifyPerWeek } from '../types';
@@ -20,8 +24,10 @@ const CUES: Array<{ key: CueMode; label: string; hint: string }> = [
   { key: 'voice', label: 'Voice', hint: 'One calm sentence per km. No cheering.' },
 ];
 
-export function SettingsScreen({ onOpenListen }: { onOpenListen: () => void }) {
+export function SettingsScreen({ onOpenListen, onBack }: { onOpenListen: () => void; onBack?: () => void }) {
   const { settings, update } = useSettings();
+  const [presets, setPresets] = useState(false);
+  const preset = settings.runPreset ? presetInfo(settings.runPreset) : null;
   const [preview, setPreview] = useState(previewLine());
 
   const [status, setStatus] = useState<NotifyStatus>('granted');
@@ -46,7 +52,19 @@ export function SettingsScreen({ onOpenListen }: { onOpenListen: () => void }) {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ gap: spacing.lg, paddingBottom: spacing.xl }}>
+      {onBack ? <BackButton label="Back" onPress={onBack} /> : null}
       <Text style={styles.h1} accessibilityRole="header">Settings</Text>
+      <UnlockSettingsRow />
+
+      <Section title="Today's run" bg={colors.lilac} fg={colors.lilacDeep}>
+        <Pressable onPress={() => setPresets(true)} accessibilityRole="button" accessibilityHint="Shows the three presets and what each one brings" style={({ pressed }) => [styles.option, pressed && { opacity: 0.85 }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.optionLabel}>What each preset shows</Text>
+            <Text style={styles.optionHint}>{preset ? `Picked: ${preset.name}. ` : ''}Clear my head, Just run, Follow my plan. Pick one on the Run tab.</Text>
+          </View>
+          <Text style={styles.chev} importantForAccessibility="no">›</Text>
+        </Pressable>
+      </Section>
 
       <Section title="Cues" bg={colors.lilac} fg={colors.lilacDeep}>
         {CUES.map((c) => {
@@ -84,7 +102,7 @@ export function SettingsScreen({ onOpenListen }: { onOpenListen: () => void }) {
       <Section title="Music & podcasts" bg={colors.lilac} fg={colors.lilacDeep}>
         <Text style={styles.musicNote}>
           {appByKey(settings.musicApp)?.name ?? "Phone's default"} for music, {PODCAST_APPS.find((a) => a.key === settings.podcastApp)?.label ?? 'ask each time'} for
-          podcasts, music strip {settings.musicStrip ? 'on' : 'off'} during runs. All of it lives on the Listen tab now, where you can try the controls.
+          podcasts, music strip {settings.musicStrip ? 'on' : 'off'} during runs. All of it lives in Listen, the lilac button beside Start, where you can try the controls.
         </Text>
         <Pressable onPress={onOpenListen} accessibilityRole="button" style={[styles.option, styles.optionOn, { alignItems: 'center' }]}>
           <Text style={[styles.optionLabel, styles.optionLabelOn]}>Open Listen</Text>
@@ -184,7 +202,7 @@ export function SettingsScreen({ onOpenListen }: { onOpenListen: () => void }) {
 
       <Section title="Privacy" bg={colors.white} fg={colors.muted}>
         <Text style={styles.privacy}>
-          Runtrovert has no server. Your runs, routes, notes and settings are saved on this phone, and in the phone's own backup to your Google or Apple
+          Runtrovert has no server. Your runs, routes, places, notes and settings are saved on this phone, and in the phone's own backup to your Google or Apple
           account if you have backups on. We can't see them even if we wanted to. Reminders are written and scheduled on the phone. No push service, no
           server, nothing that knows when or whether you ran. The app fetches three things: map tiles unless you chose Plain map, the weather if you leave it
           on, and the Listen list if you said yes, which is one file that's the same for everyone. Like any website, each of those sees your IP address. The
@@ -192,7 +210,9 @@ export function SettingsScreen({ onOpenListen }: { onOpenListen: () => void }) {
           play in your own podcast app; we never see what you play. Sponsors pay a flat fee for a place on the Kit & offers shelf and never learn who opened
           it or what was tapped. Delete the app and it's gone from this phone; a phone backup keeps a copy until it's replaced.
         </Text>
+        <MoneyNote />
       </Section>
+      <PresetSheet open={presets} value={settings.runPreset ?? 'just'} onPick={(p) => update({ runPreset: p })} onClose={() => setPresets(false)} />
     </ScrollView>
   );
 }
@@ -252,6 +272,7 @@ const styles = StyleSheet.create({
   optionLabelOn: { color: colors.cream },
   optionHint: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, marginTop: 2 },
   check: { color: colors.cream, fontSize: 18 },
+  chev: { fontFamily: fonts.bodySemi, fontSize: 22, color: colors.lilacDeep, paddingLeft: spacing.sm },
   row: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.cream, borderRadius: radius.md, padding: 14 },
   rowStack: { flexDirection: 'column', alignItems: 'flex-start', gap: spacing.sm },
   seg: { flexDirection: 'row', backgroundColor: colors.white, borderRadius: radius.pill, padding: 3 },

@@ -65,8 +65,22 @@ export function stepLine(s: Step): string {
 export function stepCue(s: Step | null, finished: boolean): string {
   if (finished || !s) return 'That is the session. Easy to the door.';
   const size = s.durationS != null ? formatMin(s.durationS) : formatM(s.distanceM ?? 0);
-  const how = s.kind === 'warm' ? 'Warm up' : s.kind === 'cool' ? 'Cool down' : s.kind === 'walk' ? 'Walk' : s.kind === 'jog' || s.kind === 'float' ? 'Jog' : s.kind === 'stride' ? 'Stride' : s.label.split('.')[0];
-  return `${how}, ${size}.`;
+  return `${stepName(s)}, ${size}.`;
+}
+
+/** What the block is, in a word or two: "Warm up", "Walk", "Comfortably hard". */
+export function stepName(s: Step): string {
+  return s.kind === 'warm' ? 'Warm up' : s.kind === 'cool' ? 'Cool down' : s.kind === 'walk' ? 'Walk' : s.kind === 'jog' || s.kind === 'float' ? 'Jog' : s.kind === 'stride' ? 'Stride' : s.label.split('.')[0];
+}
+
+/** How it should feel, after the name: "Full sentences." Empty when the label says nothing more. */
+export function stepFeel(s: Step): string {
+  return EFFORT_LABEL[s.effort].split('. ').slice(1).join('. ');
+}
+
+/** The big number on the block card: "4:12" for a timed block, "650 m" for a distance one. */
+export function leftClock(v: WorkoutView): string {
+  return formatLeft(v).replace(/ left$/, '');
 }
 
 export function formatMin(sec: number): string {

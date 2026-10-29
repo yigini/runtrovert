@@ -29,9 +29,9 @@ Everything stays on the phone.
 - **The sky**: the home screen reads the local weather (Open-Meteo, no key; location rounded to ~1 km; switch in Settings) and writes the headline from it, plus best window, what to wear and when it gets dark. Besides map tiles it is the only network call
 - **First-launch privacy screen** — opens on the motto, says the promise, once
 - **Quiet reminders**: local-only notifications, 0/1/3/5 a week at a chosen hour, ~100 original lines that adapt to whether you ran yesterday or a week ago, never repeat for months, never mention streaks; optional one-line note 15 min after a run
-- **Training plans** (Train tab, part of the one-time unlock): 14 plans from a first run to a marathon, generated on the phone and checked against nine evidence-based rules before you see them (mostly easy, no run >10% longer than your longest in 30 days, +10%/week, a lighter week every fourth, long-run and hard-work caps, a taper that cuts volume not intensity, effort words first); guided sessions with cues; the plan gives way for low energy, pain, illness, days away and gaps; `.ics` calendar export, no calendar permission. See `docs/TRAINING.md`; `npm run test:plans` checks every plan
+- **Training plans** (Train tab; week 1 of every plan is free, the rest is part of the one-time unlock): 14 plans from a first run to a marathon, generated on the phone and checked against nine evidence-based rules before you see them (mostly easy, no run >10% longer than your longest in 30 days, +10%/week, a lighter week every fourth, long-run and hard-work caps, a taper that cuts volume not intensity, effort words first); guided sessions with cues; the plan gives way for low energy, pain, illness, days away and gaps; `.ics` calendar export, no calendar permission. See `docs/TRAINING.md`; `npm run test:plans` checks every plan
 
-Not yet (stages 3–6): heart rate, watch apps, insights, quiet map, export/import, Health sync, billing for the unlock, widgets, i18n.
+Not yet (stages 3–6): heart rate, watch apps, insights, quiet map, export/import, Health sync, widgets, i18n.
 
 ## Run it on your phone
 
@@ -88,7 +88,9 @@ src/screens/SettingsScreen.tsx
 src/screens/TrainScreen.tsx  plans: catalogue → setup → health check → the week → a session
 src/training/                plan engine: catalogue, generator, nine rules, adaptation, paces, store, .ics
 src/workoutRun.ts            guided session during a run (steps → cues, screen on or off)
-src/unlock.ts                "Everything, once" flag (no billing yet: test builds are unlocked)
+src/unlock.ts                "Everything, once": isUnlocked(), the one gate (pure, `npm run test:unlock`)
+src/unlockState.ts           unlock state saved on the phone, useUnlocked(), openUnlock()
+src/billing.ts               Play Billing / StoreKit 2 via expo-iap, off until launch (BILLING_ON)
 scripts/test-plans.ts        generates every plan every way and checks the nine rules
 src/components/              Mark (icon + faces), MoodPicker, QuietPicker, PainPicker, RouteMap, SplitsTable, Button
 scripts/make-icons.mjs       regenerates every icon asset from the mark
@@ -98,11 +100,17 @@ src/components/AmbientBackground.tsx
 src/theme.ts                 colours and spacing
 ```
 
+## The unlock
+
+"Everything, once" is one in-app product, `app.runtrovert.everything`, €4.99 at launch and €6.99 once full training plans ship. The split: privacy and quiet are never for sale, anything about a single run is free, anything built from months of runs is the unlock. Every feature asks `isUnlocked()` from `src/unlock.ts` and shows a `LockRow` (`src/components/LockRow.tsx`) where the locked thing would be; nothing has its own paywall. The unlock appears only in four places: the top row of Settings, lock rows, one line on the finish screen after run 10 ("Not now" means never again), and "How this app makes money".
+
+GitHub test APKs are unlocked. Store builds set `EXPO_PUBLIC_STORE_BUILD=1` (the `production` profile in `eas.json`), which turns the locks on. Billing goes straight to Google Play and the App Store through expo-iap, with no server and no RevenueCat; it stays off until launch (`BILLING_ON` in `src/unlock.ts`). To see the locks in a test build, open Settings → Everything, once → Show the locks.
+
 ## Next steps
 
 1. Test a real run. Record a known-distance route (a measured 400 m track × N laps is ideal) and compare. Filter defaults live in `src/gps/kalman.ts` (`DEFAULT_FILTER`); auto-pause in `src/tracking.ts`.
 2. For bulletproof Android background: `npx expo install react-native-background-geolocation`, add its config plugin to `app.json`, set the Android licence key. No code changes — the engine is picked up automatically.
-3. Stage 3 (plans done): weekly load view, goals, billing for the unlock.
+3. Stage 3 (plans done): weekly load view, goals; create the store product and switch billing on.
 4. Stage 4: insights, personal records, energy analysis, quiet map, weather, shoes.
 5. Stage 5: GPX/FIT export, imports, HealthKit / Health Connect, encrypted backup.
-6. Stage 6: widgets, live activities, share image, themes, i18n, one-time unlock, store listing.
+6. Stage 6: widgets, live activities, share image, themes, i18n, store listing.
