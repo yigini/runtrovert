@@ -5,6 +5,7 @@ import { DISPLAY_MAX_SCALE } from '../a11y';
 import { AmbientBackground } from '../components/AmbientBackground';
 import { Button } from '../components/Button';
 import { Fade } from '../components/Fade';
+import { AdjustPlanSheet } from '../components/AdjustPlanSheet';
 import { MoodPicker } from '../components/MoodPicker';
 import { PresetSheet } from '../components/PresetSheet';
 import { SettingsGear } from '../components/SettingsGear';
@@ -18,8 +19,9 @@ import { clock, formatTemp, headline, suggestions } from '../sky';
 import { useSettings } from '../settings';
 import { seasonalLine } from '../surprises';
 import { colors, fonts, radius, spacing } from '../theme';
+import { choiceLine, daysAway, isWelcomeBack, stoppedWeek } from '../training/comeback';
 import { WEEKDAY_LONG, weekdayOf } from '../training/dates';
-import type { Session } from '../training/types';
+import type { Plan, Session } from '../training/types';
 import type { Mood, Run } from '../types';
 import { NEWS } from '../whatsNew';
 import { cachedWeather, getWeather, type Weather, type WeatherResult } from '../weather';
@@ -28,11 +30,18 @@ import { cachedWeather, getWeather, type Weather, type WeatherResult } from '../
  * The first thing you see. Footage, the sky in a sentence, three plain
  * suggestions, then today's run: how much comes with you, Start, and Listen
  * beside it. No cards: the words sit on the picture.
+ *
+ * Ten days or more since the last run, it says welcome back instead: no plan
+ * day, nothing overdue, one free run, and the plan as a separate choice.
  */
-export function HomeScreen({ runs, mood, onMood, onStart, planToday, planNext, onOpenPlan, onBrowseListen }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; planToday?: Session | null; planNext?: Session | null; onOpenPlan?: () => void; onBrowseListen?: () => void }) {
+export function HomeScreen({ runs, mood, onMood, onStart, onRunFree, planToday, planNext, plan, onOpenPlan, onPlanChanged, onBrowseListen, welcomeBack = true }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; onRunFree?: () => void; planToday?: Session | null; planNext?: Session | null; plan?: Plan | null; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; welcomeBack?: boolean }) {
   const { settings, update } = useSettings();
   const [presetSheet, setPresetSheet] = useState(false);
   const [listen, setListen] = useState(false);
+  const [adjust, setAdjust] = useState(false);
+  // "Other ways to run" brings back the usual chips for today.
+  const [others, setOthers] = useState(false);
+  const lastRunAt = runs.length ? Math.max(...runs.map((r) => r.startedAt)) : null;
   const sessionToday = !!planToday && !planToday.done && !planToday.skipped;
   const preset = effectivePreset(settings.runPreset, sessionToday);
   // The chip shows what was picked, even on a day My plan has nothing to follow.
@@ -66,6 +75,9 @@ export function HomeScreen({ runs, mood, onMood, onStart, planToday, planNext, o
   }, [refresh]);
 
   const weather = sky?.kind === 'ok' ? sky.weather : null;
+  const back = welcomeBack && isWelcomeBack(lastRunAt, now);
+  const away = daysAway(lastRunAt, now) ?? 0;
+  const adjusted = settings.comeback && settings.comeback.since === lastRunAt ? settings.comeback.choice : null;
   const evening = weather ? !weather.isDay || (weather.sunset != null && weather.sunset - now < 60 * 60 * 1000) : new Date(now).getHours() >= 17 || new Date(now).getHours() < 6;
 
   return (
@@ -81,12 +93,24 @@ export function HomeScreen({ runs, mood, onMood, onStart, planToday, planNext, o
         </View>
 
         {weather ? <SkyRow w={weather} metric={metric} /> : null}
-        <Text style={styles.headline} accessibilityRole="header" maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>
-          {weather ? headline(weather, metric, now) : greeting(runs, now)}
-        </Text>
-        <Text style={styles.sub}>{seasonalLine(now) ?? subline(runs, now)}</Text>
-        {/* The plan's day, tappable through to the Train tab, with whether a reminder will come. */}
-        {planToday ? (
+        {back ? (
+          <>
+            <Text style={styles.awayLine}>{away} days since your last run</Text>
+            <Text style={styles.headline} accessibilityRole="header" maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>
+              {'Welcome back.\nNothing to catch up on.'}
+            </Text>
+            <Text style={styles.backSub}>{plan && !adjusted ? 'Run however you like today. Your plan waits until you decide what to do with it.' : 'Run however you like today.'}</Text>
+          </>
+        ) : (
+          <>
+            <Text style={styles.headline} accessibilityRole="header" maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>
+              {weather ? headline(weather, metric, now) : greeting(runs, now)}
+            </Text>
+            <Text style={styles.sub}>{seasonalLine(now) ?? subline(runs, now)}</Text>
+          </>
+        )}
+        {/* The plan's day, tappable through to the Train tab, with whether a reminder will come. Not after a break. */}
+        {back ? null : planToday ? (
           <Pressable onPress={onOpenPlan} disabled={!onOpenPlan} style={styles.plan} accessibilityRole="button" accessibilityHint="Opens your plan">
             <Text style={styles.planLabel}>{planToday.done ? 'Today’s session, done' : planToday.skipped ? 'Today’s session, set aside' : 'Today, from your plan'}  ›</Text>
             <Text style={styles.planText}>{planToday.title}</Text>
@@ -103,7 +127,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, planToday, planNext, o
           </Pressable>
         ) : null}
 
-        {weather ? (
+        {back ? null : weather ? (
           <View style={styles.list}>
             {suggestions(weather, metric, now).map((s) => (
               <View key={s.label} style={styles.item}>
@@ -134,6 +158,32 @@ export function HomeScreen({ runs, mood, onMood, onStart, planToday, planNext, o
         )}
       </ScrollView>
 
+      {back && !others ? (
+        <View style={styles.dock}>
+          <MoodPicker inline title="Energy right now" value={mood} onChange={onMood} />
+          <View style={styles.startRow}>
+            <Button title="Run freely today" onPress={onRunFree ?? onStart} style={{ minHeight: 62, flex: 1 }} />
+            <Pressable onPress={() => setListen(true)} accessibilityRole="button" accessibilityLabel="Listen" accessibilityHint="Music, podcasts, or a silent run" style={({ pressed }) => [styles.listen, pressed && { opacity: 0.85 }]}>
+              <HeadphonesGlyph />
+            </Pressable>
+          </View>
+          <Text style={styles.todayLine}>{plan ? 'Starts as Just run. No targets, nothing counted against the plan.' : 'Starts as Just run. No targets.'}</Text>
+          {plan ? (
+            <Pressable onPress={() => setAdjust(true)} accessibilityRole="button" accessibilityHint="Choose what happens to your plan" style={({ pressed }) => [styles.adjust, pressed && { opacity: 0.9 }]}>
+              <View style={{ flex: 1, gap: 3 }}>
+                <Text style={styles.adjustLabel}>{adjusted ? `${plan.name} · ${choiceLine(adjusted)}` : `${plan.name} · ${plan.status === 'paused' ? 'paused' : 'last run'} at week ${stoppedWeek(plan, lastRunAt, now).index}`}</Text>
+                <Text style={styles.adjustText}>{adjusted ? 'Change what happens to my plan' : 'Adjust my plan'}</Text>
+              </View>
+              <Text style={styles.adjustArrow} accessibilityElementsHidden importantForAccessibility="no">
+                ›
+              </Text>
+            </Pressable>
+          ) : null}
+          <Pressable onPress={() => setOthers(true)} accessibilityRole="button" hitSlop={10} style={{ alignSelf: 'center' }}>
+            <Text style={styles.todayLink}>Other ways to run</Text>
+          </Pressable>
+        </View>
+      ) : (
       <View style={styles.dock}>
         <View style={styles.todayHead}>
           <Text style={styles.todayLabel} accessibilityRole="header">Today’s run</Text>
@@ -170,6 +220,20 @@ export function HomeScreen({ runs, mood, onMood, onStart, planToday, planNext, o
         </View>
         <Text style={styles.footer}>{footer(runs, now)}</Text>
       </View>
+      )}
+      {plan && back ? (
+        <AdjustPlanSheet
+          open={adjust}
+          plan={plan}
+          lastRunAt={lastRunAt}
+          onClose={() => setAdjust(false)}
+          onDone={(_, choice) => {
+            setAdjust(false);
+            if (lastRunAt != null) update({ comeback: { since: lastRunAt, choice } });
+            onPlanChanged?.();
+          }}
+        />
+      ) : null}
       <PresetSheet open={presetSheet} value={picked} onPick={(p) => update({ runPreset: p })} onClose={() => setPresetSheet(false)} />
       <ListenSheet
         open={listen}
@@ -292,4 +356,10 @@ const styles = StyleSheet.create({
   planLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: colors.butterDeep },
   planText: { fontFamily: fonts.bodyMedium, fontSize: 16, lineHeight: 21, color: colors.ink },
   planHint: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.inkSoft },
+  awayLine: { fontFamily: fonts.bodySemi, fontSize: 12, letterSpacing: 2.5, textTransform: 'uppercase', color: colors.inkMuted, marginTop: spacing.md },
+  backSub: { fontFamily: fonts.bodyMedium, fontSize: 16, lineHeight: 23, color: colors.inkSoft, marginTop: -4 },
+  adjust: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 4, minHeight: 64, paddingVertical: 14, paddingHorizontal: 18, borderRadius: radius.lg, backgroundColor: colors.white },
+  adjustLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: colors.inkMuted },
+  adjustText: { fontFamily: fonts.bodySemi, fontSize: 16, color: colors.ink },
+  adjustArrow: { fontFamily: fonts.body, fontSize: 22, color: colors.inkMuted },
 });

@@ -9,6 +9,8 @@
 //  - Ignored three in a row (no run between): one a week until the next run.
 //  - Only two weeks ahead, and week two holds one last line. Stop opening the
 //    app and it goes quiet.
+//  - Ten days without a run and nothing more comes until the next run: Run
+//    home says welcome back instead, and the door stays open without a knock.
 //  - A wet or foggy slot in the stored forecast swaps in a weather line.
 
 export type PlanKind = 'nudge' | 'rhythm' | 'quiet' | 'gap' | 'weather' | 'window' | 'last';
@@ -39,6 +41,8 @@ export interface PlanInput {
 export const HORIZON_DAYS = 14;
 export const QUIET_START = 21; // nothing from 21:00
 export const QUIET_END = 7; // until 07:00
+/** Days after the last run when reminders stop until the next one. */
+export const AWAY_QUIET_DAYS = 10;
 const DAY = 86400000;
 const LEAD_MIN = 45;
 const SKIP_AFTER_RUN_MS = 20 * 3600 * 1000;
@@ -120,6 +124,7 @@ export function planReminders(p: PlanInput): PlannedReminder[] {
     if (!rhythm.days.includes(date.getDay())) continue;
     if (at <= p.now + 60_000) continue;
     if (lastRun != null && at - lastRun < SKIP_AFTER_RUN_MS) continue;
+    if (lastRun != null && awayDays(lastRun, at) >= AWAY_QUIET_DAYS) continue;
     if (inQuietHours(at)) continue;
     slots.push(at);
   }
@@ -140,6 +145,15 @@ export function planReminders(p: PlanInput): PlannedReminder[] {
   }
   if (last != null) out.push({ at: last, kind: 'last' });
   return out;
+}
+
+/** Calendar days from the last run to `at`, so a reminder at 08:00 on day ten counts as ten. */
+export function awayDays(lastRun: number, at: number): number {
+  const a = new Date(lastRun);
+  a.setHours(0, 0, 0, 0);
+  const b = new Date(at);
+  b.setHours(0, 0, 0, 0);
+  return Math.round((b.getTime() - a.getTime()) / DAY);
 }
 
 function kindFor(at: number, lastRun: number | null, backedOff: boolean, learned: boolean): PlanKind {

@@ -226,6 +226,7 @@ function Shell() {
               planKey={planKey}
               focused={tab === 'run' && sub == null}
               onOpenPlan={() => setTab('train')}
+              onPlanChanged={() => setPlanKey((k) => k + 1)}
               onBrowseListen={() => setSub('listen')}
               onInk={setRunInk}
               ghost={ghost}
