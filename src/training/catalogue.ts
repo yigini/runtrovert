@@ -1,4 +1,5 @@
 import { live, type Strings, ui } from '../i18n/ui';
+import { decimal } from '../i18n/lang';
 // The fourteen plans. Each row is a shape (weeks, days, caps, taper) that the
 // generator fills from the runner's own starting point. No React Native
 // imports: `npm run test:plans` checks everything here under plain Node.
@@ -342,8 +343,8 @@ export function checkGate(spec: PlanSpec, r: RunnerProfile): GateResult {
   const g = spec.gate;
   const short: string[] = [];
   if (g.weeklyKm != null && r.weeklyKm < g.weeklyKm * 0.8) short.push(ui().catalogue.aboutXKmAWeek(g.weeklyKm, Math.round(r.weeklyKm)));
-  if (g.longestKm != null && r.longestKm30 < g.longestKm * 0.8) short.push(ui().catalogue.aRecentRunOfX(g.longestKm, r.longestKm30.toFixed(1)));
-  if (g.runsPerWeek != null && r.runsPerWeek < g.runsPerWeek - 0.5) short.push(ui().catalogue.xRunsAWeekYou(g.runsPerWeek, r.runsPerWeek.toFixed(1)));
+  if (g.longestKm != null && r.longestKm30 < g.longestKm * 0.8) short.push(ui().catalogue.aRecentRunOfX(g.longestKm, decimal(r.longestKm30.toFixed(1))));
+  if (g.runsPerWeek != null && r.runsPerWeek < g.runsPerWeek - 0.5) short.push(ui().catalogue.xRunsAWeekYou(g.runsPerWeek, decimal(r.runsPerWeek.toFixed(1))));
   if (!short.length) return { ok: true };
   return { ok: false, reason: ui().catalogue.thisPlanExpectsX(short.join(', ')), bridge: bridgeFor(spec) };
 }

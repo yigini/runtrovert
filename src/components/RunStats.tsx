@@ -186,7 +186,7 @@ function SeriesChart({ series, kind, stats, at, onAt, km }: { series: SeriesPoin
       accessible
       accessibilityLabel={
         kind === 'pace'
-          ? ui().runStats.paceAlongTheRunAverage(stats.avgPace ? paceText(stats.avgPace, km) : 'unknown', distanceUnit(km))
+          ? ui().runStats.paceAlongTheRunAverage(stats.avgPace ? paceText(stats.avgPace, km) : ui().runStats.unknown, distanceUnit(km))
           : ui().runStats.elevationAlongTheRunFrom(formatElevation(stats.lowM ?? 0, km), formatElevation(stats.highM ?? 0, km))
       }
     >

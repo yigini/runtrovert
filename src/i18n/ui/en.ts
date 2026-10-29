@@ -113,6 +113,7 @@ export const en = {
     showStreets: 'Show streets',
   },
   runStats: {
+    unknown: 'unknown',
     underStreetlights: 'under streetlights',
     stepsRoughly: 'steps, roughly',
     floorsOfStairsInClimbing: 'floors of stairs, in climbing',
@@ -480,6 +481,7 @@ export const en = {
     deleteRun2: 'Delete run',
   },
   run: {
+    unitWord: (km: boolean) => (km ? 'kilometres' : 'miles'),
     thenSpoken: (next: string) => ` Then ${next}.`,
     lastBlockSpoken: ' Last block.',
     leftInThisBlock: 'left in this block.',
@@ -985,6 +987,10 @@ export const en = {
     ifOneEverAnnoysYou: 'If one ever annoys you, that’s a bug. Settings has the switch.',
   },
   a11y: {
+    distance: (n: string, km: boolean) => `${n} ${km ? 'kilometres' : 'miles'}`,
+    hours: (n: number) => `${n} ${n === 1 ? 'hour' : 'hours'}`,
+    minutes: (n: number) => `${n} ${n === 1 ? 'minute' : 'minutes'}`,
+    seconds: (n: number) => `${n} ${n === 1 ? 'second' : 'seconds'}`,
     perUnit: (time: string, km: boolean) => `${time} per ${km ? 'kilometre' : 'mile'}`,
     noPaceYet: 'no pace yet',
     xXAverageX: (spokenDistance: string | number, spokenDuration: string | number, spokenPace: string | number) => `${spokenDistance}, ${spokenDuration}, average ${spokenPace}`,

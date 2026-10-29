@@ -828,7 +828,7 @@ function LiveNumbers({ km, t, guided }: { km: boolean; t: TrackingState; guided:
       {guided && <GuidedStrip g={guided} />}
       <View style={styles.hero}>
         <Text style={styles.heroValue} adjustsFontSizeToFit numberOfLines={1} maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>{formatDistanceNumber(t.distanceM, km)}</Text>
-        <Text style={styles.heroUnit}>{km ? 'kilometres' : 'miles'}</Text>
+        <Text style={styles.heroUnit}>{ui().run.unitWord(km)}</Text>
       </View>
       <View style={styles.numRow}>
         <LiveStat value={formatDuration(t.durationS)} label={ui().run.time} color={colors.mint} />

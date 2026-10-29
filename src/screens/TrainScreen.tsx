@@ -22,7 +22,7 @@ import { LockRow } from '../components/LockRow';
 import { isUnlocked, openWeeks, planSessionOpen, planWeekOpen, trainLine } from '../unlock';
 import { openUnlock, useUnlocked } from '../unlockState';
 import { live, ui } from '../i18n/ui';
-import { dateLocale } from '../i18n/lang';
+import { dateLocale, decimal } from '../i18n/lang';
 
 /**
  * The Train tab. Without a plan: the catalogue, a plan's page, its setup and a
@@ -997,7 +997,7 @@ function TimeBox({ value, onChange, label }: { value: string; onChange: (v: stri
 // ---- Words and numbers ---------------------------------------------------------
 
 function fmtKm(km: number, unitsKm: boolean, digits = 1): string {
-  return unitsKm ? `${km.toFixed(digits)} km` : `${(km / KM_IN_MI).toFixed(digits)} mi`;
+  return unitsKm ? `${decimal(km.toFixed(digits))} km` : `${decimal((km / KM_IN_MI).toFixed(digits))} mi`;
 }
 
 /** What a done session shows; a deleted run leaves only the tick. */

@@ -1,4 +1,5 @@
 import type { LatLon } from './types';
+import { decimal } from './i18n/lang';
 
 const R = 6371000; // metres
 export const MILE_M = 1609.344;
@@ -17,15 +18,15 @@ export function haversine(a: LatLon, b: LatLon): number {
 export function formatDistance(m: number, km = true): string {
   if (km) {
     if (m < 1000) return `${Math.round(m)} m`;
-    return `${(m / 1000).toFixed(2)} km`;
+    return `${decimal((m / 1000).toFixed(2))} km`;
   }
   const mi = m / MILE_M;
-  return `${mi.toFixed(2)} mi`;
+  return `${decimal(mi.toFixed(2))} mi`;
 }
 
 /** Just the number, for big displays: "4.21" */
 export function formatDistanceNumber(m: number, km = true): string {
-  return km ? (m / 1000).toFixed(2) : (m / MILE_M).toFixed(2);
+  return decimal(km ? (m / 1000).toFixed(2) : (m / MILE_M).toFixed(2));
 }
 
 export function distanceUnit(km = true): string {

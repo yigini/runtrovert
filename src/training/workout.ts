@@ -4,6 +4,7 @@
 import { EFFORT_LABEL } from './sessions';
 import type { Step } from './types';
 import { ui } from '../i18n/ui';
+import { decimal } from '../i18n/lang';
 
 export interface WorkoutState {
   steps: Step[];
@@ -92,7 +93,7 @@ export function formatMin(sec: number): string {
 }
 
 export function formatM(m: number): string {
-  return m >= 1000 ? `${(m / 1000).toFixed(m % 1000 ? 1 : 0)} km` : `${Math.round(m)} m`;
+  return m >= 1000 ? `${decimal((m / 1000).toFixed(m % 1000 ? 1 : 0))} km` : `${Math.round(m)} m`;
 }
 
 export function formatLeft(v: WorkoutView): string {
