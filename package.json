@@ -36,6 +36,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "sim:gps": "node --experimental-strip-types scripts/sim-gps.ts",
+    "test:mapfit": "node --experimental-strip-types scripts/test-map-fit.ts",
     "icons": "node scripts/make-icons.mjs",
     "bg": "node scripts/make-bg-video.mjs"
   },
