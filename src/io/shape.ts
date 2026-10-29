@@ -1,4 +1,5 @@
 import type { ImportedRun, SkipReason, TrackPoint } from './types';
+import { ui } from '../i18n/ui';
 
 // Turns a parsed activity into the numbers a Runtrovert run stores, and
 // decides whether it's one we already have. Pure, so it's tested in Node.
@@ -169,12 +170,12 @@ export function tallySkips(skips: SkipReason[], into: ImportTally): ImportTally 
 /** The quiet sentence after an import. */
 export function importLine(t: ImportTally): string {
   const parts: string[] = [];
-  if (t.added) parts.push(t.added === 1 ? 'Brought in 1 run.' : `Brought in ${t.added} runs.`);
-  else parts.push('Nothing new to bring in.');
-  if (t.duplicate) parts.push(t.duplicate === 1 ? '1 was already here.' : `${t.duplicate} were already here.`);
-  if (t.notRun) parts.push(t.notRun === 1 ? '1 wasn’t a run, so it stayed out.' : `${t.notRun} weren’t runs, so they stayed out.`);
-  if (t.unreadable) parts.push(t.unreadable === 1 ? '1 file couldn’t be read.' : `${t.unreadable} files couldn’t be read.`);
-  if (t.zipped) parts.push(t.zipped === 1 ? '1 was zipped: unzip it first, then pick the file inside.' : `${t.zipped} were zipped: unzip them first, then pick the files inside.`);
-  if (t.other) parts.push(t.other === 1 ? '1 had no times or was too short.' : `${t.other} had no times or were too short.`);
+  if (t.added) parts.push(ui().shape.broughtIn(t.added));
+  else parts.push(ui().shape.nothingNewToBringIn);
+  if (t.duplicate) parts.push(ui().shape.alreadyHere(t.duplicate));
+  if (t.notRun) parts.push(ui().shape.notRuns(t.notRun));
+  if (t.unreadable) parts.push(ui().shape.unreadable(t.unreadable));
+  if (t.zipped) parts.push(ui().shape.zipped(t.zipped));
+  if (t.other) parts.push(ui().shape.other(t.other));
   return parts.join(' ');
 }

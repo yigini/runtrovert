@@ -252,9 +252,8 @@ export function ListenScreen({ onBack }: { onBack?: () => void }) {
       ) : null}
 
       <Text style={styles.footnote}>
-        {shelf ? ui().listen.listFromXX(shelf.builtAt.slice(0, 10), fetchedAt ? '' : ', the one this version shipped with') : ''}
-        These shows carry their own adverts. Runtrovert has no annoying, intrusive ads and never sees what you play. When a show opens, your podcast app
-        and the show's host see a normal connection, IP address included, like any download.
+        {shelf ? ui().listen.listFromXX(shelf.builtAt.slice(0, 10), fetchedAt ? '' : ui().listen.theOneThisVersionShipped) : ''}
+        {ui().listen.adverts}
       </Text>
 
       {offers.length ? (
@@ -380,7 +379,7 @@ export function ListenSheet({ open, onClose, onBrowse }: { open: boolean; onClos
                     key={f.show.id}
                     onPress={() => (settings.podcastApp ? openShowIn(f.show, settings.podcastApp) : setPicking({ kind: 'podcast', then: f.show }))}
                     accessibilityRole="button"
-                    accessibilityLabel={ui().listen.xXXOpensIn(f.ep.title, f.show.name, f.ep.min ? `, ${f.ep.min} minutes` : '')}
+                    accessibilityLabel={ui().listen.xXXOpensIn(f.ep.title, f.show.name, f.ep.min ? ui().listen.xMinutes(f.ep.min) : '')}
                     style={({ pressed }) => [styles.miniEp, pressed && { opacity: 0.85 }]}
                   >
                     <Cover show={f.show} size={56} tint={tintOf(f.show)} online={online} />
@@ -651,7 +650,7 @@ function AppSheet({
           </Text>
           <ScrollView contentContainerStyle={{ gap: 6 }}>
             {music
-              ? [{ key: null, name: "Phone's default" } as { key: string | null; name: string }, ...musicApps].map((a) => (
+              ? [{ key: null, name: ui().listen.phoneSDefault } as { key: string | null; name: string }, ...musicApps].map((a) => (
                   <SheetRow key={a.key ?? 'default'} label={a.name} on={musicApp === a.key} onPress={() => onMusic(a.key)} />
                 ))
               : [

@@ -26,7 +26,7 @@ import type { Mood, Run } from '../types';
 import { NEWS } from '../whatsNew';
 import { cachedWeather, getWeather, type Weather, type WeatherResult } from '../weather';
 import { ui } from '../i18n/ui';
-import { dateLocale } from '../i18n/lang';
+import { dateLocale, decimal, monthName } from '../i18n/lang';
 
 /**
  * The first thing you see. Footage, the sky in a sentence, three plain
@@ -123,7 +123,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, onRunFree, planToday, 
           <Pressable onPress={onOpenPlan} disabled={!onOpenPlan} style={styles.plan} accessibilityRole="button" accessibilityHint={ui().home.opensYourPlan}>
             <Text style={styles.planLabel}>{ui().home.restDayFromYourPlan}</Text>
             <Text style={styles.planText}>
-              Next: {WEEKDAY_LONG[weekdayOf(planNext.date)]}, {planNext.title.charAt(0).toLowerCase() + planNext.title.slice(1)}
+              {ui().home.next(WEEKDAY_LONG[weekdayOf(planNext.date)], planNext.title.charAt(0).toLowerCase() + planNext.title.slice(1))}
             </Text>
             <PlanReminderLine />
           </Pressable>
@@ -173,7 +173,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, onRunFree, planToday, 
           {plan ? (
             <Pressable onPress={() => setAdjust(true)} accessibilityRole="button" accessibilityHint={ui().home.chooseWhatHappensToYour} style={({ pressed }) => [styles.adjust, pressed && { opacity: 0.9 }]}>
               <View style={{ flex: 1, gap: 3 }}>
-                <Text style={styles.adjustLabel}>{adjusted ? `${plan.name} · ${choiceLine(adjusted)}` : ui().home.xXAtWeekX(plan.name, plan.status === 'paused' ? 'paused' : 'last run', stoppedWeek(plan, lastRunAt, now).index)}</Text>
+                <Text style={styles.adjustLabel}>{adjusted ? `${plan.name} · ${choiceLine(adjusted)}` : ui().home.stoppedAt(plan.name, plan.status === 'paused', stoppedWeek(plan, lastRunAt, now).index)}</Text>
                 <Text style={styles.adjustText}>{adjusted ? ui().home.changeWhatHappensToMy : ui().home.adjustMyPlan}</Text>
               </View>
               <Text style={styles.adjustArrow} accessibilityElementsHidden importantForAccessibility="no">
@@ -271,7 +271,7 @@ function SkyRow({ w, metric }: { w: Weather; metric: boolean }) {
       <SkyGlyph sky={w.sky} isDay={w.isDay} size={26} />
       <Text style={styles.skyText}>
         {formatTemp(w.tempC, metric)}
-        {feels} · wind {metric ? `${Math.round(w.windKmh)} km/h` : `${Math.round(w.windKmh / 1.609)} mph`}
+        {feels} · {ui().home.wind(metric ? `${Math.round(w.windKmh)} km/h` : `${Math.round(w.windKmh / 1.609)} mph`)}
       </Text>
       <Text style={styles.skyText}>  {clock(w.fetchedAt)}</Text>
     </View>
@@ -309,10 +309,10 @@ function footer(runs: Run[], now: number): string {
   }).length;
   const deltas = runs.filter((r) => r.moodBefore != null && r.moodAfter != null).map((r) => (r.moodAfter as number) - (r.moodBefore as number));
   const parts = [ui().home.runAloneNotLonely];
-  if (month) parts.push(`${month} ${month === 1 ? 'run' : 'runs'} in ${d.toLocaleDateString(dateLocale(), { month: 'long' })}`);
+  if (month) parts.push(ui().home.runsInMonth(month, monthName(now)));
   if (deltas.length) {
     const avg = deltas.reduce((a, b) => a + b, 0) / deltas.length;
-    parts.push(ui().home.energyXXAfter(avg >= 0 ? '+' : '', avg.toFixed(1)));
+    parts.push(ui().home.energyAfter(`${avg >= 0 ? '+' : ''}${decimal(avg.toFixed(1))}`));
   }
   return parts.join('  ·  ');
 }

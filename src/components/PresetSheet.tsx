@@ -27,16 +27,16 @@ export function PresetSheet({ open, value, onPick, onClose }: { open: boolean; v
                     onPress={() => onPick(p.key)}
                     accessibilityRole="radio"
                     accessibilityState={{ checked: on }}
-                    accessibilityLabel={`${p.name}. On screen: ${p.screen}. Voice: ${p.voice}. Numbers: ${p.numbers}.`}
+                    accessibilityLabel={ui().presetSheet.spoken(p.name, p.screen, p.voice, p.numbers)}
                     style={({ pressed }) => [styles.opt, on && styles.optOn, pressed && { opacity: 0.9 }]}
                   >
                     <View style={styles.optTop}>
                       <Text style={styles.name}>{p.name}</Text>
                       {on ? <Text style={styles.last}>{ui().presetSheet.picked}</Text> : null}
                     </View>
-                    <Dial k="On screen" v={p.screen} on={on} />
-                    <Dial k="Voice" v={p.voice} on={on} />
-                    <Dial k="Numbers" v={p.numbers} on={on} />
+                    <Dial k={ui().presetSheet.onScreen} v={p.screen} on={on} />
+                    <Dial k={ui().presetSheet.voice} v={p.voice} on={on} />
+                    <Dial k={ui().presetSheet.numbers} v={p.numbers} on={on} />
                   </Pressable>
                 );
               })}

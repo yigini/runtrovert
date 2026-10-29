@@ -58,7 +58,7 @@ export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeI
   const since = summary.since ? new Date(summary.since).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' }) : null;
   const facts = [
     summary.count === 1 ? ui().place.runOnce : ui().place.runXTimes(summary.count),
-    since ? `since ${since}` : null,
+    since ? ui().place.since(since) : null,
     summary.bestPace ? ui().place.quickestXX(formatPace(1000, summary.bestPace, km), km ? 'km' : 'mi') : null,
   ];
   const factLine = facts.filter(Boolean).join(' · ');

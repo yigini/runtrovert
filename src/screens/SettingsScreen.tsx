@@ -4,26 +4,18 @@ import { BackButton } from '../components/BackButton';
 import { PresetSheet } from '../components/PresetSheet';
 import { appByKey } from '../music';
 import { notificationStatus, previewLine, sendLineNow, turnOnNotifications, type NotifyStatus } from '../notify';
-import { presetInfo } from '../presets';
+import { presetInfo, PRESETS } from '../presets';
 import { PODCAST_APPS } from '../shelfLogic';
 import { onBatteryModeChanged } from '../tracking';
 import { MoneyNote, UnlockSettingsRow } from '../components/UnlockRow';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import type { BatteryMode, CueMode, ListenDownload, NotifyPerWeek } from '../types';
-import { ui } from '../i18n/ui';
+import { live, ui } from '../i18n/ui';
 
-const BATTERY: Array<{ key: BatteryMode; label: string; hint: string }> = [
-  { key: 'auto', label: 'Auto', hint: 'Full GPS until the battery drops to 25% or the phone is in low-power mode, then eases off.' },
-  { key: 'best', label: 'Best accuracy', hint: 'A fix every second. Most precise splits, most battery.' },
-  { key: 'saver', label: 'Saver', hint: 'A fix every few seconds. Distance stays within about 1% on steady runs.' },
-];
+const BATTERY: Array<{ key: BatteryMode; label: string; hint: string }> = live(() => (['auto', 'best', 'saver'] as const).map((key) => ({ key, ...ui().settings.battery[key] })));
 
-const CUES: Array<{ key: CueMode; label: string; hint: string }> = [
-  { key: 'silent', label: 'Silent', hint: 'Nothing. Ever.' },
-  { key: 'haptic', label: 'Haptic', hint: 'A short buzz at each km and lap.' },
-  { key: 'voice', label: 'Voice', hint: 'One calm sentence per km. No cheering.' },
-];
+const CUES: Array<{ key: CueMode; label: string; hint: string }> = live(() => (['silent', 'haptic', 'voice'] as const).map((key) => ({ key, ...ui().settings.cue[key] })));
 
 export function SettingsScreen({ onOpenListen, onOpenEverything, onBack }: { onOpenListen: () => void; onOpenEverything: () => void; onBack?: () => void }) {
   const { settings, update } = useSettings();
@@ -61,7 +53,7 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onBack }: { onO
         <Pressable onPress={() => setPresets(true)} accessibilityRole="button" accessibilityHint={ui().settings.showsTheThreePresetsAnd} style={({ pressed }) => [styles.option, pressed && { opacity: 0.85 }]}>
           <View style={{ flex: 1 }}>
             <Text style={styles.optionLabel}>{ui().settings.whatEachPresetShows}</Text>
-            <Text style={styles.optionHint}>{preset ? ui().settings.pickedX(preset.name) : ''}Clear my head, Just run, Follow my plan. Pick one on the Run tab.</Text>
+            <Text style={styles.optionHint}>{preset ? ui().settings.pickedX(preset.name) : ''}{ui().settings.presetsHint(PRESETS.map((p) => p.name))}</Text>
           </View>
           <Text style={styles.chev} importantForAccessibility="no">›</Text>
         </Pressable>
@@ -102,15 +94,14 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onBack }: { onO
 
       <Section title={ui().settings.musicPodcasts} bg={colors.lilac} fg={colors.lilacDeep}>
         <Text style={styles.musicNote}>
-          {appByKey(settings.musicApp)?.name ?? ui().settings.phoneSDefault} for music, {PODCAST_APPS.find((a) => a.key === settings.podcastApp)?.label ?? ui().settings.askEachTime} for
-          podcasts, music strip {settings.musicStrip ? 'on' : 'off'} during runs. All of it lives in Listen, the lilac button beside Start, where you can try the controls.
+          {ui().settings.musicNote(appByKey(settings.musicApp)?.name ?? ui().settings.phoneSDefault, PODCAST_APPS.find((a) => a.key === settings.podcastApp)?.label ?? ui().settings.askEachTime, settings.musicStrip)}
         </Text>
         <Pressable onPress={onOpenListen} accessibilityRole="button" style={[styles.option, styles.optionOn, { alignItems: 'center' }]}>
           <Text style={[styles.optionLabel, styles.optionLabelOn]}>{ui().settings.openListen}</Text>
         </Pressable>
       </Section>
 
-      <Section title={ui().settings.battery} bg={colors.sky} fg={colors.skyDeep}>
+      <Section title={ui().settings.batteryTitle} bg={colors.sky} fg={colors.skyDeep}>
         {BATTERY.map((b) => {
           const on = settings.batteryMode === b.key;
           return (

@@ -259,7 +259,7 @@ export function fartlek(reps: number, onS: number, offS: number, gentle: boolean
   return {
     kind: 'fartlek',
     title: `${gentle ? ui().sessions.gentleFartlek : ui().sessions.fartlek} ${reps} × ${on}`,
-    summary: ui().sessions.n10MinEasyXX2(reps, on, gentle ? 'a little quicker' : 'quick', off),
+    summary: ui().sessions.n10MinEasyXX2(reps, on, gentle ? ui().sessions.aLittleQuicker : 'quick', off),
     why: gentle ? ui().sessions.aFirstTasteOfChanging : ui().sessions.changesOfPaceByFeel,
     steps,
     hard: !gentle,

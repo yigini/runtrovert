@@ -109,7 +109,7 @@ export function ShareSheet({
         Alert.alert(ui().shareSheet.sharingIsnTAvailable, ui().shareSheet.thisPhoneHasNoShare);
         return;
       }
-      await Sharing.shareAsync(uri, { mimeType: 'image/png', UTI: 'public.png', dialogTitle: 'Share with someone' });
+      await Sharing.shareAsync(uri, { mimeType: 'image/png', UTI: 'public.png', dialogTitle: ui().shareSheet.shareWithSomeone });
     } catch (e) {
       Alert.alert(ui().shareSheet.couldnTMakeTheCard, String((e as Error)?.message ?? e));
     } finally {

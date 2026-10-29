@@ -111,8 +111,7 @@ export function RunDetailScreen({
       <Text style={styles.date}>{d.toLocaleString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</Text>
       {source ? (
         <Text style={styles.source}>
-          Brought in from {source.kind === 'health' ? ui().runDetail.healthConnect : source.fileName ?? ui().runDetail.aXFile(source.kind.toUpperCase())} on{' '}
-          {new Date(source.importedAt).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' })}.
+          {ui().runDetail.broughtIn(source.kind === 'health' ? ui().runDetail.healthConnect : source.fileName ?? ui().runDetail.aXFile(source.kind.toUpperCase()), new Date(source.importedAt).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' }))}
         </Text>
       ) : null}
       {place && onOpenPlace ? (

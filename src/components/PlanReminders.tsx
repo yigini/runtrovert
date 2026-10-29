@@ -95,7 +95,7 @@ export function PlanReminderLine({ paused = false }: { paused?: boolean }) {
   return (
     <Pressable onPress={turnOn} accessibilityRole="button" hitSlop={6}>
       <Text style={styles.line}>
-        No reminders for the plan. <Text style={styles.lineLink}>{ui().planReminders.turnOn}</Text>
+        {ui().planReminders.noReminders}<Text style={styles.lineLink}>{ui().planReminders.turnOn}</Text>
       </Text>
     </Pressable>
   );

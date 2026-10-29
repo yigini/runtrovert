@@ -37,7 +37,7 @@ export function PatternsView({ patterns }: { patterns: Patterns | null }) {
           <Text style={[type.eyebrow, { marginTop: spacing.sm }]} accessibilityRole="header">{ui().patternsView.morePatternsOnceThereS}</Text>
           <View>
             {more.map((i) => (
-              <View key={i.key} style={styles.locked} accessible accessibilityLabel={`${i.title}. Locked.`}>
+              <View key={i.key} style={styles.locked} accessible accessibilityLabel={ui().patternsView.locked(i.title)}>
                 <LockGlyph size={16} />
                 <Text style={styles.lockedText}>{i.title}</Text>
               </View>

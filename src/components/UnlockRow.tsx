@@ -29,11 +29,11 @@ export function MoneyNote() {
     <View style={styles.money}>
       <Text style={[type.eyebrow, { color: colors.butterDeep }]} accessibilityRole="header">{ui().unlockRow.howThisAppMakesMoney}</Text>
       <Text style={styles.moneyText}>
-        One optional payment,{' '}
+        {ui().unlockRow.moneyBefore}
         <Text style={styles.link} onPress={openUnlock} accessibilityRole="link">
           {UNLOCK_NAME}
         </Text>
-        . No subscription, no data sold, no annoying or intrusive ads. The sponsor shelf in Listen is labelled, and it can't see you.
+        {ui().unlockRow.moneyAfter}
       </Text>
     </View>
   );

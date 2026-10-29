@@ -6,7 +6,7 @@ import { Button } from '../components/Button';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import { BILLING_ON, PRICE_LINE, UNLOCKED_BUILD, UNLOCK_NAME, UNLOCK_PRICE, UNLOCK_PRICE_LATER } from '../unlock';
 import { closeUnlock, updateUnlock, useUnlockOpen, useUnlockState, useUnlocked } from '../unlockState';
-import { ui } from '../i18n/ui';
+import { live, ui } from '../i18n/ui';
 
 /** Mounted once in App.tsx. Anything can call openUnlock(); this shows the screen over the app. */
 export function UnlockHost() {
@@ -18,13 +18,8 @@ export function UnlockHost() {
   );
 }
 
-const ADDS: Array<{ text: string; dot: string }> = [
-  { text: 'Full training plans, past week 1', dot: colors.mint },
-  { text: 'Trends and progress over months', dot: colors.peach },
-  { text: 'Patterns in your places and your energy', dot: colors.lilac },
-  { text: 'Backup, export of every run, Health Connect', dot: colors.sky },
-  { text: 'Themes and widgets', dot: colors.butter },
-];
+const DOTS = [colors.mint, colors.peach, colors.lilac, colors.sky, colors.butter];
+const ADDS: Array<{ text: string; dot: string }> = live(() => ui().unlock.adds.map((text, i) => ({ text, dot: DOTS[i] })));
 
 /** Everything, once: what it adds, what stays free, one price, one plain line. Nothing else. */
 export function UnlockScreen({ onClose }: { onClose: () => void }) {

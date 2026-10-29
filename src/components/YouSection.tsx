@@ -8,6 +8,7 @@ import { useUnlocked } from '../unlockState';
 import { loadYou } from '../you';
 import { LockRow } from './LockRow';
 import { live, ui } from '../i18n/ui';
+import { decimal } from '../i18n/lang';
 
 // The top of History: your bests and how you're doing against your own last
 // six weeks. Nobody else is on this screen, and nothing here is ever sent anywhere.
@@ -76,7 +77,7 @@ export function YouSection({ km, refreshKey }: { km: boolean; refreshKey: number
   }
   if (tr.recharge) {
     const r = tr.recharge;
-    const faces = Math.abs(r.avg) < 0.05 ? ui().youSection.noChange : `${r.avg > 0 ? '+' : ''}${r.avg.toFixed(1)} faces`;
+    const faces = Math.abs(r.avg) < 0.05 ? ui().youSection.noChange : ui().youSection.faces(`${r.avg > 0 ? '+' : ''}${decimal(r.avg.toFixed(1))}`);
     rows.push({
       k: ui().youSection.recharge,
       v: ui().youSection.onAverageARunMoves(faces) + (r.best ? ui().youSection.liftYouMost(r.best) : ''),
@@ -95,7 +96,7 @@ export function YouSection({ km, refreshKey }: { km: boolean; refreshKey: number
         {all.map((b) => {
           const fresh = now - b.at < 14 * DAY;
           const r = recent.find((x) => x.key === b.key);
-          const lately = r && r.runId !== b.runId ? `${value(r)} lately` : null;
+          const lately = r && r.runId !== b.runId ? ui().youSection.lately(value(r)) : null;
           return (
             <View key={b.key} style={[styles.best, fresh && { backgroundColor: colors.mint }]}>
               <Text style={styles.bestValue}>{value(b)}</Text>

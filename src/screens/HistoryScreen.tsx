@@ -146,7 +146,7 @@ export function HistoryScreen({
 function hoursMinutes(s: number): string {
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
-  return h > 0 ? `${h} h ${String(m).padStart(2, '0')}` : `${m} min`;
+  return h > 0 ? ui().history.hoursMinutes(h, String(m).padStart(2, '0')) : ui().common.min(m);
 }
 
 function Sections({ value, onChange }: { value: RunsSection; onChange: (s: RunsSection) => void }) {
@@ -196,9 +196,9 @@ function RunRow({ run, km, place, onPress }: { run: Run; km: boolean; place: str
       accessibilityLabel={[
         `${d.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}, ${time}`,
         place,
-        `${spokenDistance(run.distanceM, km)} in ${spokenDuration(run.durationS)}`,
+        ui().history.distanceIn(spokenDistance(run.distanceM, km), spokenDuration(run.durationS)),
         spokenPace(run.distanceM, run.durationS, km),
-        delta != null ? `energy ${delta > 0 ? 'up' : delta < 0 ? 'down' : 'steady'}${delta ? ` ${Math.abs(delta)}` : ''}` : null,
+        delta != null ? ui().history.energySpoken(delta) : null,
         busy,
       ]
         .filter(Boolean)

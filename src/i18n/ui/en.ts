@@ -9,6 +9,7 @@ const enNum = (n: number) => ['no', 'one', 'two', 'three', 'four', 'five', 'six'
 
 export const en = {
   app: {
+    backAgainToLeave: 'Back again to leave',
     reminders: 'Reminders',
     noted: 'Noted',
     run: 'Run',
@@ -50,6 +51,7 @@ export const en = {
     nextTrack: 'Next track',
   },
   patternsView: {
+    locked: (title: string) => `${title}. Locked.`,
     whatYouToldTheApp: 'What you told the app',
     morePatterns: 'More patterns',
     morePatternsOnceThereS: 'More patterns, once there’s enough',
@@ -80,6 +82,7 @@ export const en = {
     runThisAgain: 'Run this again',
   },
   planReminders: {
+    noReminders: 'No reminders for the plan. ',
     aQuietNoteAtX: (at: string | number) => `A quiet note at ${at} on plan days.`,
     itNamesTheDayS: 'It names the day’s session. Rest days stay silent, and the plan replaces your ordinary reminders while it runs. The time is set in Settings.',
     pausedSoNoPlanNotes: 'Paused, so no plan notes.',
@@ -92,6 +95,10 @@ export const en = {
     turnOn: 'Turn on',
   },
   presetSheet: {
+    onScreen: 'On screen',
+    voice: 'Voice',
+    numbers: 'Numbers',
+    spoken: (name: string, screen: string, voice: string, numbers: string) => `${name}. On screen: ${screen}. Voice: ${voice}. Numbers: ${numbers}.`,
     close: 'Close',
     whatKindOfRunToday: 'What kind of run today?',
     pickHowMuchComesIn: 'Pick how much comes in with you. It’s remembered, so next time you just press Start.',
@@ -106,6 +113,16 @@ export const en = {
     showStreets: 'Show streets',
   },
   runStats: {
+    underStreetlights: 'under streetlights',
+    stepsRoughly: 'steps, roughly',
+    floorsOfStairsInClimbing: 'floors of stairs, in climbing',
+    fromTheLowestPointTo: 'from the lowest point to the highest',
+    furthestFromTheStartAs: 'furthest from the start, as the crow flies',
+    fromWhereYouBeganA: 'from where you began. A proper loop.',
+    standingStillLightsLacesA: 'standing still. Lights, laces, a view.',
+    howBusyItWasOut: 'how busy it was out there',
+    yourEnergyBeforeAndAfter: 'your energy, before and after',
+    burnedARoughEstimate: 'burned, a rough estimate',
     upAndDown: 'Up and down',
     tooShortToDraw: 'Too short to draw.',
     chartsStartAfterAbout400: 'Charts start after about 400 m. The next one will have them.',
@@ -204,16 +221,23 @@ export const en = {
     thingsNobodyTellsYou: 'Things nobody tells you →',
   },
   unlockNudge: {
-    ten: 'Ten',
+    // Around the name of the unlock, which is a link.
+    before: (runs: number) => `${runs === 10 ? 'Ten' : runs} runs in. If you'd like to see how they add up over months, there's `,
+    after: ': one payment, no subscription.',
     notNowWeWonT: 'Not now (we won\'t bring it up again)',
   },
   unlockRow: {
+    // Around the name of the unlock, which is a link.
+    moneyBefore: 'One optional payment, ',
+    moneyAfter: '. No subscription, no data sold, no annoying or intrusive ads. The sponsor shelf in Listen is labelled, and it can\'t see you.',
     itSYoursThankYou: 'It\'s yours. Thank you.',
     unlockedInThisTestBuild: 'Unlocked in this test build.',
     plansMonthsOfTrendsBackup: (UNLOCK_PRICE: string | number) => `Plans, months of trends, backup. ${UNLOCK_PRICE}, one time.`,
     howThisAppMakesMoney: 'How this app makes money',
   },
   youSection: {
+    faces: (n: string) => `${n} faces`,
+    lately: (value: string) => `${value} lately`,
     fitnessEstimate: 'Fitness estimate',
     n5KmInAboutX: (formatClock: string | number) => `5 km in about ${formatClock}. `,
     yourBaselineIsStillForming: 'Your baseline is still forming.',
@@ -244,6 +268,14 @@ export const en = {
     onlyEverComparedWithYour: 'Only ever compared with your own runs. The 5 km estimate uses Riegel’s formula on your best efforts over 3 km; pace is a six-week median with hills allowed for.',
   },
   everything: {
+    happens: [
+      'Files are read on this phone. Nothing is uploaded, and nothing is fetched.',
+      'Runtrovert only sees the files you pick, never the rest of your storage, so it asks for no storage permission.',
+      'A file you save goes where you send it from the share sheet, and nowhere else.',
+      'Notes, energy and busyness stay out of the files. They belong to you, not to a watch or another app.',
+      'No account, no sync, no cloud.',
+    ],
+    from: { gpx: 'from GPX files', fit: 'from FIT files', health: 'from Health Connect' },
     readingTheFiles: 'Reading the files…',
     readingTheFilesXOf: (done: string | number, total: string | number) => `Reading the files… ${done} of ${total}`,
     couldnTReadThoseFiles: 'Couldn’t read those files',
@@ -271,6 +303,9 @@ export const en = {
     whatHappensAndWhatDoesn: 'What happens, and what doesn\'t',
   },
   history: {
+    hoursMinutes: (h: number, mm: string) => `${h} h ${mm}`,
+    distanceIn: (distance: string, duration: string) => `${distance} in ${duration}`,
+    energySpoken: (delta: number) => `energy ${delta > 0 ? 'up' : delta < 0 ? 'down' : 'steady'}${delta ? ` ${Math.abs(delta)}` : ''}`,
     yourRuns: 'Your runs',
     monthSoFarSpoken: (month: string, runs: number, distance: string, duration: string) => `${month} so far: ${runs} ${runs === 1 ? 'run' : 'runs'}, ${distance}, ${duration} running.`,
     monthSoFar: (month: string) => `${month} so far`,
@@ -286,6 +321,9 @@ export const en = {
     energy: (delta: number) => ` · energy ${delta > 0 ? '+' : ''}${delta}`,
   },
   home: {
+    next: (day: string, title: string) => `Next: ${day}, ${title}`,
+    wind: (speed: string) => `wind ${speed}`,
+    runsInMonth: (n: number, month: string) => `${n} ${n === 1 ? 'run' : 'runs'} in ${month}`,
     xDaysSinceYourLast: (away: string | number) => `${away} days since your last run`,
     welcomeBackNothingToCatch: 'Welcome back.\nNothing to catch up on.',
     runHoweverYouLikeToday: 'Run however you like today. Your plan waits until you decide what to do with it.',
@@ -307,7 +345,7 @@ export const en = {
     startsAsJustRunNo: 'Starts as Just run. No targets, nothing counted against the plan.',
     startsAsJustRunNo2: 'Starts as Just run. No targets.',
     chooseWhatHappensToYour: 'Choose what happens to your plan',
-    xXAtWeekX: (name: string | number, plan: string | number, index: string | number) => `${name} · ${plan} at week ${index}`,
+    stoppedAt: (plan: string, paused: boolean, week: number) => `${plan} · ${paused ? 'paused' : 'last run'} at week ${week}`,
     changeWhatHappensToMy: 'Change what happens to my plan',
     adjustMyPlan: 'Adjust my plan',
     otherWaysToRun: 'Other ways to run',
@@ -328,9 +366,12 @@ export const en = {
     lastRunXLegsRemember: (toLocaleDateString: string | number) => `Last run ${toLocaleDateString}. Legs remember.`,
     xDaysSinceTheLast: (days: string | number) => `${days} days since the last one. No guilt, just a door.`,
     runAloneNotLonely: 'Run alone. Not lonely.',
-    energyXXAfter: (avg: string | number, avg2: string | number) => `energy ${avg}${avg2} after`,
+    energyAfter: (avg: string) => `energy ${avg} after`,
   },
   listen: {
+    adverts: 'These shows carry their own adverts. Runtrovert has no annoying, intrusive ads and never sees what you play. When a show opens, your podcast app and the show\'s host see a normal connection, IP address included, like any download.',
+    theOneThisVersionShipped: ', the one this version shipped with',
+    xMinutes: (f: string | number) => `, ${f} minutes`,
     nearYouX: (flag: string | number) => `Near you ${flag}`,
     runningPodcastsPeopleListenTo: 'Running podcasts people listen to where you are, still publishing this season.',
     changeCountry: 'Change country',
@@ -399,6 +440,7 @@ export const en = {
     thePhoneSRegion: 'The phone\'s region',
   },
   place: {
+    since: (date: string) => `since ${date}`,
     yourPlaces: 'Your places',
     runOnce: 'Run once',
     runXTimes: (count: string | number) => `Run ${count} times`,
@@ -420,6 +462,7 @@ export const en = {
     lastRunX: (lastWhen: string | number) => `Last run ${lastWhen}`,
   },
   runDetail: {
+    broughtIn: (from: string, on: string) => `Brought in from ${from} on ${on}.`,
     couldnTSaveTheGpx: 'Couldn’t save the GPX',
     deleteRun: 'Delete run?',
     thisCannotBeUndone: 'This cannot be undone.',
@@ -437,6 +480,17 @@ export const en = {
     deleteRun2: 'Delete run',
   },
   run: {
+    thenSpoken: (next: string) => ` Then ${next}.`,
+    lastBlockSpoken: ' Last block.',
+    leftInThisBlock: 'left in this block.',
+    // "Then <b>easy 5 min</b>." around the next block's name.
+    thenBefore: 'Then ',
+    thenAfter: '.',
+    splitLine: (km: boolean, n: number, pace: string, climb: string) => `${km ? 'km' : 'mile'} ${n} · ${pace} · climb ${climb}`,
+    gps: { good: 'GPS good', ok: 'GPS ok', weak: 'GPS weak' } as Record<string, string>,
+    time: 'time',
+    climb: 'climb',
+    total: 'total',
     lowEnergyAndXIs: (title: string | number) => `Low energy, and ${title} is on the plan.`,
     easyDaysAreAllowedNothing: 'Easy days are allowed. Nothing is added elsewhere to make up for it.',
     makeItEasy: 'Make it easy',
@@ -532,6 +586,19 @@ export const en = {
     legsDidTheTalking: 'Legs did the talking.',
   },
   settings: {
+    battery: {
+      auto: { label: 'Auto', hint: 'Full GPS until the battery drops to 25% or the phone is in low-power mode, then eases off.' },
+      best: { label: 'Best accuracy', hint: 'A fix every second. Most precise splits, most battery.' },
+      saver: { label: 'Saver', hint: 'A fix every few seconds. Distance stays within about 1% on steady runs.' },
+    },
+    cue: {
+      silent: { label: 'Silent', hint: 'Nothing. Ever.' },
+      haptic: { label: 'Haptic', hint: 'A short buzz at each km and lap.' },
+      voice: { label: 'Voice', hint: 'One calm sentence per km. No cheering.' },
+    },
+    presetsHint: (names: string[]) => `${names.join(', ')}. Pick one on the Run tab.`,
+    musicNote: (music: string, podcasts: string, strip: boolean) =>
+      `${music} for music, ${podcasts} for podcasts, music strip ${strip ? 'on' : 'off'} during runs. All of it lives in Listen, the lilac button beside Start, where you can try the controls.`,
     onItsWay: 'On its way',
     lockYourPhoneOneArrives: 'Lock your phone. One arrives in five seconds, the way they will on a Tuesday morning.',
     notificationsAreOff: 'Notifications are off',
@@ -555,7 +622,7 @@ export const en = {
     phoneSDefault: 'Phone\'s default',
     askEachTime: 'ask each time',
     openListen: 'Open Listen',
-    battery: 'Battery',
+    batteryTitle: 'Battery',
     keepScreenOn: 'Keep screen on',
     onlyDuringARunCosts: 'Only during a run. Costs a lot of battery; the lock screen shows your numbers anyway.',
     quietReminders: 'Quiet reminders',
@@ -608,6 +675,25 @@ export const en = {
     tipsNotMedicalAdviceIf: 'Tips, not medical advice. If something hurts in a way that worries you, a doctor or physio beats any app.',
   },
   train: {
+    timeUnit: { h: 'h', min: 'min', s: 's' } as Record<string, string>,
+    weekOf: (week: number, of: number | string) => `week ${week} of ${of}`,
+    tier: { start: 'First steps', keep: 'Ongoing', comeback: 'Come back', finish: 'Finish', improve: 'Improve', race: 'Race' },
+    // weeks is null for the ongoing plan.
+    cardMeta: (weeks: number | null, days: string) => `${weeks == null ? 'Ongoing' : `${weeks} weeks`} · ${days} runs a week`,
+    weeksSentence: (weeks: number) => `${weeks} weeks.`,
+    everyWeekIsChecked: 'Every week is checked against the nine rules before you see it.',
+    healthQuestions: [
+      'Has a doctor ever said you have a heart condition, or that you should only exercise under medical supervision?',
+      'Do you feel pain in your chest when you exercise, or have you had chest pain at rest in the past month?',
+      'Do you lose your balance because of dizziness, or have you lost consciousness in the past year?',
+      'Do you have a bone, joint or tendon problem that running could make worse?',
+      'Do you take medication for blood pressure, a heart condition or diabetes?',
+      'Are you pregnant, or have you given birth in the last six months?',
+      'Is there any other reason you should not run, or an injury from the last three months that still bothers you?',
+    ],
+    timeWord: { h: 'Hours', min: 'Minutes', s: 'Seconds' } as Record<string, string>,
+    distanceIn: (distance: string, duration: string) => `${distance} in ${duration}`,
+    about: (distance: string) => `about ${distance}`,
     thatDoesNotFit: 'That does not fit',
     notThatDay: 'Not that day',
     couldNotRebuild: 'Could not rebuild',
@@ -642,7 +728,7 @@ export const en = {
     xIsTheBridgeTo: (name: string | number) => ` ${name} is the bridge to this one.`,
     runsAWeek: 'Runs a week',
     whichDays: 'Which days',
-    thisPlanRunsXDays: (spec: string | number) => `This plan runs ${spec} days a week.`,
+    thisPlanRunsXDays: (options: number[]) => `This plan runs ${options.join(' or ')} days a week.`,
     longRunOn: 'Long run on',
     raceDay: 'Race day',
     xWeeksFromNowThe: (weeksToRace: string | number, weeks: string | number, minWeeks: string | number) => `${weeksToRace} weeks from now. The plan is ${weeks} weeks and shortens to ${minWeeks} at most.`,
@@ -743,7 +829,7 @@ export const en = {
     now: 'Now',
     lighterWeek: 'Lighter week',
     taperAndRace: 'Taper and race',
-    raceOnXXX: (formatDay: string | number, left: string | number, left2: string | number) => `Race on ${formatDay}, ${left} ${left2} away.`,
+    raceOn: (day: string, left: number) => `Race on ${day}, ${left} ${left === 1 ? 'day' : 'days'} away.`,
     aNewBlockOfFour: 'A new block of four weeks follows this one.',
     endsX: (formatDay: string | number) => `Ends ${formatDay}.`,
     xOfXRunsDone: (done: string | number, total: string | number, when: string | number) => `${done} of ${total} runs done. ${when} Taller bars are bigger weeks; tap one to look ahead.`,
@@ -751,7 +837,8 @@ export const en = {
     xRunsOnTheDays: (daysPerWeek: string | number) => `${daysPerWeek} runs, on the days you picked. Green is easy, yellow is the long run, peach is harder. Tap a day to see the steps, move it to a free day in the same week, or skip it.`,
     theBlocks: 'The blocks',
     thePlan: 'The plan',
-    theWeeksBuildSlowlyWith: (light: string | number, plan: string | number) => `The weeks build slowly, with a lighter one every ${light}${plan}. Any run you do on a plan day counts for it.`,
+    // every: 3 or 4, how often a lighter week comes.
+    theWeeksBuildSlowly: (every: 3 | 4, taper: boolean) => `The weeks build slowly, with a lighter one every ${every === 3 ? 'third' : 'fourth'}${taper ? ' and a taper before the race' : ''}. Any run you do on a plan day counts for it.`,
     whenYouMissDays: 'When you miss days',
     nothingIsDoubledUpTo: 'Nothing is doubled up to catch up. A missed day stays missed; a week or more away and the plan repeats a week or steps back. Away, ill or pause, below the week.',
     yourPlanIsSetHere: 'Your plan is set.\nHere is how it goes.',
@@ -783,14 +870,14 @@ export const en = {
     theRunsOnThoseDays: 'The runs on those days are set aside. Two weeks or more away and the plan comes back at 60% and builds up again.',
     from: 'From',
     for: 'For',
-    xXBackX: (v: string | number, v2: string | number, formatDay: string | number) => `${v} ${v2} · back ${formatDay}`,
+    daysBack: (days: number, back: string) => `${days} ${days === 1 ? 'day' : 'days'} · back ${back}`,
     awayXToX: (formatDay: string | number, formatDay2: string | number) => `Away ${formatDay} to ${formatDay2}`,
     ill: 'Ill',
     nothingUntilYouAreBetter: 'Nothing until\nyou are better.',
     noRunningWithAFever: 'No running with a fever or anything in the chest. Then as many easy days as you were ill, and the plan starts again from where it was. A fortnight or more, and it steps back to 60%.',
     illForAbout: 'Ill for about',
     aGuessIsFineIf: 'A guess is fine. If it runs longer, come back here.',
-    restXXThenEasy: (days: string | number, days2: string | number) => `Rest ${days} ${days2}, then easy`,
+    restThenEasy: (days: number) => `Rest ${days} ${days === 1 ? 'day' : 'days'}, then easy`,
     back: 'Back',
     whatAPlanWillNever: 'What a plan\nwill never ask.',
     everyPlanIsGeneratedThen: 'Every plan is generated, then checked against these before you see it. Every change along the way goes through the same checks.',
@@ -804,7 +891,7 @@ export const en = {
     xHXMin: (h: string | number, padStart: string | number) => `${h} h ${padStart} min`,
     xMinX: (minutes: string | number, fmtKm: string | number) => `${minutes} min · ${fmtKm}`,
     raceDay2: 'Race day.',
-    raceInXX: (raceIn: string | number, raceIn2: string | number) => `Race in ${raceIn} ${raceIn2}.`,
+    raceIn: (days: number) => `Race in ${days} ${days === 1 ? 'day' : 'days'}.`,
     raceWeek: 'Race week.',
     taperLessNotSlower: 'Taper. Less, not slower.',
     aLighterWeekOnPurpose: 'A lighter week. On purpose.',
@@ -828,7 +915,7 @@ export const en = {
     painTwoDaysOffThen: 'Pain: two days off, then easy.',
     aNiggleNoted: 'A niggle, noted.',
     nothingHurt: 'Nothing hurt.',
-    illForXX: (days: string | number, e: string | number) => `Ill for ${days} ${e}.`,
+    illFor: (days: number) => `Ill for ${days} ${days === 1 ? 'day' : 'days'}.`,
     awayXToX2: (formatDay: string | number, formatDay2: string | number) => `Away ${formatDay} to ${formatDay2}.`,
     resumed: 'Resumed.',
     stopped: 'Stopped.',
@@ -838,6 +925,7 @@ export const en = {
     couldNotMakeTheCalendar: 'Could not make the calendar file',
   },
   unlock: {
+    adds: ['Full training plans, past week 1', 'Trends and progress over months', 'Patterns in your places and your energy', 'Backup, export of every run, Health Connect', 'Themes and widgets'],
     theStoreSaidNo: 'The store said no',
     notInThisBuild: 'Not in this build',
     purchasesArriveWithTheStore: 'Purchases arrive with the store version. Test builds have everything unlocked.',
@@ -868,6 +956,7 @@ export const en = {
     week1IsYoursTo: (rest: string | number, UNLOCK_NAME: string | number) => `Week 1 is yours to try. ${rest} come with ${UNLOCK_NAME}, whenever you're ready. Free runs never stop.`,
   },
   welcome: {
+    notLonely: 'Not lonely.',
     runtrovert: 'Runtrovert',
     runAlone: 'Run alone.\n',
     aRunningAppWithNo: 'A running app with no feed, no followers and no cheering. Your runs are saved on this phone. We never see them.',
@@ -913,7 +1002,7 @@ export const en = {
   notify: {
     fewerPlease: 'Fewer, please',
     noMoreRemindersSettingsCan: 'No more reminders. Settings can bring them back.',
-    fewerItIsXA: (perWeek: string | number) => `Fewer it is. ${perWeek} a week from now on.`,
+    fewer: (perWeek: number) => `Fewer it is. ${perWeek === 1 ? 'One' : 'Three'} a week from now on.`,
   },
   patterns: {
     titles: {
@@ -1073,6 +1162,7 @@ export const en = {
     raceDay: 'Race day',
   },
   sessions: {
+    aLittleQuicker: 'a little quicker',
     easyXMin: (minutes: string | number) => `Easy ${minutes} min`,
     xMinAtAPace: (minutes: string | number) => `${minutes} min at a pace where you could chat.`,
     easyRunningIsWhereMost: 'Easy running is where most of the fitness comes from. It builds the engine without wearing the frame.',
@@ -1162,6 +1252,11 @@ export const en = {
     xXLeft: (m: string | number, padStart: string | number) => `${m}:${padStart} left`,
   },
   common: {
+    min: (n: number | string) => `${n} min`,
+    sec: (n: number | string) => `${n} s`,
+    hours: (n: number | string) => `${n} h`,
+    days: (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`,
+    runs: (n: number) => `${n} ${n === 1 ? 'run' : 'runs'}`,
     // The five energy faces, 1 (Drained) to 5 (Recharged).
     mood: { 1: 'Drained', 2: 'Low', 3: 'Okay', 4: 'Good', 5: 'Recharged' },
   },
@@ -1176,6 +1271,128 @@ export const en = {
   },
   quietPicker: {
     title: 'How busy was it out there?',
+  },
+  engine: {
+    runtrovert: 'Runtrovert',
+    recordingYourRunQuietly: 'Recording your run. Quietly.',
+  },
+  planStore: {
+    unknownPlanX: (planId: string | number) => `unknown plan ${planId}`,
+    doneWithoutTheApp: 'Done without the app.',
+  },
+  shape: {
+    // What happened to the files someone brought in, one sentence per kind.
+    broughtIn: (n: number) => (n === 1 ? 'Brought in 1 run.' : `Brought in ${n} runs.`),
+    nothingNewToBringIn: 'Nothing new to bring in.',
+    alreadyHere: (n: number) => (n === 1 ? '1 was already here.' : `${n} were already here.`),
+    notRuns: (n: number) => (n === 1 ? '1 wasn’t a run, so it stayed out.' : `${n} weren’t runs, so they stayed out.`),
+    unreadable: (n: number) => (n === 1 ? '1 file couldn’t be read.' : `${n} files couldn’t be read.`),
+    zipped: (n: number) => (n === 1 ? '1 was zipped: unzip it first, then pick the file inside.' : `${n} were zipped: unzip them first, then pick the files inside.`),
+    other: (n: number) => (n === 1 ? '1 had no times or was too short.' : `${n} had no times or were too short.`),
+  },
+  presets: {
+    // Today's run, the three presets. chip is short so all three fit on one line.
+    clear: {
+      chip: 'Clear my head',
+      name: 'Clear my head',
+      line: 'Silent recording. The time if you tap for it. Every number waits for the finish.',
+      screen: 'Nothing, or just the time',
+      voice: 'Silent',
+      numbers: 'All of them, after',
+    },
+    just: {
+      chip: 'Just run',
+      name: 'Just run',
+      line: 'Distance, time, pace and the map, with your usual cues.',
+      screen: 'Distance, time, pace, map',
+      voice: 'Your usual cues',
+      numbers: 'Live',
+    },
+    plan: {
+      chip: 'My plan',
+      name: 'Follow my plan',
+      line: 'Today’s session, block by block. A voice when a block changes.',
+      screen: 'Today’s session, block by block',
+      voice: 'When a block changes',
+      numbers: 'Kept second',
+    },
+  },
+  splitsTable: {
+    total: (time: string, n: number, km: boolean) => `Total ${time} over ${n} full ${km ? 'km' : 'mi'}`,
+  },
+  plans: {
+    // The plan catalogue, by plan id: name, one line, and who it suits.
+    'start': {
+      name: 'Start running',
+      blurb: 'Nine weeks from a 30-minute walk to 30 minutes of running. Walk breaks shrink; nothing else changes.',
+      who: 'Can walk for 30 minutes.',
+    },
+    'keep': {
+      name: 'Keep running',
+      blurb: 'Rolling four-week blocks that hold a steady habit. Three build weeks, one lighter. No race, no clock.',
+      who: 'Already running, however little.',
+    },
+    'comeback': {
+      name: 'Come back',
+      blurb: 'Six weeks back to about 80% of where you were, after four or more weeks off, illness, or a healed injury.',
+      who: 'Four or more weeks off. If it was an injury, cleared to run by a clinician.',
+    },
+    '5k-finish': {
+      name: '5K Finish',
+      blurb: 'Eight weeks to run five kilometres without stopping. Strides from week three, nothing harder.',
+      who: 'Can run or run/walk for 20 minutes, or finished Start running.',
+    },
+    '5k-improve': {
+      name: '5K Improve',
+      blurb: 'Eight weeks with one quality session a week: threshold early, intervals at 5K effort later.',
+      who: 'Has run a 5K, about 15 km a week.',
+    },
+    '10k-finish': {
+      name: '10K Finish',
+      blurb: 'Ten weeks from thirty continuous minutes to ten kilometres. The long run does the work.',
+      who: 'Can run 30 minutes without stopping.',
+    },
+    '10k-improve': {
+      name: '10K Improve',
+      blurb: 'Ten weeks, one quality session a week, race-pace stretches inside the long run from the halfway point.',
+      who: 'Has run a 10K, about 20 km a week.',
+    },
+    '10k-race': {
+      name: '5K/10K Race',
+      blurb: 'Ten weeks, two quality sessions a week: threshold and either intervals or fast repetitions. Competitive.',
+      who: 'Six months of steady running, 35+ km a week.',
+    },
+    'half-finish': {
+      name: 'Half Finish',
+      blurb: 'Twelve weeks, mostly easy, long run to 18 km. Strides and a little fartlek, nothing you would call a workout.',
+      who: '10K done, or 60 minutes continuous. 15 to 20 km a week.',
+    },
+    'half-improve': {
+      name: 'Half Improve',
+      blurb: 'Twelve weeks, one quality session a week, long runs that finish at race effort from week nine.',
+      who: 'Half done, or a long run of 15 km+. 25 km a week.',
+    },
+    'half-race': {
+      name: 'Half Race',
+      blurb: 'Fourteen weeks, two quality sessions a week, long run to 22 km with race-pace blocks. Competitive.',
+      who: 'Six months of steady running, 40+ km a week.',
+    },
+    'marathon-finish': {
+      name: 'Marathon Finish',
+      blurb: 'Eighteen weeks, four days, long run to 32 km or three hours, whichever comes first. Three-week taper.',
+      who: '25+ km a week for a month, a long run of 13 km+ in the last 30 days. A half done helps.',
+    },
+    'marathon-improve': {
+      name: 'Marathon Improve',
+      blurb: 'Eighteen weeks, five days, one quality session a week, marathon-pace blocks inside the long run.',
+      who: 'Marathon done, 40+ km a week, a long run of 18 km+.',
+    },
+    'marathon-race': {
+      name: 'Marathon Race',
+      blurb: 'Eighteen weeks, five or six days, two quality sessions, long run to 35 km. Competitive.',
+      who: 'Six months of steady running, 55+ km a week, marathon done.',
+    },
+    goal: { none: 'Just running', '5k': '5K', '10k': '10K', half: 'Half marathon', marathon: 'Marathon' },
   },
 };
 

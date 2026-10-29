@@ -26,7 +26,7 @@ export function WelcomeScreen({ onDone }: { onDone: (reminders: boolean) => void
         <View style={{ flex: 1, minHeight: 220 }} />
         <Text style={styles.h1} accessibilityRole="header">
           <Text style={{ fontFamily: fonts.displayLight }}>{ui().welcome.runAlone}</Text>
-          Not lonely.
+          {ui().welcome.notLonely}
         </Text>
         <Text style={styles.lede}>{ui().welcome.aRunningAppWithNo}</Text>
 

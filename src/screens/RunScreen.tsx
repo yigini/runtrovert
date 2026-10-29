@@ -477,9 +477,9 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
           >
             <View style={styles.statRow} accessible accessibilityLabel={ui().run.xInXAverageX(spokenDistance(final.distanceM, km), spokenDuration(final.durationS), spokenPace(final.distanceM, final.durationS, km), formatElevation(final.elevationGainM, km))}>
               <Stat value={formatDistanceNumber(final.distanceM, km)} label={distanceUnit(km)} big />
-              <Stat value={formatDuration(final.durationS)} label="time" />
+              <Stat value={formatDuration(final.durationS)} label={ui().run.time} />
               <Stat value={formatPace(final.distanceM, final.durationS, km)} label={`/${distanceUnit(km)}`} />
-              <Stat value={formatElevation(final.elevationGainM, km)} label="climb" />
+              <Stat value={formatElevation(final.elevationGainM, km)} label={ui().run.climb} />
             </View>
             <Recharge before={moodBefore} after={moodAfter} />
           </View>
@@ -581,7 +581,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     const step = v.step;
     const tint = blockTint(v.finished ? null : step);
     const blocks = createWorkout(guided.session.steps).steps;
-    const spoken = v.finished ? ui().run.thatIsTheSession : step ? ui().run.blockXOfXX(v.index + 1, v.total, stepName(step), formatLeft(v), v.next ? ` Then ${stepLine(v.next)}.` : ' Last block.') : '';
+    const spoken = v.finished ? ui().run.thatIsTheSession : step ? ui().run.blockXOfXX(v.index + 1, v.total, stepName(step), formatLeft(v), v.next ? ui().run.thenSpoken(stepLine(v.next)) : ui().run.lastBlockSpoken) : '';
     return (
       <View style={[styles.calm, { gap: spacing.md + 2 }]}>
         <View style={styles.calmTop}>
@@ -603,7 +603,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
               <Text style={styles.blockLeft} maxFontSizeMultiplier={DISPLAY_MAX_SCALE} numberOfLines={1} adjustsFontSizeToFit>
                 {leftClock(v)}
               </Text>
-              <Text style={[styles.blockFeel, { color: tint.fg }]}>left in this block.{step && stepFeel(step) ? ` ${stepFeel(step)}` : ''}</Text>
+              <Text style={[styles.blockFeel, { color: tint.fg }]}>{ui().run.leftInThisBlock}{step && stepFeel(step) ? ` ${stepFeel(step)}` : ''}</Text>
             </>
           ) : (
             <Text style={[styles.blockFeel, { color: tint.fg }]}>{ui().run.easyToTheDoorHold}</Text>
@@ -625,7 +625,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
           <Text style={styles.blockNext} importantForAccessibility="no">
             {v.next ? (
               <>
-                Then <Text style={{ fontFamily: fonts.bodySemi }}>{stepLine(v.next)}</Text>.{settings.cueMode === 'voice' ? ui().run.aVoiceTellsYouWhen : ''}
+                {ui().run.thenBefore}<Text style={{ fontFamily: fonts.bodySemi }}>{stepLine(v.next)}</Text>{ui().run.thenAfter}{settings.cueMode === 'voice' ? ui().run.aVoiceTellsYouWhen : ''}
               </>
             ) : (
               ui().run.lastBlock
@@ -635,7 +635,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         <View style={{ flex: 1 }} />
         <View style={styles.planNums} accessible accessibilityLabel={spokenRun(track, km)}>
           <PlanNum value={formatDistanceNumber(track.distanceM, km)} label={distanceUnit(km)} />
-          <PlanNum value={formatDuration(track.durationS)} label="total" />
+          <PlanNum value={formatDuration(track.durationS)} label={ui().run.total} />
           <PlanNum value={formatPace(track.distanceM, track.durationS, km)} label={ui().run.paceX(distanceUnit(km))} />
         </View>
         {lightControls}
@@ -671,7 +671,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         {mapFront ? (
           <View style={styles.strip}>
             <StripStat value={formatDistanceNumber(track.distanceM, km)} label={distanceUnit(km)} />
-            <StripStat value={formatDuration(track.durationS)} label="time" />
+            <StripStat value={formatDuration(track.durationS)} label={ui().run.time} />
             <StripStat value={formatPace(track.distanceM, track.durationS, km)} label={ui().run.avgX(distanceUnit(km))} />
           </View>
         ) : (
@@ -831,12 +831,12 @@ function LiveNumbers({ km, t, guided }: { km: boolean; t: TrackingState; guided:
         <Text style={styles.heroUnit}>{km ? 'kilometres' : 'miles'}</Text>
       </View>
       <View style={styles.numRow}>
-        <LiveStat value={formatDuration(t.durationS)} label="time" color={colors.mint} />
+        <LiveStat value={formatDuration(t.durationS)} label={ui().run.time} color={colors.mint} />
         <LiveStat value={formatPace(t.distanceM, t.durationS, km)} label={ui().run.avgX(distanceUnit(km))} color={colors.peach} />
         <LiveStat value={formatSpeedAsPace(t.speedMps, km)} label={ui().run.rightNow} color={colors.lilac} />
       </View>
       <Text style={styles.splitLine} numberOfLines={1} adjustsFontSizeToFit>
-        {km ? 'km' : 'mile'} {t.splits.length + 1} · {formatPace(cur.distanceM, cur.durationS, km)} · climb {formatElevation(t.elevationGainM, km)}
+        {ui().run.splitLine(km, t.splits.length + 1, formatPace(cur.distanceM, cur.durationS, km), formatElevation(t.elevationGainM, km))}
       </Text>
     </View>
   );
@@ -894,7 +894,7 @@ function StripStat({ value, label }: { value: string; label: string }) {
 function gpsLabel(q: TrackingState['gps']): string {
   if (q === 'searching') return ui().run.findingYou;
   if (q === 'lost') return ui().run.gpsLost2;
-  return `GPS ${q}`;
+  return ui().run.gps[q] ?? `GPS ${q}`;
 }
 
 function Tile({ bg, fg, value, label, small }: { bg: string; fg: string; value: string; label: string; small?: boolean }) {

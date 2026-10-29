@@ -9,21 +9,15 @@ import { pickAndImport, shareAllRuns } from '../io/store';
 import type { SourceKind } from '../io/types';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import { useUnlocked } from '../unlockState';
-import { ui } from '../i18n/ui';
+import { live, ui } from '../i18n/ui';
 
 // "Everything you have": what's stored, bringing runs in from a watch or
 // another app, and taking them all out again. Files pass through the phone's
 // own picker and share sheet; nothing here touches the network.
 
-const HAPPENS = [
-  'Files are read on this phone. Nothing is uploaded, and nothing is fetched.',
-  'Runtrovert only sees the files you pick, never the rest of your storage, so it asks for no storage permission.',
-  'A file you save goes where you send it from the share sheet, and nowhere else.',
-  'Notes, energy and busyness stay out of the files. They belong to you, not to a watch or another app.',
-  'No account, no sync, no cloud.',
-];
+const HAPPENS: string[] = live(() => ui().everything.happens);
 
-const FROM: Record<SourceKind, string> = { gpx: 'from GPX files', fit: 'from FIT files', health: 'from Health Connect' };
+const FROM: Record<SourceKind, string> = live(() => ui().everything.from);
 
 export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; onChanged: () => void }) {
   const unlocked = useUnlocked();

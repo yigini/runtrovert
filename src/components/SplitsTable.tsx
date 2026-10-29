@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { formatDistance, formatDuration, formatPace } from '../geo';
 import { colors, fonts, radius, spacing, type } from '../theme';
+import { ui } from '../i18n/ui';
 
 export interface SplitRow {
   index: number;
@@ -36,7 +37,7 @@ export function SplitsTable({ title, rows, km, partial }: { title: string; rows:
           );
         })}
       </View>
-      <Text style={type.small}>Total {formatDuration(rows.reduce((a, r) => a + r.durationS, 0))} over {rows.length} full {km ? 'km' : 'mi'}</Text>
+      <Text style={type.small}>{ui().splitsTable.total(formatDuration(rows.reduce((a, r) => a + r.durationS, 0)), rows.length, km)}</Text>
     </View>
   );
 }

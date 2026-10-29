@@ -106,7 +106,7 @@ function Shell() {
       const now = Date.now();
       if (now - lastBack.current < 2000) return false;
       lastBack.current = now;
-      ToastAndroid.show('Back again to leave', ToastAndroid.SHORT);
+      ToastAndroid.show(ui().app.backAgainToLeave, ToastAndroid.SHORT);
       return true;
     });
     return () => sub.remove();

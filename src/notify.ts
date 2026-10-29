@@ -199,7 +199,7 @@ export function fewer(perWeek: NotifyPerWeek): NotifyPerWeek {
 
 export function fewerMessage(perWeek: NotifyPerWeek): string {
   if (perWeek === 0) return ui().notify.noMoreRemindersSettingsCan;
-  return ui().notify.fewerItIsXA(perWeek === 1 ? 'One' : 'Three');
+  return ui().notify.fewer(perWeek);
 }
 
 /**

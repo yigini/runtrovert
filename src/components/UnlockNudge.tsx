@@ -33,11 +33,11 @@ export function UnlockNudge() {
   return (
     <View style={styles.wrap}>
       <Text style={styles.text}>
-        {count === 10 ? ui().unlockNudge.ten : count} runs in. If you'd like to see how they add up over months, there's{' '}
+        {ui().unlockNudge.before(count)}
         <Text style={styles.link} onPress={openUnlock} accessibilityRole="link">
           {UNLOCK_NAME}
         </Text>
-        : one payment, no subscription.
+        {ui().unlockNudge.after}
       </Text>
       <Pressable
         onPress={() => {

@@ -333,17 +333,17 @@ function Facts({ run, stats, km }: { run: RunStatsProps['run']; stats: Stats; km
 
   if (stats.steadiness) add(stats.steadiness.word, ui().runStats.paceWithinXSMost(stats.steadiness.spread), colors.lilacSoft, colors.lilacDeep);
   if (stats.fastest) add(`${paceText(stats.fastest.pace, km)} /${unit}`, ui().runStats.yourQuickest200MAround(formatDistance(stats.fastest.d, km)), colors.peach, colors.peachDeep);
-  if (stats.light && stats.light.darkS >= 60) add(`${Math.round(stats.light.darkS / 60)} min`, 'under streetlights', colors.butter, colors.butterDeep);
-  if (stats.steps) add(`≈ ${thousands(stats.steps)}`, 'steps, roughly', colors.mintSoft, colors.mintDeep);
-  if (stats.floors) add(String(stats.floors), 'floors of stairs, in climbing', colors.sky, colors.skyDeep);
-  if (stats.highM != null && stats.lowM != null && stats.highM - stats.lowM > 3) add(formatElevation(stats.highM - stats.lowM, km), 'from the lowest point to the highest', colors.sky, colors.skyDeep);
+  if (stats.light && stats.light.darkS >= 60) add(ui().common.min(Math.round(stats.light.darkS / 60)), ui().runStats.underStreetlights, colors.butter, colors.butterDeep);
+  if (stats.steps) add(`≈ ${thousands(stats.steps)}`, ui().runStats.stepsRoughly, colors.mintSoft, colors.mintDeep);
+  if (stats.floors) add(String(stats.floors), ui().runStats.floorsOfStairsInClimbing, colors.sky, colors.skyDeep);
+  if (stats.highM != null && stats.lowM != null && stats.highM - stats.lowM > 3) add(formatElevation(stats.highM - stats.lowM, km), ui().runStats.fromTheLowestPointTo, colors.sky, colors.skyDeep);
   if (stats.corners != null && stats.corners > 0) add(String(stats.corners), stats.corners === 1 ? ui().runStats.cornerTaken : ui().runStats.cornersTaken, colors.mintSoft, colors.mintDeep);
-  if (stats.furthestM) add(formatDistance(stats.furthestM, km), 'furthest from the start, as the crow flies', colors.lilacSoft, colors.lilacDeep);
-  if (stats.loopM != null) add(formatDistance(stats.loopM, km), 'from where you began. A proper loop.', colors.mintSoft, colors.mintDeep);
-  if (stats.stoppedS) add(formatDuration(stats.stoppedS), 'standing still. Lights, laces, a view.', colors.butter, colors.butterDeep);
-  if (run.quiet) add(QUIET[run.quiet], 'how busy it was out there', colors.lilacSoft, colors.lilacDeep);
-  if (run.moodBefore && run.moodAfter) add(`${MOOD[run.moodBefore]} → ${MOOD[run.moodAfter]}`, 'your energy, before and after', colors.lilac, colors.lilacDeep);
-  if (run.distanceM >= 200) add(`${estimateCalories(run.distanceM)} kcal`, 'burned, a rough estimate', colors.peach, colors.peachDeep);
+  if (stats.furthestM) add(formatDistance(stats.furthestM, km), ui().runStats.furthestFromTheStartAs, colors.lilacSoft, colors.lilacDeep);
+  if (stats.loopM != null) add(formatDistance(stats.loopM, km), ui().runStats.fromWhereYouBeganA, colors.mintSoft, colors.mintDeep);
+  if (stats.stoppedS) add(formatDuration(stats.stoppedS), ui().runStats.standingStillLightsLacesA, colors.butter, colors.butterDeep);
+  if (run.quiet) add(QUIET[run.quiet], ui().runStats.howBusyItWasOut, colors.lilacSoft, colors.lilacDeep);
+  if (run.moodBefore && run.moodAfter) add(`${MOOD[run.moodBefore]} → ${MOOD[run.moodAfter]}`, ui().runStats.yourEnergyBeforeAndAfter, colors.lilac, colors.lilacDeep);
+  if (run.distanceM >= 200) add(`${estimateCalories(run.distanceM)} kcal`, ui().runStats.burnedARoughEstimate, colors.peach, colors.peachDeep);
 
   if (!tiles.length) return null;
   return (

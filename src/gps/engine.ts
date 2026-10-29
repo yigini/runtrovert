@@ -16,6 +16,7 @@ import * as TaskManager from 'expo-task-manager';
 import { bufferFixes } from '../db';
 import { GPS_PROFILES, type GpsProfile } from '../power';
 import type { RawFix } from './kalman';
+import { ui } from '../i18n/ui';
 
 export const LOCATION_TASK = 'runtrovert-location';
 
@@ -98,8 +99,8 @@ class ExpoEngine implements LocationEngine {
       showsBackgroundLocationIndicator: true,
       deferredUpdatesInterval: 0,
       foregroundService: {
-        notificationTitle: 'Runtrovert',
-        notificationBody: 'Recording your run. Quietly.',
+        notificationTitle: ui().engine.runtrovert,
+        notificationBody: ui().engine.recordingYourRunQuietly,
         notificationColor: '#7fb3a2',
         killServiceOnDestroy: false,
       },
@@ -158,7 +159,7 @@ class TransistorEngine implements LocationEngine {
       preventSuspend: true,
       heartbeatInterval: 60,
       foregroundService: true,
-      notification: { title: 'Runtrovert', text: 'Recording your run. Quietly.', color: '#7fb3a2', priority: bg.NOTIFICATION_PRIORITY_LOW },
+      notification: { title: ui().engine.runtrovert, text: ui().engine.recordingYourRunQuietly, color: '#7fb3a2', priority: bg.NOTIFICATION_PRIORITY_LOW },
       // Privacy: never let the library talk to any server.
       url: undefined,
       autoSync: false,
