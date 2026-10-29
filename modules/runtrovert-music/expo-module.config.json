@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["RuntrovertMusicModule"]
+  },
+  "android": {
+    "modules": ["app.runtrovert.music.RuntrovertMusicModule"]
+  }
+}

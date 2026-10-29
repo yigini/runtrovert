@@ -68,6 +68,8 @@ export interface Settings {
   runNotes: boolean; // live stats on the lock screen and a note per km (watches mirror these)
   batteryMode: BatteryMode;
   keepScreenOn: boolean; // during a run only
+  musicStrip: boolean; // previous / play / next on the run screen
+  musicApp: string | null; // MUSIC_APPS key; null = the phone's default music app
   onboarded: boolean;
 }
 
@@ -87,5 +89,7 @@ export const DEFAULT_SETTINGS: Settings = {
   runNotes: true,
   batteryMode: 'auto',
   keepScreenOn: false,
+  musicStrip: true,
+  musicApp: null,
   onboarded: false,
 };
