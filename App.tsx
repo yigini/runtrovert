@@ -139,7 +139,8 @@ function Shell() {
         <WelcomeScreen
           onDone={async (yes) => {
             if (yes) await requestNotificationPermission().catch(() => false);
-            update({ onboarded: true, notifyAsk: yes ? 'yes' : 'no', seenNews: NEWS.id });
+            // The welcome told them what the map service sees, so tiles may load.
+            update({ onboarded: true, notifyAsk: yes ? 'yes' : 'no', seenNews: NEWS.id, mapNoticeSeen: true });
           }}
         />
       </SafeAreaView>

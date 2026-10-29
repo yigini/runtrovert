@@ -14,8 +14,8 @@ import { Button } from './Button';
 import { Face, Mark } from './Mark';
 
 // "Share with someone": a card drawn on the phone and handed to the phone's
-// own share sheet. Runtrovert never sees where it goes. The route is a bare
-// line with its ends trimmed, the date is a day and a rough time, and the
+// own share sheet. Runtrovert never sees where it goes. The route is off by
+// default; when on it's a bare line with its ends trimmed, the date is a day and a rough time, and the
 // line under the number is written from this run's own facts.
 
 export interface ShareRun {
@@ -57,7 +57,7 @@ export function ShareSheet({
   km: boolean;
 }) {
   const [turn, setTurn] = useState(0);
-  const [showRoute, setShowRoute] = useState(true);
+  const [showRoute, setShowRoute] = useState(false);
   const recharge = run.moodBefore != null && run.moodAfter != null ? run.moodAfter - run.moodBefore : null;
   const [stat, setStat] = useState<StatKind>(cmp.best ? 'best' : recharge != null && recharge >= 2 ? 'energy' : 'distance');
   const [busy, setBusy] = useState(false);
@@ -159,7 +159,7 @@ export function ShareSheet({
             <Chip key={o.key} label={o.label} on={stat === o.key} onPress={() => setStat(o.key)} />
           ))}
         </View>
-        <Text style={type.small}>The route is drawn without a map, with its first and last 300 m left off, so it never starts at your door.</Text>
+        <Text style={type.small}>Route is off unless you turn it on. It’s drawn without a map and with the first and last 300 m left off, but its shape can still show where you run, and a loop can pass your door again.</Text>
 
         <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
           <Button title="Not now" variant="secondary" onPress={onClose} style={{ flex: 0, paddingHorizontal: 22 }} />
