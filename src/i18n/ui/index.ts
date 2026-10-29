@@ -2,10 +2,11 @@
 // source and the fallback, and every other language is typed against it.
 import { finish, lang, type Lang } from '../lang';
 import { de } from './de';
+import { fr } from './fr';
 import { en, type Strings } from './en';
 
 /** Every interface language. A language listed in SHIPPED (lang.ts) must be here. */
-export const UI: Partial<Record<Lang, Strings>> = { en, de };
+export const UI: Partial<Record<Lang, Strings>> = { en, de, fr };
 
 export function ui(): Strings {
   const l = lang();
