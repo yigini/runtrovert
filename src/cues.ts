@@ -75,3 +75,10 @@ export async function cueCountdown(n: number) {
   await buzz(n === 0 ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning);
   if (mode === 'voice') say(n === 0 ? 'Go.' : String(n));
 }
+
+/** A guided session moved on to its next step: two taps, and the step in a few words. */
+export async function cueWorkoutStep(text: string, finished = false) {
+  if (mode === 'silent') return;
+  await buzz(finished ? Haptics.NotificationFeedbackType.Success : 'double');
+  if (mode === 'voice') say(text);
+}

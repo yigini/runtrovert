@@ -1,0 +1,61 @@
+// Plan days get the day's session as the reminder, at the hour the runner
+// already chose. Nothing extra: a plan day replaces that day's ordinary line
+// rather than adding to it, and with reminders off there is nothing at all.
+
+import * as Notifications from 'expo-notifications';
+import { ensureChannel } from '../notify';
+import type { Settings } from '../types';
+import { DAY_MS, dayStart } from './dates';
+import { loadPlan, runSessions } from './store';
+
+const CHANNEL = 'runtrovert-quiet';
+const HORIZON_DAYS = 14;
+const MAX_PLAN_PENDING = 10;
+
+const TITLES = ['Today, if you like', 'On the plan today', 'A run is pencilled in', 'Whenever suits'];
+
+/** Call after the ordinary reminders are laid out, since that lays them out from scratch. */
+export async function schedulePlanReminders(settings: Settings): Promise<void> {
+  if (settings.notifyPerWeek === 0) return;
+  const plan = await loadPlan();
+  if (!plan || plan.status !== 'active') return;
+  const perm = await Notifications.getPermissionsAsync();
+  if (!perm.granted) return;
+  await ensureChannel();
+
+  const now = Date.now();
+  const today = dayStart(now);
+  const upcoming = runSessions(plan)
+    .filter((s) => !s.skipped && !s.done && s.kind !== 'rest' && s.date >= today && s.date < today + HORIZON_DAYS * DAY_MS)
+    .slice(0, MAX_PLAN_PENDING);
+  if (!upcoming.length) return;
+  const planDays = new Set(upcoming.map((s) => s.date));
+
+  // One voice per morning: the ordinary line steps aside on a plan day.
+  const pending = await Notifications.getAllScheduledNotificationsAsync();
+  for (const n of pending) {
+    if (n.content.data?.kind !== 'reminder') continue;
+    const day = triggerDay(n.trigger);
+    if (day != null && planDays.has(day)) await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
+  }
+
+  for (const [i, s] of upcoming.entries()) {
+    const date = new Date(s.date);
+    date.setHours(settings.notifyHour, settings.notifyMinute, 0, 0);
+    if (date.getTime() <= now + 60_000) continue;
+    await Notifications.scheduleNotificationAsync({
+      content: { title: s.kind === 'race' ? 'Race day' : TITLES[i % TITLES.length], body: `${s.title}. ${s.summary}`, sound: false, data: { kind: 'plan', sessionId: s.id } },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date, channelId: CHANNEL },
+    });
+  }
+}
+
+/** The local day a scheduled notification fires on, from either platform's trigger shape. */
+function triggerDay(trigger: unknown): number | null {
+  const t = trigger as { type?: string; value?: number; dateComponents?: { year?: number; month?: number; day?: number } } | null;
+  if (!t) return null;
+  if (typeof t.value === 'number') return dayStart(t.value);
+  const c = t.dateComponents;
+  if (c && c.year != null && c.month != null && c.day != null) return dayStart(new Date(c.year, c.month - 1, c.day).getTime());
+  return null;
+}

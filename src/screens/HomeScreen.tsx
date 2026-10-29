@@ -9,6 +9,7 @@ import { SkyGlyph } from '../components/SkyGlyph';
 import { clock, formatTemp, headline, suggestions } from '../sky';
 import { useSettings } from '../settings';
 import { colors, fonts, spacing } from '../theme';
+import type { Session } from '../training/types';
 import type { Mood, Run } from '../types';
 import { cachedWeather, getWeather, type Weather, type WeatherResult } from '../weather';
 
@@ -16,7 +17,7 @@ import { cachedWeather, getWeather, type Weather, type WeatherResult } from '../
  * The first thing you see. Footage, the sky in a sentence, three plain
  * suggestions, and the start button. No cards: the words sit on the picture.
  */
-export function HomeScreen({ runs, mood, onMood, onStart }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void }) {
+export function HomeScreen({ runs, mood, onMood, onStart, planToday }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; planToday?: Session | null }) {
   const { settings } = useSettings();
   const metric = settings.unitsKm;
   const [sky, setSky] = useState<WeatherResult | null>(null);
@@ -64,6 +65,13 @@ export function HomeScreen({ runs, mood, onMood, onStart }: { runs: Run[]; mood:
           {weather ? headline(weather, metric, now) : greeting(runs, now)}
         </Text>
         <Text style={styles.sub}>{subline(runs, now)}</Text>
+        {planToday ? (
+          <View style={styles.plan}>
+            <Text style={styles.planLabel}>{planToday.done ? 'Today’s session, done' : planToday.skipped ? 'Today’s session, set aside' : 'Today, from your plan'}</Text>
+            <Text style={styles.planText}>{planToday.title}</Text>
+            <Text style={styles.planHint}>{planToday.summary}</Text>
+          </View>
+        ) : null}
 
         {weather ? (
           <View style={styles.list}>
@@ -86,7 +94,7 @@ export function HomeScreen({ runs, mood, onMood, onStart }: { runs: Run[]; mood:
         <View style={{ flex: 1 }} />
 
         <MoodPicker inline title="Energy right now" value={mood} onChange={onMood} />
-        <Button title="Start run" onPress={onStart} style={{ height: 62 }} />
+        <Button title={planToday && !planToday.done && !planToday.skipped ? 'Start today’s session' : 'Start run'} onPress={onStart} style={{ height: 62 }} />
         <Text style={styles.footer}>{footer(runs, now)}</Text>
       </View>
     </AmbientBackground>
@@ -168,4 +176,8 @@ const styles = StyleSheet.create({
   askText: { fontFamily: fonts.bodySemi, fontSize: 16, color: colors.ink },
   askHint: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.inkSoft },
   footer: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1, color: colors.inkSoft, textAlign: 'center' },
+  plan: { gap: 2, paddingLeft: 14, borderLeftWidth: 2, borderLeftColor: colors.butterDeep },
+  planLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: colors.butterDeep },
+  planText: { fontFamily: fonts.bodyMedium, fontSize: 16, lineHeight: 21, color: colors.ink },
+  planHint: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.inkSoft },
 });

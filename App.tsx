@@ -4,22 +4,27 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
-import { discardUnfinishedRuns } from './src/db';
+import { discardUnfinishedRuns, getRun } from './src/db';
 import { HistoryScreen } from './src/screens/HistoryScreen';
 import { RunDetailScreen } from './src/screens/RunDetailScreen';
 import { RunScreen } from './src/screens/RunScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
+import { TrainScreen } from './src/screens/TrainScreen';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import { notifyAfterRun, rescheduleReminders } from './src/notify';
 import { SettingsProvider, useSettings } from './src/settings';
 import { recoverRun, subscribe } from './src/tracking';
 import { colors, fonts, spacing } from './src/theme';
+import type { PainLevel } from './src/training/adapt';
+import { schedulePlanReminders } from './src/training/remind';
+import { onRunSaved } from './src/training/store';
+import type { Session } from './src/training/types';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-type Tab = 'run' | 'history' | 'settings';
+type Tab = 'run' | 'train' | 'history' | 'settings';
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({ DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold, Fraunces_300Light, Fraunces_400Regular_Italic, Fraunces_600SemiBold });
@@ -43,6 +48,9 @@ function Shell() {
   const [openRun, setOpenRun] = useState<number | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [liveRun, setLiveRun] = useState(false);
+  // A session opened from the Train tab, waiting on the Run tab's start button.
+  const [sessionRequest, setSessionRequest] = useState<Session | null>(null);
+  const [planKey, setPlanKey] = useState(0);
   useEffect(() => subscribe((t) => setLiveRun(t.status !== 'idle')), []);
 
   useEffect(() => {
@@ -56,8 +64,12 @@ function Shell() {
 
   // Lay out the next weeks of reminders each time the app opens (context may have changed).
   useEffect(() => {
-    if (ready && settings.onboarded) rescheduleReminders(settings).catch(() => {});
-  }, [ready, settings.onboarded]);
+    if (ready && settings.onboarded) {
+      rescheduleReminders(settings)
+        .then(() => schedulePlanReminders(settings))
+        .catch(() => {});
+    }
+  }, [ready, settings.onboarded, planKey]);
 
   if (!ready) return <SafeAreaView style={styles.root} />;
   if (!settings.onboarded) {
@@ -69,12 +81,26 @@ function Shell() {
     );
   }
 
-  function onSaved(runId: number) {
+  async function onSaved(runId: number, extra?: { pain: PainLevel | null; sessionId: string | null }) {
     notifyAfterRun(settings);
-    rescheduleReminders({ ...settings });
     setRefreshKey((k) => k + 1);
     setOpenRun(runId);
     setTab('history');
+    setSessionRequest(null);
+    // Tick the day's session off the plan, and let pain ease the days ahead.
+    try {
+      const run = await getRun(runId);
+      if (run) {
+        const r = await onRunSaved(run, extra?.pain ?? null, extra?.sessionId ?? null);
+        if (r.advice) Alert.alert('Noted', r.advice);
+      }
+    } catch {
+      // no plan, or nothing to change
+    }
+    setPlanKey((k) => k + 1);
+    rescheduleReminders({ ...settings })
+      .then(() => schedulePlanReminders(settings))
+      .catch(() => {});
   }
 
   const inkMode = liveRun && tab === 'run';
@@ -84,8 +110,18 @@ function Shell() {
       <View style={{ flex: 1 }}>
         {/* RunScreen stays mounted so a live run survives tab switches. */}
         <View style={[{ flex: 1 }, tab !== 'run' && styles.hidden]}>
-          <RunScreen onSaved={onSaved} />
+          <RunScreen onSaved={onSaved} requested={sessionRequest} onRequestTaken={() => setSessionRequest(null)} planKey={planKey} />
         </View>
+        {tab === 'train' && (
+          <TrainScreen
+            refreshKey={planKey + refreshKey}
+            onChanged={() => setPlanKey((k) => k + 1)}
+            onStartSession={(s) => {
+              setSessionRequest(s);
+              setTab('run');
+            }}
+          />
+        )}
         {tab === 'history' && openRun == null && <HistoryScreen onOpen={setOpenRun} refreshKey={refreshKey} />}
         {tab === 'history' && openRun != null && (
           <RunDetailScreen
@@ -102,6 +138,7 @@ function Shell() {
       {!liveRun && (
         <View style={styles.tabs}>
           <TabButton label="Run" color={colors.mint} active={tab === 'run'} onPress={() => setTab('run')} />
+          <TabButton label="Train" color={colors.butter} active={tab === 'train'} onPress={() => setTab('train')} />
           <TabButton
             label="History"
             color={colors.lilac}
