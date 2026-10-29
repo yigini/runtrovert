@@ -98,14 +98,16 @@ export function HomeScreen({ runs, mood, onMood, onStart, planToday }: { runs: R
 
         <View style={{ flex: 1 }} />
 
+        {/* One quiet line at a time: what's new until it's dismissed, then the daily tip. */}
         {settings.seenNews !== NEWS.id ? (
           <Pressable onPress={() => update({ seenNews: NEWS.id })} style={styles.news} accessibilityRole="button" accessibilityHint="Dismisses this line">
             <Text style={styles.newsText}>{NEWS.text}</Text>
             <Text style={styles.newsDismiss}>Got it</Text>
           </Pressable>
-        ) : null}
+        ) : (
+          <TipLine runs={runs} weather={weather} dark={evening} waiting={sky === null} />
+        )}
 
-        <TipLine runs={runs} weather={weather} dark={evening} waiting={sky === null} />
         <MoodPicker inline title="Energy right now" value={mood} onChange={onMood} />
         <Button title={planToday && !planToday.done && !planToday.skipped ? 'Start today’s session' : 'Start run'} onPress={onStart} style={{ height: 62 }} />
         <Text style={styles.footer}>{footer(runs, now)}</Text>
