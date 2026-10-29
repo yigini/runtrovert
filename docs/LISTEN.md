@@ -33,9 +33,37 @@ the app, only when someone opens Listen, and only if they said yes (Settings →
 - Run the builder by hand from GitHub: Actions → Listen shelf → Run workflow.
 - GitHub turns off scheduled workflows in a repository with no activity for 60 days. A push, or Run workflow, turns it back on.
 
+## Opening a show in the runner's app
+
+"Open" should land on the show, and on the episode when there is one, never on a search. The daily build works the links out ahead of time (`scripts/podcast-links.mjs`), so the phone only follows a link; `openTarget()` in `src/shelfLogic.ts` picks it.
+
+| App | Episode | Show | Needs |
+|---|---|---|---|
+| Apple Podcasts | yes (`?i=<episode id>` from Apple's lookup) | yes | nothing |
+| Spotify | yes, when the title matches | yes | `SPOTIFY_CLIENT_ID` + `SPOTIFY_CLIENT_SECRET` |
+| YouTube Music | yes, when the title matches (`watch?v=…&list=…`) | yes (the podcast playlist) | `YOUTUBE_API_KEY` |
+| Pocket Casts | no (no public episode id) | yes (`pca.st/itunes/<id>`) | nothing |
+| AntennaPod | no | yes (subscribe link with the feed) | nothing |
+
+Without a key, or when no match is found, Spotify and YouTube Music get a search, and the button says so ("Search in YouTube Music"), with the feed link one tap away to share into any podcast app.
+
+Matching is strict on purpose: a show must have the same name after dropping case, accents, punctuation, a leading "the" and a trailing "podcast"/"show", and on YouTube the playlist must be one YouTube marks as a podcast. An episode matches on its title (equal, or 80% of words shared). A wrong show is worse than an honest search.
+
+Found links are carried over from yesterday's shelf.json; misses are retried after 14 days. YouTube searches are capped at 60 a run (6,000 of the free 10,000 daily units), so a fresh setup fills in over a few days.
+
+### Adding the keys (once, about 10 minutes)
+
+Both are free, belong to the developer, and are only used by the daily build on GitHub. Runners never sign in, and phones never contact Spotify or Google for Runtrovert.
+
+1. **Spotify**: sign in at developer.spotify.com/dashboard → Create app (any name, redirect URI `https://example.com`, tick Web API) → Settings → copy the Client ID and Client secret.
+2. **YouTube**: console.cloud.google.com → create a project → APIs & Services → Library → enable "YouTube Data API v3" → Credentials → Create credentials → API key. Restrict it to the YouTube Data API v3.
+3. **GitHub**: repository → Settings → Secrets and variables → Actions → New repository secret: `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `YOUTUBE_API_KEY`.
+4. Actions → Listen shelf → Run workflow. Phones pick the links up the next time Listen opens with the daily list on.
+
 ## Privacy
 
 - The download is the same file for everyone and carries no location, id, query string or cookie. GitHub, like any website, still receives normal connection information such as the IP address, and the app says so.
+- Link lookups run on GitHub with the developer's keys; nothing about runners is in them, and the shelf carries only public ids.
 - Runtrovert never plays audio. "Open" hands the show to the runner's own podcast app, so the podcast hosts (Megaphone, Acast and others, which log downloads for advertising) never see Runtrovert. They do see the podcast app's connection, IP address included, as with any download, and the app says that too. Sponsor sites see a normal visit when a runner opens one.
 - Ads: "no annoying, intrusive ads". Shows carry their own adverts and the opt-out Kit & offers shelf stays, so the app never claims "no ads".
 - The country, the podcast app and the offer topics are settings on the phone.

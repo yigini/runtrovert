@@ -411,6 +411,8 @@ export const en = {
     xMin3: (ep: string | number) => `${ep} min · `,
     fitsYourRun: 'Fits your run',
     openInX: (appLabel: string | number) => `Open in ${appLabel}`,
+    searchInX: (appLabel: string | number) => `Search in ${appLabel}`,
+    notFoundInYourAppYet: 'Not found in your app yet, so this opens a search. Or share the show\'s feed link to any podcast app ›',
     open: 'Open',
     sinceX: (since: string | number) => ` · since ${since}`,
     xEpisodes: (episodes: string | number) => ` · ${episodes} episodes`,

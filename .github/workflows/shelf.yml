@@ -35,7 +35,13 @@ jobs:
       - name: Install sharp
         run: npm install --no-save --no-package-lock sharp@0.35.5
 
+      # Optional keys for direct Spotify / YouTube Music links (see docs/LISTEN.md).
+      # Without them those apps get an honest "Search in …" button.
       - name: Build shelf.json and covers
+        env:
+          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
         run: |
           mkdir -p out
           node scripts/build-shelf.mjs out/shelf.json --art=out/art
