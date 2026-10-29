@@ -1,13 +1,11 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { BUSY_LABEL } from '../places';
 import { colors, fonts, radius, spacing } from '../theme';
 import type { Quiet } from '../types';
 
-const OPTIONS: Array<{ key: Quiet; label: string }> = [
-  { key: 'crowded', label: 'Crowded' },
-  { key: 'some', label: 'Some' },
-  { key: 'empty', label: 'Empty' },
-];
+// The runner's own words for it, the same ones their places keep in the log.
+const OPTIONS: Array<{ key: Quiet; label: string }> = (['crowded', 'some', 'empty'] as const).map((key) => ({ key, label: BUSY_LABEL[key] }));
 
 const TITLE = 'How busy was it out there?';
 

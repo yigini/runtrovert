@@ -1117,9 +1117,9 @@ async function exportCalendar(plan: Plan) {
 }
 
 const styles = StyleSheet.create({
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, marginTop: -10, marginRight: -10 },
   lockLine: { backgroundColor: '#ece5da', borderRadius: radius.md, paddingVertical: 12, paddingHorizontal: 14 },
   lockLineText: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.inkSoft },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, marginTop: -10, marginRight: -10 },
   scroll: { flex: 1, backgroundColor: colors.cream },
   screen: { padding: spacing.md, paddingTop: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
   h1: { fontFamily: fonts.display, fontSize: 34, lineHeight: 38, letterSpacing: -0.6, color: colors.text },

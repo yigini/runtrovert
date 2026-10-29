@@ -1,0 +1,73 @@
+import React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Svg, { Circle, Path } from 'react-native-svg';
+import { offerLine } from '../places';
+import type { FinishPlace, PlaceDraft } from '../placeStore';
+import { colors, fonts, radius, spacing } from '../theme';
+
+/**
+ * Where you ran, on the finish screen. A loop you've kept says so and takes
+ * today's notes into its log. The third run of a loop you haven't kept gets one
+ * quiet offer; "Not now" means never for that loop.
+ */
+export function PlaceFinishCard({ found, draft, onOffer, onNotNow }: { found: FinishPlace | null; draft: PlaceDraft | null; onOffer: () => void; onNotNow: () => void }) {
+  if (!found) return null;
+  if (found.offer.kind === 'place' && found.place) {
+    return (
+      <View style={[styles.card, styles.known]} accessible accessibilityLabel={`On ${found.place.name}. Today's busyness and note go in its log when you keep this run.`}>
+        <Pin color={colors.mintDeep} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>On {found.place.name}</Text>
+          <Text style={styles.small}>Today’s busyness and note go in its log.</Text>
+        </View>
+      </View>
+    );
+  }
+  if (found.offer.kind !== 'offer') return null;
+  if (draft) {
+    return (
+      <Pressable onPress={onOffer} accessibilityRole="button" accessibilityHint="Change the name or notes" style={({ pressed }) => [styles.card, styles.offer, styles.rowCard, pressed && { opacity: 0.9 }]}>
+        <Pin color={colors.mintDeep} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>Kept as “{draft.name}”</Text>
+          <Text style={styles.small}>Saved with this run when you press Keep it. Only on this phone.</Text>
+        </View>
+      </Pressable>
+    );
+  }
+  return (
+    <View style={[styles.card, styles.offer]}>
+      <Pressable onPress={onOffer} accessibilityRole="button" style={({ pressed }) => [styles.row, pressed && { opacity: 0.9 }]}>
+        <Pin color={colors.mintDeep} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>{offerLine(found.offer.earlier.length)}</Text>
+          <Text style={styles.small}>Name it, note how busy it was. Only on this phone.</Text>
+        </View>
+      </Pressable>
+      <Pressable onPress={onNotNow} accessibilityRole="button" accessibilityLabel="Not now. This loop won't be offered again." hitSlop={6} style={styles.notNow}>
+        <Text style={styles.notNowText}>Not now</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function Pin({ color }: { color: string }) {
+  return (
+    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" accessibilityElementsHidden importantForAccessibility="no">
+      <Path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z" />
+      <Circle cx={12} cy={9} r={2.5} />
+    </Svg>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: { borderRadius: radius.lg, paddingVertical: 14, paddingHorizontal: 18, gap: 4 },
+  known: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.mintSoft },
+  offer: { backgroundColor: colors.mint, flexDirection: 'column' },
+  rowCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 },
+  title: { fontFamily: fonts.bodySemi, fontSize: 15, lineHeight: 20, color: colors.mintDeep },
+  small: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.mintDeep },
+  notNow: { alignSelf: 'flex-end', minHeight: 36, justifyContent: 'center', paddingHorizontal: spacing.xs },
+  notNowText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.mintDeep, textDecorationLine: 'underline' },
+});

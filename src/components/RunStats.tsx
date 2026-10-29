@@ -5,13 +5,14 @@ import { distanceUnit, estimateCalories, formatDistance, formatDistanceNumber, f
 import { runStats, type RunStats as Stats, type SeriesPoint, type StatPoint, type StatRun, type Sun } from '../runStats';
 import { clock } from '../sky';
 import { colors, fonts, radius, spacing, type } from '../theme';
+import { BUSY_LABEL } from '../places';
 import { SplitsTable, type SplitRow } from './SplitsTable';
 
 // The stats page for one run: the four numbers first, big and plain, then the
 // run drawn out (pace and hills along the way, splits, halves, the sun), then a
 // handful of odd little facts. Everything comes from the stored fixes.
 
-const QUIET = { crowded: 'Crowded', some: 'Some people', empty: 'Empty' } as const;
+const QUIET = BUSY_LABEL;
 const MOOD = ['', 'Drained', 'Low', 'Okay', 'Good', 'Recharged'];
 
 export interface RunStatsProps {

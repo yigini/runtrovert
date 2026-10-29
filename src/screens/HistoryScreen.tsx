@@ -2,10 +2,12 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { spokenDistance, spokenDuration, spokenPace } from '../a11y';
+import { PlacesList } from '../components/PlacesList';
 import { SettingsGear } from '../components/SettingsGear';
 import { YouSection } from '../components/YouSection';
 import { listRuns } from '../db';
 import { formatDistance, formatDuration, formatPace } from '../geo';
+import type { Place } from '../placeStore';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import type { Quiet, Run } from '../types';
@@ -14,7 +16,24 @@ const QUIET_LABEL: Record<Quiet, string> = { crowded: 'crowded', some: 'some peo
 const QUIET_BG: Record<Quiet, string> = { crowded: colors.peach, some: colors.butter, empty: colors.mint };
 const QUIET_FG: Record<Quiet, string> = { crowded: colors.peachDeep, some: colors.butterDeep, empty: colors.mintDeep };
 
-export function HistoryScreen({ onOpen, refreshKey }: { onOpen: (runId: number) => void; refreshKey: number }) {
+/** Your runs is split in sections; Places is the runner's own route memory. */
+export type RunsSection = 'runs' | 'places';
+
+export function HistoryScreen({
+  onOpen,
+  refreshKey,
+  section = 'runs',
+  onSection,
+  onOpenPlace,
+  onRunAgain,
+}: {
+  onOpen: (runId: number) => void;
+  refreshKey: number;
+  section?: RunsSection;
+  onSection?: (s: RunsSection) => void;
+  onOpenPlace?: (id: number) => void;
+  onRunAgain?: (p: Place) => void;
+}) {
   const km = useSettings().settings.unitsKm;
   const [runs, setRuns] = useState<Run[]>([]);
   const load = useCallback(async () => setRuns(await listRuns()), []);
@@ -28,8 +47,8 @@ export function HistoryScreen({ onOpen, refreshKey }: { onOpen: (runId: number) 
   const monthS = month.reduce((a, r) => a + r.durationS, 0);
   const emptyCount = month.filter((r) => r.quiet === 'empty').length;
 
-  const header = (
-    <View style={{ gap: spacing.md, marginBottom: spacing.sm }}>
+  const title = (
+    <View style={{ gap: spacing.sm + 4 }}>
       <View>
         <View style={styles.topRow}>
           <Text style={type.eyebrow}>{now.toLocaleDateString(undefined, { month: 'long' })}</Text>
@@ -37,6 +56,21 @@ export function HistoryScreen({ onOpen, refreshKey }: { onOpen: (runId: number) 
         </View>
         <Text style={type.h1} accessibilityRole="header">Your runs.</Text>
       </View>
+      {onSection ? <Sections value={section} onChange={onSection} /> : null}
+    </View>
+  );
+
+  if (section === 'places') {
+    return (
+      <View style={styles.screen}>
+        <PlacesList km={km} refreshKey={refreshKey} header={title} onOpen={(id) => onOpenPlace?.(id)} onRunAgain={(p) => onRunAgain?.(p)} />
+      </View>
+    );
+  }
+
+  const header = (
+    <View style={{ gap: spacing.md, marginBottom: spacing.sm }}>
+      {title}
       <View style={styles.tiles}>
         <Stat value={formatDistance(monthM, km).replace(/ .*/, '')} label={`${km ? 'km' : 'mi'} this month`} />
         <Stat value={formatPace(monthM, monthS, km)} label={`avg /${km ? 'km' : 'mi'}`} />
@@ -68,6 +102,25 @@ export function HistoryScreen({ onOpen, refreshKey }: { onOpen: (runId: number) 
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => <RunRow run={item} km={km} onPress={() => onOpen(item.id)} />}
       />
+    </View>
+  );
+}
+
+function Sections({ value, onChange }: { value: RunsSection; onChange: (s: RunsSection) => void }) {
+  const items: Array<{ key: RunsSection; label: string }> = [
+    { key: 'runs', label: 'Runs' },
+    { key: 'places', label: 'Places' },
+  ];
+  return (
+    <View style={styles.seg} accessibilityRole="tablist">
+      {items.map((it) => {
+        const on = it.key === value;
+        return (
+          <Pressable key={it.key} onPress={() => onChange(it.key)} accessibilityRole="tab" accessibilityState={{ selected: on }} style={[styles.segItem, on && styles.segOn]}>
+            <Text style={[styles.segText, on && styles.segTextOn]}>{it.label}</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -143,6 +196,11 @@ function shapeFor(id: number): string {
 const styles = StyleSheet.create({
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: -10, marginRight: -10 },
   screen: { flex: 1, backgroundColor: colors.cream, padding: spacing.md, paddingTop: spacing.lg },
+  seg: { flexDirection: 'row', backgroundColor: '#ece5da', borderRadius: radius.pill, padding: 4, gap: 4 },
+  segItem: { flex: 1, minHeight: 40, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  segOn: { backgroundColor: colors.white },
+  segText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.muted },
+  segTextOn: { color: colors.text },
   tiles: { flexDirection: 'row', gap: spacing.sm + 2 },
   stat: { flex: 1, backgroundColor: colors.white, borderRadius: radius.md, padding: 12 },
   statValue: { fontFamily: fonts.display, fontSize: 22, lineHeight: 26, color: colors.text },
