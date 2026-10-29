@@ -1,5 +1,5 @@
-import { Camera, GeoJSONSource, Layer, Map as MapLibreMap, type CameraRef } from '@maplibre/maplibre-react-native';
-import React, { useEffect, useMemo, useRef } from 'react';
+import { Camera, GeoJSONSource, Layer, Map as MapLibreMap } from '@maplibre/maplibre-react-native';
+import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { colors, radius } from '../theme';
 import type { LatLon } from '../types';
@@ -31,9 +31,11 @@ function boundsFor(path: LatLon[]): [number, number, number, number] | null {
   return [minLon, minLat, maxLon, maxLat]; // west, south, east, north
 }
 
-export function RouteMap({ path, follow, height = 220, offline = false }: { path: LatLon[]; follow?: boolean; height?: number; offline?: boolean }) {
-  const cam = useRef<CameraRef>(null);
+export function RouteMap({ path, here, follow, height = 220, offline = false }: { path: LatLon[]; here?: LatLon | null; follow?: boolean; height?: number; offline?: boolean }) {
   const last = path[path.length - 1];
+  // Live position wins over the route's end: we may be standing still, or the
+  // filter may still be waiting for an accurate fix before it draws a line.
+  const head = here ?? last;
   const bounds = useMemo(() => boundsFor(path), [path.length]);
 
   const line = useMemo(
@@ -45,26 +47,30 @@ export function RouteMap({ path, follow, height = 220, offline = false }: { path
     [path],
   );
 
-  useEffect(() => {
-    if (!cam.current) return;
-    if (follow && last) cam.current.easeTo({ center: [last.longitude, last.latitude], zoom: 16, duration: 600 });
-    else if (bounds) cam.current.fitBounds(bounds, { padding: { top: 28, right: 28, bottom: 28, left: 28 } });
-  }, [follow, last?.latitude, last?.longitude, bounds]);
-
-  const initial = last ? { center: [last.longitude, last.latitude] as [number, number], zoom: 15 } : { zoom: 1 };
+  // Declarative camera: MapLibre applies it once the map is ready, so there are
+  // no imperative calls to lose if they arrive before the style has loaded.
+  const padding = { top: 28, right: 28, bottom: 28, left: 28 };
+  const view =
+    follow && head
+      ? { center: [head.longitude, head.latitude] as [number, number], zoom: 16, duration: 600, easing: 'ease' as const }
+      : bounds
+        ? { bounds, padding, duration: 0 }
+        : head
+          ? { center: [head.longitude, head.latitude] as [number, number], zoom: 15, duration: 0 }
+          : null;
 
   return (
     <View style={[styles.wrap, { height }]}>
       <MapLibreMap style={StyleSheet.absoluteFill} mapStyle={offline ? BLANK_STYLE : MAP_STYLE} logo={false} attribution={!offline} compass={false}>
-        <Camera ref={cam} initialViewState={initial} />
+        {view ? <Camera {...view} /> : <Camera initialViewState={{ zoom: 1 }} />}
         {path.length > 1 && (
           <GeoJSONSource id="route" data={line}>
             <Layer id="route-casing" type="line" paint={{ 'line-color': colors.cream, 'line-width': 8, 'line-opacity': 0.9 }} layout={{ 'line-cap': 'round', 'line-join': 'round' }} />
             <Layer id="route-line" type="line" paint={{ 'line-color': colors.ink, 'line-width': 4 }} layout={{ 'line-cap': 'round', 'line-join': 'round' }} />
           </GeoJSONSource>
         )}
-        {last && (
-          <GeoJSONSource id="head" data={{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [last.longitude, last.latitude] } }}>
+        {head && (
+          <GeoJSONSource id="head" data={{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [head.longitude, head.latitude] } }}>
             <Layer id="head-dot" type="circle" paint={{ 'circle-radius': 7, 'circle-color': colors.ink, 'circle-stroke-color': colors.cream, 'circle-stroke-width': 3 }} />
           </GeoJSONSource>
         )}

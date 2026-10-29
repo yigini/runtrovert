@@ -44,6 +44,7 @@ export interface TrackingState {
   gps: GpsQuality;
   gpsAccM: number | null;
   path: LatLon[];
+  here: LatLon | null; // latest raw position, shown on the map even before we've moved
   splits: LiveSplit[];
   laps: LiveSplit[];
   currentKm: { distanceM: number; durationS: number };
@@ -74,6 +75,7 @@ const state: TrackingState = {
   gps: 'searching',
   gpsAccM: null,
   path: [],
+  here: null,
   splits: [],
   laps: [],
   currentKm: { distanceM: 0, durationS: 0 },
@@ -227,7 +229,17 @@ function qualityFor(acc: number | null): GpsQuality {
 }
 
 function onFixes(raws: RawFix[]) {
-  if (state.runId == null || state.status === 'idle' || state.status === 'paused') return;
+  if (state.runId == null || state.status === 'idle') return;
+  const latest = raws[raws.length - 1];
+  if (latest) {
+    state.here = { latitude: latest.lat, longitude: latest.lon };
+    state.gpsAccM = latest.acc;
+    state.gps = qualityFor(latest.acc);
+  }
+  if (state.status === 'paused') {
+    emit();
+    return;
+  }
   let moved = false;
 
   for (const raw of raws) {
@@ -315,6 +327,7 @@ function resetState() {
   state.gps = 'searching';
   state.gpsAccM = null;
   state.path = [];
+  state.here = null;
   state.splits = [];
   state.laps = [];
   accumulatedS = 0;

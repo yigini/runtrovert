@@ -180,7 +180,7 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number) => void }) {
     <MetricsPage key="main" km={km} t={track} />,
     <SplitPage key="split" km={km} t={track} />,
     <View key="map" style={{ width: W - spacing.md * 2 }}>
-      <RouteMap path={track.path} follow height={380} />
+      <RouteMap path={track.path} here={track.here} follow height={380} />
     </View>,
   ];
 
