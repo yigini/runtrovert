@@ -73,17 +73,17 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'package-lock.json') }}
 
       # Release build signed with the test key: installs on any phone for testing.
-      # For the Play Store, add a real keystore as repository secrets and uncomment the
-      # signing step below (see README → Signing).
+      # Phone-only test build: ARM code only (no x86/x86_64, which only emulators and a few
+      # Chromebooks use), native libraries compressed inside the file, unused resources removed.
+      # The store gets the App Bundle from the "bundle" job below, not this file.
       - name: Build release APK (test-signed)
         working-directory: android
-        run: ./gradlew assembleRelease --no-daemon "-Pandroid.injected.signing.store.file=$KS" "-Pandroid.injected.signing.store.password=$KS_PASS" "-Pandroid.injected.signing.key.alias=$KS_ALIAS" "-Pandroid.injected.signing.key.password=$KS_PASS"
-
-      # - name: Decode release keystore
-      #   run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
-      # - name: Build release APK (store-signed)
-      #   working-directory: android
-      #   run: ./gradlew assembleRelease --no-daemon -Pandroid.injected.signing.store.file=$PWD/app/release.keystore -Pandroid.injected.signing.store.password=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} -Pandroid.injected.signing.key.alias=${{ secrets.ANDROID_KEY_ALIAS }} -Pandroid.injected.signing.key.password=${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: >-
+          ./gradlew assembleRelease --no-daemon
+          -PreactNativeArchitectures=armeabi-v7a,arm64-v8a
+          -Pexpo.useLegacyPackaging=true
+          -Pandroid.enableShrinkResourcesInReleaseBuilds=true
+          "-Pandroid.injected.signing.store.file=$KS" "-Pandroid.injected.signing.store.password=$KS_PASS" "-Pandroid.injected.signing.key.alias=$KS_ALIAS" "-Pandroid.injected.signing.key.password=$KS_PASS"
 
       - name: Rename
         run: cp android/app/build/outputs/apk/release/app-release.apk runtrovert-${{ github.run_number }}.apk
@@ -92,4 +92,104 @@ jobs:
         with:
           name: runtrovert-apk
           path: runtrovert-*.apk
+          retention-days: 30
+
+  # Android App Bundle (.aab) for Google Play. Play cuts it into per-phone pieces (one CPU
+  # type, one screen density, the phone's languages), so each person downloads far less
+  # than the universal file. Signed with the test key for now; for the real upload, Play
+  # App Signing holds the app key and this job signs with an upload key (later step).
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # The Ubuntu runner image ships the Android SDK at $ANDROID_HOME; nothing to install.
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit -p tsconfig.json
+
+      - name: Generate native project
+        run: npx expo prebuild --platform android --no-install
+
+      # One stable test key (repository secrets), so each test APK installs over the last
+      # and keeps the runs on the phone. Without the secrets (e.g. a fork), a throwaway key.
+      - name: Test signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.RUNTROVERT_TEST_KEYSTORE }}
+          KEY_PASSWORD: ${{ secrets.RUNTROVERT_TEST_KEY_PASSWORD }}
+        run: |
+          mkdir -p $HOME/.android
+          KS=$HOME/.android/test.keystore
+          if [ -n "$KEYSTORE_B64" ] && [ -n "$KEY_PASSWORD" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > $KS
+            ALIAS=runtrovert-test
+            echo "Signing with the stable test key"
+          else
+            KEY_PASSWORD=android
+            ALIAS=androiddebugkey
+            keytool -genkeypair -keystore $KS -storepass android -alias $ALIAS -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+            echo "::warning::No test key secrets; this APK will not install over earlier ones"
+          fi
+          echo "KS=$KS" >> $GITHUB_ENV
+          echo "KS_ALIAS=$ALIAS" >> $GITHUB_ENV
+          echo "::add-mask::$KEY_PASSWORD"
+          echo "KS_PASS=$KEY_PASSWORD" >> $GITHUB_ENV
+
+      - name: Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'package-lock.json') }}
+
+      # All four CPU types stay in the bundle: Play only sends each phone its own, so x86 costs
+      # nobody anything and keeps Chromebooks able to install.
+      - name: Build release App Bundle (test-signed)
+        working-directory: android
+        run: >-
+          ./gradlew bundleRelease --no-daemon
+          -Pandroid.enableShrinkResourcesInReleaseBuilds=true
+          "-Pandroid.injected.signing.store.file=$KS" "-Pandroid.injected.signing.store.password=$KS_PASS" "-Pandroid.injected.signing.key.alias=$KS_ALIAS" "-Pandroid.injected.signing.key.password=$KS_PASS"
+
+      # What Play would send to each phone: bundletool builds the split APKs and estimates
+      # the compressed download per CPU type and per language. Shown on the run's summary page.
+      - name: Download sizes per phone
+        run: |
+          AAB=android/app/build/outputs/bundle/release/app-release.aab
+          curl -sSL -o bundletool.jar https://github.com/google/bundletool/releases/download/1.18.1/bundletool-all-1.18.1.jar
+          java -jar bundletool.jar build-apks --bundle=$AAB --output=app.apks --ks=$KS "--ks-pass=pass:$KS_PASS" --ks-key-alias=$KS_ALIAS "--key-pass=pass:$KS_PASS"
+          {
+            echo "## App Bundle"
+            echo "Bundle file: $(du -h $AAB | cut -f1)"
+            echo
+            echo "### Download per phone, by CPU type (bytes)"
+            echo '```'
+            java -jar bundletool.jar get-size total --apks=app.apks --dimensions=ABI
+            echo '```'
+            echo "### Download per phone, by language (bytes)"
+            echo '```'
+            java -jar bundletool.jar get-size total --apks=app.apks --dimensions=LANGUAGE
+            echo '```'
+          } | tee -a $GITHUB_STEP_SUMMARY
+          cp $AAB runtrovert-${{ github.run_number }}.aab
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runtrovert-aab
+          path: runtrovert-*.aab
           retention-days: 30
