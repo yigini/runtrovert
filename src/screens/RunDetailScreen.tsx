@@ -8,6 +8,7 @@ import { ShareSheet } from '../components/ShareSheet';
 import { SplitsTable } from '../components/SplitsTable';
 import { YouLine } from '../components/YouLine';
 import { deleteRun, getPoints, getRun, getSplits, setMoodAfter } from '../db';
+import { forgetRun } from '../training/store';
 import { distanceUnit, estimateCalories, formatDistance, formatDuration, formatElevation, formatPace } from '../geo';
 import { compare, youVsYou, type RunFacts } from '../progress';
 import type { RunWeather } from '../shareLines';
@@ -66,6 +67,7 @@ export function RunDetailScreen({ runId, onBack, onDeleted, shareOnOpen }: { run
         style: 'destructive',
         onPress: async () => {
           await deleteRun(runId);
+          await forgetRun(runId).catch(() => {});
           onDeleted();
         },
       },
