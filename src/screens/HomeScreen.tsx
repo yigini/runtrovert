@@ -6,6 +6,7 @@ import { Fade } from '../components/Fade';
 import { Mark } from '../components/Mark';
 import { MoodPicker } from '../components/MoodPicker';
 import { SkyGlyph } from '../components/SkyGlyph';
+import { TipLine } from '../components/TipLine';
 import { clock, formatTemp, headline, suggestions } from '../sky';
 import { useSettings } from '../settings';
 import { colors, fonts, spacing } from '../theme';
@@ -86,12 +87,15 @@ export function HomeScreen({ runs, mood, onMood, onStart }: { runs: Run[]; mood:
 
         <View style={{ flex: 1 }} />
 
+        {/* One quiet line at a time: what's new until it's dismissed, then the daily tip. */}
         {settings.seenNews !== NEWS.id ? (
           <Pressable onPress={() => update({ seenNews: NEWS.id })} style={styles.news} accessibilityRole="button" accessibilityHint="Dismisses this line">
             <Text style={styles.newsText}>{NEWS.text}</Text>
             <Text style={styles.newsDismiss}>Got it</Text>
           </Pressable>
-        ) : null}
+        ) : (
+          <TipLine runs={runs} weather={weather} dark={evening} waiting={sky === null} />
+        )}
 
         <MoodPicker inline title="Energy right now" value={mood} onChange={onMood} />
         <Button title="Start run" onPress={onStart} style={{ height: 62 }} />
