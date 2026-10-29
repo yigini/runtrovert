@@ -180,8 +180,8 @@ function openSegment() {
 }
 
 /** Fixes recorded in this run that haven't been written to the database yet. */
-export function unsavedPoints(): Array<{ ts: number; lat: number; lon: number }> {
-  return pendingPoints.map((p) => ({ ts: p.ts, lat: p.lat, lon: p.lon }));
+export function unsavedPoints(): Array<{ ts: number; lat: number; lon: number; alt: number | null }> {
+  return pendingPoints.map((p) => ({ ts: p.ts, lat: p.lat, lon: p.lon, alt: p.alt }));
 }
 
 // ---- Persistence ------------------------------------------------------------

@@ -10,15 +10,16 @@ import { MusicStrip } from '../components/MusicStrip';
 import { PainPicker } from '../components/PainPicker';
 import { QuietPicker } from '../components/QuietPicker';
 import { RouteMap } from '../components/RouteMap';
-import { SplitsTable } from '../components/SplitsTable';
+import { RunStatsView } from '../components/RunStats';
 import { YouLine } from '../components/YouLine';
 import { useBack } from '../back';
 import { cueCountdown } from '../cues';
-import { deleteRun, listRuns, loadValue, saveValue } from '../db';
+import { deleteRun, getPoints, listRuns, loadValue, saveValue } from '../db';
 import { HomeScreen } from './HomeScreen';
 import { countdownFootage, type Footage } from '../footage';
 import { distanceUnit, formatDistance, formatDistanceNumber, formatDuration, formatElevation, formatPace, formatSpeedAsPace } from '../geo';
 import { compare, youVsYou, type RunFacts } from '../progress';
+import type { StatPoint } from '../runStats';
 import { useSettings } from '../settings';
 import { finishSurprise, type Surprise } from '../surprises';
 import { continueRun, ensurePermissions, getState, haltRun, lap, pauseRun, resumeRun, startRun, stopRun, subscribe, TrackingState, unsavedPoints } from '../tracking';
@@ -53,6 +54,8 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   const [final, setFinal] = useState<TrackingState | null>(null);
   // This run's bests and the runs before it, for the one you-vs-you line.
   const [live, setLive] = useState<{ run: RunFacts; history: RunFacts[] } | null>(null);
+  // Every fix of the run on the finish screen, for the charts: what's saved plus what isn't yet.
+  const [finishPoints, setFinishPoints] = useState<StatPoint[]>([]);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
   const [mapFront, setMapFront] = useState(false);
@@ -85,6 +88,25 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   useEffect(() => {
     if (phase === 'idle') listRuns().then(setRuns);
   }, [phase]);
+
+  useEffect(() => {
+    const runId = final?.runId;
+    if (phase !== 'finish' || runId == null) {
+      setFinishPoints([]);
+      return;
+    }
+    let alive = true;
+    getPoints(runId)
+      .then((saved) => {
+        const seen = new Set(saved.map((p) => p.ts));
+        const all = [...saved.map((p) => ({ ts: p.ts, lat: p.lat, lon: p.lon, alt: p.alt })), ...unsavedPoints().filter((p) => !seen.has(p.ts))];
+        if (alive) setFinishPoints(all.sort((a, b) => a.ts - b.ts));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [phase, final?.runId]);
   useEffect(() => {
     if (phase !== 'idle') return;
     loadPlan()
@@ -349,8 +371,15 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
           <QuietPicker value={quiet} onChange={setQuiet} />
           <TextInput style={styles.note} placeholder="A note, if you want one" placeholderTextColor={colors.inkMuted} value={note} onChangeText={setNote} multiline />
           {hasPlan && <PainPicker value={pain} onChange={setPain} />}
-          <SplitsTable title={`Splits per ${distanceUnit(km)}`} rows={final.splits} km={km} partial={partialKm} />
-          {final.laps.length > 0 && <SplitsTable title="Laps" rows={final.laps} km={km} />}
+          <RunStatsView
+            run={{ startedAt: final.startedAt ?? Date.now(), endedAt: finishPoints.length ? finishPoints[finishPoints.length - 1].ts : null, distanceM: final.distanceM, durationS: final.durationS, elevationGainM: final.elevationGainM, quiet, moodBefore, moodAfter }}
+            points={finishPoints}
+            splits={final.splits}
+            laps={final.laps}
+            partial={partialKm}
+            km={km}
+            hero={false}
+          />
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
             <Button title="Discard" variant="danger" onPress={onDiscard} style={{ flex: 0, paddingHorizontal: 22 }} />
             <Button title="Keep it" onPress={() => onSave()} style={{ flex: 1 }} />
