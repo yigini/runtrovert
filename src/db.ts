@@ -52,6 +52,14 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
           key TEXT PRIMARY KEY,
           value TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS bg_fixes (
+          ts INTEGER PRIMARY KEY,
+          lat REAL NOT NULL,
+          lon REAL NOT NULL,
+          acc REAL,
+          alt REAL,
+          speed REAL
+        );
       `);
       await migrate(db);
       return db;
@@ -292,6 +300,30 @@ export async function loadSeenLines(): Promise<string[]> {
 export async function saveSeenLines(ids: string[]): Promise<void> {
   const db = await getDb();
   await db.runAsync('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', 'seenLines', JSON.stringify(ids));
+}
+
+// ---- Background fixes ------------------------------------------------------
+// Fixes the location task received while nothing in JS was recording (the OS
+// killed the app mid-run). Recovery replays them; see gps/replay.ts.
+
+export async function bufferFixes(fixes: Array<{ ts: number; lat: number; lon: number; acc: number | null; alt: number | null; speed: number | null }>): Promise<void> {
+  if (fixes.length === 0) return;
+  const db = await getDb();
+  await db.withTransactionAsync(async () => {
+    for (const f of fixes) {
+      await db.runAsync('INSERT OR IGNORE INTO bg_fixes (ts, lat, lon, acc, alt, speed) VALUES (?, ?, ?, ?, ?, ?)', f.ts, f.lat, f.lon, f.acc, f.alt, f.speed);
+    }
+  });
+}
+
+export async function getBufferedFixes(): Promise<Array<{ ts: number; lat: number; lon: number; acc: number | null; alt: number | null; speed: number | null }>> {
+  const db = await getDb();
+  return (await db.getAllAsync('SELECT ts, lat, lon, acc, alt, speed FROM bg_fixes ORDER BY ts ASC')) as any[];
+}
+
+export async function clearBufferedFixes(): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('DELETE FROM bg_fixes');
 }
 
 /** Small JSON values that aren't settings (the last weather reading, for one). */
