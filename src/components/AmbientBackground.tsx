@@ -7,18 +7,15 @@ import { colors } from '../theme';
 // Styles: graded real-footage loops (src/footage.ts, assets/CREDITS.md,
 // scripts/grade-bg.sh) and three drawn in code (scripts/make-bg-video.mjs).
 export type BgStyle = Footage | 'painterly' | 'flat' | 'abstract';
-const DEFAULT_STYLE: BgStyle = 'dusk';
+const DEFAULT_STYLE: BgStyle = 'sunset-beach';
 const SOURCES: Record<BgStyle, { video: number; poster: number }> = {
-  dusk: { video: require('../../assets/bg-dusk.mp4'), poster: require('../../assets/bg-dusk.jpg') },
   tree: { video: require('../../assets/bg-tree.mp4'), poster: require('../../assets/bg-tree.jpg') },
   'sunset-beach': { video: require('../../assets/bg-sunset-beach.mp4'), poster: require('../../assets/bg-sunset-beach.jpg') },
   'mist-beach': { video: require('../../assets/bg-mist-beach.mp4'), poster: require('../../assets/bg-mist-beach.jpg') },
   'snow-plain': { video: require('../../assets/bg-snow-plain.mp4'), poster: require('../../assets/bg-snow-plain.jpg') },
   'grey-path': { video: require('../../assets/bg-grey-path.mp4'), poster: require('../../assets/bg-grey-path.jpg') },
   'green-hill': { video: require('../../assets/bg-green-hill.mp4'), poster: require('../../assets/bg-green-hill.jpg') },
-  dunes: { video: require('../../assets/bg-dunes.mp4'), poster: require('../../assets/bg-dunes.jpg') },
   'rock-coast': { video: require('../../assets/bg-rock-coast.mp4'), poster: require('../../assets/bg-rock-coast.jpg') },
-  cobbles: { video: require('../../assets/bg-cobbles.mp4'), poster: require('../../assets/bg-cobbles.jpg') },
   'forest-path': { video: require('../../assets/bg-forest-path.mp4'), poster: require('../../assets/bg-forest-path.jpg') },
   'green-tunnel': { video: require('../../assets/bg-green-tunnel.mp4'), poster: require('../../assets/bg-green-tunnel.jpg') },
   'dirt-road': { video: require('../../assets/bg-dirt-road.mp4'), poster: require('../../assets/bg-dirt-road.jpg') },
@@ -31,7 +28,6 @@ const SOURCES: Record<BgStyle, { video: number; poster: number }> = {
   'farm-aerial': { video: require('../../assets/bg-farm-aerial.mp4'), poster: require('../../assets/bg-farm-aerial.jpg') },
   'trail-bridge': { video: require('../../assets/bg-trail-bridge.mp4'), poster: require('../../assets/bg-trail-bridge.jpg') },
   'rice-field': { video: require('../../assets/bg-rice-field.mp4'), poster: require('../../assets/bg-rice-field.jpg') },
-  'blade-stride': { video: require('../../assets/bg-blade-stride.mp4'), poster: require('../../assets/bg-blade-stride.jpg') },
   'park-trees': { video: require('../../assets/bg-park-trees.mp4'), poster: require('../../assets/bg-park-trees.jpg') },
   'track-day': { video: require('../../assets/bg-track-day.mp4'), poster: require('../../assets/bg-track-day.jpg') },
   'dirt-track': { video: require('../../assets/bg-dirt-track.mp4'), poster: require('../../assets/bg-dirt-track.jpg') },
