@@ -46,7 +46,9 @@
     "bg": "node scripts/make-bg-video.mjs",
     "shelf": "node scripts/build-shelf.mjs src/shelfBundled.json",
     "test:shelf": "node --experimental-strip-types scripts/test-shelf.ts",
-    "test:progress": "node --experimental-strip-types scripts/test-progress.ts"
+    "test:progress": "node --experimental-strip-types scripts/test-progress.ts",
+    "test:tips": "node --experimental-strip-types scripts/test-tips.ts",
+    "test": "npm run sim:gps && npm run test:mapfit && npm run test:reminders && npm run test:plans && npm run test:shelf && npm run test:progress && npm run test:tips"
   },
   "private": true
 }
