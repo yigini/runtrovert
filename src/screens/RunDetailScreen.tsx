@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../components/Button';
+import { MoodPicker } from '../components/MoodPicker';
 import { RouteMap } from '../components/RouteMap';
 import { SplitsTable } from '../components/SplitsTable';
-import { deleteRun, getPoints, getRun, getSplits } from '../db';
+import { deleteRun, getPoints, getRun, getSplits, setMoodAfter } from '../db';
 import { distanceUnit, estimateCalories, formatDistance, formatDuration, formatElevation, formatPace } from '../geo';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
-import type { LatLon, Run, Split } from '../types';
+import type { LatLon, Mood, Run, Split } from '../types';
 
 const MOOD = ['', 'Drained', 'Low', 'Okay', 'Good', 'Recharged'];
 const QUIET = { crowded: 'Crowded', some: 'Some people', empty: 'Empty' } as const;
@@ -66,6 +67,16 @@ export function RunDetailScreen({ runId, onBack, onDeleted }: { runId: number; o
         <Cell label="Energy before" value={run.moodBefore ? MOOD[run.moodBefore] : '–'} />
         <Cell label="Energy after" value={run.moodAfter ? MOOD[run.moodAfter] : '–'} />
       </View>
+      {run.moodAfter == null && run.endedAt != null ? (
+        <MoodPicker
+          title="And your energy now?"
+          value={null}
+          onChange={(m: Mood) => {
+            setRun({ ...run, moodAfter: m });
+            setMoodAfter(runId, m).catch(() => {});
+          }}
+        />
+      ) : null}
       {run.note ? <Text style={styles.note}>{run.note}</Text> : null}
       <SplitsTable title={`Splits per ${distanceUnit(km)}`} rows={kmSplits} km={km} partial={partial} />
       {laps.length > 0 && <SplitsTable title="Laps" rows={laps} km={km} />}

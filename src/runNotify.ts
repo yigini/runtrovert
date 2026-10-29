@@ -12,7 +12,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { distanceUnit, formatDistanceNumber, formatDuration, formatPace } from './geo';
-import { requestNotificationPermission } from './notify';
+import { hasNotificationPermission } from './notify';
 
 const LIVE_CHANNEL = 'runtrovert-live';
 const SPLIT_CHANNEL = 'runtrovert-splits';
@@ -54,14 +54,14 @@ async function ensureChannels() {
   });
 }
 
-/** Call at run start. Asks for notification permission if needed. */
+/** Call at run start. Never prompts: without permission a run just has no notes. */
 export async function beginRunNotes(on: boolean): Promise<void> {
   enabled = false;
   lastLiveAt = 0;
   lastLiveStatus = '';
   if (!on) return;
   try {
-    if (!(await requestNotificationPermission())) return;
+    if (!(await hasNotificationPermission())) return;
     await ensureChannels();
     enabled = true;
   } catch {
