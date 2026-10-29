@@ -123,6 +123,8 @@ function Shell() {
       const next = fewer(settingsRef.current.notifyPerWeek);
       update({ notifyPerWeek: next });
       Alert.alert('Reminders', fewerMessage(next));
+    } else if (data.kind === 'plan') {
+      setTab('train');
     } else if (data.kind === 'after-run' && typeof data.runId === 'number') {
       setOpenRun(data.runId);
       setTab('history');
@@ -137,7 +139,8 @@ function Shell() {
         <WelcomeScreen
           onDone={async (yes) => {
             if (yes) await requestNotificationPermission().catch(() => false);
-            update({ onboarded: true, notifyAsk: yes ? 'yes' : 'no', seenNews: NEWS.id });
+            // The welcome told them what the map service sees, so tiles may load.
+            update({ onboarded: true, notifyAsk: yes ? 'yes' : 'no', seenNews: NEWS.id, mapNoticeSeen: true });
           }}
         />
       </SafeAreaView>
@@ -176,7 +179,7 @@ function Shell() {
       <View style={{ flex: 1 }}>
         {/* RunScreen stays mounted so a live run survives tab switches. */}
         <View style={[{ flex: 1 }, tab !== 'run' && styles.hidden]}>
-          <RunScreen onSaved={onSaved} requested={sessionRequest} onRequestTaken={() => setSessionRequest(null)} planKey={planKey} focused={tab === 'run'} />
+          <RunScreen onSaved={onSaved} requested={sessionRequest} onRequestTaken={() => setSessionRequest(null)} planKey={planKey} focused={tab === 'run'} onOpenPlan={() => setTab('train')} />
         </View>
         {tab === 'train' && (
           <TrainScreen
@@ -213,7 +216,7 @@ function Shell() {
           />
         )}
         {tab === 'listen' && <ListenScreen />}
-        {tab === 'settings' && <SettingsScreen />}
+        {tab === 'settings' && <SettingsScreen onOpenListen={() => setTab('listen')} />}
       </View>
       {!liveRun && (
         <View style={styles.tabs}>

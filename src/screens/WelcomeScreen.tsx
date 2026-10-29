@@ -27,16 +27,16 @@ export function WelcomeScreen({ onDone }: { onDone: (reminders: boolean) => void
           <Text style={{ fontFamily: fonts.displayLight }}>Run alone.{'\n'}</Text>
           Not lonely.
         </Text>
-        <Text style={styles.lede}>A running app with no feed, no followers and no cheering. Your runs stay on this phone. We never see them.</Text>
+        <Text style={styles.lede}>A running app with no feed, no followers and no cheering. Your runs are saved on this phone. We never see them.</Text>
 
         <View style={styles.list}>
           <Item title="No account" text="Nothing to sign up for. Nothing to forget." />
-          <Item title="No cloud, no analytics, no ads" text="It fetches map tiles and, from a rough location, the weather. The weather you can turn off." />
+          <Item title="No analytics, no annoying ads" text="Street maps come from OpenFreeMap, which sees the area on screen. The weather gets a location rounded to about 1 km. Settings turns either off." />
           <Item title="No subscription" text="Tracking and history are free for good." />
         </View>
 
         <Button title="I like that" onPress={() => setStep('ask')} style={{ minHeight: 62, marginTop: spacing.md }} />
-        <Text style={styles.footer}>Delete the app and it’s all gone.</Text>
+        <Text style={styles.footer}>Delete the app and it’s gone from this phone.</Text>
       </ScrollView>
     </AmbientBackground>
   );

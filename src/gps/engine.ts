@@ -13,6 +13,7 @@
  */
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
+import { bufferFixes } from '../db';
 import { GPS_PROFILES, type GpsProfile } from '../power';
 import type { RawFix } from './kalman';
 
@@ -45,10 +46,14 @@ function toFix(l: Location.LocationObject): RawFix {
 }
 
 // Defined at module load so the task exists when the OS wakes the app.
+// No listener means the OS killed the app mid-run and woke it just for this:
+// keep the fixes for recovery to replay instead of dropping them.
 TaskManager.defineTask(LOCATION_TASK, async ({ data, error }) => {
-  if (error || !data || !expoListener) return;
+  if (error || !data) return;
   const { locations } = data as { locations: Location.LocationObject[] };
-  expoListener(locations.map(toFix));
+  const fixes = locations.map(toFix);
+  if (expoListener) expoListener(fixes);
+  else await bufferFixes(fixes).catch(() => {});
 });
 
 class ExpoEngine implements LocationEngine {
@@ -161,17 +166,17 @@ class TransistorEngine implements LocationEngine {
       logLevel: bg.LOG_LEVEL_OFF,
     });
     this.sub = bg.onLocation((loc: any) => {
-      if (!this.listener || !loc?.coords) return;
-      this.listener([
-        {
-          lat: loc.coords.latitude,
-          lon: loc.coords.longitude,
-          acc: loc.coords.accuracy ?? null,
-          alt: loc.coords.altitude ?? null,
-          speed: loc.coords.speed ?? null,
-          ts: loc.timestamp ? Date.parse(loc.timestamp) : Date.now(),
-        },
-      ]);
+      if (!loc?.coords) return;
+      const fix: RawFix = {
+        lat: loc.coords.latitude,
+        lon: loc.coords.longitude,
+        acc: loc.coords.accuracy ?? null,
+        alt: loc.coords.altitude ?? null,
+        speed: loc.coords.speed ?? null,
+        ts: loc.timestamp ? Date.parse(loc.timestamp) : Date.now(),
+      };
+      if (this.listener) this.listener([fix]);
+      else void bufferFixes([fix]).catch(() => {});
     });
     await bg.setConfig(gps); // ready() only applies config on its first call; this covers profile changes
     await bg.start();

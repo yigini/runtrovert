@@ -8,12 +8,14 @@
  *
  * Pedometer → distance during GPS dropouts (tunnels, dense trees, underpass).
  * While GPS is healthy we calibrate stride length = gpsDistance / steps.
- * When GPS goes quiet for more than GAP_S we credit steps × stride instead.
+ * When GPS goes quiet for more than GAP_S we credit steps × stride instead,
+ * and reconcile with GPS when it comes back (see gapFill.ts).
  * expo-sensors only delivers steps in the foreground on Android; on iOS we
  * can query the step count for the gap window afterwards.
  */
 import { Barometer, Pedometer } from 'expo-sensors';
 import { Platform } from 'react-native';
+import { GapFill } from './gapFill';
 
 const ELEV_THRESHOLD_M = 2.0;
 const ELEV_SMOOTH = 0.25; // EMA factor on altitude
@@ -85,27 +87,16 @@ function pressureToAltitude(hPa: number): number {
   return 44330 * (1 - Math.pow(hPa / 1013.25, 1 / 5.255));
 }
 
-const GAP_S = 8; // GPS silent this long → fill from steps
-const DEFAULT_STRIDE_M = 0.95;
-
+/** The pedometer side of GapFill: feeds it steps, asks iOS for missed ones. */
 export class StepFusion {
   private sub: { remove: () => void } | null = null;
   private available = false;
-  private stepsSinceStart = 0;
-  private stepsAtLastGps = 0;
-  private lastGpsTs = 0;
-  private strideM = DEFAULT_STRIDE_M;
-  private calibDist = 0;
-  private calibSteps = 0;
-  private startedAt = 0;
-  filledM = 0; // distance credited from steps
+  readonly gap = new GapFill();
 
   async start() {
     this.stop(); // never two listeners
-    this.startedAt = Date.now();
     // A fresh watch counts from zero again.
-    this.stepsSinceStart = 0;
-    this.stepsAtLastGps = 0;
+    this.gap.restartSteps();
     try {
       this.available = await Pedometer.isAvailableAsync();
       if (!this.available) return;
@@ -115,52 +106,29 @@ export class StepFusion {
         this.available = false;
         return;
       }
-      this.sub = Pedometer.watchStepCount((r) => {
-        this.stepsSinceStart = r.steps;
-      });
+      this.sub = Pedometer.watchStepCount((r) => this.gap.setSteps(r.steps));
     } catch {
       this.available = false;
     }
   }
 
-  /** Call for every accepted GPS step so stride length stays calibrated. */
-  onGpsStep(stepM: number, ts: number) {
-    if (!this.available) return;
-    const steps = this.stepsSinceStart - this.stepsAtLastGps;
-    if (steps > 0 && stepM > 0) {
-      this.calibDist += stepM;
-      this.calibSteps += steps;
-      if (this.calibSteps > 200) {
-        const s = this.calibDist / this.calibSteps;
-        if (s > 0.5 && s < 1.6) this.strideM = s;
-      }
-    }
-    this.stepsAtLastGps = this.stepsSinceStart;
-    this.lastGpsTs = ts;
-  }
-
   /**
    * Call once a second while running. If GPS has been quiet, credit steps.
-   * Returns metres to add (0 most of the time).
+   * Returns metres to add (0 most of the time). When it returns more than 0
+   * for a new gap, gap.gapOpen turns true.
    */
   async tick(now: number): Promise<number> {
-    if (!this.available || !this.lastGpsTs) return 0;
-    if ((now - this.lastGpsTs) / 1000 < GAP_S) return 0;
-    let steps = this.stepsSinceStart - this.stepsAtLastGps;
+    if (!this.available || !this.gap.due(now)) return 0;
+    let steps = this.gap.pendingSteps;
     if (Platform.OS === 'ios' && steps <= 0) {
       try {
-        const r = await Pedometer.getStepCountAsync(new Date(this.lastGpsTs), new Date(now));
+        const r = await Pedometer.getStepCountAsync(new Date(this.gap.windowStart), new Date(now));
         steps = r.steps;
       } catch {
         steps = 0;
       }
     }
-    if (steps <= 0) return 0;
-    const m = steps * this.strideM;
-    this.filledM += m;
-    this.stepsAtLastGps = this.stepsSinceStart;
-    this.lastGpsTs = now; // so we only credit each gap window once
-    return m;
+    return this.gap.fill(now, steps);
   }
 
   stop() {
@@ -169,15 +137,14 @@ export class StepFusion {
   }
 
   reset() {
-    this.stepsSinceStart = 0;
-    this.stepsAtLastGps = 0;
-    this.lastGpsTs = 0;
-    this.calibDist = 0;
-    this.calibSteps = 0;
-    this.filledM = 0;
+    this.gap.reset();
+  }
+
+  get filledM() {
+    return this.gap.filledM;
   }
 
   get stride() {
-    return this.strideM;
+    return this.gap.stride;
   }
 }

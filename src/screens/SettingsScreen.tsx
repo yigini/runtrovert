@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, AppState, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { canControl, installedApps, type MusicApp } from '../music';
+import { Alert, AppState, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { appByKey } from '../music';
 import { notificationStatus, previewLine, sendLineNow, turnOnNotifications, type NotifyStatus } from '../notify';
 import { PODCAST_APPS } from '../shelfLogic';
 import { onBatteryModeChanged } from '../tracking';
@@ -20,13 +20,9 @@ const CUES: Array<{ key: CueMode; label: string; hint: string }> = [
   { key: 'voice', label: 'Voice', hint: 'One calm sentence per km. No cheering.' },
 ];
 
-export function SettingsScreen() {
+export function SettingsScreen({ onOpenListen }: { onOpenListen: () => void }) {
   const { settings, update } = useSettings();
   const [preview, setPreview] = useState(previewLine());
-  const [musicApps, setMusicApps] = useState<MusicApp[]>([]);
-  useEffect(() => {
-    installedApps().then(setMusicApps);
-  }, []);
 
   const [status, setStatus] = useState<NotifyStatus>('granted');
   // App.tsx re-plans reminders when these settings change. Here we only keep the
@@ -85,26 +81,14 @@ export function SettingsScreen() {
         </Row>
       </Section>
 
-      <Section title="Music" bg={colors.lilac} fg={colors.lilacDeep}>
-        <Row
-          label="Music on the run screen"
-          hint={
-            canControl
-              ? 'Previous, play and next for whatever is playing, plus a button that opens your app. No login, nothing read.'
-              : 'A button that opens your music app. Your lock screen and Control Center handle the rest.'
-          }
-        >
-          <Switch value={settings.musicStrip} onValueChange={(v) => update({ musicStrip: v })} trackColor={{ true: colors.ink }} />
-        </Row>
-        {[{ key: null, name: "Phone's default" } as { key: string | null; name: string }, ...musicApps].map((a) => {
-          const on = settings.musicApp === a.key;
-          return (
-            <Pressable key={a.key ?? 'default'} onPress={() => update({ musicApp: a.key })} style={[styles.option, on && styles.optionOn]}>
-              <Text style={[styles.optionLabel, on && styles.optionLabelOn]}>{a.name}</Text>
-            </Pressable>
-          );
-        })}
-        <Text style={styles.musicNote}>Voice cues lower your music for a moment instead of talking over it.</Text>
+      <Section title="Music & podcasts" bg={colors.lilac} fg={colors.lilacDeep}>
+        <Text style={styles.musicNote}>
+          {appByKey(settings.musicApp)?.name ?? "Phone's default"} for music, {PODCAST_APPS.find((a) => a.key === settings.podcastApp)?.label ?? 'ask each time'} for
+          podcasts, music strip {settings.musicStrip ? 'on' : 'off'} during runs. All of it lives on the Listen tab now, where you can try the controls.
+        </Text>
+        <Pressable onPress={onOpenListen} accessibilityRole="button" style={[styles.option, styles.optionOn, { alignItems: 'center' }]}>
+          <Text style={[styles.optionLabel, styles.optionLabelOn]}>Open Listen</Text>
+        </Pressable>
       </Section>
 
       <Section title="Battery" bg={colors.sky} fg={colors.skyDeep}>
@@ -143,7 +127,7 @@ export function SettingsScreen() {
         <Text style={styles.promise}>
           The deal: never more than you pick here, one a day at most, nothing between 9 pm and 7 am, never a streak or a sound. Each one has a “Fewer, please” button.
         </Text>
-        <Row label="Per week" hint="Short, dry, never a streak. Skips days you’ve already run, eases off if ignored.">
+        <Row label="Per week" hint="Short, dry, never a streak. Skips days you’ve already run, eases off if ignored. With a training plan, the plan takes over: a note on plan days with the session, nothing on rest days.">
           <Segmented
             value={String(settings.notifyPerWeek)}
             options={['0', '1', '3', '5']}
@@ -170,6 +154,15 @@ export function SettingsScreen() {
         </Pressable>
       </Section>
 
+      <Section title="Map" bg={colors.mint} fg={colors.mintDeep}>
+        <Row
+          label="Plain map"
+          hint="Your route, the live dot and the zoom work the same on a plain ground. No streets or names, and nothing is fetched. Off, the streets come from OpenFreeMap, which sees the area on screen and your IP address."
+        >
+          <Switch value={settings.plainMap} onValueChange={(v) => update({ plainMap: v, mapNoticeSeen: true })} trackColor={{ true: colors.ink }} />
+        </Row>
+      </Section>
+
       <Section title="The sky" bg={colors.sky} fg={colors.skyDeep}>
         <Row label="Local weather on the home screen" hint="A location rounded to about 1 km goes to Open-Meteo and a forecast comes back. No key, no account, no cookies. Besides map tiles and the Listen list, it is the only thing the app fetches.">
           <Switch value={settings.weather} onValueChange={(v) => update({ weather: v })} trackColor={{ true: colors.ink }} />
@@ -177,22 +170,13 @@ export function SettingsScreen() {
       </Section>
 
       <Section title="Listen" bg={colors.butter} fg={colors.butterDeep}>
-        <Row label="Daily list" hint="When you open Listen, download today's shows and episodes. One file, the same for everyone, so nothing about you is sent.">
+        <Row label="Daily list" hint="When you open Listen, download today's shows, episodes and covers from GitHub. One file, the same for everyone, so the request says nothing about you; GitHub sees normal connection details such as your IP address.">
           <Segmented
             value={{ ask: 'Ask', on: 'On', off: 'Off' }[settings.listenDownload]}
             options={['Ask', 'On', 'Off']}
             onChange={(v) => update({ listenDownload: v.toLowerCase() as ListenDownload })}
           />
         </Row>
-        <Text style={[styles.optionHint, { marginTop: 0 }]}>Open shows in</Text>
-        {[{ key: null, label: 'Ask me' }, ...PODCAST_APPS.filter((a) => (Platform.OS === 'ios' ? a.ios : a.android))].map((a) => {
-          const on = settings.podcastApp === a.key;
-          return (
-            <Pressable key={a.label} onPress={() => update({ podcastApp: a.key })} style={[styles.option, { paddingVertical: 10 }, on && styles.optionOn]}>
-              <Text style={[styles.optionLabel, { fontSize: 14 }, on && styles.optionLabelOn]}>{a.label}</Text>
-            </Pressable>
-          );
-        })}
         <Row label="Kit & offers" hint="A shelf of running kit from paying sponsors, at the bottom of Listen. Only there, only when you open it. Off hides it for good.">
           <Switch value={!settings.offersHidden} onValueChange={(v) => update({ offersHidden: !v })} trackColor={{ true: colors.ink }} />
         </Row>
@@ -200,11 +184,13 @@ export function SettingsScreen() {
 
       <Section title="Privacy" bg={colors.white} fg={colors.muted}>
         <Text style={styles.privacy}>
-          Runtrovert has no server. Your runs, routes, notes and settings live only here. We can't see them even if we wanted to.
-          Reminders are written and scheduled on the phone. No push service, no server, nothing that knows when or whether you ran. The app fetches three
-          things: map tiles, the weather if you leave it on, and the Listen list if you said yes, which is one file that's the same for everyone. Podcasts
+          Runtrovert has no server. Your runs, routes, notes and settings are saved on this phone, and in the phone's own backup to your Google or Apple
+          account if you have backups on. We can't see them even if we wanted to. Reminders are written and scheduled on the phone. No push service, no
+          server, nothing that knows when or whether you ran. The app fetches three things: map tiles unless you chose Plain map, the weather if you leave it
+          on, and the Listen list if you said yes, which is one file that's the same for everyone. Like any website, each of those sees your IP address. The
+          map service also sees which area is on screen, and the weather service a location rounded to about 1 km. Your route itself is never sent. Podcasts
           play in your own podcast app; we never see what you play. Sponsors pay a flat fee for a place on the Kit & offers shelf and never learn who opened
-          it or what was tapped. Delete the app and it's all gone.
+          it or what was tapped. Delete the app and it's gone from this phone; a phone backup keeps a copy until it's replaced.
         </Text>
       </Section>
     </ScrollView>

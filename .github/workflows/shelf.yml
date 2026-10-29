@@ -1,7 +1,7 @@
 name: Listen shelf
 
 # Every morning: rebuild shelf.json (hand-picked shows, each country's running podcasts,
-# sponsor offers) and publish it on the `shelf` branch. The app downloads it from
+# sponsor offers) plus small cover images, and publish them on the `shelf` branch. The app downloads it from
 # https://raw.githubusercontent.com/yigini/runtrovert/shelf/shelf.json. No server.
 # Also runs when content/ changes on main, so an edit shows up within minutes.
 
@@ -31,10 +31,14 @@ jobs:
         with:
           node-version: 22
 
-      - name: Build shelf.json
+      # sharp shrinks the covers; nothing else from package.json is needed here.
+      - name: Install sharp
+        run: npm install --no-save --no-package-lock sharp@0.35.5
+
+      - name: Build shelf.json and covers
         run: |
           mkdir -p out
-          node scripts/build-shelf.mjs out/shelf.json
+          node scripts/build-shelf.mjs out/shelf.json --art=out/art
 
       # One commit, force-pushed, so the branch never grows a history of daily files.
       - name: Publish to the shelf branch
@@ -43,6 +47,6 @@ jobs:
           git init -q -b shelf
           git config user.name "runtrovert-shelf"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add shelf.json
+          git add shelf.json art
           git commit -qm "shelf $(date -u +%F)"
           git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" shelf

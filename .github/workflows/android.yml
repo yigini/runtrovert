@@ -30,13 +30,39 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit -p tsconfig.json
 
+      # Pure-code checks (GPS simulation, map fit, reminders, plans, shelf, progress, tips).
+      # Reminders run twice: the rules use local time, so a daylight-saving zone catches fixture slips.
+      - name: Logic tests
+        run: |
+          npm test
+          TZ=Europe/Rome npm run test:reminders
+
       - name: Generate native project
         run: npx expo prebuild --platform android --no-install
 
-      - name: Create debug keystore
+      # One stable test key (repository secrets), so each test APK installs over the last
+      # and keeps the runs on the phone. Without the secrets (e.g. a fork), a throwaway key.
+      - name: Test signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.RUNTROVERT_TEST_KEYSTORE }}
+          KEY_PASSWORD: ${{ secrets.RUNTROVERT_TEST_KEY_PASSWORD }}
         run: |
           mkdir -p $HOME/.android
-          keytool -genkeypair -v -keystore $HOME/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          KS=$HOME/.android/test.keystore
+          if [ -n "$KEYSTORE_B64" ] && [ -n "$KEY_PASSWORD" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > $KS
+            ALIAS=runtrovert-test
+            echo "Signing with the stable test key"
+          else
+            KEY_PASSWORD=android
+            ALIAS=androiddebugkey
+            keytool -genkeypair -keystore $KS -storepass android -alias $ALIAS -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+            echo "::warning::No test key secrets; this APK will not install over earlier ones"
+          fi
+          echo "KS=$KS" >> $GITHUB_ENV
+          echo "KS_ALIAS=$ALIAS" >> $GITHUB_ENV
+          echo "::add-mask::$KEY_PASSWORD"
+          echo "KS_PASS=$KEY_PASSWORD" >> $GITHUB_ENV
 
       - name: Gradle cache
         uses: actions/cache@v4
@@ -46,12 +72,12 @@ jobs:
             ~/.gradle/wrapper
           key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'package-lock.json') }}
 
-      # Release build signed with the debug keystore: installs on any phone for testing.
+      # Release build signed with the test key: installs on any phone for testing.
       # For the Play Store, add a real keystore as repository secrets and uncomment the
       # signing step below (see README → Signing).
-      - name: Build release APK (debug-signed for testing)
+      - name: Build release APK (test-signed)
         working-directory: android
-        run: ./gradlew assembleRelease --no-daemon -Pandroid.injected.signing.store.file=$HOME/.android/debug.keystore -Pandroid.injected.signing.store.password=android -Pandroid.injected.signing.key.alias=androiddebugkey -Pandroid.injected.signing.key.password=android
+        run: ./gradlew assembleRelease --no-daemon "-Pandroid.injected.signing.store.file=$KS" "-Pandroid.injected.signing.store.password=$KS_PASS" "-Pandroid.injected.signing.key.alias=$KS_ALIAS" "-Pandroid.injected.signing.key.password=$KS_PASS"
 
       # - name: Decode release keystore
       #   run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
