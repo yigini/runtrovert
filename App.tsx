@@ -90,6 +90,8 @@ function Shell() {
       const next = fewer(settingsRef.current.notifyPerWeek);
       update({ notifyPerWeek: next });
       Alert.alert('Reminders', fewerMessage(next));
+    } else if (data.kind === 'plan') {
+      setTab('train');
     } else if (data.kind === 'after-run' && typeof data.runId === 'number') {
       setOpenRun(data.runId);
       setTab('history');
@@ -143,7 +145,7 @@ function Shell() {
       <View style={{ flex: 1 }}>
         {/* RunScreen stays mounted so a live run survives tab switches. */}
         <View style={[{ flex: 1 }, tab !== 'run' && styles.hidden]}>
-          <RunScreen onSaved={onSaved} requested={sessionRequest} onRequestTaken={() => setSessionRequest(null)} planKey={planKey} />
+          <RunScreen onSaved={onSaved} requested={sessionRequest} onRequestTaken={() => setSessionRequest(null)} planKey={planKey} onOpenPlan={() => setTab('train')} />
         </View>
         {tab === 'train' && (
           <TrainScreen

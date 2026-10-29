@@ -1,6 +1,8 @@
-// Plan days get the day's session as the reminder, at the hour the runner
-// already chose. Nothing extra: a plan day replaces that day's ordinary line
-// rather than adding to it, and with reminders off there is nothing at all.
+// While a plan is active it takes over the quiet reminders: plan days get the
+// day's session as the note, at the hour the runner already chose, and rest
+// days stay silent (a nudge on a rest day would argue with the plan). Nothing
+// extra on top, and with reminders off there is nothing at all. Paused plans
+// hand the days back to the ordinary reminders.
 
 import * as Notifications from 'expo-notifications';
 import { ensureChannel } from '../notify';
@@ -29,14 +31,14 @@ export async function schedulePlanReminders(settings: Settings): Promise<void> {
     .filter((s) => !s.skipped && !s.done && s.kind !== 'rest' && s.date >= today && s.date < today + HORIZON_DAYS * DAY_MS)
     .slice(0, MAX_PLAN_PENDING);
   if (!upcoming.length) return;
-  const planDays = new Set(upcoming.map((s) => s.date));
+  const until = upcoming[upcoming.length - 1].date + DAY_MS;
 
-  // One voice per morning: the ordinary line steps aside on a plan day.
+  // One voice: the ordinary lines step aside on every day the plan covers, rest days included.
   const pending = await Notifications.getAllScheduledNotificationsAsync();
   for (const n of pending) {
     if (n.content.data?.kind !== 'reminder') continue;
     const day = triggerDay(n.trigger);
-    if (day != null && planDays.has(day)) await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
+    if (day != null && day < until) await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
   }
 
   for (const [i, s] of upcoming.entries()) {

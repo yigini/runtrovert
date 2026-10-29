@@ -142,7 +142,7 @@ export function SettingsScreen() {
         <Text style={styles.promise}>
           The deal: never more than you pick here, one a day at most, nothing between 9 pm and 7 am, never a streak or a sound. Each one has a “Fewer, please” button.
         </Text>
-        <Row label="Per week" hint="Short, dry, never a streak. Skips days you’ve already run, eases off if ignored.">
+        <Row label="Per week" hint="Short, dry, never a streak. Skips days you’ve already run, eases off if ignored. With a training plan, the plan takes over: a note on plan days with the session, nothing on rest days.">
           <Segmented
             value={String(settings.notifyPerWeek)}
             options={['0', '1', '3', '5']}

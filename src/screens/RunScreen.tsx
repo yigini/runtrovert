@@ -23,7 +23,7 @@ import { finishSurprise, type Surprise } from '../surprises';
 import { ensurePermissions, getState, lap, pauseRun, resumeRun, startRun, stopRun, subscribe, TrackingState, unsavedPoints } from '../tracking';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import { applyEnergy, type PainLevel } from '../training/adapt';
-import { loadPlan, savePlan, todaySession } from '../training/store';
+import { loadPlan, nextSession, savePlan, todaySession } from '../training/store';
 import type { Session } from '../training/types';
 import { formatLeft, stepLine } from '../training/workout';
 import type { Mood, Quiet, Run } from '../types';
@@ -36,7 +36,7 @@ type Phase = 'idle' | 'countdown' | 'active' | 'finish';
 /** Ids of the once-only finish lines already used (src/surprises.ts). */
 const SEEN_KEY = 'surprises.seen';
 
-export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0 }: { onSaved: (runId: number, share?: boolean, extra?: { pain: PainLevel | null; sessionId: string | null }) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number }) {
+export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0, onOpenPlan }: { onSaved: (runId: number, share?: boolean, extra?: { pain: PainLevel | null; sessionId: string | null }) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number; onOpenPlan?: () => void }) {
   const { settings } = useSettings();
   const km = settings.unitsKm;
   const [track, setTrack] = useState<TrackingState>(getState());
@@ -63,6 +63,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   // Train tab), the guided steps during the run, and the pain line after.
   const [hasPlan, setHasPlan] = useState(false);
   const [planSession, setPlanSession] = useState<Session | null>(null);
+  const [planNext, setPlanNext] = useState<Session | null>(null); // the next session, on a rest day
   const [pain, setPain] = useState<PainLevel | null>(null);
   const [guided, setGuided] = useState<GuidedRun | null>(null);
   const session = requested ?? planSession;
@@ -88,6 +89,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         const active = p && p.status === 'active' ? p : null;
         setHasPlan(!!active);
         setPlanSession(active ? todaySession(active) : null);
+        setPlanNext(active && !todaySession(active) ? nextSession(active) : null);
       })
       .catch(() => {});
   }, [phase, planKey]);
@@ -245,7 +247,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
 
   // ---- Idle ------------------------------------------------------------------
   if (phase === 'idle') {
-    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} planToday={session} />;
+    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} planToday={session} planNext={requested ? null : planNext} onOpenPlan={onOpenPlan} />;
   }
 
   // ---- Countdown -------------------------------------------------------------

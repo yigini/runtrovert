@@ -3,6 +3,7 @@ import * as Sharing from 'expo-sharing';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button } from '../components/Button';
+import { PlanReminderCard } from '../components/PlanReminders';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import { applyHoliday, applyIllness, missedState, moveSession, rebuild, type MissedState } from '../training/adapt';
@@ -13,7 +14,7 @@ import { planToIcs } from '../training/ics';
 import { formatRaceTime, formatSPerKm, pacesFromRace, type Paces } from '../training/paces';
 import { RULES } from '../training/rules';
 import { EFFORT_LABEL, paceFor, paceSetFor } from '../training/sessions';
-import { createPlan, currentProfile, historyCount, lastRunAt, markDone, planProgress, planSpec, refreshPlan, savePlan, setStatus, skipSession, weekProgress } from '../training/store';
+import { createPlan, currentProfile, historyCount, lastRunAt, markDone, nextSession, runSessions, planEnd, planProgress, planSpec, refreshPlan, savePlan, setStatus, skipSession, todaySession, weekProgress } from '../training/store';
 import type { Plan, PlanSetup, Session, Step, Week } from '../training/types';
 import { UNLOCK_LINE, UNLOCK_PRICE, isUnlocked } from '../unlock';
 
@@ -31,6 +32,7 @@ type Page =
   | { kind: 'week'; index: number | null }
   | { kind: 'session'; id: string }
   | { kind: 'rules' }
+  | { kind: 'how'; first: boolean }
   | { kind: 'away' }
   | { kind: 'ill' };
 
@@ -86,7 +88,7 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
               return;
             }
             await commit(made.plan);
-            setView({ kind: 'week', index: null });
+            setView({ kind: 'how', first: true });
           }}
         />
       );
@@ -119,6 +121,7 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
       />
     );
   }
+  if (view.kind === 'how') return <HowView plan={active} spec={spec} first={view.first} onDone={() => setView({ kind: 'week', index: null })} />;
   if (view.kind === 'away') {
     return (
       <AwayView
@@ -154,6 +157,8 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
       unitsKm={settings.unitsKm}
       missed={missedState(active, today, lastRun)}
       onOpen={(id) => setView({ kind: 'session', id })}
+      onStart={(s) => onStartSession(s)}
+      onHow={() => setView({ kind: 'how', first: false })}
       onWeek={(index) => setView({ kind: 'week', index })}
       onRules={() => setView({ kind: 'rules' })}
       onAway={() => setView({ kind: 'away' })}
@@ -461,6 +466,8 @@ function WeekView(props: {
   unitsKm: boolean;
   missed: MissedState;
   onOpen: (id: string) => void;
+  onStart: (s: Session) => void;
+  onHow: () => void;
   onWeek: (index: number) => void;
   onRules: () => void;
   onAway: () => void;
@@ -484,23 +491,17 @@ function WeekView(props: {
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.screen}>
       <Text style={type.eyebrow}>
-        {plan.name} · week {week.index} of {spec.tier === 'keep' ? '∞' : weeks[weeks.length - 1].index}
+        {plan.name} · week {current.index} of {spec.tier === 'keep' ? '∞' : weeks[weeks.length - 1].index}
       </Text>
-      <Text style={styles.h1}>{weekHeadline(week, current, today, raceIn)}</Text>
-      <Text style={styles.lede}>{weekLede(week, spec, unitsKm)}</Text>
+      <Text style={styles.h1}>{weekHeadline(current, current, today, raceIn)}</Text>
 
-      <View style={styles.progress}>
-        <View style={[styles.progressFill, { width: `${Math.min(100, Math.round((prog.kmDone / Math.max(prog.kmTarget, 0.1)) * 100))}%` as `${number}%` }]} />
-      </View>
-      <Text style={styles.hint}>
-        {prog.done} of {prog.total} runs · {fmtKm(prog.kmDone, unitsKm)} of {fmtKm(prog.kmTarget, unitsKm)} this week · {total.done} of {total.total} in the plan
-      </Text>
-
-      {paused && (
+      {paused ? (
         <View style={styles.banner}>
           <Text style={styles.bannerTitle}>Paused.</Text>
           <Text style={styles.body}>Nothing counts as missed while it is. Resume when you like; a long pause gets a gentle restart.</Text>
         </View>
+      ) : (
+        <TodayCard plan={plan} spec={spec} today={today} unitsKm={unitsKm} onOpen={props.onOpen} onStart={props.onStart} />
       )}
       {!paused && behind && (
         <View style={styles.banner}>
@@ -512,31 +513,53 @@ function WeekView(props: {
         </View>
       )}
 
-      <View style={styles.weekNav}>
-        <Pressable disabled={i <= 0} onPress={() => props.onWeek(weeks[i - 1].index)} style={[styles.navBtn, i <= 0 && { opacity: 0.3 }]}>
-          <Text style={styles.navText}>‹ Week {i > 0 ? weeks[i - 1].index : ''}</Text>
-        </Pressable>
-        {week !== current && (
-          <Pressable onPress={() => props.onWeek(current.index)}>
-            <Text style={styles.link}>This week</Text>
-          </Pressable>
-        )}
-        <Pressable disabled={i >= weeks.length - 1} onPress={() => props.onWeek(weeks[i + 1].index)} style={[styles.navBtn, i >= weeks.length - 1 && { opacity: 0.3 }]}>
-          <Text style={styles.navText}>Week {i < weeks.length - 1 ? weeks[i + 1].index : ''} ›</Text>
-        </Pressable>
-      </View>
+      <Section title={week === current ? 'This week' : `Week ${week.index}`}>
+        <Text style={styles.weekLede}>{week === current ? weekLede(week, spec, unitsKm) : `${weekHeadline(week, current, today, raceIn)} ${weekLede(week, spec, unitsKm)}`}</Text>
+        <View style={styles.progress}>
+          <View style={[styles.progressFill, { width: `${Math.min(100, Math.round((prog.kmDone / Math.max(prog.kmTarget, 0.1)) * 100))}%` as `${number}%` }]} />
+        </View>
+        <Text style={styles.hint}>
+          {prog.done} of {prog.total} runs · {fmtKm(prog.kmDone, unitsKm)} of {fmtKm(prog.kmTarget, unitsKm)}
+        </Text>
 
-      <View style={styles.days}>
-        {[0, 1, 2, 3, 4, 5, 6].map((d) => {
-          const date = addDays(week.start, d);
-          const runs = week.sessions.filter((s) => s.date === date && s.kind !== 'strength');
-          const strength = week.sessions.find((s) => s.date === date && s.kind === 'strength');
-          const s = runs[0];
-          return <DayRow key={date} date={date} today={today} session={s ?? null} strength={!!strength} spec={spec} unitsKm={unitsKm} onPress={s ? () => props.onOpen(s.id) : undefined} />;
-        })}
-      </View>
+        <View style={styles.weekNav}>
+          <Pressable disabled={i <= 0} onPress={() => props.onWeek(weeks[i - 1].index)} style={[styles.navBtn, i <= 0 && { opacity: 0.3 }]} hitSlop={8}>
+            <Text style={styles.navText}>‹ Week {i > 0 ? weeks[i - 1].index : ''}</Text>
+          </Pressable>
+          {week !== current && (
+            <Pressable onPress={() => props.onWeek(current.index)} hitSlop={8}>
+              <Text style={styles.link}>Back to this week</Text>
+            </Pressable>
+          )}
+          <Pressable disabled={i >= weeks.length - 1} onPress={() => props.onWeek(weeks[i + 1].index)} style={[styles.navBtn, i >= weeks.length - 1 && { opacity: 0.3 }]} hitSlop={8}>
+            <Text style={styles.navText}>Week {i < weeks.length - 1 ? weeks[i + 1].index : ''} ›</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.days}>
+          {[0, 1, 2, 3, 4, 5, 6].map((d) => {
+            const date = addDays(week.start, d);
+            const runs = week.sessions.filter((s) => s.date === date && s.kind !== 'strength');
+            const strength = week.sessions.find((s) => s.date === date && s.kind === 'strength');
+            const s = runs[0];
+            return <DayRow key={date} date={date} today={today} session={s ?? null} strength={!!strength} spec={spec} unitsKm={unitsKm} onPress={s ? () => props.onOpen(s.id) : undefined} />;
+          })}
+        </View>
+        <Legend />
+        <Text style={styles.hint}>Tap a day for its steps, to move it within the week, or to skip it.</Text>
+      </Section>
+
+      <Section title="The whole plan">
+        <WeekStrip weeks={weeks} current={current} shown={week} keep={spec.tier === 'keep'} onWeek={props.onWeek} />
+        <Text style={styles.hint}>{planLine(plan, spec, current, total, today)}</Text>
+      </Section>
+
+      <Section title="Reminders">
+        <PlanReminderCard paused={paused} />
+      </Section>
 
       <Section title="When life happens">
+        <Row label="How a plan works" hint="Today, this week, reminders, and what happens when you miss a day." onPress={props.onHow} />
         <Row label="Add the plan to a calendar" hint="An .ics file: Apple, Google, Outlook. Nothing syncs back." onPress={props.onCalendar} />
         <Row label="I’m away for a few days" hint="Planned rest, not a miss." onPress={props.onAway} />
         <Row label="I’m ill" hint="Rest until better, then as many easy days as you were ill." onPress={props.onIll} />
@@ -586,6 +609,157 @@ function DayRow({ date, today, session, strength, spec, unitsKm, onPress }: { da
       </View>
       <Text style={[styles.dayState, isToday && { color: colors.butter }, s?.done && { color: colors.mintDeep }]}>{state}</Text>
     </Pressable>
+  );
+}
+
+// ---- Today, the legend, the whole plan -------------------------------------------
+
+/** The one thing to know when you open the tab: what today asks, and what comes next. */
+function TodayCard({ plan, spec, today, unitsKm, onOpen, onStart }: { plan: Plan; spec: PlanSpec; today: number; unitsKm: boolean; onOpen: (id: string) => void; onStart: (s: Session) => void }) {
+  const s = todaySession(plan, today);
+  const next = nextSession(plan, addDays(today, 1));
+  const nextLine = next ? `Next: ${WEEKDAY_LONG[weekdayOf(next.date)]}${daysBetween(today, next.date) > 6 ? ` ${new Date(next.date).getDate()}` : ''}, ${lower(next.title)} · ${sizeOf(next, spec, unitsKm)}.` : 'That was the last session of the plan.';
+  const notStarted = today < plan.weeks[0].start || (!s && runSessions(plan).every((x) => x.date > today && !x.done));
+
+  if (s && !s.done && !s.skipped) {
+    return (
+      <View style={styles.today}>
+        <Text style={styles.todayLabel}>Today</Text>
+        <Text style={styles.todayTitle}>{s.title}</Text>
+        <Text style={styles.body}>{s.summary}</Text>
+        <Text style={styles.hint}>
+          {sizeOf(s, spec, unitsKm)} · {s.hard ? 'a harder day' : s.kind === 'long' ? 'the long run, slow' : 'easy, you can talk the whole way'}
+        </Text>
+        <Button title="Start today’s session" onPress={() => onStart(s)} style={{ marginTop: 6 }} />
+        <Pressable onPress={() => onOpen(s.id)} hitSlop={8} style={{ alignSelf: 'center', paddingVertical: 4 }}>
+          <Text style={styles.link}>See the steps, move or skip it</Text>
+        </Pressable>
+        <Text style={styles.hint}>Any run today counts for it, even one started from the Run tab.</Text>
+      </View>
+    );
+  }
+  const title = s?.done ? 'Done for today.' : s?.skipped ? 'Set aside today.' : notStarted ? 'The plan starts soon.' : 'Rest today.';
+  const text = s?.done
+    ? `${fmtKm(s.done.distanceM / 1000, unitsKm)} in ${fmtDur(s.done.durationS)}. Logged against the plan.`
+    : s?.skipped
+      ? 'Nothing lost, and nothing added elsewhere to make up for it.'
+      : notStarted
+        ? 'Nothing to do until the first session.'
+        : 'Rest is part of the plan, not a gap in it. A walk is fine.';
+  return (
+    <View style={[styles.today, styles.todayQuiet]}>
+      <Text style={styles.todayLabel}>Today</Text>
+      <Text style={styles.todayTitle}>{title}</Text>
+      <Text style={styles.body}>{text}</Text>
+      {next ? (
+        <Pressable onPress={() => onOpen(next.id)} hitSlop={6}>
+          <Text style={styles.todayNext}>{nextLine} ›</Text>
+        </Pressable>
+      ) : (
+        <Text style={styles.todayNext}>{nextLine}</Text>
+      )}
+    </View>
+  );
+}
+
+function Legend() {
+  const items: Array<[string, string]> = [
+    [colors.mint, 'Easy'],
+    [colors.butter, 'Long'],
+    [colors.peach, 'Harder'],
+  ];
+  return (
+    <View style={styles.legend}>
+      {items.map(([c, l]) => (
+        <View key={l} style={styles.legendItem}>
+          <View style={[styles.dayDot, { backgroundColor: c }]} />
+          <Text style={styles.hint}>{l}</Text>
+        </View>
+      ))}
+      <View style={styles.legendItem}>
+        <View style={[styles.dayDot, { backgroundColor: colors.cream, borderWidth: 1, borderColor: colors.lilac }]} />
+        <Text style={styles.hint}>Rest</Text>
+      </View>
+    </View>
+  );
+}
+
+/** Every week as a bar, as tall as its distance: the build, the lighter weeks, the taper, at a glance. */
+function WeekStrip({ weeks, current, shown, keep, onWeek }: { weeks: Week[]; current: Week; shown: Week; keep: boolean; onWeek: (index: number) => void }) {
+  const max = Math.max(...weeks.map((w) => w.targetKm), 0.1);
+  return (
+    <View>
+      <View style={styles.strip}>
+        {weeks.map((w) => {
+          const past = w.start < current.start;
+          const fill = w === current ? colors.ink : w.kind === 'light' ? colors.lilac : w.kind === 'race' || w.kind === 'taper' ? colors.peach : past ? colors.mintDeep : colors.mint;
+          return (
+            <Pressable key={w.index} onPress={() => onWeek(w.index)} style={styles.stripCol} accessibilityLabel={`Week ${w.index}`} hitSlop={4}>
+              <View style={[styles.stripBar, { height: 8 + Math.round((w.targetKm / max) * 56), backgroundColor: fill }, w === shown && w !== current && styles.stripShown]} />
+            </Pressable>
+          );
+        })}
+      </View>
+      <View style={styles.stripFoot}>
+        <Text style={styles.stripLabel}>Week {weeks[0].index}</Text>
+        <Text style={styles.stripLabel}>{keep ? 'then four more' : weeks[weeks.length - 1].kind === 'race' ? 'Race' : `Week ${weeks[weeks.length - 1].index}`}</Text>
+      </View>
+      <View style={styles.legend}>
+        <View style={styles.legendItem}>
+          <View style={[styles.dayDot, { backgroundColor: colors.ink }]} />
+          <Text style={styles.hint}>Now</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.dayDot, { backgroundColor: colors.lilac }]} />
+          <Text style={styles.hint}>Lighter week</Text>
+        </View>
+        {weeks.some((w) => w.kind === 'taper' || w.kind === 'race') && (
+          <View style={styles.legendItem}>
+            <View style={[styles.dayDot, { backgroundColor: colors.peach }]} />
+            <Text style={styles.hint}>Taper and race</Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function planLine(plan: Plan, spec: PlanSpec, current: Week, total: { done: number; total: number }, today: number): string {
+  const end = plan.setup.raceDate ?? planEnd(plan);
+  const left = Math.max(0, daysBetween(today, end));
+  const when = plan.setup.raceDate != null ? `Race on ${formatDay(plan.setup.raceDate)}, ${left} ${left === 1 ? 'day' : 'days'} away.` : spec.tier === 'keep' ? 'A new block of four weeks follows this one.' : `Ends ${formatDay(end)}.`;
+  return `${total.done} of ${total.total} runs done. ${when} Taller bars are bigger weeks; tap one to look ahead.`;
+}
+
+// ---- How a plan works --------------------------------------------------------------
+
+function HowView({ plan, spec, first, onDone }: { plan: Plan; spec: PlanSpec; first: boolean; onDone: () => void }) {
+  const light = plan.setup.extraRecovery ? 'third' : 'fourth';
+  const points: Array<[string, string]> = [
+    ['Today', 'Each day has one thing: a session or rest. It sits at the top of Train and on the Run screen, where the button becomes “Start today’s session” and talks you through the steps, screen off too.'],
+    ['This week', `${plan.setup.daysPerWeek} runs, on the days you picked. Green is easy, yellow is the long run, peach is harder. Tap a day to see the steps, move it to a free day in the same week, or skip it.`],
+    [spec.tier === 'keep' ? 'The blocks' : 'The plan', `The weeks build slowly, with a lighter one every ${light}${plan.setup.raceDate != null ? ' and a taper before the race' : ''}. Any run you do on a plan day counts for it.`],
+    ['When you miss days', 'Nothing is doubled up to catch up. A missed day stays missed; a week or more away and the plan repeats a week or steps back. Away, ill or pause, below the week.'],
+  ];
+  return (
+    <ScrollView style={styles.scroll} contentContainerStyle={styles.screen}>
+      {!first && <Back onPress={onDone} label="This week" />}
+      <Text style={type.eyebrow}>{first ? plan.name : 'How a plan works'}</Text>
+      <Text style={styles.h1}>{first ? 'Your plan is set.\nHere is how it goes.' : 'Four things,\nthen just run.'}</Text>
+      {points.map(([t, b], k) => (
+        <View key={t} style={styles.rule}>
+          <Text style={styles.ruleN}>{k + 1}</Text>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={styles.ruleTitle}>{t}</Text>
+            <Text style={styles.body}>{b}</Text>
+          </View>
+        </View>
+      ))}
+      <Section title="Reminders">
+        <PlanReminderCard paused={plan.status === 'paused'} />
+      </Section>
+      <Button title={first ? 'See this week' : 'Back to this week'} onPress={onDone} />
+    </ScrollView>
   );
 }
 
@@ -972,4 +1146,18 @@ const styles = StyleSheet.create({
   rule: { flexDirection: 'row', gap: 14, backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md },
   ruleN: { fontFamily: fonts.display, fontSize: 26, color: colors.lilacDeep, width: 28 },
   ruleTitle: { fontFamily: fonts.bodySemi, fontSize: 16, color: colors.text },
+  today: { backgroundColor: colors.white, borderRadius: radius.lg, padding: spacing.md, gap: 6, borderLeftWidth: 4, borderLeftColor: colors.butterDeep },
+  todayQuiet: { borderLeftColor: colors.mint },
+  todayLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: colors.butterDeep },
+  todayTitle: { fontFamily: fonts.display, fontSize: 26, lineHeight: 30, color: colors.text },
+  todayNext: { fontFamily: fonts.bodySemi, fontSize: 14, lineHeight: 20, color: colors.ink, marginTop: 4 },
+  weekLede: { fontFamily: fonts.bodyMedium, fontSize: 15, lineHeight: 21, color: colors.text },
+  legend: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 4 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  strip: { flexDirection: 'row', alignItems: 'flex-end', gap: 3, height: 68 },
+  stripCol: { flex: 1, justifyContent: 'flex-end', height: 68 },
+  stripBar: { borderRadius: 3, minWidth: 4 },
+  stripShown: { borderWidth: 2, borderColor: colors.ink },
+  stripFoot: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
+  stripLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', color: colors.muted },
 });
