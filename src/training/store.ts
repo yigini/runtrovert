@@ -173,6 +173,23 @@ export async function onRunSaved(run: Run, pain: PainLevel | null, sessionId: st
   return { plan, advice };
 }
 
+/**
+ * A run was deleted: the session it completed keeps its tick, but the run's
+ * date, distance and time leave the plan with it.
+ */
+export async function forgetRun(runId: number): Promise<void> {
+  const plan = await loadPlan();
+  if (!plan || runId <= 0) return;
+  let changed = false;
+  for (const s of plan.weeks.flatMap((w) => w.sessions)) {
+    if (s.done && s.done.runId === runId) {
+      s.done = { runId: 0, distanceM: 0, durationS: 0, at: 0 };
+      changed = true;
+    }
+  }
+  if (changed) await savePlan(plan);
+}
+
 /** Did it without the phone: tick it off at the planned numbers. */
 export function markDone(plan: Plan, sessionId: string, now = Date.now()): Plan {
   const p = clone(plan);
