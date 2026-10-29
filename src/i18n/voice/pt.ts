@@ -1,0 +1,428 @@
+// Português (Brasil). Written in Brazilian Portuguese, not translated line by
+// line: "você", relaxed, dry. Portugal falls back to it. First-person lines
+// avoid adjectives that agree with the runner's gender. Brazil gets its own
+// Dia dos Namorados (12 June) and no solstice lines, since it is mostly south
+// of the equator.
+
+import type { EffortKey } from '../../progress';
+import type { VoicePack } from './types';
+import { clockDigits, distNumber, word } from './util';
+
+const comma = (s: string) => s.replace('.', ',');
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+const NUM = ['zero', 'uma', 'duas', 'três', 'quatro', 'cinco', 'seis', 'sete'];
+const NOTCH = ['', 'um', 'dois', 'três', 'quatro'];
+const ORD = ['', 'Primeira', 'Segunda', 'Terceira', 'Quarta', 'Quinta', 'Sexta', 'Sétima'];
+
+const EFFORT: Record<EffortKey, string> = { '1k': '1 km', mile: '1 milha', '5k': '5 km', '10k': '10 km', half: 'meia maratona', full: 'maratona' };
+const MY_FIRST: Record<EffortKey, string> = { '1k': 'Meu primeiro quilômetro', mile: 'Minha primeira milha', '5k': 'Meus primeiros 5 km', '10k': 'Meus primeiros 10 km', half: 'Minha primeira meia maratona', full: 'Minha primeira maratona' };
+const YOUR_FIRST: Record<EffortKey, string> = { '1k': 'Seu primeiro quilômetro', mile: 'Sua primeira milha', '5k': 'Seus primeiros 5 km', '10k': 'Seus primeiros 10 km', half: 'Sua primeira meia maratona', full: 'Sua primeira maratona' };
+/** "recorde nos 5 km", "recorde na meia maratona". */
+const OVER: Record<EffortKey, string> = { '1k': 'no 1 km', mile: 'na milha', '5k': 'nos 5 km', '10k': 'nos 10 km', half: 'na meia maratona', full: 'na maratona' };
+
+function since(days: number): string {
+  if (days < 21) return Math.round(days / 7) === 1 ? 'uma semana' : `${days} dias`;
+  if (days < 60) return `${Math.round(days / 7)} semanas`;
+  return `${Math.round(days / 30)} meses`;
+}
+
+export const pt: VoicePack = {
+  distance: (m, km) => `${comma(distNumber(m, km))} ${km ? 'km' : 'milhas'}`,
+  minutes(s) {
+    const m = Math.round(s / 60);
+    if (m < 90) return `${m} ${m <= 1 ? 'minuto' : 'minutos'}`;
+    const h = Math.floor(m / 60);
+    const r = m % 60;
+    return r ? `${h}h${String(r).padStart(2, '0')}` : `${h} horas`;
+  },
+  margin: (s) => {
+    const t = Math.round(s);
+    return t < 60 ? `${t} ${t <= 1 ? 'segundo' : 'segundos'}` : clockDigits(t);
+  },
+  clockWords: (ms) => {
+    const d = new Date(ms);
+    return `${d.getHours()}h${String(d.getMinutes()).padStart(2, '0')}`;
+  },
+  effort: EFFORT,
+
+  share: {
+    bestFirst: (k, time) => [
+      `${MY_FIRST[k]}. ${time}. O principal é que terminei.`,
+      `${MY_FIRST[k]}. Contei pro celular, agora pra você. É a lista toda.`,
+      `${cap(EFFORT[k])}: feito, pela primeira vez. Sem medalha. Nem precisava.`,
+    ],
+    best: (k, time, m) => [
+      `Novo recorde ${OVER[k]}. Ninguém viu. Era esse o plano.`,
+      `Meu melhor tempo ${OVER[k]}, por ${m}. Não vou fazer alarde.`,
+      `${time} ${OVER[k]}. Meu recorde. Só umas três pessoas vão saber disso, e você é uma delas.`,
+      `Bati meu tempo antigo ${OVER[k]} por ${m}. Meu único rival sou eu, e ganhei.`,
+      `Recorde ${OVER[k]}, sem testemunhas. Tô te contando, rapidinho.`,
+    ],
+    firstRun: ({ d }) => [`Primeira corrida com o Runtrovert. ${d}. Um começo, em silêncio.`, `Corrida número um. ${d}. Ninguém olhou, e isso ajudou.`],
+    gap(days, { d }) {
+      const weeks = Math.round(days / 7);
+      const gap = weeks <= 7 ? `${word(NUM, weeks)} semanas` : `${Math.round(days / 30)} meses`;
+      return [`Primeira corrida em ${gap}. As pernas lembraram. Quase tudo.`, `De volta depois de ${gap}. Sem discurso. ${d}.`, `${cap(gap)} de pausa, depois ${d}. Retomando de onde parei.`];
+    },
+    recentBest: (k, time) => [
+      `Meu tempo mais rápido ${OVER[k]} em três meses. Não é o melhor da vida. É o melhor ultimamente, e isso conta.`,
+      `${time} ${OVER[k]}. O mais rápido em 90 dias.`,
+    ],
+    longestEver: ({ d }) => [
+      `A corrida mais longa até agora. ${d}. Vou te contar. Rapidinho.`,
+      `${d}. Mais longe do que nunca. Não precisei de aplauso.`,
+      `Nova corrida mais longa: ${d}. A segunda metade foi só eu e meus pensamentos. Estamos bem.`,
+    ],
+    longestWhile: ({ d }) => [`${d}, a mais longa em um bom tempo. E deu pra sentir.`, `A corrida mais longa em dois meses. ${d} sem falar com ninguém.`],
+    recharge: (n, { d, dur }) => [`Saí com cansaço. Voltei com o humor ${NOTCH[n]} níveis acima.`, `${d} sem falar. Bateria: bem mais cheia.`, `Saí sem energia, voltei melhor. ${dur} bem gastos.`],
+    slowHappy: ({ d }) => ['A corrida mais lenta do mês. O melhor humor depois. Tire suas conclusões.', `Devagar, de propósito, quase sempre. Voltei com o humor melhor. ${d}.`],
+    storm: ({ d }) => [`Tinha tempestade por perto e saí mesmo assim. ${d}, com uma certa satisfação.`, `Corri entre tempestades. ${d}. O céu aguentou. Quase.`],
+    snow: ({ d, t }) => ['Neve fresca. As únicas pegadas eram as minhas.', `${d} na neve. O mundo ficou quieto, e eu também.`, `Neve, ${t}. Todo mundo ficou em casa. Azar o deles.`],
+    rain: ({ d, at }, empty) => [
+      empty ? `${d} na chuva. O caminho estava vazio. A chuva faz isso.` : `${d} na chuva. Água pra todo lado, e valeu cada metro.`,
+      `Chuva, ${at}. Todo mundo ficou em casa. Eu não.`,
+      'Corri na chuva. O tênis está secando. Meu orgulho, intacto.',
+    ],
+    drizzle: ({ d, t }) => [`Garoa. Só o suficiente pra deixar o pessoal em casa. ${d}.`, `Garoa, ${t}. Úmido, calmo, bom.`],
+    fog: ({ d }) => ['Neblina o caminho todo. Ninguém conseguia me ver. Ideal.', `${d} na neblina. O mundo tinha uns 50 metros de largura.`],
+    cold: ({ d, ft }) => [`Sensação de ${ft}. Os empolgados ficaram na cama. Pelo menos foi o que me disseram.`, `${ft}. Frio o bastante pra deixar a multidão em casa. ${d}.`],
+    hot: ({ d, t }) => [`${t} e saí mesmo assim. Devagar, de propósito.`, `${t}. Primeiro sombra, depois ritmo. ${d}.`],
+    wind: ({ d }) => ['Ida contra o vento, volta a favor. Troca justa.', `Ventania. ${d}, metade heroica, metade de graça.`],
+    beforeSunrise: ({ at }) => ['Na rua antes do sol nascer. Os postes eram a única plateia.', `${at}. Corri antes que o dia me pedisse alguma coisa.`],
+    afterDark: ({ d }) => ['Uma corrida depois de escurecer. Menos olhares, mais estrelas.', `${d} sob os postes. As ruas eram minhas.`],
+    crowded: ({ d }) => ['Estava cheio lá fora. Corri mesmo assim e não falei com ninguém.', `Percurso lotado, ${d}, zero conversa. Um talento.`],
+    empty: ({ d }) => ['O caminho todo só pra mim. Nem uma alma.', `${d}, e acho que não cruzei com ninguém. Perfeito.`],
+    climb: (m) => [`${m} m de subida. Pra cima também é uma direção.`, `Ladeiras, ${m} m no total. Agora minhas pernas têm opinião.`],
+    quicker: (s, { km }) => [
+      `${s} segundos por ${km ? 'quilômetro' : 'milha'} mais rápido que o normal. Mesmas pernas, pelo jeito melhores.`,
+      `${s} s por ${km ? 'km' : 'milha'} mais rápido que o normal. Vou guardar pra mim. E pra você.`,
+    ],
+    week: (n) => [`${ORD[n]} corrida da semana. Aos poucos virando alguém que corre.`, `Corrida ${n} da semana. Não é sequência. É um hábito com bons modos.`],
+    weekendEarly: (sunday, { at }) => [`${sunday ? 'Domingo' : 'Sábado'}, ${at}. A cidade ainda dormia. Não acordei ninguém.`],
+    lunch: ({ d }) => ['Uma corrida na hora do almoço. Ninguém percebeu que eu tinha saído.', `${d} no almoço. De volta antes que alguém perguntasse.`],
+    short: ({ d }) => [`Só ${d}. Conta mesmo assim. Principalmente pra mim.`, `${d}. Corrida pequena, sem plateia, contada inteira.`],
+    grey: ({ dur }) => [`Cinza e parado. Ótimo pra sumir por ${dur}.`],
+    clear: ({ d, t }) => [`${t} e céu limpo. Sem desculpas, sem plateia.`, `Céu azul, ${d}, ninguém pra conversar. Condições ideais.`],
+    always: ({ d, dur }) => [
+      `${d}. Ninguém viu. Era esse o plano.`,
+      `${dur} em que ninguém conseguia falar comigo. Recomendo.`,
+      `${d} sem falar com ninguém. Voltei. Por pouco tempo.`,
+      'Saí pra correr. Voltei. Essas são as notícias.',
+    ],
+  },
+
+  sky: {
+    headline: {
+      storm: () => ['Trovoada por perto.\nO sofá também é um percurso.', 'Tempestades por aí.\nTalvez espere uma hora.'],
+      snow: (t) => ['Neve. Pegadas novas,\ntodas suas.', `${t} e neve.\nO mundo ficou em silêncio.`],
+      rain: (t) => [`${t} e chuva.\nO parque é seu.`, 'Chuva. Todo mundo\nficou em casa.'],
+      drizzle: (t) => [`${t} e garoa.\nTodo mundo ficou em casa.`, 'Garoa. O suficiente pra\ndeixar o pessoal em casa.'],
+      fog: (t) => ['Neblina. O mundo ficou\nquieto pra você.', `${t} e neblina.\nNinguém te vê mesmo.`],
+      dark: (t) => ['Escureceu.\nMenos olhares, mais estrelas.', `${t} sob os postes.\nAs ruas estão vazias.`],
+      cold: (t) => [`${t}. Frio o bastante pra\ndeixar a multidão em casa.`, `${t}. Os empolgados\nainda estão na cama.`],
+      hot: (t) => [`Já ${t}.\nVá cedo, ou devagar.`, `${t}. Primeiro sombra,\ndepois ritmo.`],
+      wind: () => ['Vento. Ida contra,\nvolta a favor.', 'Ventania. Ida difícil,\nvolta fácil.'],
+      clear: (t) => [`${t} e céu limpo.\nSem desculpas, sem plateia.`, `${t} e céu azul.\nVá antes de encher.`],
+      grey: (t) => [`${t}, cinza e parado.\nBom pra sumir.`, `Nublado, ${t}.\nNinguém olha pra cima.`],
+    },
+    bestWindow: 'Melhor horário',
+    noDryHour: 'Não sobrou nenhuma hora seca hoje. Uma capa de chuva, ou amanhã.',
+    dry: 'seco',
+    rainChance: (p) => `${p}% de chuva`,
+    now: (what) => `Agora. ${cap(what)}.`,
+    from: (time, what) => `A partir das ${time}. ${cap(what)}.`,
+    wear: 'Roupa',
+    kit: [
+      'Camada térmica, luvas, gorro',
+      'Manga longa, luvas, gorro',
+      'Manga longa, luvas finas',
+      'Manga longa ou uma camada leve',
+      'Camiseta e short',
+      'Roupa leve. Leve água',
+      'O mínimo decente. Água',
+    ],
+    shell: 'uma jaqueta impermeável',
+    windproof: 'um corta-vento',
+    reflective: 'algo refletivo',
+    kitWith: (kit, extras) => `${extras.length ? `${kit}, e também ${extras.join(' e ')}` : kit}.`,
+    light: 'Luz',
+    darkAt: (time) => `Escurece às ${time}. Leve uma lanterna.`,
+    daylightUntil: (time) => `Claro até as ${time}.`,
+    lightAgain: (time) => `Clareia às ${time}. Use algo claro.`,
+  },
+
+  surprises: {
+    lines: {
+      'first-run': 'Uma já foi.\nNinguém viu. Perfeito.',
+      marathon: 'Uma maratona.\nNa sua, de propósito.',
+      half: 'Meia maratona.\nNada pela metade.',
+      ten: 'Dez.\nO número concorda com você.',
+      'run-100': 'Cem corridas.\nAinda ninguém aplaudindo. Ainda ótimo.',
+      'run-50': 'Cinquenta corridas.\nO tipo discreto de hábito.',
+      anniversary: 'Um ano atrás você saiu na sua.\nE continuou.',
+      'first-snow': 'Primeira neve do ano.\nE você estava lá fora.',
+      longest: 'A mais longa até agora.\nNão conta pra ninguém.',
+      rare: 'Você não cruzou com ninguém\ncom quem precisasse falar.',
+      rain: 'Chuva. Feito.\nUm pouco de orgulho é permitido.',
+      snow: 'Corrida na neve.\nAs pegadas são a única prova.',
+      early: 'Na rua antes das opiniões.',
+      late: 'Corrida noturna.\nAs ruas guardaram segredo.',
+    },
+    round: (n, km) => `${n},00 ${km ? 'km' : 'milhas'}.\nSuspeitamente redondo.`,
+    seasonal: {
+      '1-1': 'Ano novo. Mesmo caminho. Ótimo.',
+      '2-29': 'Um dia que quase nunca existe. Aproveite.',
+      '6-12': 'Dia dos Namorados. O percurso continua fiel.',
+      '12-25': 'Ruas tranquilas hoje. Finalmente.',
+      '12-31': 'Última corrida do ano, ou a primeira do próximo. As duas valem.',
+    },
+  },
+
+  you: {
+    bestFirst: (k, time) => ({ title: `${YOUR_FIRST[k]}.`, detail: `${time}. A primeira vez é sempre um recorde.` }),
+    best: (k, time, m, month) => ({
+      title: `Novo recorde ${OVER[k]}.\nNinguém viu. Você sabe.`,
+      detail: `${time}, ${Math.round(m) < 60 ? `${Math.round(m)} s` : clockDigits(m)} mais rápido que seu recorde anterior${month ? ` (${month})` : ''}.`,
+    }),
+    welcomeBack: (days) => ({ title: 'Que bom te ver de volta.', detail: `Primeira corrida em ${since(days)}. As pernas lembram mais do que você imagina.` }),
+    recentBest: (k, time) => ({ title: `O mais rápido ${OVER[k]} em 90 dias.`, detail: `${time}. Não é um recorde absoluto, mas é o melhor desta fase.` }),
+    longestEver: { title: 'Sua corrida mais longa até agora.', detail: 'Mais longe que qualquer corrida neste celular.' },
+    longestMonths: { title: 'Sua corrida mais longa em dois meses.', detail: 'Mais longe que tudo nos últimos 60 dias.' },
+    recharge: (n) => ({ title: `Você voltou com o humor ${NOTCH[n]} níveis acima.`, detail: 'Isso conta tanto quanto o ritmo.' }),
+    quicker: (s, km) => ({ title: `${s} ${km ? 's/km' : 's/milha'} mais rápido que o normal.`, detail: 'Comparado com suas últimas seis semanas, considerando as subidas.' }),
+    slowerGood: { title: 'Mais devagar que o normal. Boa corrida.', detail: 'Você voltou mais leve, e era essa a ideia.' },
+  },
+
+  reminders: {
+    moods: {
+      nudge: [
+        'Oi. O parque está vazio às 7. Só comentando.',
+        'Sem pressão. Mas seu tênis olhou pra porta de novo.',
+        'Corrida curta, zero papo. Vinte minutos?',
+        'Fone opcional. Gente opcional. Correr, recomendado.',
+        'Seu percurso favorito continua lá. Guardou seu lugar.',
+        'Correr é uma reunião com um participante só. A presença é ótima.',
+        'Lá fora ninguém vai perguntar como você está. Essa é a graça.',
+        'Hoje pede uma volta. Qualquer uma. Mesmo pequena.',
+        'Pra amarrar o tênis você não precisa falar com ninguém.',
+        'O asfalto não tem opinião sobre o seu ritmo.',
+        'Uma corrida conta mesmo que ninguém saiba. Principalmente aí.',
+        'Uma rapidinha? O mundo vai continuar barulhento quando você voltar.',
+        'Pernas: disponíveis. Tempo: razoável. Desculpas: recusadas com educação.',
+        'Trinta minutos em que seu celular só conta quilômetros.',
+        'Correr é o único hobby em que ir embora mais cedo se chama terminar.',
+        'Uma corrida. Zero conversas. Satisfação infinita. Bom negócio.',
+        'A melhor parte de correr é a parte em que ninguém consegue falar com você.',
+        'Não é um empurrão. É uma cutucada. A diferença é de uns cinco minutos.',
+        'Existe uma versão de hoje em que você correu. Ela é um pouco melhor.',
+        'Lembrete: ar fresco é de graça e não faz perguntas.',
+        'Vinte minutos lá fora valem mais que vinte minutos pensando nisso.',
+      ],
+      rest: [
+        'A corrida de ontem ainda está contando. Descansar faz parte do plano.',
+        'Você correu. Hoje o trabalho é sentar e curtir isso.',
+        'Dia de descanso. Suas pernas estão se reconstruindo em silêncio. Deixe.',
+        'Nada pra fazer hoje. Ontem serviu pra isso.',
+        'Recuperar também é correr. Só que do tipo invisível.',
+        'Os músculos estão trabalhando. Você não precisa supervisionar.',
+        'Você mereceu um dia tranquilo. Pode cobrar.',
+        'Nada a provar hoje. Já está feito.',
+        'Suas pernas querem dizer uma coisa: valeu, e hoje não, por favor.',
+        'Correr ontem foi a parte difícil. Descansar hoje é a parte esperta.',
+        'Dois dias seguidos pode. Um também. Você decide.',
+      ],
+      quiet: [
+        'Já faz uns dias. O percurso não foi a lugar nenhum.',
+        'Semana calma? Uma corrida curta fecha bem.',
+        'Faz um tempo sem correr. Sem problema. Uma volta leve zera tudo.',
+        'Seu tênis está começando a desconfiar. Tranquilize ele.',
+        'Se a semana foi barulhenta, correr é o cômodo mais silencioso que você tem.',
+        'Uma corrida curta e ruim é melhor que uma ótima que só está nos planos.',
+        'Seu ritmo da semana passada continua tranquilo. Ele espera.',
+        'Recomeçar é começar com um tênis melhor.',
+        'O quilômetro mais difícil é o que fica entre a porta e a calçada.',
+      ],
+      gap: [
+        'Uma semana parada acontece. O caminho continua lá.',
+        'Oi de novo. Sem sermão. Só uma porta e um percurso depois dela.',
+        'A vida atrapalhou. Ela faz isso. Uma corrida curta te tira de casa de novo.',
+        'Quando quiser voltar, estamos aqui. Sem formulário.',
+        'Nada se perdeu. O condicionamento é fiel: vai embora devagar e volta rápido.',
+        'Nenhuma sequência pra salvar. Só uma corrida pra curtir, se você quiser.',
+        'Comece pequeno. O mapa não liga pro tamanho.',
+        'Você não deve uma grande volta a ninguém. Pode só sair pra correr.',
+        'Se hoje é o dia: ótimo. Se não: amanhã também é dia.',
+      ],
+      weather: [
+        'Está chovendo. Ninguém vai estar na rua. Você sabe o que isso significa.',
+        'Frio lá fora. Menos gente. Quase como se o tempo estivesse do seu lado.',
+        'Céu cinza esvazia os caminhos. A melhor hora pra tê-los só pra você.',
+        'Escurece cedo. Lanterna de cabeça ligada. O mundo vira um círculo tranquilo.',
+        'A garoa é o controle de acesso dos introvertidos.',
+        'Tempo ruim, parque vazio. Sinceramente, perfeito.',
+        'Poças não puxam conversa. Parceiras de corrida ideais.',
+        'Correr na chuva é um banho a caminho do banho.',
+        'A neblina chegou. Nem quem sempre acena consegue te ver.',
+      ],
+      morning: [
+        'Bom dia. A única notificação que você vai receber de mim hoje.',
+        'As ruas ainda estão dormindo. Junte-se a elas, em movimento.',
+        'Corrida cedo: o dia ainda não começou a te pedir coisas.',
+        'Manhã. No parque tem umas três pessoas e um bem-te-vi.',
+        'Café, tênis, porta. Conversa não obrigatória.',
+        'A hora tranquila está aberta. Reserva pra uma pessoa.',
+      ],
+      evening: [
+        'Fim de tarde. O dia já cansou de falar. Vá pra onde ele não consegue te seguir.',
+        'Uma corrida curta antes de escurecer. Depois o sofá é seu.',
+        'A última luz é a mais bonita. E a mais vazia.',
+        'Uma volta antes do jantar. Ninguém na mesa precisa saber.',
+        'Termine o dia como um ponto no mapa. Calmo, em movimento, seu.',
+        'Amanhã pode ser barulhento. Hoje à noite, uma corrida e depois nada.',
+      ],
+    },
+    rhythm: [
+      'É {day}, mais ou menos agora. Você costuma sair nesse horário. Só comentando.',
+      'Sua hora está chegando. O percurso está onde você deixou.',
+      'Pelo jeito, {day} é dia de corrida pra você. O parque concorda.',
+      'Mais ou menos agora é quando você sai. Sem pressão, só o horário.',
+      'É {day} e seu horário de sempre está chegando. O tênis percebeu.',
+      'Em mais ou menos uma hora é a sua vez. Ninguém mais reservou.',
+    ],
+    window: [
+      'Chuva até as {time}, depois seco. Os caminhos ficam vazios um pouco mais que as nuvens.',
+      'Molhado agora. Seco a partir das {time}. A maioria nem vai notar. Você vai.',
+      'Seco a partir das {time}. As poças vão ter esvaziado o parque pra você.',
+      'Para por volta das {time}. Menos gente, ar mais fresco, mesmo percurso.',
+    ],
+    last: [
+      'É a última cutucada por um tempo. O app vai estar aqui, quietinho, quando você quiser.',
+      'Vou ficar em silêncio agora. Se quiser os lembretes de volta, é só sair pra correr.',
+      'Última mensagem minha por um tempo. Sem ressentimentos. Tecnicamente, sem sentimento nenhum.',
+    ],
+    reflectTitles: ['Como foi?', 'Rapidinho'],
+    reflectLines: ['Sua energia agora, antes que o banho vença. Um toque.', 'Como você se sente comparado a antes? Toque pra anotar.'],
+    afterRunTitles: ['Corrida salva.', 'Feito.', 'Uma já foi.', 'Anotado, em silêncio.'],
+    afterRunLines: [
+      'Ninguém viu isso. Era esse o plano.',
+      'Checagem de energia: provavelmente em alta. Ciência, mais ou menos.',
+      'Isso é uma corrida. Sem feed, sem curtidas, sem comentários. Só sua.',
+      'Banho, café, silêncio. Nessa ordem.',
+      'O mapa ganhou uma linha nova. Só você consegue ver.',
+      'Boa. Agora fique inalcançável por um tempo.',
+      'As pernas falaram. O resto pode ficar quieto.',
+      'Uma corrida terminada é uma conversa que você não precisou ter.',
+    ],
+    titles: ['Runtrovert', 'Oi', 'Baixinho', 'Psiu', 'Uma ideia', 'Só comentando', 'Sem pressão'],
+  },
+
+  tips: {
+    topics: {
+      start: 'As primeiras corridas',
+      chafe: 'Assaduras, sem rodeios',
+      shoes: 'Tênis',
+      gear: 'O que vestir',
+      pace: 'Ritmo e respiração',
+      fuel: 'Água, comida, banheiro',
+      weather: 'Tempo',
+      body: 'Incômodos, dores e quando parar',
+      head: 'A parte tranquila',
+      trivia: 'Inútil, mas verdade',
+    },
+    text: {
+      'start-walk': 'Alternar corrida e caminhada não é trapaça. É assim que muita gente termina os primeiros 5 km, e bastante maratona também.',
+      'start-ten': 'Os primeiros dez minutos são os piores pra quase todo mundo, enquanto o corpo esquenta. Julgue a corrida depois disso, não antes.',
+      'start-slow': 'Comece mais devagar do que parece necessário. Sair rápido demais é o erro clássico de iniciante, e ninguém dá medalha pelo minuto três.',
+      'start-turn': 'Você pode voltar quando quiser. Uma corrida que termina cedo continua sendo uma corrida, e provavelmente bem administrada.',
+      'start-runner': 'Você corre desde a primeira vez, então já é corredor ou corredora. Não existe distância mínima nem carteirinha de sócio.',
+      'start-rest': 'É nos dias de descanso que você realmente melhora. A corrida faz o pedido, a recuperação entrega.',
+      'start-same': 'Nas primeiras semanas, aumente o tempo antes da velocidade. Mesmo ritmo leve, alguns minutos a mais.',
+      'start-bad': 'Algumas corridas pesam sem motivo. É normal e diz pouco. A próxima costuma ser tranquila.',
+      'chafe-nipple': 'Uma camiseta de algodão molhada pode deixar os mamilos em carne viva depois de uns 5 km. Use uma peça sintética ou de merino, e coloque esparadrapo ou pomada nas corridas longas.',
+      'chafe-term': '“Mamilo de corredor” é termo médico desde 1977. Um curativo custa menos que a dignidade.',
+      'chafe-thigh': 'Coxas que se encostam puxam o assunto lá pelo km 4. Pomada antiatrito ou bermuda de compressão encerram a discussão.',
+      'chafe-seams': 'A assadura começa nas costuras, etiquetas, elásticos e na borda do top. A pomada vai antes da corrida. Depois, o nome é arrependimento.',
+      'chafe-salt': 'O suor seco deixa sal na pele, que funciona como uma lixa bem fina. Depois de corridas longas ou no calor, enxágue logo.',
+      'chafe-shower': 'Se algo arder no banho, foi ali que assou. Anote. Esse ponto ganha pomada na próxima.',
+      'chafe-wet': 'A chuva piora a assadura, porque o tecido molhado arrasta. Roupa mais justa e um pouco de pomada ajudam mais que uma jaqueta mais grossa.',
+      'shoes-comfort': 'Escolha o tênis pela sensação na loja, não pela cor nem por análise de pisada. Conforto é o melhor guia que os pesquisadores encontraram.',
+      'shoes-pronation': 'Ouvir que você é “pronador” não é motivo de pânico. Num estudo com 927 iniciantes de tênis neutro, os pronadores não se machucaram mais.',
+      'shoes-thumb': 'Deixe mais ou menos a largura de um polegar entre o dedo mais longo e a ponta do tênis. Os pés incham e escorregam pra frente na descida.',
+      'shoes-afternoon': 'Experimente tênis à tarde, com suas meias de corrida. Os pés ficam um pouco maiores no fim do dia, como durante uma corrida.',
+      'shoes-toe': 'Em muita gente o dedo mais longo é o segundo. Escolha o tamanho por ele, não pelo dedão.',
+      'shoes-rotate': 'Num estudo com 264 corredores, quem alternava mais de um par teve risco de lesão 39% menor. Um segundo par também é um par seco.',
+      'shoes-new': 'Tênis novo faz primeiro algumas corridas curtas. Não o longão. Nunca a prova.',
+      'shoes-lock': 'Aquele ilhós extra no alto do tênis tem função. Um laço de travamento ali impede o calcanhar de escorregar e salva unhas.',
+      'shoes-toenail': 'Unha roxa geralmente quer dizer tênis um pouco pequeno ou descidas rápidas demais. Teste meio número acima.',
+      'shoes-km': 'Tênis não tem prazo de validade. Por volta de 500 a 800 km, ou quando começa a parecer achatado, é uma hora comum de trocar. As evidências são fracas, suas pernas julgam melhor.',
+      'shoes-price': 'Caro não é mais seguro. Invista no ajuste. Tênis de prova com placa de carbono deixam corredores rápidos mais rápidos, e o trote tranquilo de terça, principalmente, mais caro.',
+      'shoes-dry': 'Tênis molhado: tire as palmilhas, encha de jornal e deixe longe de fontes de calor. O calor derrete a cola.',
+      'gear-ten': 'Vista-se como se estivesse 5 a 10 °C mais quente. Você vai sentir frio por cinco minutos e ficar bem no resto. Se está quentinho na porta, está agasalhado demais.',
+      'gear-socks': 'Meia de algodão segura água e faz bolha. Meia de corrida sintética ou de merino é o upgrade mais barato da corrida.',
+      'gear-nothing-new': 'Nada novo no dia da prova. Nem tênis, nem short, nem o café da manhã que alguém na internet jura que funciona.',
+      'gear-bra': 'Um top esportivo bem ajustado importa mais que qualquer camiseta. Sem sustentação, os seios se movem vários centímetros a cada passada, e isso se sente.',
+      'gear-pocket': 'Short com bolso de zíper: sem mochila, sem pochete, sem complicação. Chave, cartão, pronto.',
+      'gear-cap': 'Um boné tira a chuva dos óculos e o sol do rosto. O equipamento mais útil que ninguém fotografa.',
+      'gear-gloves': 'Luvas antes do gorro. Os dedos esfriam primeiro e esquentam por último.',
+      'gear-reflect': 'Refletivos nos tornozelos e pulsos são vistos antes que no peito, porque motoristas reconhecem membros em movimento como uma pessoa.',
+      'gear-layers': 'Duas camadas finas são melhores que uma grossa. Dá pra tirar uma e amarrar na cintura como se fosse 1994.',
+      'pace-talk': 'A maioria das corridas deve ser leve o bastante pra falar em frases completas. Você não vai falar com ninguém. Mas poderia.',
+      'pace-easy': 'Seu ritmo leve pode ser um minuto ou mais por km mais lento que seu ritmo de 5 km. Não é preguiça, é assim que se faz.',
+      'pace-hill': 'Na subida: passos mais curtos, mesmo esforço, deixe o ritmo cair. A ladeira não conhece sua média.',
+      'pace-cadence': 'Não existem 180 passos por minuto mágicos. Mas se você dá passadas longas demais, passos uns 5 a 10% mais rápidos e curtos tiram carga dos joelhos e do quadril.',
+      'pace-wind': 'Dia de vento: vá contra o vento e volte com ele nas costas. Lá no fim, já com cansaço, você vai agradecer.',
+      'pace-breath': 'Não existe jeito certo de respirar. Boca, nariz, os dois. Se você não consegue terminar uma frase, já não está correndo leve.',
+      'pace-gps': 'O ritmo do GPS oscila debaixo de árvores e entre prédios altos. Seu esforço não. Confie no que está no seu peito.',
+      'pace-negative': 'Terminar um pouco mais rápido do que começou se chama negative split. Dá uma satisfação das boas.',
+      'fuel-short': 'Em corridas de menos de uma hora, a maioria não precisa de nada no caminho. Beba antes e depois, e a sede é um bom guia.',
+      'fuel-over': 'Beber muito além da sede em corridas longas pode diluir o sódio do sangue, e isso é perigoso. Beba pela sede, não por cronograma.',
+      'fuel-pee': 'Amarelo-palha claro é a cor que você quer. Totalmente transparente quer dizer que dá pra maneirar na água.',
+      'fuel-before': 'Coma algo simples de uma a três horas antes. Correr de estômago cheio é uma lição que só se aprende uma vez.',
+      'fuel-carbs': 'Passando de uma hora a uma hora e meia, carboidrato no caminho ajuda: uns 30 a 60 g por hora, ou seja, um gel ou uma ou duas bananas.',
+      'fuel-coffee': 'Café antes de correr deixa a corrida mais fácil pra muita gente. Também mexe com o intestino. Saiba onde ficam os banheiros.',
+      'fuel-trots': 'Problema intestinal na corrida é comum: um terço ou mais dos fundistas passa por isso. Menos fibra na noite anterior, e um percurso que passe por um banheiro.',
+      'fuel-after': 'Depois de correr, uma refeição normal com um pouco de proteína é toda a nutrição de recuperação que a maioria precisa. Nada de pó.',
+      'weather-rain': 'A chuva esvazia o parque. Boné, nada de algodão, e o lugar todo é seu. Pele é à prova d’água.',
+      'weather-lungs': 'Ar frio não congela seus pulmões; ele esquenta no caminho. Pode irritar as vias aéreas, então uma bandana na boca ajuda.',
+      'weather-heat': 'No calor, corra pela sensação e diminua o ritmo. O coração acelera mais no mesmo ritmo quando está quente. Saia cedo, enquanto o asfalto ainda está fresco.',
+      'weather-heatill': 'No calor, confusão, tropeços ou dor de cabeça repentina não são cansaço. Pare, vá pra sombra, refresque-se com água e peça ajuda.',
+      'weather-ice': 'No gelo: passos curtos, pise na neve em vez do que brilha, e aceite que hoje é uma caminhada ambiciosa.',
+      'weather-facing': 'Onde não tem calçada, corra de frente pro trânsito pra ver o que vem. Algo que pisque também ajuda.',
+      'weather-windchill': 'O vento conta. 5 °C com vento forte podem parecer quase zero, principalmente na volta, quando você está suado.',
+      'weather-sun': 'Protetor solar nas orelhas e na nuca. Num estudo, maratonistas tinham mais danos do sol na pele do que quem não corria.',
+      'weather-dark': 'Corridas no escuro são mais tranquilas, mas o chão engana. Escolha um percurso conhecido e iluminado, e deixe a trilha pro fim de semana.',
+      'body-pain': 'Um incômodo leve que passa conforme você aquece geralmente não é nada. Dor que piora, que muda seu jeito de correr ou que passa de 3 em 10 quer dizer: pare e descanse uns dias.',
+      'body-toomuch': 'A maioria das lesões de corrida vem de fazer demais cedo demais, não do tênis nem da técnica. Paciência é a melhor prevenção que existe.',
+      'body-longest': 'Uma única corrida bem mais longa que a mais longa do mês anterior aumentou o risco de lesão num estudo com mais de 5.000 corredores. Aumente uns 10%.',
+      'body-shin': 'Canelite geralmente quer dizer demais, cedo demais. Alivie. Uma dor aguda num ponto específico do osso é outra coisa: pare e procure avaliação.',
+      'body-stretch': 'Alongamento estático antes de correr não previne lesão. Cinco minutos de trote bem leve aquecem melhor.',
+      'body-strength': 'Treino de força reduziu lesões esportivas a cerca de um terço numa grande revisão. Agachamento, afundo e elevação de panturrilha em casa contam.',
+      'body-stitch': 'Dor do lado: diminua o ritmo, solte o ar fundo, pressione o ponto. Ninguém sabe ao certo por que acontece, o que é estranhamente reconfortante.',
+      'body-doms': 'Perna dolorida um ou dois dias depois de algo novo é normal. O pico vem entre um e três dias, e depois passa.',
+      'body-cramp': 'A cãibra parece ter mais a ver com músculo cansado do que com falta de sal. Diminua o ritmo, alongue de leve, caminhe.',
+      'body-blister': 'Se der, não estoure bolhas, e cubra. Atrito mais umidade é o que causa, então meia seca evita a maioria.',
+      'body-chest': 'Dor no peito, sensação de desmaio ou batimento estranho: pare e procure atendimento. Isso nunca é teste de resistência.',
+      'body-sleep': 'Dormir é treinar. Num estudo, atletas jovens que dormiam menos de oito horas se machucavam com mais frequência.',
+      'body-gap': 'Voltando depois de uma pausa? Comece mais curto e mais leve que antes. O condicionamento volta mais rápido do que chegou da primeira vez.',
+      'head-spotlight': 'Ninguém está te olhando tanto quanto você acha. Estudantes obrigados a vestir uma camiseta constrangedora acharam que metade da sala notou. Foi mais ou menos um quarto.',
+      'head-nod': 'Você não precisa cumprimentar todo corredor. Um aceno de cabeça é uma frase completa.',
+      'head-green': 'Se mexer entre árvores ou perto da água melhora o humor, e numa grande análise o maior ganho veio nos primeiros cinco minutos.',
+      'head-high': 'O “barato do corredor” provavelmente vem mais dos endocanabinoides do que das endorfinas. Seu corpo fabrica a própria calma, pelo menos em camundongos, e provavelmente em você.',
+      'head-ears': 'Perto do trânsito, deixe um ouvido livre, ou os dois. O silêncio faz parte da corrida mesmo.',
+      'head-hours': 'Horários tranquilos: bem cedo, noites de chuva, a orla num domingo de manhãzinha e o distrito industrial no fim de semana. Ninguém corre lá. Essa é a graça.',
+      'head-thoughts': 'Pensar é permitido. Não pensar também. Os dois são jeitos válidos de passar trinta minutos.',
+      'head-verdict': 'Uma corrida lenta é um dado, não um veredito. A maioria das corridas é só ok, e ok é o objetivo.',
+      'head-short': 'Até 5 a 10 minutos de corrida por dia estiveram ligados a um risco menor de morte precoce num estudo com 55.000 adultos. Curto conta.',
+      'head-alone': 'Grupos de corrida são legais. Não querer um também é legal. Ninguém nunca precisou de permissão pra correr na sua.',
+      'trivia-steps': 'Num ritmo tranquilo você dá mais ou menos 1.000 passos por quilômetro. Seus pés são ótimos em não reclamar disso.',
+      'trivia-force': 'Cada pisada passa umas duas a três vezes o seu peso pela perna. Corpos são, sinceramente, impressionantes.',
+      'trivia-sweat': 'Humanos estão entre os pouquíssimos animais feitos pra correr longas distâncias no calor, graças principalmente ao suor. Constrangedor, mas eficiente.',
+      'trivia-pheidippides': 'Fidípides, que segundo a lenda correu a primeira maratona, morreu na chegada. O primeiro argumento da história a favor de pegar leve antes da prova.',
+      'trivia-42': 'A maratona passou a ter 42,195 km nos Jogos Olímpicos de Londres em 1908, pra largada ser no Castelo de Windsor e a chegada em frente ao camarote real.',
+      'trivia-police': 'No fim dos anos 1960, alguns corredores americanos eram parados pela polícia, que não entendia por que alguém correria sem estar sendo perseguido.',
+      'trivia-switzer': 'Kathrine Switzer correu a Maratona de Boston em 1967, quando mulheres não podiam participar oficialmente. Um fiscal tentou arrancá-la do percurso. Ela terminou.',
+      'trivia-oldest': 'Fauja Singh começou a correr aos 89 e terminou uma maratona aos 100. Então o argumento “tarde demais pra começar” é, com todo respeito, fraco.',
+    },
+  },
+};
