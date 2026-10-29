@@ -1,6 +1,12 @@
 # Listen, and Kit & offers
 
-The Listen tab offers running podcasts to take on a run. Kit & offers is a sponsor shelf at the bottom of it, which only appears when there is at least one sponsor.
+The Listen tab is everything you hear on a run, in one place:
+
+1. **Your sound**: two tiles for the music app and the podcast app, the run screen's music strip switch, and a live copy of the strip to try the buttons (Android: previous / play / next as media-button presses; iPhone: open the app). See [MUSIC.md](MUSIC.md).
+2. **New for your run**: a swipeable row of episodes out in the last 10 days, one per show, the ones close to the runner's usual run length first (`freshEpisodes` in `src/shelfLogic.ts`).
+3. **Shelves** of covers: Near you, Quiet company, Stories, Learn something, First steps. Tapping a cover opens a sheet with the why, the latest episodes and "Open in <your app>".
+
+Kit & offers is a sponsor shelf at the bottom of it, which only appears when there is at least one sponsor.
 
 ## How the list stays fresh
 
@@ -13,7 +19,7 @@ scripts/build-shelf.mjs
         │  reads Apple's public podcast charts and lookup API (no key, no account)
         │  and the first ~96 KB of each show's RSS feed
         ▼
-shelf.json on the `shelf` branch (one force-pushed commit)
+shelf.json + art/<id>.jpg on the `shelf` branch (one force-pushed commit)
         │
         ▼  https://raw.githubusercontent.com/yigini/runtrovert/shelf/shelf.json
 the app, only when someone opens Listen, and only if they said yes (Settings → Listen → Daily list)
@@ -22,15 +28,18 @@ the app, only when someone opens Listen, and only if they said yes (Settings →
 - **Hand-picked shows** keep your one-line "why" and a group: `quiet`, `stories`, `learn`, `start`. Find a show's Apple id in its Apple Podcasts URL (`…/id1083410032`).
 - **Near you**: for about 55 countries, the builder takes Apple's Running chart for that country and keeps up to 8 shows that published in the last 60 days, have at least 10 episodes and speak a language of that country. The app picks the country from the phone's region setting, or from Settings, without telling anyone. Some countries have few active local shows; Turkey had one on 29 Oct 2026.
 - `"noFeed": true` on a hand-picked show links to it without reading its feed. The BBC's feeds ask for a licence for commercial use, so the BBC show is linked, not read.
-- The app ships with `src/shelfBundled.json`. Refresh it before a release with `npm run shelf` (takes about 10 minutes, Apple throttles bursts).
+- **Covers**: the builder takes each show's Apple artwork, shrinks it to a 256 px JPEG with sharp and publishes it as `art/<id>.jpg` beside shelf.json. The phone loads covers from there, never from Apple, and only when the daily download is on. Hand-picked covers also ship in the app (`assets/shelf-art/`, indexed by the generated `src/shelfArt.ts`), so the shelves look right offline. Without a cover a show gets its initials on the section's pastel.
+- The app ships with `src/shelfBundled.json`. Refresh it before a release with `npm run shelf` (takes about 10 minutes, Apple throttles bursts). It also refreshes the shipped covers.
 - Run the builder by hand from GitHub: Actions → Listen shelf → Run workflow.
 - GitHub turns off scheduled workflows in a repository with no activity for 60 days. A push, or Run workflow, turns it back on.
 
 ## Privacy
 
-- The download is the same file for everyone and carries no location, id, query string or cookie.
-- Runtrovert never plays audio. "Open" hands the show to the runner's own podcast app, so the podcast hosts (Megaphone, Acast and others, which log downloads for advertising) never see a Runtrovert user.
+- The download is the same file for everyone and carries no location, id, query string or cookie. GitHub, like any website, still receives normal connection information such as the IP address, and the app says so.
+- Runtrovert never plays audio. "Open" hands the show to the runner's own podcast app, so the podcast hosts (Megaphone, Acast and others, which log downloads for advertising) never see Runtrovert. They do see the podcast app's connection, IP address included, as with any download, and the app says that too. Sponsor sites see a normal visit when a runner opens one.
+- Ads: "no annoying, intrusive ads". Shows carry their own adverts and the opt-out Kit & offers shelf stays, so the app never claims "no ads".
 - The country, the podcast app and the offer topics are settings on the phone.
+- Covers come from the same GitHub branch as the list, so turning on the daily download adds no new party.
 
 ## Taking a sponsor
 

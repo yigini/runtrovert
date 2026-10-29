@@ -215,7 +215,7 @@ function Shell() {
           />
         )}
         {tab === 'listen' && <ListenScreen />}
-        {tab === 'settings' && <SettingsScreen />}
+        {tab === 'settings' && <SettingsScreen onOpenListen={() => setTab('listen')} />}
       </View>
       {!liveRun && (
         <View style={styles.tabs}>

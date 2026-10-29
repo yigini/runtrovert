@@ -73,6 +73,16 @@ export async function installedApps(): Promise<MusicApp[]> {
   return out;
 }
 
+/** Which of these Android packages are on the phone. Empty on iPhone and in Expo Go. */
+export function installedPackages(pkgs: string[]): Set<string> {
+  if (Platform.OS !== 'android' || !native?.installed) return new Set();
+  try {
+    return new Set(native.installed(pkgs));
+  } catch {
+    return new Set();
+  }
+}
+
 /** Opens the chosen app, or the phone's default music app when none is chosen. */
 export async function openMusicApp(key: string | null): Promise<boolean> {
   const app = appByKey(key);
