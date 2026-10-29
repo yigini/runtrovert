@@ -31,26 +31,46 @@ export interface LocationEngine {
 
 let expoListener: FixListener | null = null;
 
+function toFix(l: Location.LocationObject): RawFix {
+  return {
+    lat: l.coords.latitude,
+    lon: l.coords.longitude,
+    acc: l.coords.accuracy ?? null,
+    alt: l.coords.altitude ?? null,
+    speed: l.coords.speed ?? null,
+    ts: l.timestamp,
+  };
+}
+
 // Defined at module load so the task exists when the OS wakes the app.
 TaskManager.defineTask(LOCATION_TASK, async ({ data, error }) => {
   if (error || !data || !expoListener) return;
   const { locations } = data as { locations: Location.LocationObject[] };
-  expoListener(
-    locations.map((l) => ({
-      lat: l.coords.latitude,
-      lon: l.coords.longitude,
-      acc: l.coords.accuracy ?? null,
-      alt: l.coords.altitude ?? null,
-      speed: l.coords.speed ?? null,
-      ts: l.timestamp,
-    })),
-  );
+  expoListener(locations.map(toFix));
 });
 
 class ExpoEngine implements LocationEngine {
   readonly name = 'expo-location';
+  private watch: Promise<Location.LocationSubscription | null> | null = null;
+
+  /**
+   * The background task keeps recording with the screen off, but some phones
+   * batch or hold its updates while the app is open. A foreground watch feeds
+   * the same listener so the live screen always has fresh fixes; duplicates
+   * share a timestamp and the filter drops them.
+   */
   setListener(l: FixListener | null) {
     expoListener = l;
+    if (l && !this.watch) {
+      this.watch = Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1000, distanceInterval: 0 },
+        (loc) => expoListener?.([toFix(loc)]),
+      ).catch(() => null);
+    } else if (!l && this.watch) {
+      const w = this.watch;
+      this.watch = null;
+      void w.then((sub) => sub?.remove());
+    }
   }
   async start() {
     await Location.startLocationUpdatesAsync(LOCATION_TASK, {
