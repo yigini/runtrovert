@@ -35,8 +35,9 @@ the app, only when someone opens Listen, and only if they said yes (Settings →
 
 ## Privacy
 
-- The download is the same file for everyone and carries no location, id, query string or cookie.
-- Runtrovert never plays audio. "Open" hands the show to the runner's own podcast app, so the podcast hosts (Megaphone, Acast and others, which log downloads for advertising) never see a Runtrovert user.
+- The download is the same file for everyone and carries no location, id, query string or cookie. GitHub, like any website, still receives normal connection information such as the IP address, and the app says so.
+- Runtrovert never plays audio. "Open" hands the show to the runner's own podcast app, so the podcast hosts (Megaphone, Acast and others, which log downloads for advertising) never see Runtrovert. They do see the podcast app's connection, IP address included, as with any download, and the app says that too. Sponsor sites see a normal visit when a runner opens one.
+- Ads: "no annoying, intrusive ads". Shows carry their own adverts and the opt-out Kit & offers shelf stays, so the app never claims "no ads".
 - The country, the podcast app and the offer topics are settings on the phone.
 - Covers come from the same GitHub branch as the list, so turning on the daily download adds no new party.
 

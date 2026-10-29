@@ -160,7 +160,7 @@ export function SettingsScreen({ onOpenListen }: { onOpenListen: () => void }) {
       </Section>
 
       <Section title="Listen" bg={colors.butter} fg={colors.butterDeep}>
-        <Row label="Daily list" hint="When you open Listen, download today's shows and episodes. One file, the same for everyone, so nothing about you is sent.">
+        <Row label="Daily list" hint="When you open Listen, download today's shows, episodes and covers from GitHub. One file, the same for everyone, so the request says nothing about you; GitHub sees normal connection details such as your IP address.">
           <Segmented
             value={{ ask: 'Ask', on: 'On', off: 'Off' }[settings.listenDownload]}
             options={['Ask', 'On', 'Off']}

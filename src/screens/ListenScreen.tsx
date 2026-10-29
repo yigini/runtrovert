@@ -187,8 +187,9 @@ export function ListenScreen() {
         <View style={[styles.card, { backgroundColor: colors.butter }]}>
           <Text style={styles.cardTitle}>Get today's episodes and covers?</Text>
           <Text style={styles.cardText}>
-            One small download from Runtrovert's public list, when you open this tab. It holds every country, so nothing about you is sent. Without it you
-            get the list this version shipped with.
+            One small download from Runtrovert's public list on GitHub, with the covers, when you open this tab. It holds every country, so the request says
+            nothing about you. Like any website, GitHub sees normal connection details such as your IP address. Without it you get the list this version
+            shipped with.
           </Text>
           <View style={styles.rowGap}>
             <Pill label="Yes, keep it fresh" dark onPress={() => update({ listenDownload: 'on' })} />
@@ -257,7 +258,8 @@ export function ListenScreen() {
 
       <Text style={styles.footnote}>
         {shelf ? `List from ${shelf.builtAt.slice(0, 10)}${fetchedAt ? '' : ', the one this version shipped with'}. ` : ''}
-        These shows carry their own adverts. Runtrovert doesn't, and never sees what you play.
+        These shows carry their own adverts. Runtrovert has no annoying, intrusive ads and never sees what you play. When a show opens, your podcast app
+        and the show's host see a normal connection, IP address included, like any download.
       </Text>
 
       {offers.length ? (
@@ -635,7 +637,7 @@ function KitShelf({ offers, onBack }: { offers: Offer[]; onBack: () => void }) {
     <ScrollView style={styles.screen} contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xl }}>
       <BackButton label="Listen" onPress={onBack} />
       <Text style={styles.h1}>Kit & offers</Text>
-      <Text style={styles.lede}>Paid for by them. Opened by you. Seen by nobody.</Text>
+      <Text style={styles.lede}>Paid for by them. Opened by you. Counted by nobody.</Text>
       {topics.length ? (
         <View style={[styles.rowGap, { flexWrap: 'wrap' }]}>
           {topics.map((t) => (
@@ -662,8 +664,8 @@ function KitShelf({ offers, onBack }: { offers: Offer[]; onBack: () => void }) {
       {!shown.length ? <Text style={styles.hint}>Nothing for those picks right now.</Text> : null}
       <View style={[styles.card, { backgroundColor: colors.sky }]}>
         <Text style={[styles.cardText, { color: colors.skyDeep }]}>
-          Your picks stay on this phone. Taps aren't recorded anywhere. Links open in your browser with nothing added to them. Sponsors pay a flat fee for a
-          place here and never learn who looked.
+          Your picks stay on this phone. Taps aren't recorded anywhere. Links open in your browser with nothing added to them; the sponsor's site sees your
+          visit like any other. Sponsors pay a flat fee for a place here, and we never tell them who looked.
         </Text>
       </View>
       <Pressable
