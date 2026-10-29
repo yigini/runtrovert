@@ -37,20 +37,12 @@ export function validatePlan(plan: Pick<Plan, 'weeks' | 'setup' | 'runner' | 'pa
   const partial = (w: Week) => !!w.partial || (w.start < startDate && w.index === 1);
   const full = weeks.filter((w) => !partial(w) && w.kind !== 'race');
   const runs = (w: Week) => w.sessions.filter((s) => s.kind !== 'strength' && s.kind !== 'rest' && s.kind !== 'race');
-  const easyShareMin = spec.tier === 'finish' || spec.goal === 'none' ? 0.85 : 0.75;
+  const easyShareMin = minEasyShare(spec);
 
   // ---- 1 mostly easy ----
   for (const w of full) {
-    let easyS = 0;
-    let allS = 0;
-    for (const s of runs(w)) {
-      for (const st of s.steps) {
-        const secs = st.durationS ?? ((st.distanceM ?? 0) / 1000) * paceOf(st.effort, paces);
-        allS += secs;
-        if (EASY.includes(st.effort)) easyS += secs;
-      }
-    }
-    if (allS > 0 && easyS / allS < easyShareMin - 0.005) out.push({ rule: 1, week: w.index, message: `only ${Math.round((easyS / allS) * 100)}% easy (needs ${easyShareMin * 100}%)` });
+    const share = easyShare(runs(w), paces);
+    if (share != null && share < easyShareMin - 0.005) out.push({ rule: 1, week: w.index, message: `only ${Math.round(share * 100)}% easy (needs ${easyShareMin * 100}%)` });
   }
 
   // ---- 2 single-run jump ----
@@ -62,7 +54,7 @@ export function validatePlan(plan: Pick<Plan, 'weeks' | 'setup' | 'runner' | 'pa
   const assumedSize = timeBased ? (assumed * runner.easyPaceSPerKm) / 60 : assumed;
   const [factor, slack, unit] = timeBased ? [1.25, 1, 'min'] : [1.1, 0.3, 'km'];
   for (const s of all) {
-    if (s.kind === 'race') continue;
+    if (s.kind === 'race' || s.skipped) continue; // a skipped run never happened: nothing to judge
     let max = daysBetween(startDate, s.date) < 14 ? assumedSize : 0;
     for (const o of all) if (o.date < s.date && !o.skipped && daysBetween(o.date, s.date) <= 30) max = Math.max(max, size(o));
     if (max > 0 && size(s) > Math.max(max * factor, max + (timeBased ? 3 : 0.5)) + slack) out.push({ rule: 2, week: weekOf(weeks, s), message: `${s.title} is ${r1(size(s))} ${unit}, longest of the previous 30 days was ${r1(max)} ${unit}` });
@@ -81,9 +73,10 @@ export function validatePlan(plan: Pick<Plan, 'weeks' | 'setup' | 'runner' | 'pa
     if (base1 && vol(w) > vol(base1) * 1.1 + tol) out.push({ rule: 3, week: w.index, message: `${vol(w)} after ${vol(base1)} (week ${base1.index}): more than +10%` });
     if (base2 && vol(w) > vol(base2) * 1.3 + tol) out.push({ rule: 3, week: w.index, message: `${vol(w)} vs ${vol(base2)} (week ${base2.index}): more than +30% over two build weeks` });
   }
-  // The first full week against history, when there is some.
+  // The first full week against history, when there is some. A week of the shortest sessions the plan
+  // lays out (about 3 km on each chosen day) is the floor: below that there is no smaller plan to give.
   const firstFull = full[0];
-  if (firstFull && !timeBased && runner.weeklyKm > 0 && firstFull.kind !== 'light' && vol(firstFull) > runner.weeklyKm * 1.1 + tol && vol(firstFull) > spec.daysOptions[0] * 3 + 1) {
+  if (firstFull && !timeBased && runner.weeklyKm > 0 && firstFull.kind !== 'light' && vol(firstFull) > runner.weeklyKm * 1.1 + tol && vol(firstFull) > plan.setup.daysPerWeek * 3 + 1) {
     out.push({ rule: 3, week: firstFull.index, message: `starts at ${vol(firstFull)} km against ${runner.weeklyKm} km a week in history` });
   }
 
@@ -125,23 +118,7 @@ export function validatePlan(plan: Pick<Plan, 'weeks' | 'setup' | 'runner' | 'pa
   for (const w of weeks) {
     if (partial(w)) continue;
     const K = w.targetKm;
-    let tKm = 0;
-    let iKm = 0;
-    let rKm = 0;
-    for (const s of runs(w)) {
-      for (const st of s.steps) {
-        const km = st.distanceM != null ? st.distanceM / 1000 : (st.durationS ?? 0) / paceOf(st.effort, paces);
-        if (st.kind !== 'hard') continue;
-        if (st.effort === 'threshold') tKm += km;
-        else if (st.effort === 'hard') iKm += km;
-        else if (st.effort === 'fast') rKm += km;
-      }
-    }
-    if (w.kind !== 'race' && K > 0) {
-      if (tKm > 0.1 * K + 0.3) out.push({ rule: 6, week: w.index, message: `threshold ${r1(tKm)} km in a ${K} km week` });
-      if (iKm > 0.08 * K + 0.3 || iKm > 10) out.push({ rule: 6, week: w.index, message: `intervals ${r1(iKm)} km in a ${K} km week` });
-      if (rKm > 0.05 * K + 0.3 || rKm > 8) out.push({ rule: 6, week: w.index, message: `reps ${r1(rKm)} km in a ${K} km week` });
-    }
+    if (w.kind !== 'race' && K > 0) for (const message of hardWorkOver(runs(w), K, paces)) out.push({ rule: 6, week: w.index, message });
     if (w.index <= 2 && w.sessions.some((s) => s.hard && s.kind !== 'race')) out.push({ rule: 6, week: w.index, message: 'hard session in the first two weeks' });
   }
   const dated = weeks.flatMap((w) => w.sessions).filter((s) => s.kind !== 'strength').sort((a, b) => a.date - b.date);
@@ -200,6 +177,46 @@ export function validatePlan(plan: Pick<Plan, 'weeks' | 'setup' | 'runner' | 'pa
   }
 
   return out;
+}
+
+/** Rule 6's limits on hard work in a week of `K` km: what goes over, in words. */
+export function hardWorkOver(runs: Session[], K: number, paces: ReturnType<typeof paceSetFor>): string[] {
+  let tKm = 0;
+  let iKm = 0;
+  let rKm = 0;
+  for (const s of runs) {
+    for (const st of s.steps) {
+      if (st.kind !== 'hard') continue;
+      const km = st.distanceM != null ? st.distanceM / 1000 : (st.durationS ?? 0) / paceOf(st.effort, paces);
+      if (st.effort === 'threshold') tKm += km;
+      else if (st.effort === 'hard') iKm += km;
+      else if (st.effort === 'fast') rKm += km;
+    }
+  }
+  const out: string[] = [];
+  if (tKm > 0.1 * K + 0.3) out.push(`threshold ${r1(tKm)} km in a ${K} km week`);
+  if (iKm > 0.08 * K + 0.3 || iKm > 10) out.push(`intervals ${r1(iKm)} km in a ${K} km week`);
+  if (rKm > 0.05 * K + 0.3 || rKm > 8) out.push(`reps ${r1(rKm)} km in a ${K} km week`);
+  return out;
+}
+
+/** Rule 1's floor for a plan: 75% easy, 85% in Finish and no-race plans. */
+export function minEasyShare(spec: PlanSpec): number {
+  return spec.tier === 'finish' || spec.goal === 'none' ? 0.85 : 0.75;
+}
+
+/** The easy and walking share of a set of runs, by time. Null when there is nothing to measure. */
+export function easyShare(runs: Session[], paces: ReturnType<typeof paceSetFor>): number | null {
+  let easyS = 0;
+  let allS = 0;
+  for (const s of runs) {
+    for (const st of s.steps) {
+      const secs = st.durationS ?? ((st.distanceM ?? 0) / 1000) * paceOf(st.effort, paces);
+      allS += secs;
+      if (EASY.includes(st.effort)) easyS += secs;
+    }
+  }
+  return allS > 0 ? easyS / allS : null;
 }
 
 function paceOf(effort: Effort, p: ReturnType<typeof paceSetFor>): number {
