@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Dimensions, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button } from '../components/Button';
 import { MoodPicker } from '../components/MoodPicker';
+import { MusicStrip } from '../components/MusicStrip';
 import { QuietPicker } from '../components/QuietPicker';
 import { RouteMap } from '../components/RouteMap';
 import { SplitsTable } from '../components/SplitsTable';
@@ -235,6 +236,8 @@ export function RunScreen({ onSaved }: { onSaved: (runId: number) => void }) {
         )}
 
         <View style={{ flex: 1 }} pointerEvents="none" />
+
+        {settings.musicStrip && <MusicStrip appKey={settings.musicApp} />}
 
         <View style={{ alignItems: 'center' }}>
           <Pressable onPress={toggleMap} accessibilityRole="button" accessibilityLabel={mapFront ? 'Show numbers' : 'Show map'} style={({ pressed }) => [styles.mapToggle, pressed && { opacity: 0.85 }]}>

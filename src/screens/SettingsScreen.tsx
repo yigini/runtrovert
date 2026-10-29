@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { canControl, installedApps, type MusicApp } from '../music';
 import { previewLine, rescheduleReminders, sendLineNow } from '../notify';
 import { onBatteryModeChanged } from '../tracking';
 import { useSettings } from '../settings';
@@ -21,6 +22,10 @@ const CUES: Array<{ key: CueMode; label: string; hint: string }> = [
 export function SettingsScreen() {
   const { settings, update } = useSettings();
   const [preview, setPreview] = useState(previewLine());
+  const [musicApps, setMusicApps] = useState<MusicApp[]>([]);
+  useEffect(() => {
+    installedApps().then(setMusicApps);
+  }, []);
 
   // Any change to the reminder settings re-lays the schedule.
   useEffect(() => {
@@ -71,6 +76,28 @@ export function SettingsScreen() {
         <Row label="Units">
           <Segmented value={settings.unitsKm ? 'km' : 'mi'} options={['km', 'mi']} onChange={(v) => update({ unitsKm: v === 'km' })} />
         </Row>
+      </Section>
+
+      <Section title="Music" bg={colors.lilac} fg={colors.lilacDeep}>
+        <Row
+          label="Music on the run screen"
+          hint={
+            canControl
+              ? 'Previous, play and next for whatever is playing, plus a button that opens your app. No login, nothing read.'
+              : 'A button that opens your music app. Your lock screen and Control Center handle the rest.'
+          }
+        >
+          <Switch value={settings.musicStrip} onValueChange={(v) => update({ musicStrip: v })} trackColor={{ true: colors.ink }} />
+        </Row>
+        {[{ key: null, name: "Phone's default" } as { key: string | null; name: string }, ...musicApps].map((a) => {
+          const on = settings.musicApp === a.key;
+          return (
+            <Pressable key={a.key ?? 'default'} onPress={() => update({ musicApp: a.key })} style={[styles.option, on && styles.optionOn]}>
+              <Text style={[styles.optionLabel, on && styles.optionLabelOn]}>{a.name}</Text>
+            </Pressable>
+          );
+        })}
+        <Text style={styles.musicNote}>Voice cues lower your music for a moment instead of talking over it.</Text>
       </Section>
 
       <Section title="Battery" bg={colors.sky} fg={colors.skyDeep}>
@@ -193,5 +220,6 @@ const styles = StyleSheet.create({
   previewText: { fontFamily: fonts.body, color: colors.text, fontSize: 15, lineHeight: 22 },
   sendNow: { backgroundColor: colors.ink, borderRadius: radius.pill, paddingVertical: 12, alignItems: 'center' },
   sendNowText: { fontFamily: fonts.bodySemi, color: colors.cream, fontSize: 14 },
+  musicNote: { fontFamily: fonts.body, color: colors.lilacDeep, fontSize: 13, lineHeight: 19 },
   previewHint: { fontFamily: fonts.body, color: colors.muted, fontSize: 12, textAlign: 'right' },
 });
