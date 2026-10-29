@@ -26,7 +26,12 @@ export type Footage =
   | 'winter-city' // low sun, snowy street
   | 'grey-city' // wet city street, grey light
   | 'farm-aerial' // aerial, lanes between fields
-  | 'trail-bridge'; // legs on a forest footbridge
+  | 'trail-bridge' // legs on a forest footbridge
+  | 'rice-field' // ripe paddy under a grey sky, runner from behind
+  | 'blade-stride' // close on a running blade and a shoe
+  | 'park-trees' // bare park trees, runner in a hood
+  | 'track-day' // empty red track, one runner far off
+  | 'dirt-track'; // low aerial over a dirt track, big clouds
 
 /** Pexels video ids, for assets/CREDITS.md. Licence: free use, no attribution required. */
 export const PEXELS: Record<Footage, number> = {
@@ -51,6 +56,11 @@ export const PEXELS: Record<Footage, number> = {
   'grey-city': 5310959,
   'farm-aerial': 15928220,
   'trail-bridge': 5677457,
+  'rice-field': 18274390,
+  'blade-stride': 6022795,
+  'park-trees': 7062128,
+  'track-day': 8533455,
+  'dirt-track': 15928226,
 };
 
 export type Scene = 'storm' | 'snow' | 'rain' | 'fog' | 'night' | 'dusk' | 'cold' | 'heat' | 'wind' | 'clear' | 'cloud';
@@ -63,17 +73,17 @@ const POOLS: Record<Scene, Footage[]> = {
   fog: ['mist-beach', 'grey-beach', 'forest-path'],
   night: ['night-track', 'dusk'],
   dusk: ['dusk', 'sunset-beach'],
-  cold: ['winter-city', 'snow-plain', 'rock-coast'],
-  heat: ['dunes', 'dirt-road', 'field-pine'],
-  wind: ['rock-coast', 'grey-beach', 'farm-aerial'],
-  clear: ['tree', 'green-hill', 'dirt-road', 'field-pine', 'farm-aerial', 'rock-coast', 'green-tunnel'],
-  cloud: ['grey-path', 'grey-beach', 'forest-path', 'green-tunnel', 'grey-city'],
+  cold: ['winter-city', 'snow-plain', 'rock-coast', 'park-trees'],
+  heat: ['dunes', 'dirt-road', 'field-pine', 'rice-field'],
+  wind: ['rock-coast', 'grey-beach', 'farm-aerial', 'dirt-track', 'rice-field'],
+  clear: ['tree', 'green-hill', 'dirt-road', 'field-pine', 'farm-aerial', 'rock-coast', 'green-tunnel', 'dirt-track', 'track-day'],
+  cloud: ['grey-path', 'grey-beach', 'forest-path', 'green-tunnel', 'grey-city', 'park-trees', 'rice-field', 'track-day'],
 };
 
 /** Behind the motto, once. */
 export const WELCOME: Footage = 'seawall';
 /** Behind the countdown: feet, not faces. */
-export const COUNTDOWN: Footage[] = ['cobbles', 'trail-bridge', 'green-tunnel'];
+export const COUNTDOWN: Footage[] = ['cobbles', 'trail-bridge', 'green-tunnel', 'blade-stride'];
 
 /** Same order of precedence as the headline in sky.ts, so words and picture agree. */
 export function sceneFor(w: Weather | null, now = Date.now()): Scene {
