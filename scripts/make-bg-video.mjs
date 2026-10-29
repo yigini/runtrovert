@@ -6,7 +6,7 @@
 //   node scripts/make-bg-video.mjs --frames   # preview frames only (no ffmpeg)
 //
 // Output per style: assets/bg-<style>.mp4 (1080x1920, 30 fps, 12 s loop, muted)
-//                   assets/bg-<style>-poster.png
+//                   assets/bg-<style>.jpg (poster)
 import { createCanvas } from '@napi-rs/canvas';
 import { spawn } from 'node:child_process';
 import { mkdirSync, renameSync, writeFileSync } from 'node:fs';
@@ -209,7 +209,7 @@ const STYLES = { flat: drawFlat, painterly: drawPainterly, abstract: drawAbstrac
 
 async function render(name, draw) {
   const canvas = createCanvas(W, H); const ctx = canvas.getContext('2d');
-  draw(ctx, 0); writeFileSync(`assets/bg-${name}-poster.png`, canvas.toBuffer('image/png'));
+  draw(ctx, 0); writeFileSync(`assets/bg-${name}.jpg`, canvas.toBuffer('image/jpeg', 82));
   if (process.argv.includes('--frames')) {
     for (const i of [0, 120, 240]) { draw(ctx, i); writeFileSync(`assets/_prev-${name}-${i}.png`, canvas.toBuffer('image/png')); }
     return;

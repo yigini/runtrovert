@@ -1,12 +1,15 @@
 import * as Notifications from 'expo-notifications';
-import { AppState, Platform } from 'react-native';
-import { listRuns, loadSeenLines, loadSettings, saveSeenLines } from './db';
-import { AFTER_RUN_LINES, AFTER_RUN_TITLES, LINES, TITLES, TOTAL_LINES, type Mood } from './lines';
-import type { Settings } from './types';
+import { AppState, Linking, Platform } from 'react-native';
+import { listRuns, loadSeenLines, loadSettings, loadValue, saveSeenLines, saveValue } from './db';
+import type { Weather } from './forecast';
+import { AFTER_RUN_LINES, AFTER_RUN_TITLES, LAST_LINES, LINES, REFLECT_LINES, REFLECT_TITLES, RHYTHM_LINES, TITLES, TOTAL_LINES, WINDOW_LINES, type Mood } from './lines';
+import { inQuietHours, planReminders, type PlannedReminder } from './reminderPlan';
+import type { NotifyPerWeek, Settings } from './types';
 
 const CHANNEL = 'runtrovert-quiet';
-const HORIZON_DAYS = 21; // schedule this far ahead; refreshed on every app open
-const MAX_PENDING = 20; // stay well under the iOS limit of 64
+const CATEGORY = 'reminder'; // carries the "Fewer, please" button
+export const FEWER_ACTION = 'fewer';
+const LOG_KEY = 'reminderLog'; // times reminders were set for, to tell when they're being ignored
 
 // Run notes (live stats, km splits) are for the lock screen and the watch; while
 // the app is open you are already looking at the numbers, so no banner then.
@@ -33,11 +36,45 @@ export async function ensureChannel() {
   });
 }
 
+async function ensureCategory() {
+  await Notifications.setNotificationCategoryAsync(CATEGORY, [
+    { identifier: FEWER_ACTION, buttonTitle: 'Fewer, please', options: { opensAppToForeground: true } },
+  ]).catch(() => {});
+}
+
+
+export type NotifyStatus = 'granted' | 'ask' | 'blocked';
+
+/** Where notification permission stands, without ever showing a prompt. */
+export async function notificationStatus(): Promise<NotifyStatus> {
+  const cur = await Notifications.getPermissionsAsync();
+  if (cur.granted) return 'granted';
+  return cur.canAskAgain ? 'ask' : 'blocked';
+}
+
+export async function hasNotificationPermission(): Promise<boolean> {
+  return (await notificationStatus()) === 'granted';
+}
+
+/**
+ * Shows the system prompt. Only call this from something the person tapped:
+ * "Yes, quietly" on the welcome, "Turn on" or "Send me one now" in Settings.
+ */
 export async function requestNotificationPermission(): Promise<boolean> {
   const cur = await Notifications.getPermissionsAsync();
   if (cur.granted) return true;
+  if (!cur.canAskAgain) return false;
   const res = await Notifications.requestPermissionsAsync({ ios: { allowAlert: true, allowSound: false, allowBadge: false } });
   return res.granted;
+}
+
+/** "Turn on" in Settings: the prompt if the phone still allows one, otherwise the phone's settings. */
+export async function turnOnNotifications(): Promise<boolean> {
+  if ((await notificationStatus()) === 'blocked') {
+    await Linking.openSettings().catch(() => {});
+    return false;
+  }
+  return requestNotificationPermission();
 }
 
 // ---- Picking lines ---------------------------------------------------------
@@ -55,116 +92,153 @@ function seeded(seed: number) {
   };
 }
 
-function weekdaysFor(perWeek: number): number[] {
-  // 0 = Sunday. Spread across the week; weekends left mostly alone.
-  switch (perWeek) {
-    case 1:
-      return [3];
-    case 3:
-      return [1, 3, 5];
-    case 5:
-      return [1, 2, 3, 4, 5];
-    default:
-      return [];
-  }
-}
-
-function moodFor(date: Date, daysSinceRun: number | null, hour: number): Mood {
-  if (daysSinceRun != null && daysSinceRun <= 1) return 'rest';
-  if (daysSinceRun != null && daysSinceRun >= 7) return 'gap';
-  if (daysSinceRun != null && daysSinceRun >= 3) return 'quiet';
-  const month = date.getMonth();
-  const wintry = month <= 1 || month >= 10;
-  const roll = (date.getDate() + month) % 5;
-  if (wintry && roll === 0) return 'weather';
-  if (hour < 10 && roll === 1) return 'morning';
-  if (hour >= 17 && roll === 2) return 'evening';
-  return 'nudge';
-}
-
 function lineId(mood: Mood, idx: number) {
   return `${mood}:${idx}`;
 }
 
-function chooseLine(mood: Mood, seen: Set<string>, rnd: () => number): { id: string; text: string } {
-  const pool = LINES[mood].map((text, idx) => ({ id: lineId(mood, idx), text })).filter((l) => !seen.has(l.id));
-  const from = pool.length ? pool : LINES[mood].map((text, idx) => ({ id: lineId(mood, idx), text }));
-  return pick(from, rnd);
+function chooseLine(moods: Mood[], seen: Set<string>, rnd: () => number): { id: string; text: string } {
+  const all = moods.flatMap((mood) => LINES[mood].map((text, idx) => ({ id: lineId(mood, idx), text })));
+  const pool = all.filter((l) => !seen.has(l.id));
+  return pick(pool.length ? pool : all, rnd);
+}
+
+function hhmm(ms: number): string {
+  const d = new Date(ms);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+function bodyFor(r: PlannedReminder, seen: Set<string>, rnd: () => number): { id: string | null; text: string } {
+  const hour = new Date(r.at).getHours();
+  switch (r.kind) {
+    case 'rhythm':
+      return { id: null, text: pick(RHYTHM_LINES, rnd).replace(/\{day\}/g, new Date(r.at).toLocaleDateString(undefined, { weekday: 'long' })) };
+    case 'window':
+      return { id: null, text: pick(WINDOW_LINES, rnd).replace('{time}', hhmm(r.dryFrom ?? r.at)) };
+    case 'last':
+      return { id: null, text: pick(LAST_LINES, rnd) };
+    case 'weather':
+    case 'quiet':
+    case 'gap':
+      return chooseLine([r.kind], seen, rnd);
+    default:
+      return chooseLine(['nudge', ...(hour < 10 ? (['morning'] as Mood[]) : []), ...(hour >= 17 ? (['evening'] as Mood[]) : [])], seen, rnd);
+  }
 }
 
 // ---- Scheduling ------------------------------------------------------------
 
+/** Cancel only the reminders, so a pending after-run note survives a re-plan. */
+async function cancelReminders() {
+  const pending = await Notifications.getAllScheduledNotificationsAsync();
+  await Promise.all(
+    pending.filter((n) => n.content.data?.kind === 'reminder').map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier)),
+  );
+}
+
 /**
- * Cancel everything and lay out the next few weeks. Called on app open and
- * whenever notification settings change. Lines are chosen so nothing repeats
- * until most of the bank has been used.
+ * Throw away the old plan and lay out the next two weeks (see reminderPlan.ts
+ * for the rules). Called on app open, after a run is saved and when reminder
+ * settings change. Never shows a permission prompt.
  */
 export async function rescheduleReminders(settingsIn?: Settings): Promise<void> {
   const settings = settingsIn ?? (await loadSettings());
-  await Notifications.cancelAllScheduledNotificationsAsync();
+  await cancelReminders().catch(() => Notifications.cancelAllScheduledNotificationsAsync());
   if (settings.notifyPerWeek === 0) return;
-  if (!(await requestNotificationPermission())) return;
+  if (!(await hasNotificationPermission())) return;
   await ensureChannel();
+  await ensureCategory();
 
+  const now = Date.now();
   const runs = await listRuns();
-  const lastRunAt = runs[0]?.startedAt ?? null;
-  const now = new Date();
-  const days = weekdaysFor(settings.notifyPerWeek);
+  const runStarts = runs.filter((r) => r.endedAt != null).map((r) => r.startedAt);
+  const lastRun = runStarts.length ? Math.max(...runStarts) : 0;
+  const log = ((await loadValue<number[]>(LOG_KEY)) ?? []).filter((t) => t > lastRun && t <= now);
+  const weather = settings.weather ? await loadValue<Weather>('weather').catch(() => null) : null;
+
+  const plan = planReminders({
+    now,
+    perWeek: settings.notifyPerWeek,
+    hour: settings.notifyHour,
+    minute: settings.notifyMinute,
+    auto: settings.notifyAuto,
+    runStarts,
+    firedSinceLastRun: log.length,
+    forecast: weather?.hours,
+  });
+
   const seen = new Set(await loadSeenLines());
   if (seen.size > TOTAL_LINES * 0.8) seen.clear();
-  const rnd = seeded(now.getFullYear() * 1000 + Math.floor(now.getTime() / 86400000));
+  const rnd = seeded(Math.floor(now / 86400000));
 
-  let scheduled = 0;
-  for (let d = 0; d < HORIZON_DAYS && scheduled < MAX_PENDING; d++) {
-    const date = new Date(now);
-    date.setDate(now.getDate() + d);
-    date.setHours(settings.notifyHour, settings.notifyMinute, 0, 0);
-    if (!days.includes(date.getDay())) continue;
-    if (date.getTime() <= now.getTime() + 60_000) continue;
-
-    // Context is only accurate for the near future; beyond a week we assume "ordinary".
-    const daysSinceRun = lastRunAt != null && d <= 7 ? Math.floor((date.getTime() - lastRunAt) / 86400000) : null;
-    const mood = moodFor(date, daysSinceRun, settings.notifyHour);
-    const line = chooseLine(mood, seen, rnd);
-    seen.add(line.id);
-
+  for (const r of plan) {
+    const line = bodyFor(r, seen, rnd);
+    if (line.id) seen.add(line.id);
     await Notifications.scheduleNotificationAsync({
-      content: { title: pick(TITLES, rnd), body: line.text, sound: false, data: { kind: 'reminder', lineId: line.id } },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date, channelId: CHANNEL },
+      content: {
+        title: pick(TITLES, rnd),
+        body: line.text,
+        sound: false,
+        categoryIdentifier: r.kind === 'last' ? undefined : CATEGORY,
+        data: { kind: 'reminder', plan: r.kind, lineId: line.id },
+      },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(r.at), channelId: CHANNEL },
     });
-    scheduled++;
   }
 
   await saveSeenLines(Array.from(seen));
+  await saveValue(LOG_KEY, [...log, ...plan.map((r) => r.at)]);
 }
 
-/** One quiet note a few minutes after a run is saved. */
-export async function notifyAfterRun(settings: Settings): Promise<void> {
+/** "Fewer, please": 5 → 3 → 1 → off. */
+export function fewer(perWeek: NotifyPerWeek): NotifyPerWeek {
+  return perWeek === 5 ? 3 : perWeek === 3 ? 1 : 0;
+}
+
+export function fewerMessage(perWeek: NotifyPerWeek): string {
+  if (perWeek === 0) return 'No more reminders. Settings can bring them back.';
+  return `Fewer it is. ${perWeek === 1 ? 'One' : 'Three'} a week from now on.`;
+}
+
+/**
+ * One note fifteen minutes after a run is saved: "How was that?" if the energy
+ * check was skipped, otherwise a dry line. Dropped if it would land after 21:00.
+ */
+export async function notifyAfterRun(settings: Settings, runId: number, moodAfterSet: boolean): Promise<void> {
   if (!settings.afterRunNote) return;
-  if (!(await requestNotificationPermission())) return;
+  const delayS = 15 * 60;
+  if (inQuietHours(Date.now() + delayS * 1000)) return;
+  if (!(await hasNotificationPermission())) return;
   await ensureChannel();
   const rnd = seeded(Date.now());
+  const reflect = !moodAfterSet;
   await Notifications.scheduleNotificationAsync({
-    content: { title: pick(AFTER_RUN_TITLES, rnd), body: pick(AFTER_RUN_LINES, rnd), sound: false, data: { kind: 'after-run' } },
-    trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 15 * 60, channelId: CHANNEL },
+    content: {
+      title: pick(reflect ? REFLECT_TITLES : AFTER_RUN_TITLES, rnd),
+      body: pick(reflect ? REFLECT_LINES : AFTER_RUN_LINES, rnd),
+      sound: false,
+      data: { kind: 'after-run', runId },
+    },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: delayS, channelId: CHANNEL },
   });
 }
 
-/** For the Settings screen: a random preview without scheduling anything. */
 /** Settings: send one line right now, so you can see how they look (and that they arrive). */
 export async function sendLineNow(): Promise<boolean> {
   if (!(await requestNotificationPermission())) return false;
   await ensureChannel();
+  await ensureCategory();
   const rnd = seeded(Date.now());
   await Notifications.scheduleNotificationAsync({
-    content: { title: pick(TITLES, rnd), body: previewLine(), sound: false, data: { kind: 'reminder' } },
+    content: { title: pick(TITLES, rnd), body: previewLine(), sound: false, categoryIdentifier: CATEGORY, data: { kind: 'preview' } },
     trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 5, channelId: CHANNEL },
   });
   return true;
 }
 
+/** For the Settings screen: a random line without scheduling anything. */
 export function previewLine(): string {
   const rnd = seeded(Date.now());
-  const moods: Mood[] = ['nudge', 'rest', 'quiet', 'weather', 'morning', 'evening'];
-  return LINES[pick(moods, rnd)][Math.floor(rnd() * 8)] ?? LINES.nudge[0];
+  const pools = [LINES.nudge, LINES.quiet, LINES.weather, LINES.morning, LINES.evening, RHYTHM_LINES.map((l) => l.replace(/\{day\}/g, 'Tuesday')), WINDOW_LINES.map((l) => l.replace('{time}', '11:00'))];
+  const pool = pick(pools, rnd);
+  return pick(pool, rnd);
 }
