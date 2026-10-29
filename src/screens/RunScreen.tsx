@@ -34,7 +34,7 @@ import { continueRun, ensurePermissions, getState, haltRun, lap, pauseRun, resum
 import { colors, fonts, radius, spacing, type } from '../theme';
 import { applyEnergy, type PainLevel } from '../training/adapt';
 import { loadPlan, nextSession, savePlan, todaySession } from '../training/store';
-import type { Session, Step } from '../training/types';
+import type { Plan, Session, Step } from '../training/types';
 import { createWorkout, formatLeft, leftClock, stepFeel, stepLine, stepName } from '../training/workout';
 import type { LatLon, Mood, Quiet, Run } from '../types';
 import { planSessionOpen } from '../unlock';
@@ -58,7 +58,7 @@ const TINY_RUN_M = 50;
 /** How long Stop is held before the run ends. Long enough that a sleeve or a pocket can't do it. */
 const HOLD_TO_STOP_MS = 1000;
 
-export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0, focused = true, onOpenPlan, onBrowseListen, onInk, ghost = null, onGhostTaken }: { onSaved: (runId: number, share?: boolean, extra?: { pain: PainLevel | null; sessionId: string | null }) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number; focused?: boolean; onOpenPlan?: () => void; onBrowseListen?: () => void; onInk?: (ink: boolean) => void; ghost?: Ghost | null; onGhostTaken?: () => void }) {
+export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0, focused = true, onOpenPlan, onPlanChanged, onBrowseListen, onInk, ghost = null, onGhostTaken }: { onSaved: (runId: number, share?: boolean, extra?: { pain: PainLevel | null; sessionId: string | null }) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number; focused?: boolean; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; onInk?: (ink: boolean) => void; ghost?: Ghost | null; onGhostTaken?: () => void }) {
   const { settings } = useSettings();
   const km = settings.unitsKm;
   const [track, setTrack] = useState<TrackingState>(getState());
@@ -95,6 +95,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   const [hasPlan, setHasPlan] = useState(false);
   const [planSession, setPlanSession] = useState<Session | null>(null);
   const [planNext, setPlanNext] = useState<Session | null>(null); // the next session, on a rest day
+  const [planShown, setPlanShown] = useState<Plan | null>(null); // active or paused, for the welcome back after a break
   const [pain, setPain] = useState<PainLevel | null>(null);
   const [guided, setGuided] = useState<GuidedRun | null>(null);
   const session = requested ?? planSession;
@@ -163,6 +164,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
       .then((p) => {
         const active = p && p.status === 'active' ? p : null;
         setHasPlan(!!active);
+        setPlanShown(p && (p.status === 'active' || p.status === 'paused') ? p : null);
         // Run home only offers sessions the plan can guide; a locked week says nothing here.
         const open = (x: Session | null) => (active && x && planSessionOpen(active, x.id) ? x : null);
         const today = active ? todaySession(active) : null;
@@ -199,6 +201,11 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     await begin();
   }
 
+  // Welcome back: a free run, as Just run, whatever was picked last time.
+  async function onRunFree() {
+    await begin('just');
+  }
+
   async function giveWay(choice: 'easy' | 'rest' | 'planned') {
     if (!session || moodBefore == null) return;
     try {
@@ -218,7 +225,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     await begin();
   }
 
-  async function begin() {
+  async function begin(as: RunPreset = preset) {
     const perm = await ensurePermissions();
     if (!perm.ok) {
       setGhostRun(null);
@@ -228,9 +235,9 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     if (!perm.background) {
       Alert.alert('Background location', 'Without "Always" location the run may stop recording when the screen is off. You can change this in Settings later.');
     }
-    setLayout(preset);
+    setLayout(as);
     setShowTime(false);
-    setRunSilent(silentRun(preset, settings.silentDay, Date.now()));
+    setRunSilent(silentRun(as, settings.silentDay, Date.now()));
     if (settings.countdownS > 0) {
       setCountFootage(countdownFootage());
       setPhase('countdown');
@@ -244,19 +251,19 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
           if (countdownRef.current) clearInterval(countdownRef.current);
           countdownRef.current = null;
           cueCountdown(0);
-          await go();
+          await go(as);
         } else {
           cueCountdown(n);
         }
       }, 1000);
     } else {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-      await go();
+      await go(as);
     }
   }
 
-  async function go() {
-    if (preset === 'plan' && session && sessionOpen) beginWorkout(session);
+  async function go(as: RunPreset = preset) {
+    if (as === 'plan' && session && sessionOpen) beginWorkout(session);
     try {
       await startRun(moodBefore);
       setPhase('active');
@@ -417,7 +424,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
 
   // ---- Idle ------------------------------------------------------------------
   if (phase === 'idle') {
-    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} planToday={session} planNext={requested ? null : planNext} onOpenPlan={onOpenPlan} onBrowseListen={onBrowseListen} />;
+    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} onRunFree={onRunFree} planToday={session} planNext={requested ? null : planNext} plan={requested ? null : planShown} welcomeBack={!requested} onOpenPlan={onOpenPlan} onPlanChanged={onPlanChanged} onBrowseListen={onBrowseListen} />;
   }
 
   // ---- Countdown -------------------------------------------------------------
