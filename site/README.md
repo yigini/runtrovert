@@ -30,3 +30,8 @@ touches `site/`. One-time setup:
 - Check `hello@runtrovert.app` exists (or swap it for the real address).
 - Keep `privacy.html` in step with the Privacy text in Settings (`src/i18n/ui/en.ts`,
   `runtrovertHasNoServerYour`). If the app fetches something new, this page changes first.
+
+## Changing the CSS or JS
+
+Bump the `?v=` number on `style.css` and `site.js` in both HTML files whenever either
+changes, so browsers that cached the old file fetch the new one.
