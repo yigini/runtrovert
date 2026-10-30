@@ -111,24 +111,14 @@ export async function lastCommuteRoute(dir: CommuteDir, c: Commute): Promise<Lat
 }
 
 /**
- * The weekday commute notes (src/commute.ts says which and when), laid out
- * after the ordinary reminders and the plan's; App.tsx re-plans all three
- * together on open and after every run. On by default once home and work are
- * set. Nothing when reminders are set to none. Never more than two notes a
- * day: a day with a commute note gives up its ordinary line, and a plan day
- * keeps its own note and only gets the afternoon one.
+ * The weekday commute notes (src/commute.ts says which and when), written out
+ * as title and body. A note source: the shared scheduler can fit these with
+ * the others (priority between a plan note and an ordinary line). Nothing
+ * when reminders are set to none.
  */
-export async function scheduleCommuteNote(settingsIn?: Settings): Promise<void> {
-  const pending = await Notifications.getAllScheduledNotificationsAsync();
-  await Promise.all(pending.filter((n) => n.content.data?.kind === 'commute').map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {})));
+export async function commuteNoteList(settings: Settings, now: number): Promise<Array<{ at: number; dir: CommuteDir; title: string; body: string }>> {
   const c = await loadCommute();
-  if (!ready(c) || c.nudges === 'off') return;
-  const settings = settingsIn ?? (await loadSettings());
-  if (settings.notifyPerWeek === 0) return;
-  const perm = await Notifications.getPermissionsAsync();
-  if (!perm.granted) return;
-
-  const now = Date.now();
+  if (!ready(c) || c.nudges === 'off' || settings.notifyPerWeek === 0) return [];
   const runs = await listRuns().catch(() => []);
   const tags = await commuteTags(c).catch(() => new Map<number, CommuteDir>());
   const latest = runs.reduce<Run | null>((a, r) => (!a || r.startedAt > a.startedAt ? r : a), null);
@@ -142,12 +132,31 @@ export async function scheduleCommuteNote(settingsIn?: Settings): Promise<void> 
       planDays.set(s.date, s.kind === 'rest' && planDays.get(s.date) !== 'session' ? 'rest' : 'session');
     }
   }
-  const notes = commuteNotes({ now, c, lastRun, plan: planDays });
-  if (!notes.length) return;
-
   // Rough distance for the line, from the runner's own commutes once there are some.
   const past = runs.map((r) => ({ startedAt: r.startedAt, distanceM: r.distanceM, durationS: r.durationS, dir: tags.get(r.id) ?? null }));
-  const dist = (dir: CommuteDir) => formatDistance(estimate(dir, c, past).distanceM, settings.unitsKm);
+  return commuteNotes({ now, c, lastRun, plan: planDays }).map((n) => {
+    const k = Math.floor(n.at / DAY_MS);
+    const titles = n.dir === 'toWork' ? ui().commute.morningTitles : ui().commute.homeTitles;
+    const lines = n.dir === 'toWork' ? ui().commute.morningLines : ui().commute.homeLines;
+    return { at: n.at, dir: n.dir, title: titles[k % titles.length], body: lines[k % lines.length](formatDistance(estimate(n.dir, c, past).distanceM, settings.unitsKm)) };
+  });
+}
+
+/**
+ * Lays the commute notes out after the ordinary reminders and the plan's
+ * (App.tsx re-plans all three together on open and after every run). A day
+ * with a commute note gives up its ordinary line, and a plan day only gets the
+ * afternoon one, so never more than two a day. Once the shared scheduler in
+ * notify.ts takes note sources, commuteNoteList() goes there and this goes.
+ */
+export async function scheduleCommuteNote(settingsIn?: Settings): Promise<void> {
+  const pending = await Notifications.getAllScheduledNotificationsAsync();
+  await Promise.all(pending.filter((n) => n.content.data?.kind === 'commute').map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {})));
+  const settings = settingsIn ?? (await loadSettings());
+  const notes = await commuteNoteList(settings, Date.now());
+  if (!notes.length) return;
+  const perm = await Notifications.getPermissionsAsync();
+  if (!perm.granted) return;
 
   const fresh = await Notifications.getAllScheduledNotificationsAsync();
   const days = new Set(notes.map((n) => dayStart(n.at)));
@@ -158,11 +167,8 @@ export async function scheduleCommuteNote(settingsIn?: Settings): Promise<void> 
 
   await ensureChannel();
   for (const n of notes) {
-    const k = Math.floor(n.at / DAY_MS);
-    const titles = n.dir === 'toWork' ? ui().commute.morningTitles : ui().commute.homeTitles;
-    const lines = n.dir === 'toWork' ? ui().commute.morningLines : ui().commute.homeLines;
     await Notifications.scheduleNotificationAsync({
-      content: { title: titles[k % titles.length], body: lines[k % lines.length](dist(n.dir)), sound: false, data: { kind: 'commute', dir: n.dir } },
+      content: { title: n.title, body: n.body, sound: false, data: { kind: 'commute', dir: n.dir } },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(n.at), channelId: CHANNEL },
     });
   }
