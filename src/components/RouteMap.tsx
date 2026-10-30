@@ -142,28 +142,28 @@ export function RouteMap({
       >
         {view ? <Camera initialViewState={initial} {...view} /> : <Camera initialViewState={initial} />}
         {ghostLine && (
-          <GeoJSONSource id="ghost" data={ghostLine}>
+          <GeoJSONSource key="ghost" id="ghost" data={ghostLine}>
             <Layer id="ghost-line" type="line" paint={{ 'line-color': colors.lilac, 'line-width': 6, 'line-opacity': 0.9, 'line-dasharray': [1.2, 1.4] }} layout={{ 'line-cap': 'round', 'line-join': 'round' }} />
           </GeoJSONSource>
         )}
         {path.length > 1 && (
-          <GeoJSONSource id="route" data={line}>
+          <GeoJSONSource key="route" id="route" data={line}>
             <Layer id="route-casing" type="line" paint={{ 'line-color': colors.cream, 'line-width': 8, 'line-opacity': 0.9 }} layout={{ 'line-cap': 'round', 'line-join': 'round' }} />
             <Layer id="route-line" type="line" paint={{ 'line-color': colors.ink, 'line-width': 4 }} layout={{ 'line-cap': 'round', 'line-join': 'round' }} />
           </GeoJSONSource>
         )}
         {pins && pins.length > 0 && (
           <GeoJSONSource
+            key="pins"
             id="pins"
             data={{ type: 'FeatureCollection', features: pins.map((p) => ({ type: 'Feature' as const, properties: {}, geometry: { type: 'Point' as const, coordinates: [p.lon, p.lat] } })) }}
           >
             <Layer id="pins-dot" type="circle" paint={{ 'circle-radius': 5, 'circle-color': colors.butter, 'circle-stroke-color': colors.ink, 'circle-stroke-width': 2 }} />
           </GeoJSONSource>
         )}
-        {/* Start/finish dots and the live dot each keep their own slot. A
-            ternary would hand one GeoJSONSource a new id when the run detail
-            path loads after the last-known-place dot was drawn, and MapLibre
-            throws "`id` cannot be changed". */}
+        {/* Every source keeps its own slot and a key matching its id. A ternary
+            would hand one GeoJSONSource a new id (head -> ends when a past
+            run's path loads) and MapLibre throws "`id` cannot be changed". */}
         {showMarkers && (
           <GeoJSONSource
             key="ends"
