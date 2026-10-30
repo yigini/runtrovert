@@ -16,7 +16,7 @@
   <link rel="preload" href="fonts/DMSans_400Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" as="image" href="media/wide-sunset-beach.jpg" media="(min-aspect-ratio: 1/1)">
   <link rel="preload" as="image" href="media/bg-sunset-beach.jpg" media="(max-aspect-ratio: 1/1)">
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -24,9 +24,9 @@
 
 <header class="top">
   <div class="bar">
-    <a class="brand" href="./"><img src="mark.svg" alt="" width="28" height="28">Runtrovert</a>
+    <a class="brand" href="./"><img src="mark.svg" alt="" width="28" height="28"><span>Runtrovert</span></a>
     <div class="acts">
-      <button class="motion" id="motion" type="button" aria-pressed="false" hidden><span class="ic" aria-hidden="true"></span><span class="lbl">Pause motion</span></button>
+      <button class="motion" id="motion" type="button" hidden><span class="ic" aria-hidden="true"></span><span class="lbl">Pause motion</span></button>
       <a class="soon" href="#get"><i></i>Coming soon<span class="far"> to Android</span></a>
     </div>
   </div>
@@ -75,14 +75,56 @@
 <section class="ch left" data-name="Every number, or none">
   <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-track-day.jpg"><img src="media/bg-night-track.jpg" alt="" loading="lazy" decoding="async"></picture>
   <video data-loop data-wide="media/wide-track-day.mp4" data-tall="media/bg-night-track.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
-  <div class="in">
-    <span class="num"><b>03</b>Today's run</span>
-    <h2>Every number. <em>Or none until the end.</em></h2>
-    <ul class="three">
-      <li><span class="k">Silent</span><b>Clear my head</b><span>Nothing on screen. Every number waits for the finish.</span></li>
-      <li><span class="k">Live</span><b>Just run</b><span>Distance, time, pace and the map, with your usual cues.</span></li>
-      <li><span class="k">Block by block</span><b>Follow my plan</b><span>Today's session, and a voice only when a block changes.</span></li>
-    </ul>
+  <div class="in demo-wrap">
+    <div class="demo-text">
+      <span class="num"><b>03</b>Today's run</span>
+      <h2>Every number. <em>Or none until the end.</em></h2>
+      <div class="three modes" role="tablist" aria-label="Pick today's run">
+        <button type="button" role="tab" id="t-silent" aria-controls="demo" aria-selected="true" data-mode="silent"><span class="k">Silent</span><b>Clear my head</b><span>Nothing on screen. Every number waits for the finish.</span></button>
+        <button type="button" role="tab" id="t-live" aria-controls="demo" aria-selected="false" data-mode="live" tabindex="-1"><span class="k">Live</span><b>Just run</b><span>Distance, time, pace and the map, with your usual cues.</span></button>
+        <button type="button" role="tab" id="t-plan" aria-controls="demo" aria-selected="false" data-mode="plan" tabindex="-1"><span class="k">Block by block</span><b>Follow my plan</b><span>Today's session, and a voice only when a block changes.</span></button>
+      </div>
+      <p class="demo-hint">Try it: pick one, then finish the run.</p>
+    </div>
+
+    <div class="phone" id="demo" role="tabpanel" aria-labelledby="t-silent" aria-label="Example run in the app">
+      <div class="scr" data-show="silent">
+        <p class="rec"><i></i>Recording</p>
+        <p class="silent">Nothing to look at.<br>Just run.</p>
+        <button type="button" class="ghost" id="peek">Tap to show the time</button>
+      </div>
+      <div class="scr" data-show="live" hidden>
+        <p class="rec"><i></i>Recording</p>
+        <svg class="mini" viewBox="0 0 200 120" aria-hidden="true"><path class="route" pathLength="1" d="M20 96 C30 60 52 40 82 36 S140 22 162 44 S186 92 150 100 S70 108 46 104 Z"/></svg>
+        <div class="big"><b id="d-km">3.42</b><span>km</span></div>
+        <div class="pair"><p><b id="d-time">18:47</b><span>time</span></p><p><b>5:29</b><span>pace /km</span></p></div>
+      </div>
+      <div class="scr" data-show="plan" hidden>
+        <p class="rec"><i></i>Block 3 of 6</p>
+        <p class="block">Steady</p>
+        <p class="left"><b id="d-left">2:41</b> left</p>
+        <div class="bar"><span id="d-bar"></span></div>
+        <p class="next">Next: Easy, 3 min</p>
+      </div>
+      <div class="scr fin" data-show="finish" hidden>
+        <p class="fin-h">Done. Nobody saw.</p>
+        <svg class="map" viewBox="0 0 200 120" aria-label="Map of the run, a loop"><path class="route" pathLength="1" d="M20 96 C30 60 52 40 82 36 S140 22 162 44 S186 92 150 100 S70 108 46 104 Z"/><circle cx="20" cy="96" r="4"/></svg>
+        <div class="nums"><p><b>5.21</b><span>km</span></p><p><b>28:34</b><span>time</span></p><p><b>5:29</b><span>pace /km</span></p><p><b>38 m</b><span>climb</span></p></div>
+        <p class="lbl">Splits per km <span id="split-say" aria-live="polite">Tap a bar</span></p>
+        <div class="splits" id="splits"></div>
+        <p class="line">Negative split, 0:57 quicker on the way home.</p>
+        <button type="button" class="more" id="more" aria-expanded="false" aria-controls="deep">Show me everything</button>
+        <div class="deep" id="deep" hidden>
+          <p><span>The shape of your splits</span><b>Negative split</b></p>
+          <p><span>How much your pace wandered</span><b>±4%</b></p>
+          <p><span>Longest steady stretch</span><b>1.6 km at 5:20</b></p>
+          <p><span>Your quickest 200 m</span><b>4.9 km in</b></p>
+          <p><span>Corners taken</span><b>14</b></p>
+        </div>
+        <button type="button" class="ghost" id="again">Run it again</button>
+      </div>
+      <button type="button" class="finish" id="finish">Finish</button>
+    </div>
   </div>
 </section>
 
@@ -115,6 +157,7 @@
         <p class="h">Runtrovert · now</p>
         <p class="l" id="nudge">The pavement has no opinions about your pace.</p>
         <p class="b"><button type="button" id="fewer">Fewer, please</button><span>Open</span></p>
+        <span class="sr" id="fewer-said" role="status"></span>
       </div>
     </div>
   </div>
@@ -200,6 +243,6 @@
   </div>
 </footer>
 
-<script src="site.js?v=5" defer></script>
+<script src="site.js?v=7" defer></script>
 </body>
 </html>

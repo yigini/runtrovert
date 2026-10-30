@@ -15,6 +15,8 @@ import type { Place } from '../placeStore';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import type { Quiet, Run } from '../types';
+import type { CommuteDir } from '../commute';
+import { commuteTags, useCommute } from '../commuteStore';
 import { ui } from '../i18n/ui';
 import { dateLocale, monthName, upperFirst } from '../i18n/lang';
 
@@ -44,9 +46,15 @@ export function HistoryScreen({
   const km = useSettings().settings.unitsKm;
   const [data, setData] = useState<YourRunsData | null>(null);
   const load = useCallback(async () => setData(await loadYourRuns()), []);
+  // Runs between home and work, tagged softly. Empty until both are set in Settings.
+  const commute = useCommute();
+  const [tags, setTags] = useState<Map<number, CommuteDir>>(new Map());
   useEffect(() => {
     load().catch(() => setData({ runs: [], placeOf: new Map(), places: [] }));
   }, [load, refreshKey]);
+  useEffect(() => {
+    if (commute) commuteTags(commute).then(setTags).catch(() => {});
+  }, [commute, refreshKey]);
 
   const now = Date.now();
   const runs = data?.runs ?? [];
@@ -137,7 +145,8 @@ export function HistoryScreen({
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => {
           const pid = data?.placeOf.get(item.id);
-          return <RunRow run={item} km={km} place={pid != null ? names.get(pid) ?? null : null} onPress={() => onOpen(item.id)} />;
+          const dir = tags.get(item.id);
+          return <RunRow run={item} km={km} place={pid != null ? names.get(pid) ?? null : null} commute={dir ? (dir === 'toWork' ? ui().commute.tagToWork : ui().commute.tagHome) : null} onPress={() => onOpen(item.id)} />;
         }}
       />
     </View>
@@ -180,7 +189,7 @@ function Stat({ value, label }: { value: string; label: string }) {
   );
 }
 
-function RunRow({ run, km, place, onPress }: { run: Run; km: boolean; place: string | null; onPress: () => void }) {
+function RunRow({ run, km, place, commute, onPress }: { run: Run; km: boolean; place: string | null; commute: string | null; onPress: () => void }) {
   const d = new Date(run.startedAt);
   const date = d.toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric' });
   const time = d.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' });
@@ -198,6 +207,7 @@ function RunRow({ run, km, place, onPress }: { run: Run; km: boolean; place: str
       accessibilityLabel={[
         `${d.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}, ${time}`,
         place,
+        commute,
         ui().history.distanceIn(spokenDistance(run.distanceM, km), spokenDuration(run.durationS)),
         spokenPace(run.distanceM, run.durationS, km),
         delta != null ? ui().history.energySpoken(delta) : null,
@@ -215,6 +225,7 @@ function RunRow({ run, km, place, onPress }: { run: Run; km: boolean; place: str
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={[styles.rowMeta, { color: fg }]}>
           {date} · {time}
+          {commute ? ` · ${commute}` : ''}
           {place ? ` · ${place}` : busy ? ` · ${busy}` : ''}
         </Text>
         <Text style={styles.rowMain}>
