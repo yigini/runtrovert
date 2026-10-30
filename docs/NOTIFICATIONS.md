@@ -28,6 +28,11 @@ Nothing runs in the background.
 - Live stats (Android, ongoing) and km/mile splits during a run: `src/runNotify.ts`.
 - After a run: 15 min later, "How was that?" if the energy check was skipped,
   otherwise a dry line. Dropped if it would land in quiet hours. Tapping opens the run.
+- Run to work (`src/commuteStore.ts`): off by default. With home and work set
+  and a day picked in Settings > Home and work, one line at 19:30 the evening
+  before. None when reminders are off or after ten days away, none before a
+  plan rest day, never a second note that day: it takes that day's ordinary
+  slot and gives way to a plan note. `npm run test:commute` checks the timing.
 - Monthly letter: comes with Stage 4, takes that day's reminder slot.
 - The unlock is never a notification (one finish-screen line after run ten).
 - Feature news: store notes plus one dismissable line on the home screen

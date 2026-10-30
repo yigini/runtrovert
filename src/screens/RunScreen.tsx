@@ -44,6 +44,8 @@ import { onWatchCommand } from '../wear';
 import type { WatchCommand } from '../wearProtocol';
 import { cachedWeather } from '../weather';
 import { beginWorkout, endWorkout, subscribeWorkout, type GuidedRun } from '../workoutRun';
+import type { Offer } from '../commute';
+import { lastCommuteRoute, loadCommute } from '../commuteStore';
 import { liveFacts, recordRunFacts } from '../you';
 import { ui } from '../i18n/ui';
 
@@ -51,9 +53,11 @@ type Phase = 'idle' | 'countdown' | 'active' | 'finish';
 
 /** "Run this again" from a place: its loop as a faint line under the live one. */
 export interface Ghost {
-  placeId: number;
+  placeId?: number;
   name: string;
   path: LatLon[];
+  /** Run to work, Run home: where the run ends, ringed on the map. */
+  goal?: LatLon;
 }
 
 /** Ids of the once-only finish lines already used (src/surprises.ts). */
@@ -232,6 +236,15 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
       return;
     }
     await begin();
+  }
+
+  // Run to work, Run home: work (or home) ringed on the map, and the last run that way drawn faintly.
+  async function onCommute(o: Offer) {
+    const path = await loadCommute()
+      .then((c) => lastCommuteRoute(o.dir, c))
+      .catch(() => null);
+    setGhostRun({ name: o.dir === 'toWork' ? ui().commute.runToWork : ui().commute.runHome, path: path ?? [], goal: o.goal });
+    await onStart();
   }
 
   // Welcome back: a free run, as Just run, whatever was picked last time.
@@ -457,7 +470,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
 
   // ---- Idle ------------------------------------------------------------------
   if (phase === 'idle') {
-    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} onRunFree={onRunFree} planToday={session} planNext={requested ? null : planNext} plan={requested ? null : planShown} welcomeBack={!requested} onOpenPlan={onOpenPlan} onPlanChanged={onPlanChanged} onBrowseListen={onBrowseListen} />;
+    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} onCommute={onCommute} onRunFree={onRunFree} planToday={session} planNext={requested ? null : planNext} plan={requested ? null : planShown} welcomeBack={!requested} onOpenPlan={onOpenPlan} onPlanChanged={onPlanChanged} onBrowseListen={onBrowseListen} />;
   }
 
   // ---- Countdown -------------------------------------------------------------
@@ -695,6 +708,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         follow
         fill
         ghost={ghostRun?.path}
+        goal={ghostRun?.goal}
         interactive={mapFront}
         fps={mapFront ? undefined : 20}
         focusPadding={mapFront ? { top: 120, right: 0, bottom: 140, left: 0 } : { top: H * 0.5, right: 0, bottom: 150, left: 0 }}
