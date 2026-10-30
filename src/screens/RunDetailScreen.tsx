@@ -1,14 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
+import { DeepRunView } from '../components/DeepStats';
 import { Button } from '../components/Button';
 import { MoodPicker } from '../components/MoodPicker';
 import { RouteMap } from '../components/RouteMap';
 import { ShareSheet } from '../components/ShareSheet';
 import { RunStatsView } from '../components/RunStats';
 import { YouLine } from '../components/YouLine';
-import { deleteRun, getHeartRate, getPoints, getRun, getRunSource, getSplits, setMoodAfter, type RunSource } from '../db';
-import { cleanHeart, heartSummary, type HeartSummary } from '../heart';
+import { deleteRun, getHeartRate, getPoints, getRun, getRunSource, getSplits, highestHeartRate, setMoodAfter, type RunSource } from '../db';
+import { cleanHeart, heartSummary, type HeartSample, type HeartSummary } from '../heart';
 import { shareRunGpx } from '../io/store';
 import { placeForRun, type Place } from '../placeStore';
 import { forgetRun } from '../training/store';
@@ -47,12 +48,19 @@ export function RunDetailScreen({
   const [saving, setSaving] = useState(false);
   const [place, setPlace] = useState<Place | null>(null);
   const [heart, setHeart] = useState<HeartSummary | null>(null);
+  const [beats, setBeats] = useState<HeartSample[]>([]);
+  const [maxHr, setMaxHr] = useState<number | null>(null);
 
   useEffect(() => {
     (async () => {
       const r = await getRun(runId);
       setRun(r);
-      if (r) setHeart(heartSummary(cleanHeart(await getHeartRate(runId).catch(() => []), r.startedAt, r.endedAt)));
+      if (r) {
+        const clean = cleanHeart(await getHeartRate(runId).catch(() => []), r.startedAt, r.endedAt);
+        setHeart(heartSummary(clean));
+        setBeats(clean);
+        if (clean.length) setMaxHr(await highestHeartRate().catch(() => null));
+      }
       const pts = await getPoints(runId);
       setPath(pts.map((p) => ({ latitude: p.lat, longitude: p.lon })));
       setPoints(pts.map((p) => ({ ts: p.ts, lat: p.lat, lon: p.lon, alt: p.alt })));
@@ -66,6 +74,11 @@ export function RunDetailScreen({
       }
     })();
   }, [runId]);
+
+  const kmPaces = useMemo(
+    () => splits.filter((s) => s.kind === 'km' && s.distanceM >= 900).map((s) => (s.durationS / s.distanceM) * 1000),
+    [splits],
+  );
 
   const cmp = useMemo(() => {
     const mine = facts?.find((f) => f.id === runId);
@@ -133,6 +146,7 @@ export function RunDetailScreen({
       <RouteMap path={path} height={260} />
       {line && <YouLine title={line.title.replace('\n', ' ')} detail={line.detail} />}
       <RunStatsView run={run} points={points} splits={kmSplits} laps={laps} partial={partial} sun={weather} km={km} heart={heart} />
+      <DeepRunView points={points} kmPaces={kmPaces} heart={beats} maxHr={maxHr} km={km} />
       {run.moodAfter == null && run.endedAt != null ? (
         <MoodPicker
           title={ui().runDetail.andYourEnergyNow}

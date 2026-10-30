@@ -397,6 +397,16 @@ export async function getHeartRate(runId: number): Promise<Array<{ ts: number; b
   return rows.map((r: any) => ({ ts: r.ts, bpm: r.bpm }));
 }
 
+/**
+ * The highest heart rate this phone has seen, for zones. The tenth highest
+ * reading, so one optical-sensor spike can't set everyone's zones too high.
+ */
+export async function highestHeartRate(): Promise<number | null> {
+  const db = await getDb();
+  const rows = await db.getAllAsync('SELECT bpm FROM heart_rate ORDER BY bpm DESC LIMIT 10');
+  return rows.length === 10 ? (rows[9] as any).bpm : null;
+}
+
 // ---- Splits ----------------------------------------------------------------
 
 export async function addSplit(runId: number, s: Omit<Split, 'id' | 'runId'>): Promise<void> {
@@ -428,6 +438,20 @@ export async function getSplits(runId: number, kind?: SplitKind): Promise<Split[
     atDistanceM: r.at_distance_m,
     atDurationS: r.at_duration_s,
   }));
+}
+
+/** Seconds per km of every full km split, run by run, in order. For the months view of deep stats. */
+export async function allKmPaces(): Promise<Map<number, number[]>> {
+  const db = await getDb();
+  const rows = await db.getAllAsync("SELECT run_id, distance_m, duration_s FROM splits WHERE kind = 'km' ORDER BY run_id, idx ASC");
+  const out = new Map<number, number[]>();
+  for (const r of rows as any[]) {
+    if (r.distance_m < 900) continue; // a short last split isn't a km
+    const list = out.get(r.run_id) ?? [];
+    list.push((r.duration_s / r.distance_m) * 1000);
+    out.set(r.run_id, list);
+  }
+  return out;
 }
 
 // ---- Settings --------------------------------------------------------------

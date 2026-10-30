@@ -78,7 +78,7 @@ function dist(a: TimedPoint, b: TimedPoint): number {
 }
 
 /** y at x on a polyline given by sorted xs; clamps at the ends. */
-function interp(xs: number[], ys: number[], x: number): number {
+export function interp(xs: number[], ys: number[], x: number): number {
   if (x <= xs[0]) return ys[0];
   const n = xs.length - 1;
   if (x >= xs[n]) return ys[n];
@@ -103,7 +103,7 @@ function thin(s: SeriesPoint[], max = MAX_POINTS): SeriesPoint[] {
 }
 
 /** Times as a function of distance, made strictly increasing in distance for interpolation. */
-function distanceTime(points: TimedPoint[]): { d: number[]; t: number[] } {
+export function distanceTime(points: TimedPoint[]): { d: number[]; t: number[] } {
   const { d, t } = track(points);
   const xs: number[] = [];
   const ys: number[] = [];
