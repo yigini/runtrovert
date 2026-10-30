@@ -16,7 +16,7 @@
   <link rel="preload" href="fonts/DMSans_400Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" as="image" href="media/wide-sunset-beach.jpg" media="(min-aspect-ratio: 1/1)">
   <link rel="preload" as="image" href="media/bg-sunset-beach.jpg" media="(max-aspect-ratio: 1/1)">
-  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -114,7 +114,7 @@
       <div>
         <p class="h">Runtrovert · now</p>
         <p class="l" id="nudge">The pavement has no opinions about your pace.</p>
-        <p class="b"><span>Fewer, please</span><span>Open</span></p>
+        <p class="b"><button type="button" id="fewer">Fewer, please</button><span>Open</span></p>
       </div>
     </div>
   </div>
@@ -186,10 +186,12 @@
         <span><small>Later on the</small><strong>App Store</strong></span><span class="tagsoon">Later</span>
       </a>
     </div>
+    <a class="again" href="#main">Run this again <span aria-hidden="true">↑</span></a>
   </div>
 </section>
 
 </main>
+<p class="whisper" id="whisper" role="status"></p>
 
 <footer>
   <div class="bar">
@@ -198,6 +200,6 @@
   </div>
 </footer>
 
-<script src="site.js?v=4" defer></script>
+<script src="site.js?v=5" defer></script>
 </body>
 </html>
