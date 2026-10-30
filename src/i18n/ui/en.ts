@@ -1067,7 +1067,7 @@ export const en = {
   unlock: {
     name: 'Everything, once',
     priceLine: (price: string, later: string) => `${price}, once. It becomes ${later} when full training plans arrive.`,
-    adds: ['Full training plans, past week 1', 'Trends and progress over months', 'Patterns in your places and your energy', 'Backup, export of every run, Health Connect', 'Themes and widgets'],
+    adds: ['Full training plans, past week 1', 'Trends and progress over months', 'Patterns in your places and your energy', 'Export of every run at once'],
     theStoreSaidNo: 'The store said no',
     notInThisBuild: 'Not in this build',
     purchasesArriveWithTheStore: 'Purchases arrive with the store version. Test builds have everything unlocked.',

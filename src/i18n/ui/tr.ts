@@ -1064,7 +1064,7 @@ export const tr: Strings = {
   unlock: {
     name: 'Her şey, bir kez',
     priceLine: (price, later) => `${price}, bir kez. Tam antrenman planları gelince fiyat ${later} olur.`,
-    adds: ['1. haftanın ötesinde tam antrenman planları', 'Aylar boyunca eğilimler ve gelişim', 'Yerlerinde ve enerjinde örüntüler', 'Yedekleme, her koşuyu dışa aktarma, Health Connect', 'Temalar ve widget’lar'],
+    adds: ['1. haftanın ötesinde tam antrenman planları', 'Aylar boyunca eğilimler ve gelişim', 'Yerlerinde ve enerjinde örüntüler', 'Tüm koşuları tek seferde dışa aktarma'],
     theStoreSaidNo: 'Mağaza reddetti',
     notInThisBuild: 'Bu sürümde yok',
     purchasesArriveWithTheStore: 'Satın almalar mağaza sürümüyle gelir. Test sürümlerinde her şeyin kilidi açık.',

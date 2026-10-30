@@ -1064,7 +1064,7 @@ export const pt: Strings = {
   unlock: {
     name: 'Tudo, uma vez',
     priceLine: (price, later) => `${price}, uma vez. Passa a ${later} quando chegarem os planos de treino completos.`,
-    adds: ['Planos de treino completos, além da semana 1', 'Tendências e evolução ao longo dos meses', 'Padrões nos seus lugares e na sua energia', 'Backup, exportação de todas as corridas, Health Connect', 'Temas e widgets'],
+    adds: ['Planos de treino completos, além da semana 1', 'Tendências e evolução ao longo dos meses', 'Padrões nos seus lugares e na sua energia', 'Exportação de todas as corridas de uma vez'],
     theStoreSaidNo: 'A loja recusou',
     notInThisBuild: 'Não nesta versão',
     purchasesArriveWithTheStore: 'As compras chegam com a versão da loja. As versões de teste têm tudo desbloqueado.',
