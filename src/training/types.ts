@@ -44,6 +44,41 @@ export interface Session {
   done: { runId: number; distanceM: number; durationS: number; at: number } | null;
   skipped: boolean; // missed, or deliberately rested
   note: string | null; // what adaptation changed here, in words
+  result?: SessionResult | null; // how it went, once done (older plans have none)
+}
+
+/** How it felt, by the talk test: 1 could sing … 5 no words left. */
+export type Feel = 1 | 2 | 3 | 4 | 5;
+
+/** One step of a guided session as it was actually run. */
+export interface StepDone {
+  kind: Step['kind'];
+  effort: Effort;
+  label: string;
+  plannedS?: number;
+  plannedM?: number;
+  s: number; // moving seconds actually run
+  m: number; // metres actually run
+  from: number; // wall clock, epoch ms, for the heart rate
+  to: number;
+  full: boolean; // ran to the end of the step
+  hr?: number | null; // average bpm over the step, from a watch
+}
+
+/**
+ * asPlanned: the main work was run, near the planned time. shorter: under four
+ * fifths of it. longer: a fifth or more over. quick: faster than the effort
+ * asks (judged only with paces from a race). tough: felt harder than the
+ * session should. unguided: ticked off without the steps.
+ */
+export type Verdict = 'asPlanned' | 'shorter' | 'longer' | 'quick' | 'tough' | 'unguided';
+
+export interface SessionResult {
+  steps: StepDone[]; // empty when the session was not followed step by step
+  feel: Feel | null;
+  rpe: number | null; // CR-10, from the feel
+  load: number | null; // rpe × minutes (Foster 2001)
+  verdict: Verdict;
 }
 
 export type WeekKind = 'base' | 'build' | 'light' | 'peak' | 'taper' | 'race';
@@ -77,6 +112,7 @@ export interface Plan {
   weeks: Week[];
   runner: RunnerProfile; // the starting point the plan was built from
   paces: Paces | null;
+  pacesAt?: number; // when the paces were last set from a race; createdAt before the first refresh
   status: PlanStatus;
   createdAt: number;
   healthCheckAt: number | null;
@@ -89,4 +125,6 @@ export type PlanEvent =
   | { at: number; kind: 'ill'; days: number }
   | { at: number; kind: 'holiday'; from: number; to: number }
   | { at: number; kind: 'rebuilt'; reason: string }
+  | { at: number; kind: 'paces'; vdot: number; capped: boolean }
+  | { at: number; kind: 'feel'; feel: Feel; sessionId: string; eased: boolean }
   | { at: number; kind: 'paused' | 'resumed' | 'stopped' | 'finished' };

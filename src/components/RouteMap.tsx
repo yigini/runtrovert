@@ -17,7 +17,7 @@ import { ui } from '../i18n/ui';
  * `offline` prop, keeps the blank style: the route still draws on a plain mint
  * ground with no tile requests at all.
  */
-const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
+export const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
 
 /** No tiles, nothing requested over the network. */
 export const BLANK_STYLE = {
@@ -41,6 +41,7 @@ export function RouteMap({
   markers,
   fps,
   ghost,
+  goal,
   pins,
 }: {
   path: LatLon[];
@@ -61,6 +62,8 @@ export function RouteMap({
   fps?: number;
   /** A place's loop, drawn faintly under the live line: "Run this again". */
   ghost?: LatLon[] | null;
+  /** Where a Run to work or Run home ends: a ring on the live map. */
+  goal?: LatLon | null;
   /** Small dots for Things you passed, on the finish map. */
   pins?: Array<{ lat: number; lon: number }>;
 }) {
@@ -150,6 +153,11 @@ export function RouteMap({
           <GeoJSONSource key="route" id="route" data={line}>
             <Layer id="route-casing" type="line" paint={{ 'line-color': colors.cream, 'line-width': 8, 'line-opacity': 0.9 }} layout={{ 'line-cap': 'round', 'line-join': 'round' }} />
             <Layer id="route-line" type="line" paint={{ 'line-color': colors.ink, 'line-width': 4 }} layout={{ 'line-cap': 'round', 'line-join': 'round' }} />
+          </GeoJSONSource>
+        )}
+        {goal && (
+          <GeoJSONSource key="goal" id="goal" data={{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [goal.longitude, goal.latitude] } }}>
+            <Layer id="goal-ring" type="circle" paint={{ 'circle-radius': 11, 'circle-color': colors.peach, 'circle-opacity': 0.9, 'circle-stroke-color': colors.ink, 'circle-stroke-width': 3 }} />
           </GeoJSONSource>
         )}
         {pins && pins.length > 0 && (

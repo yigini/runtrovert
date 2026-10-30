@@ -22,7 +22,7 @@ import { HistoryScreen, type RunsSection } from './src/screens/HistoryScreen';
 import { ListenScreen } from './src/screens/ListenScreen';
 import { RunDetailScreen } from './src/screens/RunDetailScreen';
 import { PlaceScreen } from './src/screens/PlaceScreen';
-import { RunScreen, type Ghost } from './src/screens/RunScreen';
+import { RunScreen, type Ghost, type RunExtra } from './src/screens/RunScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { TrainScreen } from './src/screens/TrainScreen';
 import { UnlockHost } from './src/screens/UnlockScreen';
@@ -33,7 +33,7 @@ import { SettingsProvider, useSettings } from './src/settings';
 import { startBilling } from './src/billing';
 import { recoverRun, subscribe } from './src/tracking';
 import { colors, fonts, radius, spacing } from './src/theme';
-import type { PainLevel } from './src/training/adapt';
+import { dayName } from './src/training/adapt';
 import type { Place } from './src/placeStore';
 import { onRunSaved } from './src/training/store';
 import type { Session } from './src/training/types';
@@ -186,6 +186,9 @@ function Shell() {
       const next = fewer(settingsRef.current.notifyPerWeek);
       update({ notifyPerWeek: next });
       Alert.alert(ui().app.reminders, fewerMessage(next));
+    } else if (data.kind === 'commute') {
+      setSub(null);
+      setTab('run');
     } else if (data.kind === 'plan') {
       setSub(null);
       setTab('train');
@@ -212,7 +215,7 @@ function Shell() {
     );
   }
 
-  async function onSaved(runId: number, share = false, extra?: { pain: PainLevel | null; sessionId: string | null }) {
+  async function onSaved(runId: number, share = false, extra?: RunExtra) {
     setShareOpen(share);
     getRun(runId)
       .then((run) => notifyAfterRun(settings, runId, run?.moodAfter != null))
@@ -225,8 +228,11 @@ function Shell() {
     try {
       const run = await getRun(runId);
       if (run) {
-        const r = await onRunSaved(run, extra?.pain ?? null, extra?.sessionId ?? null);
-        if (r.advice) Alert.alert(ui().app.noted, r.advice);
+        const r = await onRunSaved(run, extra?.pain ?? null, extra?.sessionId ?? null, { steps: extra?.steps ?? null, feel: extra?.feel ?? null });
+        // One note at most: pain advice says more than an eased day does.
+        const eased = r.eased ? ui().review.easedX(r.eased.title, dayName(r.eased.date)) : null;
+        const said = r.advice ?? [eased, r.lighter ? ui().review.nextWeekLighter : null].filter(Boolean).join(' ');
+        if (said) Alert.alert(ui().app.noted, said);
       }
     } catch {
       // no plan, or nothing to change

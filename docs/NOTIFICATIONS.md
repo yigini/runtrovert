@@ -48,6 +48,14 @@ carries `data.daily = true` and is cancelled and re-laid together.
 - Live stats (Android, ongoing) and km/mile splits during a run: `src/runNotify.ts`.
 - After a run: 15 min later, "How was that?" if the energy check was skipped,
   otherwise a dry line. Dropped if it would land in quiet hours. Tapping opens the run.
+- Run to work / Run home (`src/commute.ts`, `src/commuteStore.ts`): on by
+  default once home and work are set (Settings > Home and work: Off, Mornings,
+  Afternoons, Both). Weekdays, 07:00 "run to work?" and 16:30 "work's nearly
+  done, running home?", with a rough distance. None on a day already run (a
+  run to work keeps the afternoon one), none on plan rest days, afternoon only
+  on plan days, nothing after ten days away or with reminders at 0. A day with
+  a commute note gives up its ordinary line, so never more than two a day.
+  `npm run test:commute` checks the timing.
 - Monthly letter: comes with Stage 4, takes that day's reminder slot.
 - The unlock is never a notification (one finish-screen line after run ten).
 - Feature news: store notes plus one dismissable line on the home screen
