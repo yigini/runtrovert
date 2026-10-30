@@ -44,8 +44,15 @@ em { font-family: var(--serif); font-weight: 400; font-style: italic; }
 
 /* Top bar */
 .top { position: fixed; inset: 0 0 auto; z-index: 30; padding: 0 var(--gutter); }
+/* A soft scrim, so text scrolling under the bar never sits on the same cream as the name */
+.top::before { content: ''; position: absolute; inset: 0 0 -28px; z-index: -1; pointer-events: none; background: linear-gradient(180deg, rgba(20,18,24,0.82) 0%, rgba(20,18,24,0.55) 62%, rgba(20,18,24,0) 100%); }
+.top.solid-top::before { inset: 0; background: rgba(20,18,24,0.88); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.top nav a, .plink { display: inline-flex; align-items: center; min-height: 44px; padding: 0 6px; font-size: 14px; font-weight: 500; text-decoration: none; }
+.plink { font-size: 13px; color: var(--cream-soft); }
+.plink:hover { color: var(--cream); }
+@media (max-width: 700px) { .plink { display: none; } }
 .top .bar { display: flex; align-items: center; justify-content: space-between; height: 72px; }
-.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font: 600 19px var(--serif); }
+.brand { display: flex; align-items: center; gap: 10px; min-height: 44px; text-decoration: none; font: 600 19px var(--serif); }
 .brand img { width: 28px; height: 28px; border-radius: 8px; }
 .soon { font-size: 13px; font-weight: 500; text-decoration: none; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line); background: rgba(20,18,24,0.35); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 .acts { display: flex; align-items: center; gap: 8px; }
@@ -67,11 +74,11 @@ em { font-family: var(--serif); font-weight: 400; font-style: italic; }
 .motion:focus-visible, .soon:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; }
 .soon i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--mint); margin-right: 8px; vertical-align: 1px; font-style: normal; }
 
-/* Chapter counter, bottom left on wide screens */
+/* Chapter counter, top centre on wide screens only: below 1260px it would run into the header buttons */
 .rail { position: fixed; left: 50%; top: 26px; transform: translateX(-50%); z-index: 31; font: 500 12px var(--sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--cream-soft); display: flex; gap: 14px; align-items: center; }
 .rail .bar { width: 64px; height: 1px; background: var(--line); position: relative; overflow: hidden; }
 .rail .bar span { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--cream); transition: width 0.5s ease; }
-@media (max-width: 900px) { .rail { display: none; } }
+@media (max-width: 1260px) { .rail { display: none; } }
 
 /* Chapters: each one a full screen of its own footage */
 .ch { position: relative; min-height: 100svh; display: flex; align-items: flex-end; padding: 120px var(--gutter) clamp(72px, 12vh, 120px); isolation: isolate; overflow: hidden; }
@@ -80,7 +87,7 @@ em { font-family: var(--serif); font-weight: 400; font-style: italic; }
 .ch > video.on { opacity: 1; }
 @media (max-aspect-ratio: 1/1) { .ch .shift { object-position: 30% center; } }
 .ch::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(20,18,24,0.55) 0%, rgba(20,18,24,0.05) 30%, rgba(20,18,24,0.15) 55%, rgba(20,18,24,0.88) 100%); }
-.ch.left::before { background: linear-gradient(90deg, rgba(20,18,24,0.85) 0%, rgba(20,18,24,0.35) 55%, rgba(20,18,24,0.1) 100%), linear-gradient(180deg, rgba(20,18,24,0.4), transparent 30%); }
+.ch.left::before { background: linear-gradient(90deg, rgba(20,18,24,0.85) 0%, rgba(20,18,24,0.45) 55%, rgba(20,18,24,0.3) 100%), linear-gradient(180deg, rgba(20,18,24,0.4), transparent 30%, transparent 50%, rgba(20,18,24,0.6) 100%); }
 .ch .in { width: 100%; max-width: 1240px; margin: 0 auto; }
 .num { display: block; font: 500 12px var(--sans); letter-spacing: 0.2em; text-transform: uppercase; color: var(--cream-soft); margin-bottom: 22px; }
 .num b { color: var(--butter); font-weight: 600; margin-right: 10px; }
@@ -98,7 +105,7 @@ em { font-family: var(--serif); font-weight: 400; font-style: italic; }
 .hero .foot { display: flex; flex-wrap: wrap; gap: 20px 28px; align-items: flex-end; justify-content: space-between; margin-top: 32px; }
 .hero { padding-top: 96px; padding-bottom: 48px; }
 .nos { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 14px; color: var(--cream-soft); list-style: none; padding: 0; }
-.nos li::before { content: '×'; margin-right: 7px; color: var(--peach); }
+.nos li::before { content: '×'; content: '×' / ''; margin-right: 7px; color: var(--peach); }
 
 /* Store badges: placeholders shaped like the real ones, swapped for the official artwork at launch */
 .stores { display: flex; flex-wrap: wrap; gap: 12px; }
@@ -116,6 +123,11 @@ em { font-family: var(--serif); font-weight: 400; font-style: italic; }
 .three li { border-top: 1px solid var(--line); padding-top: 16px; }
 .three b { display: block; font: 600 clamp(20px, 2vw, 26px) var(--serif); margin-bottom: 6px; }
 .three span { color: var(--cream-soft); font-size: 15.5px; }
+.three span, .modes span:not(.k), .ch .also { text-shadow: 0 1px 12px rgba(20,18,24,0.9), 0 0 2px rgba(20,18,24,0.6); }
+.ch .also { margin-top: 26px; max-width: 64ch; font-size: 15.5px; color: var(--cream-soft); }
+.ch .also .k { display: block; font: 500 11px var(--sans); letter-spacing: 0.18em; text-transform: uppercase; color: var(--butter); margin-bottom: 8px; }
+.ch .also b { color: var(--cream); font-weight: 600; }
+.ch p.say.fine { font-size: 15px; margin-top: 28px; }
 .three .k { display: block; font: 500 11px var(--sans); letter-spacing: 0.18em; text-transform: uppercase; color: var(--butter); margin-bottom: 10px; }
 @media (max-width: 760px) { .three { grid-template-columns: 1fr; gap: 18px; } }
 
@@ -195,14 +207,14 @@ em { font-family: var(--serif); font-weight: 400; font-style: italic; }
 .place .row span { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: var(--lilac); color: #4a3f6b; }
 .place .row span.mint { background: var(--mint); color: #2f5c47; }
 .place .go { margin-top: 14px; text-align: center; background: var(--ink); color: var(--cream); border-radius: 999px; padding: 11px; font: 600 14px var(--sans); }
-.lock { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: var(--lilac); color: #4a3f6b; margin-left: 6px; vertical-align: 2px; }
+.lock { display: inline-block; text-decoration: none; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: var(--lilac); color: #4a3f6b; margin-left: 6px; vertical-align: 2px; }
 
 /* A reminder, as the phone shows it */
 .note { margin-top: 40px; width: min(400px, 100%); display: flex; gap: 14px; align-items: flex-start; padding: 16px 18px; border-radius: 22px; background: rgba(246,241,234,0.94); color: var(--ink); box-shadow: 0 30px 60px -20px rgba(0,0,0,0.6); }
 .note img { width: 34px; height: 34px; border-radius: 9px; flex: none; }
 .note .h { font-size: 12.5px; color: #6b5f86; }
 .note .l { font-size: 16px; font-weight: 500; margin-top: 2px; transition: opacity 0.6s ease; min-height: 2.6em; }
-.note .b { display: flex; gap: 16px; margin-top: 10px; font-size: 13px; font-weight: 600; color: #4a3f6b; }
+.note .b { display: flex; align-items: center; gap: 16px; margin-top: 10px; font-size: 13px; font-weight: 600; color: #4a3f6b; }
 
 /* Price */
 .price { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 48px; max-width: 980px; }
@@ -237,11 +249,20 @@ footer nav a { display: inline-flex; align-items: center; min-height: 44px; }
 .doc p + p { margin-top: 14px; }
 .doc ul { padding-left: 20px; }
 .doc li { margin: 8px 0; }
+main:focus { outline: none; }
 .doc .short { background: #1f1c25; border: 1px solid var(--line); border-radius: 20px; padding: 24px 28px; }
 .doc table { width: 100%; border-collapse: collapse; font-size: 15px; margin-top: 10px; }
 .doc th, .doc td { text-align: left; vertical-align: top; padding: 12px 10px 12px 0; border-top: 1px solid var(--line); }
 .doc th { font-weight: 600; }
 .table-scroll { overflow-x: auto; }
+@media (max-width: 640px) {
+  .doc table, .doc tbody, .doc tr, .doc td { display: block; width: 100%; }
+  .doc thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .doc tr { border-top: 1px solid var(--line); padding: 14px 0 6px; }
+  .doc td { border: 0; padding: 0 0 10px; }
+  .doc td:first-child { font-weight: 600; color: var(--cream); }
+  .doc td[data-label]:not(:first-child)::before { content: attr(data-label); display: block; font: 500 11px var(--sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--cream-muted); margin-bottom: 2px; }
+}
 .todo { background: var(--butter); color: #6b5a1f; padding: 0 6px; border-radius: 4px; }
 .solid { background: var(--night); }
 
@@ -263,7 +284,7 @@ footer nav a { display: inline-flex; align-items: center; min-height: 44px; }
 }
 
 /* Small things */
-.note .b button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline transparent; text-underline-offset: 3px; transition: text-decoration-color 0.3s; }
+.note .b button { font: inherit; color: inherit; background: none; border: 0; padding: 4px 0; min-height: 28px; cursor: pointer; text-decoration: underline transparent; text-underline-offset: 3px; transition: text-decoration-color 0.3s; }
 .note .b button:hover { text-decoration-color: currentColor; }
 .note .b button[aria-disabled='true'] { cursor: default; text-decoration: none; }
 .note .b button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 4px; }
@@ -275,4 +296,4 @@ footer nav a { display: inline-flex; align-items: center; min-height: 44px; }
 .whisper.on { opacity: 1; transform: translate(-50%, 0); }
 .whisper:empty { padding: 0; border: 0; }
 
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .ticker, .note .l, .whisper { transition: none; } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { transition: none !important; animation: none !important; } }

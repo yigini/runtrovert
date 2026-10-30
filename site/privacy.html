@@ -4,28 +4,29 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Privacy policy · Runtrovert</title>
-  <meta name="description" content="What Runtrovert keeps, where it keeps it, and the three things the app fetches.">
+  <meta name="description" content="What Runtrovert keeps, where it keeps it, and every service the app fetches from.">
   <meta name="theme-color" content="#141218">
   <link rel="canonical" href="https://runtrovert.app/privacy.html">
   <link rel="icon" href="favicon.png">
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 
-<header class="top" style="background: rgba(20,18,24,0.85); backdrop-filter: blur(10px)">
+<header class="top solid-top">
   <div class="bar">
     <a class="brand" href="./"><img src="mark.svg" alt="" width="30" height="30">Runtrovert</a>
     <nav aria-label="Main"><a href="./">Home</a></nav>
   </div>
 </header>
 
-<main id="main" class="doc">
+<main id="main" class="doc" tabindex="-1">
   <h1>Privacy policy</h1>
   <p class="updated">Last updated 30 October 2026. Applies to the Runtrovert app for Android (and its Wear OS watch app) and to this website.</p>
 
   <div class="short">
-    <p><b>The short version.</b> The Runtrovert app has no server and no account. Your runs, routes, places, notes and settings are saved on your phone. We, the people who make Runtrovert, don't receive them, can't see them and don't sell them. The app fetches three things, each of which you can switch off: map tiles, the weather and the Listen list. There are no analytics, no advertising identifiers and no crash reporter that sends anything to us. Apart from the order record Google Play gives us when you buy (see Payments), the only thing we keep about anyone is this website's access log, described at the end.</p>
+    <p><b>The short version.</b> The Runtrovert app has no server and no account. Your runs, routes, places, notes and settings are saved on your phone. We, the people who make Runtrovert, don't receive them, can't see them and don't sell them. The app fetches three things, each of which you can switch off: map tiles, the weather and the Listen list. A fourth, Things you passed, is off until you switch it on. Your route itself is never sent; with Things you passed on, the squares of about 1 km a run went through are. There are no analytics, no advertising identifiers and no crash reporter that sends anything to us. Apart from the order record Google Play gives us when you buy (see Payments), the only thing we keep about anyone is this website's access log, described at the end.</p>
   </div>
 
   <h2>Who we are</h2>
@@ -37,35 +38,37 @@
     <li><b>Your runs:</b> the route, distance, time, pace, splits and climb.</li>
     <li><b>From your phone's sensors:</b> precise location during a run (also with the screen off, which is why the app asks for background location), and step counts and air pressure to fill gaps in the GPS signal and measure climb.</li>
     <li><b>Heart rate,</b> if you use the watch app, recorded into the run.</li>
-    <li><b>What you tell it:</b> energy and busyness after a run, notes, saved places with their names and tags, training plans and your progress, and your settings.</li>
+    <li><b>What you tell it:</b> your energy before and after a run, how busy it was, notes, saved places with their names and tags, and your settings.</li>
+    <li><b>Training plans,</b> if you follow one: your plan and progress, how each session felt, and anything you tell the plan about your health, such as a niggle or pain, days off ill, or a holiday, plus when it last asked how you were. The plan uses these only to ease or rebuild itself on your phone.</li>
     <li><b>Runs you bring in</b> from GPX or FIT files you pick.</li>
   </ul>
   <p>Reminders are written and scheduled on the phone. There is no push service and nothing outside your phone knows when or whether you ran.</p>
 
   <h2>What the app fetches, and who sees what</h2>
-  <p>The app connects to three services. Like any website, each of them sees your IP address and the request itself. Your route is never sent to any of them.</p>
+  <p>The app connects to the services below. Like any website, each of them sees your IP address and the request itself. The route itself, the line you ran, is never sent to any of them. The first three can each be switched off; the last row is off until you switch it on.</p>
   <div class="table-scroll">
-  <table>
-    <thead><tr><th>Service</th><th>What it receives</th><th>When</th><th>How to turn it off</th></tr></thead>
-    <tbody>
-      <tr><td>OpenFreeMap (street map tiles, built on OpenStreetMap data)</td><td>Requests for the map squares on screen, so it sees which area you're looking at.</td><td>While a street map is on screen.</td><td>Settings, Plain map. Your route and live position still show, without streets and names.</td></tr>
-      <tr><td>Open-Meteo (weather)</td><td>A location rounded to about 1 km. No key, no account, no cookies.</td><td>When the home screen needs a forecast.</td><td>Settings, the weather switch.</td></tr>
-      <tr><td>GitHub (the Listen list and its cover images)</td><td>A download of one file that's the same for everyone, plus the covers of shows you scroll past that didn't ship with the app, one image each, so GitHub could see which shows were on your screen. No location, no identifier, no cookie.</td><td>When you open Listen, only if you said yes to fresh lists.</td><td>Say no when Listen asks.</td></tr>
+  <table role="table">
+    <thead role="rowgroup"><tr role="row"><th role="columnheader">Service</th><th role="columnheader">What it receives</th><th role="columnheader">When</th><th role="columnheader">How to turn it off</th></tr></thead>
+    <tbody role="rowgroup">
+      <tr role="row"><td role="cell" data-label="Service">OpenFreeMap (street map tiles, built on OpenStreetMap data)</td><td role="cell" data-label="What it receives">Requests for the map squares on screen, so it sees which area you're looking at.</td><td role="cell" data-label="When">While a street map is on screen.</td><td role="cell" data-label="How to turn it off">Settings, Plain map. Your route and live position still show, without streets and names.</td></tr>
+      <tr role="row"><td role="cell" data-label="Service">Open-Meteo (weather)</td><td role="cell" data-label="What it receives">A location rounded to about 1 km. No key, no account, no cookies.</td><td role="cell" data-label="When">When the home screen needs a forecast.</td><td role="cell" data-label="How to turn it off">Settings, the weather switch.</td></tr>
+      <tr role="row"><td role="cell" data-label="Service">GitHub (the Listen list and its cover images)</td><td role="cell" data-label="What it receives">A download of one file that's the same for everyone, plus the covers of shows you scroll past that didn't ship with the app, one image each, so GitHub could see which shows were on your screen. No location, no identifier, no cookie.</td><td role="cell" data-label="When">When you open Listen, only if you said yes to fresh lists.</td><td role="cell" data-label="How to turn it off">Say no when Listen asks.</td></tr>
+      <tr role="row"><td role="cell" data-label="Service">Things you passed: Wikipedia, OpenStreetMap (through the Overpass API) and Wikidata</td><td role="cell" data-label="What it receives">Wikipedia and OpenStreetMap get the squares of about 1 km a run went through, up to 16 of them, and are asked what's in each square. Taken together, those squares outline roughly where you ran. Wikipedia then gets the page numbers of up to 20 entries in those squares, the few it shows you mixed in with others nearby, and Wikidata the IDs of a handful of people or things streets there are named after. No identifier, no cookie.</td><td role="cell" data-label="When">Only if you switched on Things you passed: once after a run, for squares the phone hasn't asked about in the last month.</td><td role="cell" data-label="How to turn it off">Settings, Things you passed. It's off until you switch it on.</td></tr>
     </tbody>
   </table>
   </div>
-  <p>These services are run by others under their own privacy terms. We don't receive anything from them about you.</p>
+  <p>These services are run by others under their own privacy terms: OpenFreeMap, Open-Meteo, GitHub, and for Things you passed the Wikimedia Foundation (Wikipedia and Wikidata) and the people who run the Overpass API at overpass-api.de. We don't receive anything from them about you.</p>
 
   <h2>When you choose to open something else</h2>
   <ul>
     <li><b>Podcasts and shows</b> in Listen open in your own podcast or music app. That app and the show's host see a normal connection, IP address included, like any download. We never see what you play.</li>
     <li><b>Sponsors</b> pay a flat fee for a place on the labelled "Kit &amp; offers" shelf. They never learn who opened it or what was tapped. Opening an offer takes you to their website, which has its own privacy terms.</li>
     <li><b>Sharing a run</b> goes through your phone's own share sheet, to the app and person you pick. A shared card leaves the route out unless you switch it on.</li>
-    <li><b>Exporting</b> writes GPX or FIT files to a place you pick. Notes, energy and busyness stay out of those files.</li>
+    <li><b>Exporting</b> writes GPX or FIT files to a place you pick. Notes, energy, busyness and anything about your health stay out of those files.</li>
   </ul>
 
   <h2>The watch app</h2>
-  <p>The Wear OS app talks to the phone over the direct link between your phone and watch (the Wearable Data Layer that Android provides). Nothing goes through a server of ours, because there isn't one.</p>
+  <p>The Wear OS app talks to the phone over the direct link between your phone and watch (the Wearable Data Layer that Android provides). Nothing goes through a server of ours, because there isn't one. It reads your heart rate from the watch's sensor only while a run is recording, and sends it to the phone to be kept with that run.</p>
 
   <h2>Phone backups</h2>
   <p>If backups are on in your phone's settings, Android includes Runtrovert's data in your phone's own backup to your Google account, so a new phone can restore it. That copy is kept by Google under your account, not by us. Delete the app and its data is gone from your phone; a phone backup keeps a copy until it's replaced.</p>
@@ -78,6 +81,7 @@
     <li><b>Location</b> (precise, and in the background during a run): to record runs.</li>
     <li><b>Physical activity:</b> step counts that fill gaps in the GPS signal.</li>
     <li><b>Notifications:</b> reminders, and distance and time on the lock screen during a run.</li>
+    <li><b>On the watch, body sensors</b> (called heart rate on newer Wear OS): heart rate during a run. If you say no, the watch app still shows the run, without heart rate.</li>
   </ul>
 
   <h2>Children</h2>

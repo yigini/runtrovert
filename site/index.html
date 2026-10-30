@@ -8,6 +8,7 @@
   <meta name="theme-color" content="#141218">
   <link rel="canonical" href="https://runtrovert.app/">
   <link rel="icon" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <meta property="og:title" content="Runtrovert: Private Running">
   <meta property="og:description" content="Your run. Your space. Nobody's watching, that's the point. A running app with no feed, no account and no subscription.">
   <meta property="og:image" content="https://runtrovert.app/media/wide-sunset-beach.jpg">
@@ -15,8 +16,8 @@
   <link rel="preload" href="fonts/Fraunces_600SemiBold.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/DMSans_400Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" as="image" href="media/wide-sunset-beach.jpg" media="(min-aspect-ratio: 1/1)">
-  <link rel="preload" as="image" href="media/bg-sunset-beach.jpg" media="(max-aspect-ratio: 1/1)">
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="preload" as="image" href="media/bg-sunset-beach.jpg" media="(max-aspect-ratio: 999/1000)">
+  <link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -26,6 +27,7 @@
   <div class="bar">
     <a class="brand" href="./"><img src="mark.svg" alt="" width="28" height="28"><span>Runtrovert</span></a>
     <div class="acts">
+      <a class="plink" href="privacy.html">Privacy</a>
       <button class="motion" id="motion" type="button" hidden><span class="ic" aria-hidden="true"></span><span class="lbl">Pause motion</span></button>
       <a class="soon" href="#get"><i></i>Coming soon<span class="far"> to Android</span></a>
     </div>
@@ -34,26 +36,26 @@
 
 <div class="rail" aria-hidden="true"><span id="rail-n">01</span><span class="bar"><span id="rail-bar"></span></span><span id="rail-name">Nobody's watching</span></div>
 
-<main id="main">
+<main id="main" tabindex="-1">
 
 <section class="ch hero" data-name="Nobody's watching">
   <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-sunset-beach.jpg"><img src="media/bg-sunset-beach.jpg" alt="" fetchpriority="high" decoding="async"></picture>
   <video data-loop data-wide="media/wide-sunset-beach.mp4" data-tall="media/bg-sunset-beach.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in">
-    <p class="num"><b>Your run. Your space.</b>Runtrovert · Private running</p>
+    <p class="num"><b>Your run. Your space.</b> Runtrovert · Private running</p>
     <h1>Nobody's<br>watching.<br><em>That's the point.</em></h1>
     <p class="what"><strong>Runtrovert is a running app for people who'd rather run alone.</strong> No feed, no followers, no account. Your runs stay on your phone.</p>
     <p class="ticker" id="ticker">New 5 km best. Nobody saw. That was the plan.</p>
     <div class="foot">
       <div class="stores">
-        <a class="store" aria-disabled="true" role="link" aria-label="Google Play, coming soon">
+        <div class="store">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3.5v17l9-8.5z" fill="#c9e7d6"/><path d="M5 3.5l11.5 6.4L14 12.5z" fill="#c5dcf0"/><path d="M5 20.5l11.5-6.4L14 11.5z" fill="#f7c9b6"/><path d="M16.5 9.9L20 12l-3.5 2.1-2.5-2.1z" fill="#f5e3a8"/></svg>
           <span><small>Soon on</small><strong>Google Play</strong></span><span class="tagsoon">Soon</span>
-        </a>
-        <a class="store later" aria-disabled="true" role="link" aria-label="App Store, later">
+        </div>
+        <div class="store later">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="#d9d0f0" stroke-width="1.6"/><path d="M8.5 15.5l4-7m-1 0l4 7M7.5 13h9" stroke="#d9d0f0" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>
           <span><small>Later on the</small><strong>App Store</strong></span><span class="tagsoon">Later</span>
-        </a>
+        </div>
       </div>
       <ul class="nos" aria-label="What it doesn't have">
         <li>Account</li><li>Subscription</li><li>Analytics</li><li>Leaderboards</li>
@@ -66,7 +68,7 @@
   <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-leafy-lane.jpg"><img src="media/bg-leafy-lane.jpg" alt="" loading="lazy" decoding="async"></picture>
   <video data-loop data-wide="media/wide-leafy-lane.mp4" data-tall="media/bg-leafy-lane.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in">
-    <span class="num"><b>02</b>People</span>
+    <span class="num"><b>02</b> People</span>
     <h2>A run with <em>one attendee.</em></h2>
     <p class="say">No feed, no followers, no kudos, no leaderboards. Nobody asks how it went. <strong>If you want to share a run, it's one run, sent to one person, through your phone's own share sheet.</strong> The route stays off unless you switch it on.</p>
   </div>
@@ -77,7 +79,7 @@
   <video data-loop data-wide="media/wide-track-day.mp4" data-tall="media/bg-night-track.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in demo-wrap">
     <div class="demo-text">
-      <span class="num"><b>03</b>Today's run</span>
+      <span class="num"><b>03</b> Today's run</span>
       <h2>Every number. <em>Or none until the end.</em></h2>
       <div class="three modes" role="tablist" aria-label="Pick today's run">
         <button type="button" role="tab" id="t-silent" aria-controls="demo" aria-selected="true" data-mode="silent"><span class="k">Silent</span><b>Clear my head</b><span>Nothing on screen. Every number waits for the finish.</span></button>
@@ -132,9 +134,9 @@
   <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-lake-side.jpg"><img src="media/bg-tree-avenue.jpg" alt="" loading="lazy" decoding="async"></picture>
   <video data-loop data-wide="media/wide-lake-side.mp4" data-tall="media/bg-tree-avenue.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in">
-    <span class="num"><b>04</b>Your places</span>
+    <span class="num"><b>04</b> Your places</span>
     <h2>It remembers the loops <em>you love.</em></h2>
-    <p class="say">Run the same route a few times and Runtrovert offers to keep it. Name it, tag it, note how busy it was. <strong>"Run this again" puts your old line on the map to follow.</strong> Over the months, it learns when it's usually quiet there, only from your own notes. <span class="lock">Everything, once</span></p>
+    <p class="say">Run the same route a few times and Runtrovert offers to keep it. Name it, tag it, note how busy it was. <strong>"Run this again" puts your old line on the map to follow.</strong> Over the months, it learns when it's usually quiet there, only from your own notes. <a class="lock" href="#price">Part of Everything, once</a></p>
     <div class="place" aria-label="Example of a saved place">
       <p class="t">Park loop</p>
       <p class="m">4.8 km · 9 runs · last on Sunday</p>
@@ -148,10 +150,10 @@
   <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-glass-river.jpg"><img src="media/bg-glass-river.jpg" alt="" loading="lazy" decoding="async"></picture>
   <video data-loop data-wide="media/wide-glass-river.mp4" data-tall="media/bg-glass-river.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in">
-    <span class="num"><b>05</b>Reminders</span>
+    <span class="num"><b>05</b> Reminders</span>
     <h2>A nudge. <em>Never a guilt trip.</em></h2>
     <p class="say">A few short notes a week, written on your phone. No streaks, no "you missed a day", no red badges, nothing after 9 pm. <strong>Every one has a "Fewer, please" button.</strong></p>
-    <div class="note" aria-live="off">
+    <div class="note" role="group" aria-label="Example reminder">
       <img src="mark.svg" alt="">
       <div>
         <p class="h">Runtrovert · now</p>
@@ -167,15 +169,16 @@
   <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-rock-coast.jpg"><img src="media/bg-rock-coast.jpg" alt="" loading="lazy" decoding="async"></picture>
   <video data-loop data-wide="media/wide-rock-coast.mp4" data-tall="media/bg-rock-coast.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in">
-    <span class="num"><b>06</b>Privacy</span>
+    <span class="num"><b>06</b> Privacy</span>
     <h2>No server. <em>Here's the whole list.</em></h2>
-    <p class="say">Your runs, routes, places and notes are saved on your phone. The app fetches three things, each with a switch. <strong>Your route itself is never sent.</strong></p>
+    <p class="say">Your runs, routes, places and notes are saved on your phone. The app fetches three things, each with a switch, and a fourth only if you ask for it. <strong>The line you ran is never sent.</strong></p>
     <ul class="three">
       <li><span class="k">Plain map turns it off</span><b>Map tiles</b><span>OpenFreeMap sees which area is on screen.</span></li>
       <li><span class="k">Weather switch</span><b>The forecast</b><span>Open-Meteo gets a location rounded to about 1 km.</span></li>
       <li><span class="k">Only if you say yes</span><b>The Listen list</b><span>One file, the same for everyone.</span></li>
     </ul>
-    <p class="say" style="font-size: 15px; margin-top: 28px">Each of these services sees your IP address, like any website. No account, no analytics, no push server. The full detail is in the <a href="privacy.html">privacy policy</a>.</p>
+    <p class="also"><span class="k">Off until you switch it on</span><b>Things you passed.</b> After a run, Wikipedia, OpenStreetMap and Wikidata are asked what's in the squares of about 1 km the run went through. They see those squares, which outline roughly where you ran, never the line itself.</p>
+    <p class="say fine">Each of these services sees your IP address, like any website. No account, no analytics, no push server. The full detail is in the <a href="privacy.html">privacy policy</a>.</p>
   </div>
 </section>
 
@@ -183,7 +186,7 @@
   <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-snow-plain.jpg"><img src="media/bg-snow-plain.jpg" alt="" loading="lazy" decoding="async"></picture>
   <video data-loop data-wide="media/wide-snow-plain.mp4" data-tall="media/bg-snow-plain.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in">
-    <span class="num"><b>07</b>Price</span>
+    <span class="num"><b>07</b> Price</span>
     <h2>Free for every run. <em>Once for the long run.</em></h2>
     <div class="price">
       <div class="tier">
@@ -200,12 +203,12 @@
       <div class="tier once">
         <p class="label">Everything, once</p>
         <p class="amount">€4.99</p>
-        <p class="small">One payment, kept by your store account. €6.99 once full training plans arrive. No subscription, ever.</p>
+        <p class="small">One payment, kept by your store account. Launch price; €6.99 later. No subscription, ever.</p>
         <ul>
           <li>Full training plans, past week 1</li>
           <li>Trends and progress over months</li>
           <li>Patterns in your places and your energy</li>
-          <li>Backup and export of every run, themes, widgets</li>
+          <li>Export of every run at once</li>
         </ul>
       </div>
     </div>
@@ -216,18 +219,18 @@
   <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-trail-bridge.jpg"><img src="media/bg-trail-bridge.jpg" alt="" loading="lazy" decoding="async"></picture>
   <video data-loop data-wide="media/wide-trail-bridge.mp4" data-tall="media/bg-trail-bridge.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in">
-    <span class="num"><b>08</b>Soon</span>
+    <span class="num"><b>08</b> Soon</span>
     <h2>Run alone. <em>Not lonely.</em></h2>
     <p class="say">Android first, in eight languages. iPhone after that.</p>
     <div class="stores">
-      <a class="store" aria-disabled="true" role="link" aria-label="Google Play, coming soon">
+      <div class="store">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3.5v17l9-8.5z" fill="#c9e7d6"/><path d="M5 3.5l11.5 6.4L14 12.5z" fill="#c5dcf0"/><path d="M5 20.5l11.5-6.4L14 11.5z" fill="#f7c9b6"/><path d="M16.5 9.9L20 12l-3.5 2.1-2.5-2.1z" fill="#f5e3a8"/></svg>
         <span><small>Soon on</small><strong>Google Play</strong></span><span class="tagsoon">Soon</span>
-      </a>
-      <a class="store later" aria-disabled="true" role="link" aria-label="App Store, later">
+      </div>
+      <div class="store later">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="#d9d0f0" stroke-width="1.6"/><path d="M8.5 15.5l4-7m-1 0l4 7M7.5 13h9" stroke="#d9d0f0" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>
         <span><small>Later on the</small><strong>App Store</strong></span><span class="tagsoon">Later</span>
-      </a>
+      </div>
     </div>
     <a class="again" href="#main">Run this again <span aria-hidden="true">↑</span></a>
   </div>
@@ -243,6 +246,6 @@
   </div>
 </footer>
 
-<script src="site.js?v=7" defer></script>
+<script src="site.js?v=8" defer></script>
 </body>
 </html>
