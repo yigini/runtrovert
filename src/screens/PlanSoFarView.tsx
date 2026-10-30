@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
 import { Button } from '../components/Button';
@@ -7,7 +7,10 @@ import { colors, fonts, radius, spacing, type } from '../theme';
 import { GOAL_LABEL, type PlanSpec } from '../training/catalogue';
 import { formatRaceTime, formatSPerKm, pacesFromRace } from '../training/paces';
 import { PACES_STALE_WEEKS, refreshPaces, soFar, type Phase, type WeekSoFar } from '../training/overview';
+import { loadHeart, saveHeart } from '../training/store';
+import { maxFromAge, rangeFor, saneMax, saneRest, type HeartSetup } from '../training/zones';
 import type { Plan } from '../training/types';
+import { highestHeartRate } from '../db';
 import { planWeekOpen } from '../unlock';
 import { ui } from '../i18n/ui';
 import { decimal } from '../i18n/lang';
@@ -82,6 +85,7 @@ export function PlanSoFarView({ plan, spec, today, unitsKm, onBack, onCommit }: 
       </Block>
 
       <PacesBlock plan={plan} spec={spec} today={today} unitsKm={unitsKm} pacesWeeks={f.pacesWeeks} onCommit={onCommit} />
+      <HeartBlock spec={spec} />
     </ScrollView>
   );
 }
@@ -165,10 +169,93 @@ function PacesBlock({ plan, spec, today, unitsKm, pacesWeeks, onCommit }: { plan
   );
 }
 
-function Box({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
+/** The runner's own numbers for heart-rate ranges. Kept apart from the plan: they outlive it. */
+function HeartBlock({ spec }: { spec: PlanSpec }) {
+  const [h, setH] = useState<HeartSetup | null | undefined>(undefined);
+  const [seen, setSeen] = useState<number | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [max, setMax] = useState('');
+  const [rest, setRest] = useState('');
+  const [age, setAge] = useState('');
+  const [nudge, setNudge] = useState(false);
+  useEffect(() => {
+    loadHeart().then(setH).catch(() => setH(null));
+    highestHeartRate().then(setSeen).catch(() => {});
+  }, []);
+  if (h === undefined) return null;
+
+  function edit() {
+    setMax(h ? String(h.maxHr) : seen != null && saneMax(seen) ? String(seen) : '');
+    setRest(h?.restHr != null ? String(h.restHr) : '');
+    setAge('');
+    setNudge(h?.easyNudge ?? false);
+    setEditing(true);
+  }
+  const typed = parseInt(max || '0', 10);
+  const fromAge = parseInt(age || '0', 10);
+  const maxHr = saneMax(typed) ? typed : fromAge >= 12 && fromAge <= 90 ? maxFromAge(fromAge) : 0;
+  const source: HeartSetup['source'] = saneMax(typed) ? (seen != null && typed === seen ? 'measured' : 'entered') : 'age';
+  const restN = parseInt(rest || '0', 10);
+  const draft: HeartSetup | null = saneMax(maxHr) ? { maxHr, restHr: rest && saneRest(restN, maxHr) ? restN : null, source, easyNudge: nudge } : null;
+
+  async function save(next: HeartSetup | null) {
+    await saveHeart(next).catch(() => {});
+    setH(next);
+    setEditing(false);
+  }
+
+  const show = (x: HeartSetup) => {
+    const e = rangeFor('easy', spec.goal, x);
+    const t = rangeFor('threshold', spec.goal, x);
+    return e && t ? ui().zones.easyThreshold(ui().zones.rangeX(e[0], e[1]), ui().zones.rangeX(t[0], t[1])) : '';
+  };
+
+  return (
+    <Block title={ui().zones.title}>
+      {!editing && (h ? (
+        <>
+          <Text style={styles.body}>{ui().zones.summary(h.maxHr, h.restHr)}</Text>
+          <Text style={styles.hint}>
+            {ui().zones.from[h.source]} {show(h)}
+          </Text>
+          <Button title={ui().zones.change} variant="secondary" onPress={edit} />
+        </>
+      ) : (
+        <>
+          <Text style={styles.hint}>{ui().zones.none}</Text>
+          <Button title={ui().zones.set} variant="secondary" onPress={edit} />
+        </>
+      ))}
+      {editing && (
+        <>
+          <View style={styles.timeRow}>
+            <Box value={max} onChange={setMax} label={ui().zones.maxLabel} digits={3} />
+            <Box value={rest} onChange={setRest} label={ui().zones.restLabel} digits={3} />
+            {!saneMax(typed) && <Box value={age} onChange={setAge} label={ui().zones.ageLabel} />}
+          </View>
+          {seen != null && saneMax(seen) && <Text style={styles.hint}>{ui().zones.measuredHint(seen)}</Text>}
+          {draft && <Text style={styles.hint}>{show(draft)}</Text>}
+          <Pressable onPress={() => setNudge(!nudge)} accessibilityRole="switch" accessibilityState={{ checked: nudge }} style={styles.toggle}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.bodyStrong}>{ui().zones.nudgeLabel}</Text>
+              <Text style={styles.hint}>{ui().zones.nudgeHint}</Text>
+            </View>
+            <View style={[styles.switch, nudge && styles.switchOn]}>
+              <View style={[styles.knob, nudge && styles.knobOn]} />
+            </View>
+          </Pressable>
+          <Button title={ui().zones.save} disabled={!draft} onPress={() => void save(draft)} />
+          {h && <Button title={ui().zones.remove} variant="secondary" onPress={() => void save(null)} />}
+        </>
+      )}
+    </Block>
+  );
+}
+
+function Box({ value, onChange, label, digits = 2 }: { value: string; onChange: (v: string) => void; label: string; digits?: number }) {
   return (
     <View style={styles.boxWrap}>
-      <TextInput style={styles.box} value={value} onChangeText={(t) => onChange(t.replace(/[^0-9]/g, '').slice(0, 2))} keyboardType="number-pad" accessibilityLabel={label} maxLength={2} />
+      <TextInput style={[styles.box, digits > 2 && { width: 80 }]} value={value} onChangeText={(t) => onChange(t.replace(/[^0-9]/g, '').slice(0, digits))} keyboardType="number-pad" accessibilityLabel={label} maxLength={digits} />
       <Text style={styles.hint}>{label}</Text>
     </View>
   );
@@ -211,6 +298,11 @@ const styles = StyleSheet.create({
   chipText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.inkSoft },
   chipTextOn: { color: colors.cream },
   timeRow: { flexDirection: 'row', gap: spacing.sm },
-  boxWrap: { alignItems: 'center', gap: 2 },
+  boxWrap: { alignItems: 'center', gap: 2, flexShrink: 1 },
+  toggle: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.xs },
+  switch: { width: 48, height: 28, borderRadius: 14, backgroundColor: colors.track, padding: 3 },
+  switchOn: { backgroundColor: colors.ink },
+  knob: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.white },
+  knobOn: { transform: [{ translateX: 20 }] },
   box: { width: 64, minHeight: 48, borderRadius: radius.sm, borderWidth: 1.5, borderColor: colors.ink, textAlign: 'center', fontFamily: fonts.bodySemi, fontSize: 18, color: colors.text },
 });

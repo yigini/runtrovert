@@ -17,9 +17,10 @@ import { planToIcs } from '../training/ics';
 import { formatRaceTime, formatSPerKm, pacesFromRace, type Paces } from '../training/paces';
 import { RULES } from '../training/rules';
 import { EFFORT_LABEL, paceFor, paceSetFor } from '../training/sessions';
-import { createPlan, currentProfile, historyCount, lastRunAt, markDone, nextSession, runSessions, planEnd, planProgress, planSpec, refreshPlan, savePlan, setFeel, setStatus, skipSession, todaySession, weekProgress } from '../training/store';
+import { createPlan, currentProfile, historyCount, lastRunAt, markDone, nextSession, runSessions, planEnd, planProgress, planSpec, loadHeart, refreshPlan, savePlan, setFeel, setStatus, skipSession, todaySession, weekProgress } from '../training/store';
 import type { Feel, Plan, PlanSetup, Session, Step, StepDone, Week } from '../training/types';
 import { createWorkout, stepName } from '../training/workout';
+import { stepRange, type HeartSetup } from '../training/zones';
 import { LockRow } from '../components/LockRow';
 import { PlanSoFarView } from './PlanSoFarView';
 import { isUnlocked, openWeeks, planSessionOpen, planWeekOpen, trainLine } from '../unlock';
@@ -57,6 +58,10 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
   const [historyN, setHistoryN] = useState(0);
   const [lastRun, setLastRun] = useState<number | null>(null);
   const [view, setView] = useState<Page>({ kind: 'catalogue' });
+  const [heart, setHeart] = useState<HeartSetup | null>(null);
+  useEffect(() => {
+    loadHeart().then(setHeart).catch(() => {});
+  }, [refreshKey, view.kind]);
   useUnlocked(); // a purchase opens the rest of the plan without leaving the tab
 
   const reload = useCallback(async () => {
@@ -116,6 +121,7 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
         plan={active}
         spec={spec}
         session={s}
+        heart={heart}
         unitsKm={settings.unitsKm}
         today={today}
         onBack={() => setView({ kind: 'week', index: active.weeks.find((w) => w.sessions.includes(s))?.index ?? null })}
@@ -810,7 +816,7 @@ function HowView({ plan, spec, first, onDone }: { plan: Plan; spec: PlanSpec; fi
 
 // ---- One session -----------------------------------------------------------------
 
-function SessionView({ plan, spec, session: s, unitsKm, today, onBack, onStart, onDone, onSkip, onFeel, onMove }: { plan: Plan; spec: PlanSpec; session: Session; unitsKm: boolean; today: number; onBack: () => void; onStart: () => void; onDone: () => void; onSkip: () => void; onFeel: (f: Feel) => void; onMove: (date: number) => void }) {
+function SessionView({ plan, spec, session: s, heart, unitsKm, today, onBack, onStart, onDone, onSkip, onFeel, onMove }: { plan: Plan; spec: PlanSpec; session: Session; heart: HeartSetup | null; unitsKm: boolean; today: number; onBack: () => void; onStart: () => void; onDone: () => void; onSkip: () => void; onFeel: (f: Feel) => void; onMove: (date: number) => void }) {
   const paces = paceSetFor(plan.runner, plan.paces, spec.goal);
   const week = plan.weeks.find((w) => w.sessions.includes(s));
   const free = week ? [0, 1, 2, 3, 4, 5, 6].map((d) => addDays(week.start, d)).filter((d) => d >= today && d !== s.date && !week.sessions.some((x) => x.date === d && x.kind !== 'strength')) : [];
@@ -838,7 +844,7 @@ function SessionView({ plan, spec, session: s, unitsKm, today, onBack, onStart, 
       {s.steps.length > 0 && (
         <Section title={ui().train.xMinAboutX(s.minutes, fmtKm(s.km, unitsKm))}>
           {s.steps.map((st, k) => (
-            <StepRow key={k} step={st} pace={plan.paces ? paceFor(st.effort, paces) : null} unitsKm={unitsKm} />
+            <StepRow key={k} step={st} pace={plan.paces ? paceFor(st.effort, paces) : null} range={stepRange(st, spec.goal, heart)} unitsKm={unitsKm} />
           ))}
           {!plan.paces && s.hard && <Text style={styles.hint}>{ui().train.noPacesOnPurposeYou}</Text>}
           {heat && <Text style={styles.hint}>{heat}</Text>}
@@ -913,7 +919,7 @@ function DoneRow({ step: st, unitsKm }: { step: StepDone; unitsKm: boolean }) {
   );
 }
 
-function StepRow({ step, pace, unitsKm }: { step: Step; pace: number | null; unitsKm: boolean }) {
+function StepRow({ step, pace, range, unitsKm }: { step: Step; pace: number | null; range: [number, number] | null; unitsKm: boolean }) {
   const fill = step.kind === 'hard' ? colors.peach : step.kind === 'walk' ? colors.lilac : step.kind === 'stride' ? colors.butter : colors.mint;
   const size = step.durationS != null ? fmtDur(step.durationS, true) : step.distanceM != null ? fmtKm(step.distanceM / 1000, unitsKm) : '';
   return (
@@ -924,6 +930,7 @@ function StepRow({ step, pace, unitsKm }: { step: Step; pace: number | null; uni
         <Text style={styles.hint}>
           {size}
           {pace != null && step.effort !== 'walk' ? ui().train.aboutX(formatSPerKm(pace, unitsKm)) : ''}
+          {range ? ` · ${ui().zones.rangeX(range[0], range[1])}` : ''}
         </Text>
       </View>
     </View>
