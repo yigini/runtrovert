@@ -569,7 +569,13 @@ export async function recoverRun(): Promise<boolean> {
   try {
     return await recoverRunInner();
   } catch {
-    await clearSnapshot().catch(() => {});
+    // Couldn't pick it back up. Never lose it for that: the snapshot stays,
+    // the launch tidy-up (closeUnfinishedRuns) closes the run where its
+    // recording stopped, and the next launch drops the snapshot of a run
+    // that has ended.
+    resetState();
+    await detachSensors().catch(() => {});
+    await getEngine().stop().catch(() => {});
     return false;
   }
 }

@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import { GapFill } from '../src/gps/gapFill.ts';
 import { GpsFilter, type RawFix } from '../src/gps/kalman.ts';
 import { replayFixes } from '../src/gps/replay.ts';
+import { salvageEnd } from '../src/gps/salvage.ts';
 
 let failures = 0;
 function test(name: string, fn: () => void) {
@@ -229,6 +230,23 @@ test('replay: nothing buffered, nothing changes', () => {
   const r = replayFixes(null, []);
   assert.equal(r.distanceM, 0);
   assert.equal(r.lastMovingTs, null);
+});
+
+// ---- Runs recovery couldn't pick up ------------------------------------------
+
+test('salvage: a run with a route is kept, closed at its last point', () => {
+  const end = salvageEnd({ startedAt: 1_000_000, durationS: 600, pointCount: 400, lastPointTs: 1_000_000 + 700_000 });
+  assert.equal(end, 1_700_000);
+});
+
+test('salvage: the saved duration wins when the last point is earlier', () => {
+  const end = salvageEnd({ startedAt: 1_000_000, durationS: 900, pointCount: 50, lastPointTs: 1_300_000 });
+  assert.equal(end, 1_900_000);
+});
+
+test('salvage: an empty run (killed before a second fix) is removed', () => {
+  assert.equal(salvageEnd({ startedAt: 1_000_000, durationS: 4, pointCount: 1, lastPointTs: 1_002_000 }), null);
+  assert.equal(salvageEnd({ startedAt: 1_000_000, durationS: 0, pointCount: 0, lastPointTs: null }), null);
 });
 
 if (failures) {

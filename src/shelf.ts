@@ -7,8 +7,10 @@ import bundled from './shelfBundled.json';
 // The Listen list. The app ships with a copy (src/shelfBundled.json) and, if the
 // runner says yes, swaps it for the newest one when they open the Listen tab. That
 // file is built every morning by .github/workflows/shelf.yml and holds every country,
-// so the request carries no location, no id and no cookie: GitHub sees a download
-// and nothing else. Nothing is fetched until the tab is opened.
+// so the request carries no location, no id and no cookie. Covers that didn't
+// ship are fetched one per show as it comes on screen, which does tell GitHub
+// which shows were scrolled past (the Privacy text says so). Nothing is fetched
+// until the tab is opened.
 
 export const SHELF_URL = 'https://raw.githubusercontent.com/yigini/runtrovert/shelf/shelf.json';
 
