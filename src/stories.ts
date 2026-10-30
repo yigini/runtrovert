@@ -193,6 +193,22 @@ export function padded(wanted: number[], pool: Candidate[], size = 20): number[]
   return out;
 }
 
+/** The Wikidata IDs to ask for: the few wanted, mixed in with others from the same squares, so the
+ *  answer doesn't show which streets the run went along. */
+export function paddedIds(wanted: string[], pool: string[], size = 12): string[] {
+  const out = [...new Set(wanted)];
+  for (const id of [...new Set(pool)].sort()) {
+    if (out.length >= size) break;
+    if (!out.includes(id)) out.push(id);
+  }
+  return out.sort();
+}
+
+/** The squares in a fixed order (south-west first), so the order of the requests doesn't trace the run. */
+export function askOrder(cells: string[]): string[] {
+  return [...cells].sort();
+}
+
 /** Two sentences at most, and never a wall: cut at a sentence end before ~240 characters. */
 export function trimText(text: string, max = 240): string {
   const clean = text.replace(/\s*\([^()]*\)/g, '').replace(/\s+/g, ' ').trim();
