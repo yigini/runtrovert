@@ -1,5 +1,6 @@
 // Loops load near the screen and play only on it. Lines rotate in the app's own voice (src/lines.ts,
-// src/i18n/voice/en.ts). People who asked for less motion get still posters and one line each.
+// src/i18n/voice/en.ts). People who asked for less motion get still posters and one line each;
+// anyone else can stop both with the Pause motion button.
 (function () {
   var still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var wide = window.matchMedia('(min-aspect-ratio: 1/1)');
@@ -17,22 +18,41 @@
   }
   function play(v) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
 
+  // The Pause button stops loops and rotating lines for this visitor and is remembered here.
+  var paused = false;
+  try { paused = localStorage.getItem('motion') === 'off'; } catch (e) {}
+  var visible = [];
+
   if (!still && 'IntersectionObserver' in window) {
     var near = new IntersectionObserver(function (entries) {
       entries.forEach(function (e) { if (e.isIntersecting) { load(e.target); near.unobserve(e.target); } });
     }, { rootMargin: '50% 0px' });
     var seen = new IntersectionObserver(function (entries) {
-      entries.forEach(function (e) { if (e.isIntersecting) { load(e.target); play(e.target); } else e.target.pause(); });
+      entries.forEach(function (e) {
+        var i = visible.indexOf(e.target);
+        if (e.isIntersecting) { if (i < 0) visible.push(e.target); load(e.target); if (!paused) play(e.target); }
+        else { if (i >= 0) visible.splice(i, 1); e.target.pause(); }
+      });
     }, { threshold: 0.1 });
     // The hero's poster paints first; its loop starts once the page has loaded.
     window.addEventListener('load', function () {
       videos.forEach(function (v) { near.observe(v); seen.observe(v); });
     });
+    // Turning the phone swaps tall and wide loops. Only loops on screen reload now; the rest
+    // drop their file and load again when their chapter comes near, so nothing plays unseen.
     wide.addEventListener('change', function () {
-      videos.forEach(function (v) { if (v.dataset.src) { v.classList.remove('on'); load(v); play(v); } });
+      videos.forEach(function (v) {
+        if (!v.dataset.src) return;
+        v.classList.remove('on');
+        if (visible.indexOf(v) >= 0) { load(v); if (!paused) play(v); return; }
+        v.pause();
+        delete v.dataset.src;
+        v.removeAttribute('src');
+        v.load();
+        near.observe(v);
+      });
     });
   }
-
   if ('IntersectionObserver' in window) {
     var n = document.getElementById('rail-n'), name = document.getElementById('rail-name'), bar = document.getElementById('rail-bar');
     var at = new IntersectionObserver(function (entries) {
@@ -48,10 +68,25 @@
   }
 
   if (still) return;
+  var toggle = document.getElementById('motion');
+  function setPaused(p) {
+    paused = p;
+    try { localStorage.setItem('motion', p ? 'off' : 'on'); } catch (e) {}
+    toggle.setAttribute('aria-pressed', String(p));
+    toggle.querySelector('.lbl').textContent = p ? 'Play motion' : 'Pause motion';
+    visible.forEach(function (v) { if (p) v.pause(); else play(v); });
+  }
+  if (toggle) {
+    toggle.hidden = false;
+    toggle.addEventListener('click', function () { setPaused(!paused); });
+    if (paused) setPaused(true);
+  }
+
   function rotate(el, lines, ms) {
     if (!el) return;
     var i = 0;
     setInterval(function () {
+      if (paused) return;
       el.style.opacity = 0;
       setTimeout(function () { i = (i + 1) % lines.length; el.textContent = lines[i]; el.style.opacity = 1; }, 600);
     }, ms);

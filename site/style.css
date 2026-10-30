@@ -47,6 +47,20 @@ em { font-family: var(--serif); font-weight: 400; font-style: italic; }
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font: 600 19px var(--serif); }
 .brand img { width: 28px; height: 28px; border-radius: 8px; }
 .soon { font-size: 13px; font-weight: 500; text-decoration: none; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line); background: rgba(20,18,24,0.35); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.acts { display: flex; align-items: center; gap: 8px; }
+.motion { font: 500 13px var(--sans); color: inherit; cursor: pointer; min-height: 36px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line); background: rgba(20,18,24,0.35); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.motion { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.motion[hidden] { display: none; }
+.motion .ic { width: 10px; height: 11px; border-left: 3px solid currentColor; border-right: 3px solid currentColor; box-sizing: border-box; }
+.motion[aria-pressed="true"] .ic { border-right: 0; border-left: 10px solid currentColor; border-top: 5.5px solid transparent; border-bottom: 5.5px solid transparent; height: 0; width: 0; }
+.soon { white-space: nowrap; }
+.brand { flex-shrink: 0; }
+@media (max-width: 560px) {
+  .motion { width: 44px; height: 44px; padding: 0; justify-content: center; }
+  .soon .far { display: none; }
+  .motion .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+.motion:focus-visible, .soon:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; }
 .soon i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--mint); margin-right: 8px; vertical-align: 1px; font-style: normal; }
 
 /* Chapter counter, bottom left on wide screens */
