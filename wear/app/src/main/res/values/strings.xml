@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Written by scripts/make-wear-strings.ts from src/i18n/ui/en.ts. Edit there, then npm run wear:strings. -->
+<resources>
+  <string name="app_name" translatable="false">Runtrovert</string>
+  <string name="start">Start</string>
+  <string name="pause">Pause</string>
+  <string name="resume">Resume</string>
+  <string name="holdToStop">Hold to stop</string>
+  <string name="holdHint">Hold for a second to end the run</string>
+  <string name="endRun">End the run?</string>
+  <string name="endIt">End run</string>
+  <string name="keepGoing">Keep going</string>
+  <string name="recording">Recording</string>
+  <string name="paused">Paused</string>
+  <string name="autoPaused">Auto-paused</string>
+  <string name="starting">Starting on your phone…</string>
+  <string name="openingPhone">Opening Runtrovert on your phone…</string>
+  <string name="noPhone">Phone not nearby</string>
+  <string name="noPhoneHint">Runtrovert records on your phone. Keep it with you, with the app open once.</string>
+  <string name="finishOnPhone">Stopped. Keep it or let it go on your phone.</string>
+  <string name="finishLast">Your last run is waiting on your phone.</string>
+  <string name="heartRate">Heart rate</string>
+  <string name="bpm">bpm</string>
+  <string name="hrAsk">Heart rate from this watch goes into the run on your phone, and nowhere else.</string>
+  <string name="allow">Allow</string>
+  <string name="notNow">Not now</string>
+  <string name="runInProgress">Run in progress</string>
+  <string name="tapToFollow">Tap to follow it on your watch</string>
+  <string name="channelName">Your run</string>
+  <string name="channelHint">The run on your phone, shown on your watch</string>
+  <string name="tileHint">Tap to start a run</string>
+  <string name="km">km</string>
+  <string name="mi">mi</string>
+  <string name="kmN">Km %1$s</string>
+  <string name="mileN">Mile %1$s</string>
+  <string name="time">Time</string>
+  <string name="distance">Distance</string>
+  <string name="pace">Pace</string>
+</resources>

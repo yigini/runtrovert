@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Written by scripts/make-wear-strings.ts from src/i18n/ui/ja.ts. Edit there, then npm run wear:strings. -->
+<resources>
+  <string name="start">スタート</string>
+  <string name="pause">一時停止</string>
+  <string name="resume">再開</string>
+  <string name="holdToStop">長押しで終了</string>
+  <string name="holdHint">1秒長押しでランを終了</string>
+  <string name="endRun">ランを終了しますか？</string>
+  <string name="endIt">終了</string>
+  <string name="keepGoing">続ける</string>
+  <string name="recording">記録中</string>
+  <string name="paused">一時停止中</string>
+  <string name="autoPaused">自動一時停止</string>
+  <string name="starting">スマホで開始しています…</string>
+  <string name="openingPhone">スマホでRuntrovertを開いています…</string>
+  <string name="noPhone">スマホが近くにありません</string>
+  <string name="noPhoneHint">Runtrovertはスマホで記録します。スマホを持って、アプリを一度開いてください。</string>
+  <string name="finishOnPhone">停止しました。残すかどうかはスマホで。</string>
+  <string name="finishLast">前回のランがスマホで待っています。</string>
+  <string name="heartRate">心拍数</string>
+  <string name="bpm">bpm</string>
+  <string name="hrAsk">この時計の心拍数はスマホのランにだけ記録され、ほかには送られません。</string>
+  <string name="allow">許可</string>
+  <string name="notNow">今はしない</string>
+  <string name="runInProgress">ラン中</string>
+  <string name="tapToFollow">タップして時計で表示</string>
+  <string name="channelName">あなたのラン</string>
+  <string name="channelHint">スマホのランを時計に表示</string>
+  <string name="tileHint">タップしてランを開始</string>
+  <string name="km">km</string>
+  <string name="mi">mi</string>
+  <string name="kmN">%1$s km</string>
+  <string name="mileN">%1$s マイル</string>
+  <string name="time">タイム</string>
+  <string name="distance">距離</string>
+  <string name="pace">ペース</string>
+</resources>

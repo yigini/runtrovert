@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Written by scripts/make-wear-strings.ts from src/i18n/ui/tr.ts. Edit there, then npm run wear:strings. -->
+<resources>
+  <string name="start">Başla</string>
+  <string name="pause">Duraklat</string>
+  <string name="resume">Devam</string>
+  <string name="holdToStop">Bitirmek için basılı tut</string>
+  <string name="holdHint">Koşuyu bitirmek için bir saniye basılı tut</string>
+  <string name="endRun">Koşu bitsin mi?</string>
+  <string name="endIt">Bitir</string>
+  <string name="keepGoing">Devam et</string>
+  <string name="recording">Kaydediliyor</string>
+  <string name="paused">Duraklatıldı</string>
+  <string name="autoPaused">Otomatik duraklatma</string>
+  <string name="starting">Telefonunda başlıyor…</string>
+  <string name="openingPhone">Runtrovert telefonunda açılıyor…</string>
+  <string name="noPhone">Telefon yakında değil</string>
+  <string name="noPhoneHint">Runtrovert telefonunda kaydeder. Yanında tut ve uygulamayı bir kez aç.</string>
+  <string name="finishOnPhone">Durduruldu. Saklamak ya da silmek telefonunda.</string>
+  <string name="finishLast">Son koşun telefonunda bekliyor.</string>
+  <string name="heartRate">Nabız</string>
+  <string name="bpm">bpm</string>
+  <string name="hrAsk">Bu saatten gelen nabız telefonundaki koşuya gider, başka hiçbir yere değil.</string>
+  <string name="allow">İzin ver</string>
+  <string name="notNow">Şimdi değil</string>
+  <string name="runInProgress">Koşu sürüyor</string>
+  <string name="tapToFollow">Saatte izlemek için dokun</string>
+  <string name="channelName">Koşun</string>
+  <string name="channelHint">Telefonundaki koşu, saatinde</string>
+  <string name="tileHint">Koşuya başlamak için dokun</string>
+  <string name="km">km</string>
+  <string name="mi">mil</string>
+  <string name="kmN">%1$s. km</string>
+  <string name="mileN">%1$s. mil</string>
+  <string name="time">Süre</string>
+  <string name="distance">Mesafe</string>
+  <string name="pace">Tempo</string>
+</resources>

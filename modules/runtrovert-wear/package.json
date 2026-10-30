@@ -1,0 +1,10 @@
+{
+  "name": "runtrovert-wear",
+  "version": "0.1.0",
+  "description": "The phone's end of the Wear OS app: messages to and from a nearby watch over the direct link. No accounts, no network.",
+  "license": "MIT",
+  "author": "Runtrovert",
+  "homepage": "https://github.com/yigini/runtrovert",
+  "main": "index.ts",
+  "private": true
+}

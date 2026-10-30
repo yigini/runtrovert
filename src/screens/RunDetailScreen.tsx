@@ -7,7 +7,8 @@ import { RouteMap } from '../components/RouteMap';
 import { ShareSheet } from '../components/ShareSheet';
 import { RunStatsView } from '../components/RunStats';
 import { YouLine } from '../components/YouLine';
-import { deleteRun, getPoints, getRun, getRunSource, getSplits, setMoodAfter, type RunSource } from '../db';
+import { deleteRun, getHeartRate, getPoints, getRun, getRunSource, getSplits, setMoodAfter, type RunSource } from '../db';
+import { cleanHeart, heartSummary, type HeartSummary } from '../heart';
 import { shareRunGpx } from '../io/store';
 import { placeForRun, type Place } from '../placeStore';
 import { forgetRun } from '../training/store';
@@ -45,10 +46,13 @@ export function RunDetailScreen({
   const [source, setSource] = useState<RunSource | null>(null);
   const [saving, setSaving] = useState(false);
   const [place, setPlace] = useState<Place | null>(null);
+  const [heart, setHeart] = useState<HeartSummary | null>(null);
 
   useEffect(() => {
     (async () => {
-      setRun(await getRun(runId));
+      const r = await getRun(runId);
+      setRun(r);
+      if (r) setHeart(heartSummary(cleanHeart(await getHeartRate(runId).catch(() => []), r.startedAt, r.endedAt)));
       const pts = await getPoints(runId);
       setPath(pts.map((p) => ({ latitude: p.lat, longitude: p.lon })));
       setPoints(pts.map((p) => ({ ts: p.ts, lat: p.lat, lon: p.lon, alt: p.alt })));
@@ -128,7 +132,7 @@ export function RunDetailScreen({
       ) : null}
       <RouteMap path={path} height={260} />
       {line && <YouLine title={line.title.replace('\n', ' ')} detail={line.detail} />}
-      <RunStatsView run={run} points={points} splits={kmSplits} laps={laps} partial={partial} sun={weather} km={km} />
+      <RunStatsView run={run} points={points} splits={kmSplits} laps={laps} partial={partial} sun={weather} km={km} heart={heart} />
       {run.moodAfter == null && run.endedAt != null ? (
         <MoodPicker
           title={ui().runDetail.andYourEnergyNow}

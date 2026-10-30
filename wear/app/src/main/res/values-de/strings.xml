@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Written by scripts/make-wear-strings.ts from src/i18n/ui/de.ts. Edit there, then npm run wear:strings. -->
+<resources>
+  <string name="start">Start</string>
+  <string name="pause">Pause</string>
+  <string name="resume">Weiter</string>
+  <string name="holdToStop">Halten zum Beenden</string>
+  <string name="holdHint">Eine Sekunde halten, um den Lauf zu beenden</string>
+  <string name="endRun">Lauf beenden?</string>
+  <string name="endIt">Beenden</string>
+  <string name="keepGoing">Weiterlaufen</string>
+  <string name="recording">Läuft</string>
+  <string name="paused">Pausiert</string>
+  <string name="autoPaused">Auto-Pause</string>
+  <string name="starting">Startet auf deinem Handy …</string>
+  <string name="openingPhone">Runtrovert öffnet sich auf deinem Handy …</string>
+  <string name="noPhone">Handy nicht in der Nähe</string>
+  <string name="noPhoneHint">Runtrovert zeichnet auf dem Handy auf. Nimm es mit und öffne die App einmal.</string>
+  <string name="finishOnPhone">Gestoppt. Behalten oder verwerfen am Handy.</string>
+  <string name="finishLast">Dein letzter Lauf wartet auf deinem Handy.</string>
+  <string name="heartRate">Puls</string>
+  <string name="bpm">bpm</string>
+  <string name="hrAsk">Der Puls von dieser Uhr kommt in den Lauf auf deinem Handy und nirgendwo sonst hin.</string>
+  <string name="allow">Erlauben</string>
+  <string name="notNow">Nicht jetzt</string>
+  <string name="runInProgress">Lauf unterwegs</string>
+  <string name="tapToFollow">Tippen, um ihn auf der Uhr zu sehen</string>
+  <string name="channelName">Dein Lauf</string>
+  <string name="channelHint">Der Lauf auf deinem Handy, auf der Uhr gezeigt</string>
+  <string name="tileHint">Tippen, um loszulaufen</string>
+  <string name="km">km</string>
+  <string name="mi">mi</string>
+  <string name="kmN">Km %1$s</string>
+  <string name="mileN">Meile %1$s</string>
+  <string name="time">Zeit</string>
+  <string name="distance">Distanz</string>
+  <string name="pace">Tempo</string>
+</resources>

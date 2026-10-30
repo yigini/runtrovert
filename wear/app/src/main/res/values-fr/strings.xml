@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Written by scripts/make-wear-strings.ts from src/i18n/ui/fr.ts. Edit there, then npm run wear:strings. -->
+<resources>
+  <string name="start">Démarrer</string>
+  <string name="pause">Pause</string>
+  <string name="resume">Reprendre</string>
+  <string name="holdToStop">Maintenir pour arrêter</string>
+  <string name="holdHint">Maintenez une seconde pour finir la course</string>
+  <string name="endRun">Finir la course ?</string>
+  <string name="endIt">Finir</string>
+  <string name="keepGoing">Continuer</string>
+  <string name="recording">Enregistrement</string>
+  <string name="paused">En pause</string>
+  <string name="autoPaused">Pause auto</string>
+  <string name="starting">Démarrage sur votre téléphone…</string>
+  <string name="openingPhone">Ouverture de Runtrovert sur votre téléphone…</string>
+  <string name="noPhone">Téléphone hors de portée</string>
+  <string name="noPhoneHint">Runtrovert enregistre sur votre téléphone. Gardez-le avec vous et ouvrez l’app une fois.</string>
+  <string name="finishOnPhone">Arrêtée. Gardez-la ou non sur votre téléphone.</string>
+  <string name="finishLast">Votre dernière course attend sur votre téléphone.</string>
+  <string name="heartRate">Fréquence cardiaque</string>
+  <string name="bpm">bpm</string>
+  <string name="hrAsk">La fréquence cardiaque de cette montre va dans la course sur votre téléphone, et nulle part ailleurs.</string>
+  <string name="allow">Autoriser</string>
+  <string name="notNow">Pas maintenant</string>
+  <string name="runInProgress">Course en cours</string>
+  <string name="tapToFollow">Touchez pour la suivre sur la montre</string>
+  <string name="channelName">Votre course</string>
+  <string name="channelHint">La course de votre téléphone, sur votre montre</string>
+  <string name="tileHint">Touchez pour courir</string>
+  <string name="km">km</string>
+  <string name="mi">mi</string>
+  <string name="kmN">Km %1$s</string>
+  <string name="mileN">Mile %1$s</string>
+  <string name="time">Temps</string>
+  <string name="distance">Distance</string>
+  <string name="pace">Allure</string>
+</resources>

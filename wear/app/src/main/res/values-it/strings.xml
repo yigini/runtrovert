@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Written by scripts/make-wear-strings.ts from src/i18n/ui/it.ts. Edit there, then npm run wear:strings. -->
+<resources>
+  <string name="start">Inizia</string>
+  <string name="pause">Pausa</string>
+  <string name="resume">Riprendi</string>
+  <string name="holdToStop">Tieni premuto per fermare</string>
+  <string name="holdHint">Tieni premuto un secondo per finire la corsa</string>
+  <string name="endRun">Finire la corsa?</string>
+  <string name="endIt">Finisci</string>
+  <string name="keepGoing">Continua</string>
+  <string name="recording">In registrazione</string>
+  <string name="paused">In pausa</string>
+  <string name="autoPaused">Pausa automatica</string>
+  <string name="starting">Avvio sul telefono…</string>
+  <string name="openingPhone">Apertura di Runtrovert sul telefono…</string>
+  <string name="noPhone">Telefono non vicino</string>
+  <string name="noPhoneHint">Runtrovert registra sul telefono. Tienilo con te e apri l’app una volta.</string>
+  <string name="finishOnPhone">Fermata. Tienila o scartala sul telefono.</string>
+  <string name="finishLast">La tua ultima corsa ti aspetta sul telefono.</string>
+  <string name="heartRate">Battito</string>
+  <string name="bpm">bpm</string>
+  <string name="hrAsk">Il battito di questo orologio va nella corsa sul telefono, e da nessun’altra parte.</string>
+  <string name="allow">Consenti</string>
+  <string name="notNow">Non ora</string>
+  <string name="runInProgress">Corsa in corso</string>
+  <string name="tapToFollow">Tocca per seguirla sull’orologio</string>
+  <string name="channelName">La tua corsa</string>
+  <string name="channelHint">La corsa del telefono, sul tuo orologio</string>
+  <string name="tileHint">Tocca per iniziare a correre</string>
+  <string name="km">km</string>
+  <string name="mi">mi</string>
+  <string name="kmN">Km %1$s</string>
+  <string name="mileN">Miglio %1$s</string>
+  <string name="time">Tempo</string>
+  <string name="distance">Distanza</string>
+  <string name="pace">Passo</string>
+</resources>

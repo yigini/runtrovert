@@ -21,7 +21,8 @@ import { UnlockNudge } from '../components/UnlockNudge';
 import { YouLine } from '../components/YouLine';
 import { useBack } from '../back';
 import { cueCountdown, setRunSilent } from '../cues';
-import { deleteRun, getPoints, listRuns, loadValue, saveValue } from '../db';
+import { deleteRun, getHeartRate, getPoints, listRuns, loadValue, saveValue } from '../db';
+import { cleanHeart, heartSummary, type HeartSummary } from '../heart';
 import { HomeScreen } from './HomeScreen';
 import { countdownFootage, type Footage } from '../footage';
 import { distanceUnit, formatDistance, formatDistanceNumber, formatDuration, formatElevation, formatPace, formatSpeedAsPace } from '../geo';
@@ -38,6 +39,8 @@ import type { Plan, Session, Step } from '../training/types';
 import { createWorkout, formatLeft, leftClock, stepFeel, stepLine, stepName } from '../training/workout';
 import type { LatLon, Mood, Quiet, Run } from '../types';
 import { planSessionOpen } from '../unlock';
+import { onWatchCommand } from '../wear';
+import type { WatchCommand } from '../wearProtocol';
 import { cachedWeather } from '../weather';
 import { beginWorkout, endWorkout, subscribeWorkout, type GuidedRun } from '../workoutRun';
 import { liveFacts, recordRunFacts } from '../you';
@@ -59,7 +62,7 @@ const TINY_RUN_M = 50;
 /** How long Stop is held before the run ends. Long enough that a sleeve or a pocket can't do it. */
 const HOLD_TO_STOP_MS = 1000;
 
-export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0, focused = true, onOpenPlan, onPlanChanged, onBrowseListen, onInk, ghost = null, onGhostTaken }: { onSaved: (runId: number, share?: boolean, extra?: { pain: PainLevel | null; sessionId: string | null }) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number; focused?: boolean; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; onInk?: (ink: boolean) => void; ghost?: Ghost | null; onGhostTaken?: () => void }) {
+export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0, focused = true, onOpenPlan, onPlanChanged, onBrowseListen, onInk, ghost = null, onGhostTaken, onWatchStart }: { onSaved: (runId: number, share?: boolean, extra?: { pain: PainLevel | null; sessionId: string | null }) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number; focused?: boolean; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; onInk?: (ink: boolean) => void; ghost?: Ghost | null; onGhostTaken?: () => void; onWatchStart?: () => void }) {
   const { settings } = useSettings();
   const km = settings.unitsKm;
   const [track, setTrack] = useState<TrackingState>(getState());
@@ -75,6 +78,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   const [live, setLive] = useState<{ run: RunFacts; history: RunFacts[] } | null>(null);
   // Every fix of the run on the finish screen, for the charts: what's saved plus what isn't yet.
   const [finishPoints, setFinishPoints] = useState<StatPoint[]>([]);
+  const [finishHeart, setFinishHeart] = useState<HeartSummary | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
   const [mapFront, setMapFront] = useState(false);
@@ -127,9 +131,16 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     const runId = final?.runId;
     if (phase !== 'finish' || runId == null) {
       setFinishPoints([]);
+      setFinishHeart(null);
       return;
     }
     let alive = true;
+    // From a watch, if one was on the wrist. Its last readings land a moment after Stop.
+    const t = setTimeout(() => {
+      getHeartRate(runId)
+        .then((hr) => alive && setFinishHeart(heartSummary(cleanHeart(hr, final?.startedAt ?? 0, null))))
+        .catch(() => {});
+    }, 1500);
     getPoints(runId)
       .then((saved) => {
         const seen = new Set(saved.map((p) => p.ts));
@@ -139,6 +150,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
       .catch(() => {});
     return () => {
       alive = false;
+      clearTimeout(t);
     };
   }, [phase, final?.runId]);
   useEffect(() => {
@@ -187,6 +199,21 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   }, [ink, onInk]);
   useEffect(() => () => {
     if (countdownRef.current) clearInterval(countdownRef.current);
+  }, []);
+
+  // The watch's buttons (src/wear.ts) do what the ones on this screen do.
+  const watchRef = useRef<(c: WatchCommand) => void>(() => {});
+  watchRef.current = (c) => {
+    if (c === 'start' && phase === 'idle') {
+      onWatchStart?.();
+      void onStart();
+    } else if (c === 'pause' && phase === 'active') pauseRun();
+    else if (c === 'resume' && phase === 'active') resumeRun();
+    else if (c === 'stop' && phase === 'active') void onStop();
+  };
+  useEffect(() => {
+    onWatchCommand((c) => watchRef.current(c));
+    return () => onWatchCommand(null);
   }, []);
 
   async function onStart() {
@@ -500,6 +527,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
             partial={partialKm}
             km={km}
             hero={false}
+            heart={finishHeart}
           />
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
             <Button title={ui().run.discard} variant="danger" onPress={onDiscard} style={{ flex: 0, paddingHorizontal: 22 }} />

@@ -76,6 +76,7 @@ export interface Settings {
   afterRunNote: boolean; // a quiet "run saved" notification
   weather: boolean; // fetch the local forecast for the home screen (Open-Meteo, coarse location)
   runNotes: boolean; // live stats on the lock screen and a note per km (watches mirror these)
+  watch: boolean; // the Wear OS app: live run on the wrist, its buttons, its heart rate into the run
   batteryMode: BatteryMode;
   keepScreenOn: boolean; // during a run only
   listenDownload: ListenDownload;
@@ -108,6 +109,7 @@ export const DEFAULT_SETTINGS: Settings = {
   afterRunNote: true,
   weather: true,
   runNotes: true,
+  watch: true,
   batteryMode: 'auto',
   keepScreenOn: false,
   listenDownload: 'ask',

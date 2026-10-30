@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, AppState, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, AppState, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
 import { PresetSheet } from '../components/PresetSheet';
 import { appByKey } from '../music';
@@ -88,6 +88,11 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onBack, runLive
         <Row label={ui().settings.lockScreenAndWatch} hint={ui().settings.liveDistanceAndTimeOn}>
           <Switch value={settings.runNotes} onValueChange={(v) => update({ runNotes: v })} trackColor={{ true: colors.ink }} />
         </Row>
+        {Platform.OS === 'android' && (
+          <Row label={ui().settings.watchApp} hint={ui().settings.watchAppHint}>
+            <Switch value={settings.watch} onValueChange={(v) => update({ watch: v })} trackColor={{ true: colors.ink }} />
+          </Row>
+        )}
         <Row label={ui().settings.units}>
           <Segmented value={settings.unitsKm ? 'km' : 'mi'} options={['km', 'mi']} onChange={(v) => update({ unitsKm: v === 'km' })} />
         </Row>

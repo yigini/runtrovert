@@ -8,6 +8,7 @@ import { colors, fonts, radius, spacing, type } from '../theme';
 import { BUSY_LABEL } from '../places';
 import { SplitsTable, type SplitRow } from './SplitsTable';
 import { live, ui } from '../i18n/ui';
+import type { HeartSummary } from '../heart';
 
 // The stats page for one run: the four numbers first, big and plain, then the
 // run drawn out (pace and hills along the way, splits, halves, the sun), then a
@@ -26,9 +27,11 @@ export interface RunStatsProps {
   km: boolean;
   /** The four big numbers. Off on the finish screen, where they sit over the map. */
   hero?: boolean;
+  /** From a watch, when one was on the wrist. */
+  heart?: HeartSummary | null;
 }
 
-export function RunStatsView({ run, points, splits, laps = [], partial, sun, km, hero = true }: RunStatsProps) {
+export function RunStatsView({ run, points, splits, laps = [], partial, sun, km, hero = true, heart = null }: RunStatsProps) {
   const stats = useMemo(
     () => runStats(run, points, splits.map((s) => (s.durationS / Math.max(s.distanceM, 1)) * 1000), sun ?? null),
     [run, points, splits, sun],
@@ -39,6 +42,7 @@ export function RunStatsView({ run, points, splits, laps = [], partial, sun, km,
   return (
     <View style={{ gap: spacing.md }}>
       {hero && <Hero run={run} km={km} />}
+      {heart && <HeartCard heart={heart} />}
       {charted ? (
         <View style={styles.card}>
           <Readout stats={stats} at={at} km={km} />
@@ -90,6 +94,19 @@ function HeroStat({ value, label, tone }: { value: string; label: string; tone: 
       <View style={[styles.heroTick, { backgroundColor: tone }]} />
       <Text style={styles.heroValue}>{value}</Text>
       <Text style={styles.label}>{label}</Text>
+    </View>
+  );
+}
+
+// ---- Heart rate, from a watch ---------------------------------------------------------
+
+function HeartCard({ heart }: { heart: HeartSummary }) {
+  const line = ui().runStats.hrAvgMax(heart.avg, heart.max);
+  return (
+    <View style={[styles.card, { backgroundColor: colors.lilacSoft }]} accessible accessibilityLabel={`${ui().runStats.heartRate}, ${line}`}>
+      <Text style={styles.eyebrow}>{ui().runStats.heartRate}</Text>
+      <Text style={styles.heroValue}>{line}</Text>
+      <Text style={styles.label}>{ui().runStats.fromYourWatch}</Text>
     </View>
   );
 }
