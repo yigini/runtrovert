@@ -37,6 +37,13 @@ function sendLive(needsOpen = false) {
   send(PATHS.live, liveJson(current, needsOpen));
 }
 
+let heartListener: ((bpm: number, ts: number) => void) | null = null;
+
+/** The latest reading from the watch during a run, for the guided session. One listener; null to stop. */
+export function setHeartListener(l: ((bpm: number, ts: number) => void) | null): void {
+  heartListener = l;
+}
+
 /** Once, when the settings first load. Says hello to a watch that may be waiting on a Start. */
 function startWear(): void {
   if (!native || started) return;
@@ -59,7 +66,9 @@ function startWear(): void {
       // Kept while the finish screen is up too: the watch's last few seconds arrive just after Stop.
       // Readings with no run on: the watch missed the Stop. Tell it where things are.
       if (runId == null || current.status === 'idle') return sendLive();
-      void addHeartRate(runId, parseHeart(data)).catch(() => {});
+      const samples = parseHeart(data);
+      void addHeartRate(runId, samples).catch(() => {});
+      if (samples.length) heartListener?.(samples[samples.length - 1][1], samples[samples.length - 1][0]);
     }
   });
   AppState.addEventListener('change', (next) => {

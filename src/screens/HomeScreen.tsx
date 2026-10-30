@@ -13,7 +13,10 @@ import { PlanReminderLine } from '../components/PlanReminders';
 import { SkyGlyph } from '../components/SkyGlyph';
 import { TipLine } from '../components/TipLine';
 import { ListenSheet } from './ListenScreen';
+import { roughMinutes, type Offer } from '../commute';
+import { useCommuteOffer } from '../commuteStore';
 import { homeFootage } from '../footage';
+import { formatDistance } from '../geo';
 import { PRESETS, effectivePreset, presetInfo } from '../presets';
 import { clock, formatTemp, headline, suggestions } from '../sky';
 import { useSettings } from '../settings';
@@ -36,7 +39,7 @@ import { dateLocale, decimal, monthName } from '../i18n/lang';
  * Ten days or more since the last run, it says welcome back instead: no plan
  * day, nothing overdue, one free run, and the plan as a separate choice.
  */
-export function HomeScreen({ runs, mood, onMood, onStart, onRunFree, planToday, planNext, plan, onOpenPlan, onPlanChanged, onBrowseListen, welcomeBack = true }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; onRunFree?: () => void; planToday?: Session | null; planNext?: Session | null; plan?: Plan | null; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; welcomeBack?: boolean }) {
+export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, planToday, planNext, plan, onOpenPlan, onPlanChanged, onBrowseListen, welcomeBack = true }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; onCommute?: (o: Offer) => void; onRunFree?: () => void; planToday?: Session | null; planNext?: Session | null; plan?: Plan | null; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; welcomeBack?: boolean }) {
   const { settings, update } = useSettings();
   const [presetSheet, setPresetSheet] = useState(false);
   const [listen, setListen] = useState(false);
@@ -51,6 +54,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, onRunFree, planToday, 
   const metric = settings.unitsKm;
   const [sky, setSky] = useState<WeatherResult | null>(null);
   const [now, setNow] = useState(Date.now());
+  const commute = useCommuteOffer(runs, now);
 
   const refresh = useCallback(
     async (ask = false) => {
@@ -187,6 +191,23 @@ export function HomeScreen({ runs, mood, onMood, onStart, onRunFree, planToday, 
         </View>
       ) : (
       <View style={styles.dock}>
+        {/* Run to work, Run home: one quiet line on a weekday, only once home and work are set. */}
+        {commute && onCommute ? (
+          <Pressable
+            onPress={() => onCommute(commute)}
+            accessibilityRole="button"
+            accessibilityHint={commute.dir === 'toWork' ? ui().commute.toWorkHint : ui().commute.homeHint}
+            style={({ pressed }) => [styles.commute, pressed && { opacity: 0.85 }]}
+          >
+            <Text style={styles.commuteLabel}>{commute.dir === 'toWork' ? ui().commute.runToWork : ui().commute.runHome}</Text>
+            <Text style={styles.commuteText} numberOfLines={1}>
+              {ui().commute.about(formatDistance(commute.distanceM, metric), roughMinutes(commute.durationS))}
+            </Text>
+            <Text style={styles.adjustArrow} accessibilityElementsHidden importantForAccessibility="no">
+              ›
+            </Text>
+          </Pressable>
+        ) : null}
         <View style={styles.todayHead}>
           <Text style={styles.todayLabel} accessibilityRole="header">{ui().home.todaySRun}</Text>
           <Pressable onPress={() => setPresetSheet(true)} accessibilityRole="button" hitSlop={10}>
@@ -363,5 +384,8 @@ const styles = StyleSheet.create({
   adjust: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 4, minHeight: 64, paddingVertical: 14, paddingHorizontal: 18, borderRadius: radius.lg, backgroundColor: colors.white },
   adjustLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: colors.inkMuted },
   adjustText: { fontFamily: fonts.bodySemi, fontSize: 16, color: colors.ink },
+  commute: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 48, paddingHorizontal: 16, borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.72)' },
+  commuteLabel: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.ink },
+  commuteText: { flex: 1, fontFamily: fonts.body, fontSize: 13, color: colors.inkSoft, fontVariant: ['tabular-nums'] },
   adjustArrow: { fontFamily: fonts.body, fontSize: 22, color: colors.inkMuted },
 });

@@ -7,6 +7,7 @@ import { weekdayName } from './i18n/lang';
 import { voice } from './i18n/voice';
 import { fitNotes, inQuietHours, planReminders, startOfDay, type ExtraNote, type PlannedReminder } from './reminderPlan';
 import { planNotes } from './training/remind';
+import { commuteSource } from './commuteStore';
 import type { NotifyPerWeek, Settings } from './types';
 import { ui } from './i18n/ui';
 
@@ -29,7 +30,8 @@ export interface NoteContent {
  */
 export type NoteSource = (settings: Settings, now: number) => Promise<{ notes: ExtraNote<NoteContent>[]; ownedDays?: number[] }>;
 
-const SOURCES: NoteSource[] = [planNotes];
+// A function, not a list, because commuteStore imports this module back.
+const sources = (): NoteSource[] => [planNotes, commuteSource];
 
 // Run notes (live stats, km splits) are for the lock screen and the watch; while
 // the app is open you are already looking at the numbers, so no banner then.
@@ -198,7 +200,7 @@ export async function rescheduleReminders(settingsIn?: Settings): Promise<void> 
 
   const extras: ExtraNote<NoteContent>[] = [];
   const owned = new Set<number>();
-  for (const source of SOURCES) {
+  for (const source of sources()) {
     const r = await source(settings, now).catch(() => null);
     if (!r) continue;
     extras.push(...r.notes);
