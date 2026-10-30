@@ -15,7 +15,6 @@ The server pulls main every 10 minutes, so a merge is a deploy.
 
 - Replace the placeholder store buttons (`aria-disabled` in `index.html`) with the
   official Google Play badge and the listing link, following Google's badge rules.
-- Fill in `[developer name and country]` in `privacy.html`.
 - Check `hello@runtrovert.app` exists (or swap it for the real address).
 - Keep `privacy.html` in step with the Privacy text in Settings (`src/i18n/ui/en.ts`,
   `runtrovertHasNoServerYour`). If the app fetches something new, this page changes first.
