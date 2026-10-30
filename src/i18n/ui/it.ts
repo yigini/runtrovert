@@ -429,6 +429,8 @@ export const it: Strings = {
     energyAfter: (avg) => `energia ${avg} dopo`,
   },
   listen: {
+    backToYourRun: 'Torna alla tua corsa',
+    stillRecording: 'La tua corsa è ancora in registrazione',
     adverts: 'Questi programmi hanno la loro pubblicità. Runtrovert non ha pubblicità fastidiosa o invadente e non vede mai cosa ascolti. Quando si apre un programma, la tua app di podcast e chi ospita il programma vedono una connessione normale, indirizzo IP compreso, come per qualsiasi download.',
     theOneThisVersionShipped: ', quella arrivata con questa versione',
     xMinutes: (n) => `, ${n} minuti`,
@@ -542,6 +544,7 @@ export const it: Strings = {
     deleteRun2: 'Elimina la corsa',
   },
   run: {
+    listenHint: 'Scegli musica o un podcast. La tua corsa continua a essere registrata.',
     unitWord: (km) => (km ? 'chilometri' : 'miglia'),
     thenSpoken: (next) => ` Poi ${next}.`,
     lastBlockSpoken: ' Ultimo blocco.',

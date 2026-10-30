@@ -71,7 +71,8 @@ const LOCAL_TINT: Tint = { bg: colors.peach, fg: colors.peachDeep };
 
 type Picking = { kind: 'music' } | { kind: 'podcast'; then: Show | null; ep?: Episode | null };
 
-export function ListenScreen({ onBack }: { onBack?: () => void }) {
+/** runLive: opened from a run in progress, so Back returns to it and the top says it's still recording. */
+export function ListenScreen({ onBack, runLive = false }: { onBack?: () => void; runLive?: boolean }) {
   const { settings, update } = useSettings();
   const { width } = useWindowDimensions();
   const [shelf, setShelf] = useState<Shelf | null>(null);
@@ -160,7 +161,13 @@ export function ListenScreen({ onBack }: { onBack?: () => void }) {
       contentContainerStyle={{ gap: spacing.lg, paddingBottom: spacing.xl }}
       refreshControl={settings.listenDownload === 'on' ? <RefreshControl refreshing={pulling} onRefresh={pull} tintColor={colors.ink} colors={[colors.ink]} /> : undefined}
     >
-      {onBack ? <BackButton label={ui().listen.start} onPress={onBack} /> : null}
+      {onBack ? <BackButton label={runLive ? ui().listen.backToYourRun : ui().listen.start} onPress={onBack} /> : null}
+      {runLive ? (
+        <View style={styles.recording} accessible accessibilityLiveRegion="polite">
+          <View style={styles.recordingDot} />
+          <Text style={styles.recordingText}>{ui().listen.stillRecording}</Text>
+        </View>
+      ) : null}
       <View style={{ gap: spacing.sm }}>
         <Text style={styles.h1} accessibilityRole="header">{ui().listen.listen}</Text>
         <Text style={styles.lede}>{ui().listen.voicesToTakeWithYou}</Text>
@@ -905,6 +912,9 @@ function flag(cc: string | null): string {
 }
 
 const styles = StyleSheet.create({
+  recording: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', backgroundColor: colors.ink, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 8 },
+  recordingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.mint },
+  recordingText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.cream },
   screen: { flex: 1, backgroundColor: colors.cream, padding: spacing.md, paddingTop: spacing.lg },
   bleed: { marginHorizontal: -spacing.md, paddingHorizontal: spacing.md },
   h1: { fontFamily: fonts.display, fontSize: 34, lineHeight: 40, letterSpacing: -0.5, color: colors.text },

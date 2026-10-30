@@ -430,6 +430,8 @@ export const tr: Strings = {
     energyAfter: (avg) => `sonrasında enerji ${avg}`,
   },
   listen: {
+    backToYourRun: 'Koşuna dön',
+    stillRecording: 'Koşun hâlâ kaydediliyor',
     adverts: 'Bu programların kendi reklamları var. Runtrovert’ta can sıkıcı, rahatsız edici reklam yok ve ne dinlediğini asla görmez. Bir program açıldığında podcast uygulaman ve programın sunucusu normal bir bağlantı görür, IP adresi dahil, her indirmede olduğu gibi.',
     theOneThisVersionShipped: ', bu sürümle gelen liste',
     xMinutes: (n) => `, ${n} dakika`,
@@ -543,6 +545,7 @@ export const tr: Strings = {
     deleteRun2: 'Koşuyu sil',
   },
   run: {
+    listenHint: 'Müzik ya da podcast seç. Koşun kaydedilmeye devam ediyor.',
     unitWord: (km) => (km ? 'kilometre' : 'mil'),
     thenSpoken: (next) => ` Sonra ${next}.`,
     lastBlockSpoken: ' Son blok.',

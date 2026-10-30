@@ -427,6 +427,8 @@ export const ja: Strings = {
     energyAfter: (avg) => `ラン後のエネルギー ${avg}`,
   },
   listen: {
+    backToYourRun: 'ランに戻る',
+    stillRecording: 'ランはまだ記録中です',
     adverts: 'これらの番組には番組自身の広告が入ります。Runtrovertにはうっとうしい広告も邪魔な広告もなく、あなたが何を聴いているかも見ません。番組を開くと、ポッドキャストアプリと番組の配信元には、ふつうのダウンロードと同じく、IPアドレスを含む通常の接続が見えます。',
     theOneThisVersionShipped: '、このバージョンに同梱のもの',
     xMinutes: (n) => `、${n}分`,
@@ -540,6 +542,7 @@ export const ja: Strings = {
     deleteRun2: 'ランを削除',
   },
   run: {
+    listenHint: '音楽かポッドキャストを選べます。ランの記録は続きます。',
     unitWord: (km) => (km ? 'キロメートル' : 'マイル'),
     thenSpoken: (next) => `次は${next}。`,
     lastBlockSpoken: '最後のブロックです。',

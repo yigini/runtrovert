@@ -430,6 +430,8 @@ export const en = {
     energyAfter: (avg: string) => `energy ${avg} after`,
   },
   listen: {
+    backToYourRun: 'Back to your run',
+    stillRecording: 'Your run is still recording',
     adverts: 'These shows carry their own adverts. Runtrovert has no annoying, intrusive ads and never sees what you play. When a show opens, your podcast app and the show\'s host see a normal connection, IP address included, like any download.',
     theOneThisVersionShipped: ', the one this version shipped with',
     xMinutes: (f: string | number) => `, ${f} minutes`,
@@ -543,6 +545,7 @@ export const en = {
     deleteRun2: 'Delete run',
   },
   run: {
+    listenHint: 'Pick music or a podcast. Your run keeps recording.',
     unitWord: (km: boolean): string => (km ? 'kilometres' : 'miles'),
     thenSpoken: (next: string) => ` Then ${next}.`,
     lastBlockSpoken: ' Last block.',

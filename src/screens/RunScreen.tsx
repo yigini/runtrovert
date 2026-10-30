@@ -575,6 +575,13 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
       <StopButton wide onStop={() => void onStop()} />
     </View>
   );
+  // The whole Listen page, one tap away mid-run. The run keeps recording underneath.
+  const listenLink = onBrowseListen ? (
+    <Pressable onPress={onBrowseListen} accessibilityRole="button" accessibilityLabel={ui().listen.listen} accessibilityHint={ui().run.listenHint} hitSlop={8} style={styles.listenLink}>
+      <NoteGlyph color={colors.inkMuted} />
+      <Text style={styles.calmTap}>{ui().listen.listen}</Text>
+    </Pressable>
+  ) : null;
 
   // Clear my head: nothing to read. The run records, the numbers wait for the finish.
   if (shown === 'clear') {
@@ -605,6 +612,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
           </Pressable>
         </View>
         <Text style={styles.calmNote}>{halted ? (autoPaused ? ui().run.autoPausedItCarriesOn : ui().run.pausedNothingIsRecording) : ui().run.noVoiceNoBuzzYour}</Text>
+        {listenLink}
         {lightControls}
       </View>
     );
@@ -673,6 +681,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
           <PlanNum value={formatDuration(track.durationS)} label={ui().run.total} />
           <PlanNum value={formatPace(track.distanceM, track.durationS, km)} label={ui().run.paceX(distanceUnit(km))} />
         </View>
+        {listenLink}
         {lightControls}
       </View>
     );
@@ -717,7 +726,13 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
 
         {settings.musicStrip && <MusicStrip appKey={settings.musicApp} />}
 
-        <View style={{ alignItems: 'center' }}>
+        <View style={styles.toggleRow}>
+          {onBrowseListen ? (
+            <Pressable onPress={onBrowseListen} accessibilityRole="button" accessibilityLabel={ui().listen.listen} accessibilityHint={ui().run.listenHint} style={({ pressed }) => [styles.mapToggle, styles.listenPill, pressed && { opacity: 0.85 }]}>
+              <NoteGlyph color={colors.ink} />
+              <Text style={styles.mapToggleText}>{ui().listen.listen}</Text>
+            </Pressable>
+          ) : null}
           <Pressable onPress={toggleMap} accessibilityRole="button" accessibilityLabel={mapFront ? ui().run.showNumbers : ui().run.showMap} style={({ pressed }) => [styles.mapToggle, pressed && { opacity: 0.85 }]}>
             <Text style={styles.mapToggleText}>{mapFront ? ui().run.numbers : ui().run.map}</Text>
           </Pressable>
@@ -1032,6 +1047,9 @@ const styles = StyleSheet.create({
   stripValue: { fontFamily: fonts.display, fontSize: 24, lineHeight: 28, color: colors.cream, fontVariant: ['tabular-nums'] },
   stripLabel: { fontFamily: fonts.bodySemi, fontSize: 11, color: colors.onInkMuted },
   mapToggle: { backgroundColor: 'rgba(246,241,234,0.92)', borderRadius: radius.pill, paddingHorizontal: 22, paddingVertical: 10 },
+  toggleRow: { flexDirection: 'row', justifyContent: 'center', gap: spacing.sm },
+  listenPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 18 },
+  listenLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, alignSelf: 'center', minHeight: 44, paddingHorizontal: spacing.md },
   mapToggleText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.ink },
   controls: { flexDirection: 'row', gap: spacing.sm + 2, alignItems: 'center', paddingBottom: spacing.sm },
   roundBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
@@ -1072,3 +1090,13 @@ const styles = StyleSheet.create({
   resumeText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.cream },
   note: { minHeight: 56, borderBottomWidth: 1.5, borderBottomColor: colors.ink, paddingVertical: 10, color: colors.text, fontFamily: fonts.displayItalic, fontSize: 17, textAlignVertical: 'top' },
 });
+
+function NoteGlyph({ color }: { color: string }) {
+  return (
+    <Svg width={15} height={15} viewBox="0 0 16 16">
+      <Path d="M6 12 V3.4 L13 2 V10.8" stroke={color} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <Circle cx={4.2} cy={12} r={1.9} stroke={color} strokeWidth={1.6} fill="none" />
+      <Circle cx={11.2} cy={10.8} r={1.9} stroke={color} strokeWidth={1.6} fill="none" />
+    </Svg>
+  );
+}
