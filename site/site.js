@@ -1,6 +1,6 @@
 // Loops load near the screen and play only on it. Lines rotate in the app's own voice (src/lines.ts,
 // src/i18n/voice/en.ts). Motion stops when the device asks for less of it (read live, so turning
-// the setting on mid-visit counts) or when the visitor presses Pause motion.
+// the setting on mid-visit counts), when the browser asks to save data, or when the visitor presses Pause motion.
 (function () {
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
   var wide = window.matchMedia('(min-aspect-ratio: 1/1)');
@@ -12,7 +12,9 @@
   // The Pause button's choice is remembered in this browser only.
   var paused = false;
   try { paused = localStorage.getItem('motion') === 'off'; } catch (e) {}
-  function calm() { return paused || reduce.matches; }
+  // Data saver on: posters only, no loops at all.
+  var lean = !!(navigator.connection && navigator.connection.saveData);
+  function calm() { return paused || reduce.matches || lean; }
   var visible = [];
 
   // Posters are plain <img>s (lazy, sized per screen). A loop is fetched only when its chapter
@@ -22,7 +24,10 @@
     var src = wide.matches ? v.dataset.wide : v.dataset.tall;
     if (v.dataset.src === src) return;
     v.dataset.src = src;
+    // preload="none" in the HTML keeps the first paint light; once a chapter is near, fetch for real.
+    v.preload = 'auto';
     v.src = src;
+    v.load();
     v.addEventListener('playing', function () { v.classList.add('on'); }, { once: true });
   }
   function play(v) { if (calm()) return; load(v); var p = v.play(); if (p && p.catch) p.catch(function () {}); }
@@ -32,7 +37,7 @@
     root.classList.toggle('rv', !calm());
     visible.forEach(function (v) { if (calm()) v.pause(); else play(v); });
     if (!toggle) return;
-    toggle.hidden = reduce.matches;
+    toggle.hidden = reduce.matches || lean;
     toggle.classList.toggle('is-paused', paused);
     toggle.querySelector('.lbl').textContent = paused ? 'Play motion' : 'Pause motion';
   }
@@ -44,11 +49,12 @@
   if (reduce.addEventListener) reduce.addEventListener('change', apply);
   apply();
 
-  // Each chapter's text settles in once, the first time the chapter comes on screen.
+  // Each chapter's text settles in once, the first time any of it comes on screen. Any part
+  // counts, not a share of it, so a chapter taller than the screen (zoomed in) still arrives.
   if ('IntersectionObserver' in window) {
     var arrive = new IntersectionObserver(function (entries) {
       entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('seen'); arrive.unobserve(e.target); } });
-    }, { threshold: 0.2 });
+    }, { threshold: 0, rootMargin: '0px 0px -12% 0px' });
     Array.prototype.forEach.call(chapters, function (c, i) { if (i === 0) c.classList.add('seen'); else arrive.observe(c); });
   } else Array.prototype.forEach.call(chapters, function (c) { c.classList.add('seen'); });
 
@@ -156,6 +162,7 @@
   function rest() {
     clearTimeout(idle);
     if (told < whispers.length) idle = setTimeout(function () {
+      if (calm()) return;
       whisper.textContent = whispers[told++];
       whisper.classList.add('on');
       setTimeout(function () { whisper.classList.remove('on'); }, 6000);

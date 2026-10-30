@@ -23,7 +23,8 @@ The server pulls main every 10 minutes, so a merge is a deploy.
 ## Changing the CSS or JS
 
 Bump the `?v=` number on `style.css` and `site.js` in both HTML files whenever either
-changes, so browsers that cached the old file fetch the new one.
+changes. nginx lets browsers keep both for 7 days, so without a new number visitors
+keep the old file for up to a week.
 
 ## Footage
 
