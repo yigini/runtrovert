@@ -166,5 +166,92 @@
     rest();
   }
 
+  // Chapter 3's phone: the three run screens and the finish screen, with sample numbers. The live
+  // screens tick only while the phone is on screen and motion is on.
+  var phone = document.getElementById('demo');
+  if (phone) (function () {
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.modes [role=tab]'));
+    var screens = phone.querySelectorAll('.scr'), finish = document.getElementById('finish');
+    var mode = 'silent', onScreen = false;
+    function show(name) {
+      Array.prototype.forEach.call(screens, function (sc) { sc.hidden = sc.getAttribute('data-show') !== name; });
+      finish.hidden = name === 'finish';
+    }
+    function pick(tab, focus) {
+      tabs.forEach(function (t) { var on = t === tab; t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; });
+      phone.setAttribute('aria-labelledby', tab.id);
+      mode = tab.getAttribute('data-mode');
+      show(mode);
+      if (focus) tab.focus();
+    }
+    tabs.forEach(function (t, i) {
+      t.addEventListener('click', function () { pick(t); });
+      t.addEventListener('keydown', function (e) {
+        var k = e.key, j = k === 'ArrowDown' || k === 'ArrowRight' ? i + 1 : k === 'ArrowUp' || k === 'ArrowLeft' ? i - 1 : null;
+        if (j === null) return;
+        e.preventDefault();
+        pick(tabs[(j + tabs.length) % tabs.length], true);
+      });
+    });
+
+    var fin = phone.querySelector('.fin'), finH = fin.querySelector('.fin-h');
+    finH.tabIndex = -1;
+    finish.addEventListener('click', function () { show('finish'); fin.scrollTop = 0; finH.focus(); });
+    document.getElementById('again').addEventListener('click', function () {
+      show(mode);
+      tabs.forEach(function (t) { if (t.getAttribute('aria-selected') === 'true') t.focus(); });
+    });
+
+    var peek = document.getElementById('peek'), peeked = false;
+    peek.addEventListener('click', function () {
+      peeked = !peeked;
+      peek.textContent = peeked ? fmt(secs) + ' so far · tap to hide' : 'Tap to show the time';
+    });
+
+    var more = document.getElementById('more'), deep = document.getElementById('deep');
+    more.addEventListener('click', function () {
+      var open = deep.hidden;
+      deep.hidden = !open;
+      more.setAttribute('aria-expanded', String(open));
+      more.textContent = open ? 'Show less' : 'Show me everything';
+    });
+
+    // Splits per km, in seconds. The last bar is the 0.21 km at the end.
+    var splits = [351, 336, 328, 320, 314, 310], box = document.getElementById('splits'), say = document.getElementById('split-say');
+    function pace(t) { return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); }
+    splits.forEach(function (t, i) {
+      var b = document.createElement('button'), last = i === splits.length - 1;
+      var label = (last ? 'Last 0.21 km' : 'Km ' + (i + 1)) + ' · ' + pace(t) + ' /km';
+      b.type = 'button';
+      if (last) b.className = 'part';
+      b.setAttribute('aria-label', label);
+      b.setAttribute('aria-pressed', 'false');
+      b.innerHTML = '<i style="--h:' + Math.round(40 + (360 - t) * 1.2) + '%"></i>';
+      b.addEventListener('click', function () {
+        Array.prototype.forEach.call(box.children, function (c) { c.setAttribute('aria-pressed', String(c === b)); });
+        say.textContent = label;
+      });
+      box.appendChild(b);
+    });
+
+    // The live screens count on from a run already 18:47 in.
+    var secs = 1127, km = document.getElementById('d-km'), time = document.getElementById('d-time');
+    var left = document.getElementById('d-left'), bar = document.getElementById('d-bar'), mini = phone.querySelector('.mini .route');
+    function fmt(t) { return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); }
+    if ('IntersectionObserver' in window) new IntersectionObserver(function (e) { onScreen = e[0].isIntersecting; }).observe(phone);
+    setInterval(function () {
+      if (!onScreen || calm()) return;
+      secs++;
+      var d = secs / 329;
+      km.textContent = d.toFixed(2);
+      time.textContent = fmt(secs);
+      mini.style.setProperty('--drawn', String(Math.max(0, 1 - d / 5.21)));
+      var l = Math.max(0, 161 - (secs - 1127) % 240);
+      left.textContent = fmt(l);
+      bar.style.setProperty('--done', (100 - l / 240 * 100).toFixed(1) + '%');
+      if (peeked) peek.textContent = fmt(secs) + ' so far · tap to hide';
+    }, 1000);
+  })();
+
   if (window.console) console.log('%cNo trackers in here. Just this note, and nobody will know you read it.', 'font: italic 14px Georgia, serif; color: #c9e7d6');
 })();
