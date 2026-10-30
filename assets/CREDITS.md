@@ -29,6 +29,13 @@ free for commercial use, no attribution required). Raw clips are not in the repo
 | bg-park-trees | 7062128 |
 | bg-track-day | 8533455 |
 | bg-dirt-track | 15928226 |
+| bg-leafy-lane | 13947025 |
+| bg-bare-woods | 15508753 |
+| bg-tree-avenue | 8456972 |
+| bg-lake-side | 4065467 |
+| bg-glass-river | 8834377 |
+| bg-night-park | 3126162 |
+| bg-hood-path | 12752370 |
 
 The same list lives in `src/footage.ts` (`PEXELS`).
 
