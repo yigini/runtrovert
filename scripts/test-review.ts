@@ -7,6 +7,7 @@ import { addDays, dayStart } from '../src/training/dates.ts';
 import { generate } from '../src/training/generate.ts';
 import { pacesFromRace } from '../src/training/paces.ts';
 import { applyFeel } from '../src/training/adapt.ts';
+import { MAX_VDOT_STEP, refreshPaces, soFar } from '../src/training/overview.ts';
 import { feelToRpe, reviewSession } from '../src/training/review.ts';
 import { validatePlan } from '../src/training/rules.ts';
 import { paceSetFor } from '../src/training/sessions.ts';
@@ -129,6 +130,49 @@ for (const spec of PLANS) {
       if (JSON.stringify(calm.weeks) !== JSON.stringify(plan.weeks)) fail(`${spec.id} ${days}d${light ? ' light week' : ''}: an easy answer changed the plan`);
     }
   }
+}
+
+// ---- Your plan so far ----
+for (const spec of PLANS) {
+  const days = spec.daysOptions[0];
+  if (!daysFit(spec, runner, days)) continue;
+  const plan = planFor(spec.id, days);
+  if (!plan) continue;
+  checked++;
+  // Phases cover every week once, in order.
+  const f0 = soFar(plan, today);
+  let next = plan.weeks[0].index;
+  for (const ph of f0.phases) {
+    if (ph.from !== next || ph.to < ph.from) fail(`${spec.id}: phases jump at week ${ph.from} (expected ${next})`);
+    next = ph.to + 1;
+  }
+  if (next !== plan.weeks[plan.weeks.length - 1].index + 1) fail(`${spec.id}: phases stop at week ${next - 1}`);
+  if (spec.raceKm != null && f0.phases[f0.phases.length - 1].phase !== 'taper') fail(`${spec.id}: a race plan does not end in the taper`);
+  if (f0.due !== 0 || f0.done !== 0) fail(`${spec.id}: a fresh plan already has ${f0.due} due`);
+  // Three weeks in: everything run but one skipped and one let slide.
+  const at = addDays(today, 21);
+  const p = doneUntil(plan, addDays(at, -1));
+  const runs = p.weeks.flatMap((w) => w.sessions).filter((x) => x.kind !== 'strength' && x.kind !== 'rest' && x.date < at);
+  runs[1].done = null;
+  runs[1].skipped = true;
+  runs[2].done = null;
+  const f = soFar(p, at);
+  if (f.due !== runs.length - 1 || f.done !== runs.length - 2 || f.skipped !== 1 || f.missed !== 1) fail(`${spec.id}: three weeks in reads due ${f.due} done ${f.done} skipped ${f.skipped} missed ${f.missed}, expected ${runs.length - 1}/${runs.length - 2}/1/1`);
+  if (f.weeks.filter((w) => w.when === 'past').length !== 3) fail(`${spec.id}: ${f.weeks.filter((w) => w.when === 'past').length} weeks read as past after three`);
+  const only1 = soFar(p, at, (w) => w.index === plan.weeks[0].index);
+  if (only1.weeks.length !== 1) fail(`${spec.id}: a locked view shows ${only1.weeks.length} weeks`);
+}
+{
+  const plan = planFor('10k-improve', 4)!;
+  const withPaces = { ...plan, paces: pacesFromRace(10, 50 * 60) };
+  const slower = refreshPaces(withPaces, 10, 52 * 60, addDays(today, 42));
+  if (slower.capped || slower.paces.vdot >= withPaces.paces.vdot) fail('a slower race did not lower the paces');
+  if (slower.plan.pacesAt !== addDays(today, 42) || !slower.plan.log.some((e) => e.kind === 'paces')) fail('refreshing paces left no date or log line');
+  const leap = refreshPaces(withPaces, 5, 17 * 60, addDays(today, 42));
+  if (!leap.capped || Math.abs(leap.paces.vdot - (withPaces.paces.vdot + MAX_VDOT_STEP)) > 0.2) fail(`a huge jump gave VDOT ${leap.paces.vdot.toFixed(1)} from ${withPaces.paces.vdot.toFixed(1)}, capped=${leap.capped}`);
+  const stale = soFar({ ...withPaces, pacesAt: today }, addDays(today, 43));
+  if (stale.pacesWeeks !== 6) fail(`paces set 43 days ago read as ${stale.pacesWeeks} weeks`);
+  checked += 4;
 }
 
 console.log(`\n${checked} checks, ${failures} failure(s)`);
