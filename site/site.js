@@ -49,9 +49,9 @@
   ], 4200);
   rotate(document.getElementById('nudge'), [
     'The pavement has no opinions about your pace.',
-    'Nobody will ask how you are out there. That is the whole point.',
+    'Out there, nobody needs anything from you.',
     'A run is a meeting with one attendee. Attendance is great.',
-    'Legs: available. Weather: fine. Excuses: respectfully declined.',
+    'The quiet streets are quietest right now. Take the hint.',
     'The only group run that works: you, and your shadow at a distance.'
   ], 3800);
 })();
