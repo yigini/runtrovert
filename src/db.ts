@@ -1,4 +1,5 @@
 import * as SQLite from 'expo-sqlite';
+import { salvageEnd } from './gps/salvage';
 import type { SourceKind } from './io/types';
 import { DEFAULT_SETTINGS, type Mood, type Point, type Quiet, type Run, type Settings, type Split, type SplitKind } from './types';
 
@@ -352,14 +353,30 @@ export async function saveFacts(runId: number, f: StoredFacts): Promise<void> {
   );
 }
 
-/** Runs that were never finished (app killed mid-run). Cleaned up on launch. */
-export async function discardUnfinishedRuns() {
+/**
+ * Runs that were never finished and that recovery didn't pick up. A run with a
+ * route is closed where its recording stopped and shows in history like any
+ * other; only an empty one (fewer than two points) is removed. `keep` is a run
+ * that still has a live snapshot and must be left alone.
+ */
+export async function closeUnfinishedRuns(keep: number | null = null) {
   const db = await getDb();
+  const rows = (await db.getAllAsync(
+    'SELECT r.id, r.started_at, r.duration_s, COUNT(p.id) AS n, MAX(p.ts) AS last_ts FROM runs r LEFT JOIN points p ON p.run_id = r.id WHERE r.ended_at IS NULL GROUP BY r.id',
+  )) as Array<{ id: number; started_at: number; duration_s: number; n: number; last_ts: number | null }>;
   await db.withTransactionAsync(async () => {
-    await db.runAsync('DELETE FROM points WHERE run_id IN (SELECT id FROM runs WHERE ended_at IS NULL)');
-    await db.runAsync('DELETE FROM splits WHERE run_id IN (SELECT id FROM runs WHERE ended_at IS NULL)');
-    await db.runAsync('DELETE FROM heart_rate WHERE run_id IN (SELECT id FROM runs WHERE ended_at IS NULL)');
-    await db.runAsync('DELETE FROM runs WHERE ended_at IS NULL');
+    for (const r of rows) {
+      if (r.id === keep) continue;
+      const endedAt = salvageEnd({ startedAt: r.started_at, durationS: r.duration_s, pointCount: r.n, lastPointTs: r.last_ts });
+      if (endedAt != null) {
+        await db.runAsync('UPDATE runs SET ended_at = ? WHERE id = ?', endedAt, r.id);
+        continue;
+      }
+      await db.runAsync('DELETE FROM points WHERE run_id = ?', r.id);
+      await db.runAsync('DELETE FROM splits WHERE run_id = ?', r.id);
+      await db.runAsync('DELETE FROM heart_rate WHERE run_id = ?', r.id);
+      await db.runAsync('DELETE FROM runs WHERE id = ?', r.id);
+    }
   });
 }
 

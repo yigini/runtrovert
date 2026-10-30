@@ -60,8 +60,11 @@ message path says what it is (`src/wearProtocol.ts`, `wear/.../Protocol.kt`):
   once a second while the watch app is open, otherwise only when the state
   changes; `/runtrovert/split { index, durationS, distanceM, totalS, unitsKm }`.
 - Watch → phone: `/runtrovert/cmd { cmd: start | pause | resume | stop }`,
-  `/runtrovert/hello { open }` (repeated every 30 s while the app is on screen),
-  `/runtrovert/hr { s: [[epochMs, bpm], ...] }` every 5 s during a run.
+  `/runtrovert/hello { open }` (repeated every 30 s while the app is on screen,
+  and once a minute during a run), `/runtrovert/hr { s: [[epochMs, bpm], ...] }`
+  every 5 s during a run. The phone answers every hello with a live message, and
+  answers heart readings that arrive with no run on with one too, so a Stop the
+  watch missed while out of reach is put right within a minute of coming back.
 - Later, for runs recorded on the watch alone: `/runtrovert/run { points, splits, hr }`.
 
 ## Battery on the watch
