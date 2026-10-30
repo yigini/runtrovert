@@ -160,8 +160,13 @@ export function RouteMap({
             <Layer id="pins-dot" type="circle" paint={{ 'circle-radius': 5, 'circle-color': colors.butter, 'circle-stroke-color': colors.ink, 'circle-stroke-width': 2 }} />
           </GeoJSONSource>
         )}
-        {showMarkers ? (
+        {/* Start/finish dots and the live dot each keep their own slot. A
+            ternary would hand one GeoJSONSource a new id when the run detail
+            path loads after the last-known-place dot was drawn, and MapLibre
+            throws "`id` cannot be changed". */}
+        {showMarkers && (
           <GeoJSONSource
+            key="ends"
             id="ends"
             data={{
               type: 'FeatureCollection',
@@ -182,12 +187,11 @@ export function RouteMap({
               }}
             />
           </GeoJSONSource>
-        ) : (
-          head && (
-            <GeoJSONSource id="head" data={{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [head.longitude, head.latitude] } }}>
-              <Layer id="head-dot" type="circle" paint={{ 'circle-radius': 7, 'circle-color': colors.ink, 'circle-stroke-color': colors.cream, 'circle-stroke-width': 3 }} />
-            </GeoJSONSource>
-          )
+        )}
+        {!showMarkers && head && (
+          <GeoJSONSource key="head" id="head" data={{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [head.longitude, head.latitude] } }}>
+            <Layer id="head-dot" type="circle" paint={{ 'circle-radius': 7, 'circle-color': colors.ink, 'circle-stroke-color': colors.cream, 'circle-stroke-width': 3 }} />
+          </GeoJSONSource>
         )}
       </MapLibreMap>
     </View>
