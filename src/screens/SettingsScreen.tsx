@@ -16,6 +16,10 @@ import { LANGS, langFor, phoneLocale, SHIPPED, type Lang } from '../i18n/lang';
 
 const BATTERY: Array<{ key: BatteryMode; label: string; hint: string }> = live(() => (['auto', 'best', 'saver'] as const).map((key) => ({ key, ...ui().settings.battery[key] })));
 
+const HOW_OFTEN: Array<{ key: NotifyPerWeek; label: string; hint: string }> = live(() =>
+  ([14, 7, 3, 0] as const).map((key) => ({ key, ...ui().settings.howOften[key] })),
+);
+
 const CUES: Array<{ key: CueMode; label: string; hint: string }> = live(() => (['silent', 'haptic', 'voice'] as const).map((key) => ({ key, ...ui().settings.cue[key] })));
 
 export function SettingsScreen({ onOpenListen, onOpenEverything, onBack, runLive }: { onOpenListen: () => void; onOpenEverything: () => void; onBack?: () => void; runLive?: boolean }) {
@@ -141,14 +145,21 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onBack, runLive
           </Row>
         ) : null}
         <Text style={styles.promise}>{ui().settings.theDealNeverMoreThan}</Text>
-        <Row label={ui().settings.perWeek} hint={ui().settings.shortDryNeverAStreak}>
-          <Segmented
-            value={String(settings.notifyPerWeek)}
-            options={['0', '1', '3', '5']}
-            onChange={(v) => update({ notifyPerWeek: Number(v) as NotifyPerWeek })}
-          />
-        </Row>
-        <Row stack label={ui().settings.at} hint={settings.notifyAuto ? ui().settings.autoAbout45MinutesBefore : ui().settings.localTimeOnWeekdays}>
+        <Text style={styles.optionHint}>{ui().settings.shortDryNeverAStreak}</Text>
+        {HOW_OFTEN.map((o) => {
+          // 1 and 5 a week are from older builds: show them as the nearest option.
+          const cur = settings.notifyPerWeek === 5 ? 3 : settings.notifyPerWeek === 1 ? 3 : settings.notifyPerWeek;
+          const on = cur === o.key;
+          return (
+            <Pressable key={o.key} onPress={() => update({ notifyPerWeek: o.key })} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${o.label}. ${o.hint}`} style={[styles.option, on && styles.optionOn]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.optionLabel, on && styles.optionLabelOn]}>{o.label}</Text>
+                <Text style={[styles.optionHint, on && { color: colors.onInkMuted }]}>{o.hint}</Text>
+              </View>
+            </Pressable>
+          );
+        })}
+        <Row stack label={ui().settings.at} hint={settings.notifyAuto ? ui().settings.autoAbout45MinutesBefore : ui().settings.localTime}>
           <Segmented
             value={settings.notifyAuto ? 'Auto' : String(settings.notifyHour)}
             options={['Auto', '7', '8', '12', '17', '19']}

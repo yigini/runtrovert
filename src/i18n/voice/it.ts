@@ -267,7 +267,7 @@ export const it: VoicePack = {
         'È arrivata la nebbia. Nemmeno chi saluta sempre riesce a vederti.',
       ],
       morning: [
-        'Buongiorno. L’unica notifica che riceverai da me oggi.',
+        'Buongiorno. Un breve avviso, poi ti lascio in pace.',
         'Le strade dormono ancora. Unisciti a loro, in movimento.',
         'Corsa presto: la giornata non ha ancora cominciato a chiederti cose.',
         'Mattina. Nel parco ci sono circa tre persone e un airone.',
@@ -316,6 +316,21 @@ export const it: VoicePack = {
       'Una corsa finita è una conversazione che non hai dovuto fare.',
     ],
     titles: ['Runtrovert', 'Ciao', 'Sottovoce', 'Psst', 'Un pensiero', 'Te lo dico e basta', 'Senza pressione'],
+    afternoon: [
+      'Il lavoro è quasi finito. Torni a casa di corsa, o un giro quando arrivi?',
+      'La giornata di lavoro si spegne. La parte tranquilla comincia quando vuoi.',
+      'Chiudi presto il portatile? Venti minuti fuori ti tolgono la posta dalla testa.',
+      'Quasi fine giornata. Una corsa breve è una buona porta tra il lavoro e la sera.',
+      'Hai parlato abbastanza per oggi? L’asfalto non chiede niente.',
+      'Presto a casa. Le scarpe vicino alla porta, se ti va.',
+    ],
+    weekend: [
+      'Weekend. Nessun programma serve. Un giro conta come uno.',
+      'Niente in agenda? Una corsa sta bene nei buchi.',
+      'A quest’ora, nel weekend, i sentieri vanno piano. C’è spazio.',
+      'Sabato o domenica, al percorso non importa. Nemmeno a noi.',
+      'Una giornata pigra può contenere una corsa breve. Non ne prende molto.',
+    ],
   },
 
   tips: {

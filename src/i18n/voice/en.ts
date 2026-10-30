@@ -3,7 +3,7 @@
 // written; this file gathers them with the lines that used to be inline.
 
 import type { EffortKey } from '../../progress';
-import { AFTER_RUN_LINES, AFTER_RUN_TITLES, LAST_LINES, LINES, REFLECT_LINES, REFLECT_TITLES, RHYTHM_LINES, TITLES, WINDOW_LINES } from '../../lines';
+import { AFTER_RUN_LINES, AFTER_RUN_TITLES, AFTERNOON_LINES, LAST_LINES, LINES, REFLECT_LINES, REFLECT_TITLES, RHYTHM_LINES, TITLES, WEEKEND_LINES, WINDOW_LINES } from '../../lines';
 import { TIPS, TOPICS } from '../../tips';
 import type { VoicePack } from './types';
 import { clockDigits, distNumber, word } from './util';
@@ -207,6 +207,8 @@ export const en: VoicePack = {
     afterRunTitles: AFTER_RUN_TITLES,
     afterRunLines: AFTER_RUN_LINES,
     titles: TITLES,
+    afternoon: AFTERNOON_LINES,
+    weekend: WEEKEND_LINES,
   },
 
   tips: {

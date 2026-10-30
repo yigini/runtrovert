@@ -1,4 +1,4 @@
-import { awayDays, inQuietHours, learnRhythm, planReminders, type PlanInput } from '../src/reminderPlan.ts';
+import { awayDays, fitNotes, inQuietHours, learnRhythm, planReminders, startOfDay, type PlanInput } from '../src/reminderPlan.ts';
 
 // Checks the reminder rules with fixed dates. Local time throughout, like the phone.
 let failed = 0;
@@ -95,6 +95,74 @@ const base: PlanInput = { now, perWeek: 3, hour: 8, minute: 0, auto: true, runSt
   check('fog becomes a weather line', f?.kind === 'weather', JSON.stringify(f));
   const mon = p.find((x) => new Date(x.at).getDay() === 1);
   check('outside the forecast nothing changes', mon?.kind === 'nudge');
+}
+
+// ---- One or two a day (the default) ---------------------------------------
+
+const daily: PlanInput = { ...base, perWeek: 14 };
+{
+  const p = planReminders(daily);
+  const weekOne = p.filter((x) => x.at < now + 7 * DAY);
+  const byDay = new Map<string, number>();
+  for (const r of weekOne) byDay.set(new Date(r.at).toDateString(), (byDay.get(new Date(r.at).toDateString()) ?? 0) + 1);
+  check('new user, 1–2 a day: something every day of week one', byDay.size >= 7, [...byDay.entries()].join(' | '));
+  check('new user, 1–2 a day: never more than two a day', [...byDay.values()].every((n) => n <= 2));
+  check('new user, 1–2 a day: today 17:30 still comes (it is noon)', weekOne.some((r) => r.at === at(2026, 10, 29, 17, 30)), weekOne.map((r) => fmt(r.at)).join(', '));
+  const fri = weekOne.find((r) => r.at === at(2026, 10, 30, 17, 30));
+  check('weekday 17:30 is a work-almost-done line', fri?.kind === 'afternoon', JSON.stringify(fri));
+  const sat = weekOne.find((r) => r.at === at(2026, 10, 31, 17, 30));
+  check('weekend second note is a weekend line', sat?.kind === 'weekend', JSON.stringify(sat));
+  check('never in quiet hours (1–2 a day)', p.every((r) => !inQuietHours(r.at)));
+  check('two on one day are hours apart', weekOne.every((a) => weekOne.every((b) => a === b || new Date(a.at).toDateString() !== new Date(b.at).toDateString() || Math.abs(a.at - b.at) >= 3 * 3600 * 1000)));
+}
+
+{
+  const one = planReminders({ ...base, perWeek: 7 });
+  const weekOne = one.filter((x) => x.at < now + 7 * DAY);
+  check('one a day: seven in week one, all at 08:00 or the main hour', weekOne.length === 7 && weekOne.every((r) => new Date(r.at).getHours() === 8), weekOne.map((r) => fmt(r.at)).join(', '));
+}
+
+{
+  // Ran this morning at 7: nothing for 12 h, so tonight's 17:30 is dropped, tomorrow comes back.
+  const ranAt = at(2026, 10, 29, 7);
+  const p = planReminders({ ...daily, runStarts: [ranAt], now: at(2026, 10, 29, 7, 40) });
+  check('1–2 a day: nothing in the 12 h after a run', p.every((x) => x.at - ranAt >= 12 * 3600 * 1000), p.slice(0, 3).map((x) => fmt(x.at)).join(', '));
+  check('1–2 a day: back the next morning', p.some((x) => x.at === at(2026, 10, 30, 8)));
+}
+
+{
+  // Four days off: only the main note, and it's gentle.
+  const p = planReminders({ ...daily, runStarts: [now - 4 * DAY] });
+  const days = new Set(p.map((r) => new Date(r.at).toDateString()));
+  check('away a few days: one a day, not two', days.size === p.length, p.map((r) => fmt(r.at)).join(', '));
+  check('away a few days: quiet lines', p.filter((r) => r.kind !== 'last').every((r) => r.kind === 'quiet' || r.kind === 'gap' || r.kind === 'window' || r.kind === 'weather'));
+  check('ten days off: nothing (1–2 a day)', planReminders({ ...daily, runStarts: [now - 10 * DAY] }).length === 0);
+}
+
+{
+  const ignored = planReminders({ ...daily, runStarts: [now - DAY], firedSinceLastRun: 8 });
+  const days = new Set(ignored.map((r) => new Date(r.at).toDateString()));
+  check('ignored for a while: one a day', days.size === ignored.length);
+}
+
+{
+  // Plan notes and the daily cap.
+  const p = planReminders(daily);
+  const fri = startOfDay(at(2026, 10, 30));
+  const extra = { at: at(2026, 10, 30, 8), priority: 10, payload: 'plan' };
+  const fitted = fitNotes(p, [extra], new Set([fri]), 14);
+  const onFri = fitted.filter((f) => startOfDay(f.at) === fri);
+  check('a plan day: only the plan note', onFri.length === 1 && onFri[0].extra?.payload === 'plan', JSON.stringify(onFri));
+  const sat = startOfDay(at(2026, 10, 31));
+  const crowd = fitNotes(p, [{ at: at(2026, 10, 31, 12), priority: 5, payload: 'a' }, { at: at(2026, 10, 31, 19), priority: 5, payload: 'b' }], new Set(), 14);
+  const onSat = crowd.filter((f) => startOfDay(f.at) === sat);
+  check('never more than two on a day, extras first', onSat.length === 2 && onSat.every((f) => f.extra), JSON.stringify(onSat.map((f) => fmt(f.at))));
+  const commute = fitNotes(p, [{ at: at(2026, 10, 30, 7), priority: 5, payload: 'toWork' }, { at: at(2026, 10, 30, 16, 30), priority: 5, payload: 'home' }], new Set(), 14);
+  const commuteFri = commute.filter((f) => startOfDay(f.at) === fri);
+  check('two commute notes take the whole day', commuteFri.length === 2 && commuteFri.every((f) => f.extra), commuteFri.map((f) => fmt(f.at)).join(', '));
+  check('reminders off: a plan note still fits', fitNotes([], [extra], new Set([fri]), 3).length === 1);
+  const late = fitNotes([], [{ at: at(2026, 10, 30, 22), priority: 10, payload: 'x' }], new Set(), 14);
+  check('extras never in quiet hours', late.length === 0);
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall good');

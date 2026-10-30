@@ -267,7 +267,7 @@ export const es: VoicePack = {
         'Llegó la niebla. Ni quienes siempre saludan pueden verte.',
       ],
       morning: [
-        'Buenos días. La única notificación que vas a recibir de mí hoy.',
+        'Buenos días. Un aviso corto y te dejo tranquilo.',
         'Las calles siguen dormidas. Únete a ellas, en movimiento.',
         'Carrera temprana: el día todavía no ha empezado a pedirte cosas.',
         'Mañana. En el parque hay unas tres personas y una garza.',
@@ -316,6 +316,21 @@ export const es: VoicePack = {
       'Una carrera terminada es una conversación que no tuviste que tener.',
     ],
     titles: ['Runtrovert', 'Hola', 'En voz baja', 'Psst', 'Una idea', 'Solo digo', 'Sin presión'],
+    afternoon: [
+      'La jornada casi ha terminado. ¿Vuelves a casa corriendo, o una vuelta cuando llegues?',
+      'El día de trabajo se va apagando. La parte tranquila empieza cuando tú quieras.',
+      '¿Cierras pronto el portátil? Veinte minutos fuera te sacan la bandeja de entrada de la cabeza.',
+      'Casi fin de jornada. Una salida corta es buena puerta entre el trabajo y la tarde.',
+      '¿Ya has hablado bastante por hoy? El asfalto no pregunta nada.',
+      'Pronto en casa. Las zapatillas junto a la puerta, si te apetece.',
+    ],
+    weekend: [
+      'Fin de semana. No hace falta plan. Una vuelta ya cuenta como uno.',
+      '¿Nada en el calendario? Una salida cabe bien en los huecos.',
+      'A esta hora del fin de semana los caminos van despacio. Hay sitio de sobra.',
+      'Sábado o domingo, a la ruta le da igual. A nosotros también.',
+      'Un día perezoso aguanta una salida corta. No le quita mucho.',
+    ],
   },
 
   tips: {

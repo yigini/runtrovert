@@ -258,7 +258,7 @@ export const tr: VoicePack = {
         'Sis bastı. El sallayan koşucular bile seni göremez.',
       ],
       morning: [
-        'Günaydın. Bugün benden alacağın tek bildirim bu.',
+        'Günaydın. Kısa bir not, sonra seni rahat bırakıyorum.',
         'Sokaklar hâlâ uyuyor. Onlara katıl, ama hareket hâlinde.',
         'Sabah koşusu: gün daha senden bir şey istemeye başlamadı.',
         'Sabah. Parkta aşağı yukarı üç kişi ve bir martı var.',
@@ -304,6 +304,21 @@ export const tr: VoicePack = {
       'Bitmiş bir koşu, yapmak zorunda kalmadığın bir sohbettir.',
     ],
     titles: ['Runtrovert', 'Merhaba', 'Kısa bir söz', 'Pst', 'Ufak bir düşünce', 'Söylemiş olayım', 'Baskı yok'],
+    afternoon: [
+      'İş bitmek üzere. Eve koşarak mı dönsen, yoksa varınca bir tur mu?',
+      'İş günü yavaşça bitiyor. Sessiz kısım ne zaman istersen başlar.',
+      'Laptop birazdan kapanıyor mu? Dışarıda yirmi dakika gelen kutusunu kafandan çıkarır.',
+      'Gün bitmek üzere. Kısa bir koşu iş ile akşam arasında iyi bir kapıdır.',
+      'Bugünlük yeterince konuştun mu? Kaldırım hiçbir şey sormaz.',
+      'Az kaldı, eve varıyorsun. Ayakkabılar kapının yanında, canın isterse.',
+    ],
+    weekend: [
+      'Hafta sonu. Plana gerek yok. Bir tur da plan sayılır.',
+      'Takvim boş mu? Bir koşu boşluklara güzelce sığar.',
+      'Hafta sonu bu saatte yollar ağır akar. Bol yer var.',
+      'Cumartesi ya da pazar, rotanın umurunda değil. Bizim de.',
+      'Tembel bir gün kısa bir koşuyu kaldırır. Ondan pek bir şey almaz.',
+    ],
   },
 
   tips: {

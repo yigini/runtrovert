@@ -104,7 +104,7 @@ export const LINES: Record<Mood, string[]> = {
     'The fog is in. Even the joggers who wave can’t see you.',
   ],
   morning: [
-    'Good morning. The only notification you’ll get from me today.',
+    'Good morning. One short note, then I’ll leave you be.',
     'The streets are still asleep. Join them, moving.',
     'Early run: the day hasn’t started asking things of you yet.',
     'Morning. The park has roughly three people and a heron.',
@@ -124,6 +124,25 @@ export const LINES: Record<Mood, string[]> = {
     'Tomorrow can be loud. Tonight, a run and then nothing.',
   ],
 };
+
+/** Weekdays around 17:30, as the working day winds down. */
+export const AFTERNOON_LINES = [
+  'Work’s nearly done. Running home, or a loop once you’re there?',
+  'The working day is winding down. The quiet part can start whenever you like.',
+  'Laptop closing soon? Twenty minutes outside clears the inbox out of your head.',
+  'End of the day, nearly. A short run makes a good door between work and the evening.',
+  'Done talking for today? The pavement won’t ask a thing.',
+  'Home soon. Shoes by the door, if you fancy it.',
+];
+
+/** Weekend notes. */
+export const WEEKEND_LINES = [
+  'Weekend. No plans needed. A loop counts as one.',
+  'Nothing on the calendar? A run fits neatly in the gaps.',
+  'The paths are slow at this hour on a weekend. Plenty of room.',
+  'Saturday or Sunday, the route doesn’t mind. Neither do we.',
+  'A lazy day can hold a short run. It won’t take much of it.',
+];
 
 /** Your usual days. {day} is the weekday name. */
 export const RHYTHM_LINES = [

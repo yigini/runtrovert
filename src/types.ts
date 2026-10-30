@@ -48,7 +48,8 @@ export interface LatLon {
 
 export type CueMode = 'silent' | 'haptic' | 'voice';
 
-export type NotifyPerWeek = 0 | 1 | 3 | 5;
+/** 14 = one or two a day, 7 = one a day, 3 = a few a week, 0 = off. 1 and 5 are from older builds. */
+export type NotifyPerWeek = 0 | 1 | 3 | 5 | 7 | 14;
 
 /** unasked: never shown. yes: tapped "Yes, quietly". no: tapped "Not now", so never asked again. */
 export type NotifyAsk = 'unasked' | 'yes' | 'no';
@@ -72,6 +73,8 @@ export interface Settings {
   notifyMinute: number;
   notifyAuto: boolean; // follow your usual days and time once there are a few runs
   notifyAsk: NotifyAsk; // our own one-time question at the end of the welcome
+  notifyAskedAgain: boolean; // the one later ask, for phones that never said yes
+  notifyCadence: number; // 2 once older weekly settings moved to daily
   seenNews: string; // id of the last "What's new" line dismissed
   afterRunNote: boolean; // a quiet "run saved" notification
   weather: boolean; // fetch the local forecast for the home screen (Open-Meteo, coarse location)
@@ -104,11 +107,13 @@ export const DEFAULT_SETTINGS: Settings = {
   autoPause: true,
   countdownS: 3,
   unitsKm: true,
-  notifyPerWeek: 3,
+  notifyPerWeek: 14,
   notifyHour: 8,
   notifyMinute: 0,
   notifyAuto: true,
   notifyAsk: 'unasked',
+  notifyAskedAgain: false,
+  notifyCadence: 2,
   seenNews: '',
   afterRunNote: true,
   weather: true,

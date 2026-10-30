@@ -127,6 +127,10 @@ export interface ReminderVoice {
   afterRunTitles: string[];
   afterRunLines: string[];
   titles: string[];
+  /** Weekdays around 17:30, as the working day winds down. */
+  afternoon: string[];
+  /** Weekend notes. */
+  weekend: string[];
 }
 
 export interface TipVoice {

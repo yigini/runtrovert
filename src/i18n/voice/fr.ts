@@ -266,7 +266,7 @@ export const fr: VoicePack = {
         'Le brouillard est là. Même ceux qui font coucou ne te voient pas.',
       ],
       morning: [
-        'Bonjour. La seule notification que tu auras de moi aujourd’hui.',
+        'Bonjour. Un petit mot, puis je te laisse tranquille.',
         'Les rues dorment encore. Rejoins-les, en mouvement.',
         'Sortie matinale : la journée n’a pas encore commencé à te demander des choses.',
         'Matin. Dans le parc : environ trois personnes et un héron.',
@@ -317,6 +317,21 @@ export const fr: VoicePack = {
       'Une course terminée, c’est une conversation que tu n’as pas eu à avoir.',
     ],
     titles: ['Runtrovert', 'Coucou', 'Un mot discret', 'Psst', 'Petite pensée', 'Je dis ça…', 'Sans pression'],
+    afternoon: [
+      'La journée est presque finie. Rentrer en courant, ou une boucle une fois à la maison ?',
+      'La journée de travail s’achève. La partie calme commence quand tu veux.',
+      'L’ordi se ferme bientôt ? Vingt minutes dehors vident la boîte mail de ta tête.',
+      'Bientôt la fin de journée. Une petite sortie fait une bonne porte entre le travail et la soirée.',
+      'Assez parlé pour aujourd’hui ? Le bitume ne pose aucune question.',
+      'Bientôt à la maison. Les chaussures près de la porte, si ça te dit.',
+    ],
+    weekend: [
+      'Week-end. Pas besoin de plan. Une boucle compte comme un.',
+      'Rien dans l’agenda ? Une sortie se glisse bien dans les trous.',
+      'À cette heure, le week-end, les chemins sont lents. Plein de place.',
+      'Samedi ou dimanche, le parcours s’en fiche. Nous aussi.',
+      'Une journée paresseuse peut contenir une petite sortie. Elle n’en prendra pas grand-chose.',
+    ],
   },
 
   tips: {

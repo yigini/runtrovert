@@ -28,14 +28,13 @@ import { TrainScreen } from './src/screens/TrainScreen';
 import { UnlockHost } from './src/screens/UnlockScreen';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import { EverythingScreen } from './src/screens/EverythingScreen';
-import { FEWER_ACTION, fewer, fewerMessage, notifyAfterRun, requestNotificationPermission, rescheduleReminders } from './src/notify';
+import { FEWER_ACTION, fewer, fewerMessage, notificationStatus, notifyAfterRun, requestNotificationPermission, rescheduleReminders } from './src/notify';
 import { SettingsProvider, useSettings } from './src/settings';
 import { startBilling } from './src/billing';
 import { recoverRun, subscribe } from './src/tracking';
 import { colors, fonts, radius, spacing } from './src/theme';
 import type { PainLevel } from './src/training/adapt';
 import type { Place } from './src/placeStore';
-import { schedulePlanReminders } from './src/training/remind';
 import { onRunSaved } from './src/training/store';
 import type { Session } from './src/training/types';
 import { loadUnlock } from './src/unlockState';
@@ -140,17 +139,43 @@ function Shell() {
   // Re-plan the next two weeks of reminders on open and whenever their settings change.
   useEffect(() => {
     if (ready && settings.onboarded) {
-      rescheduleReminders(settings)
-        .then(() => schedulePlanReminders(settings))
-        .catch(() => {});
+      rescheduleReminders(settings).catch(() => {});
     }
   }, [ready, settings.onboarded, settings.notifyPerWeek, settings.notifyHour, settings.notifyMinute, settings.notifyAuto, settings.weather, settings.language, planKey]);
+
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+
+  /**
+   * The one later ask, for phones that never said yes: on open for people set
+   * up before the welcome asked (nothing would ever arrive otherwise), after a
+   * saved run for people who said "Not now". Never twice, never once blocked.
+   */
+  const askAgain = useCallback(async () => {
+    const s = settingsRef.current;
+    if (s.notifyAskedAgain || s.notifyPerWeek === 0) return;
+    if ((await notificationStatus().catch(() => 'blocked')) !== 'ask') return;
+    update({ notifyAskedAgain: true });
+    Alert.alert(ui().notify.askAgainTitle, ui().notify.askAgainText, [
+      { text: ui().welcome.notNow, style: 'cancel' },
+      {
+        text: ui().welcome.yesQuietly,
+        onPress: async () => {
+          if (await requestNotificationPermission().catch(() => false)) {
+            update({ notifyAsk: 'yes' });
+            rescheduleReminders(settingsRef.current).catch(() => {});
+          }
+        },
+      },
+    ]);
+  }, [update]);
+  useEffect(() => {
+    if (ready && settings.onboarded && settings.notifyAsk === 'unasked') askAgain();
+  }, [ready, settings.onboarded]);
 
   // Taps on notifications, including the one that launched the app.
   const response = Notifications.useLastNotificationResponse();
   const handled = useRef<string | null>(null);
-  const settingsRef = useRef(settings);
-  settingsRef.current = settings;
   useEffect(() => {
     if (!ready || !response) return;
     const key = `${response.notification.request.identifier}:${response.actionIdentifier}`;
@@ -207,9 +232,9 @@ function Shell() {
       // no plan, or nothing to change
     }
     setPlanKey((k) => k + 1);
-    rescheduleReminders({ ...settings })
-      .then(() => schedulePlanReminders(settings))
-      .catch(() => {});
+    rescheduleReminders({ ...settings }).catch(() => {});
+    // Said "Not now" at the welcome: one more ask, now there's a run behind it.
+    setTimeout(() => askAgain(), 2500);
   }
 
   function runAgain(p: Place) {

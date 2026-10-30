@@ -456,12 +456,23 @@ export async function allKmPaces(): Promise<Map<number, number[]>> {
 
 // ---- Settings --------------------------------------------------------------
 
+/**
+ * Reminders went from a few a week to one or two a day (30 Oct 2026). Older
+ * settings move once: off stays off, one a week becomes a few a week.
+ */
+function migrateSettings(saved: Partial<Settings>): Settings {
+  const s = { ...DEFAULT_SETTINGS, ...saved };
+  if ((saved.notifyCadence ?? 1) >= 2) return s;
+  const was = (saved.notifyPerWeek ?? 3) as number;
+  return { ...s, notifyCadence: 2, notifyPerWeek: was === 0 ? 0 : was === 1 ? 3 : 14 };
+}
+
 export async function loadSettings(): Promise<Settings> {
   const db = await getDb();
   const row = (await db.getFirstAsync('SELECT value FROM settings WHERE key = ?', 'settings')) as { value: string } | null;
   if (!row) return { ...DEFAULT_SETTINGS };
   try {
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(row.value) };
+    return migrateSettings(JSON.parse(row.value));
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
