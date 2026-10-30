@@ -35,6 +35,7 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 600; line-height: 0.98; let
 em { font-family: var(--serif); font-weight: 400; font-style: italic; }
 .skip { position: absolute; left: -999px; top: 8px; background: var(--cream); color: var(--ink); padding: 8px 14px; border-radius: 999px; z-index: 50; }
 .skip:focus { left: 16px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 :focus-visible { outline: 2px solid var(--butter); outline-offset: 3px; border-radius: 6px; }
 
 /* Film grain over everything: the footage is soft, this makes it feel shot, not stocked. */
@@ -52,12 +53,15 @@ em { font-family: var(--serif); font-weight: 400; font-style: italic; }
 .motion { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 .motion[hidden] { display: none; }
 .motion .ic { width: 10px; height: 11px; border-left: 3px solid currentColor; border-right: 3px solid currentColor; box-sizing: border-box; }
-.motion[aria-pressed="true"] .ic { border-right: 0; border-left: 10px solid currentColor; border-top: 5.5px solid transparent; border-bottom: 5.5px solid transparent; height: 0; width: 0; }
+.motion.is-paused .ic { border-right: 0; border-left: 10px solid currentColor; border-top: 5.5px solid transparent; border-bottom: 5.5px solid transparent; height: 0; width: 0; }
 .soon { white-space: nowrap; }
 .brand { flex-shrink: 0; }
+/* Narrow phones and high zoom: the mark stands in for the name, which stays for screen readers */
+@media (max-width: 380px) { .brand span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } .acts { gap: 6px; } .soon { padding: 7px 12px; } }
 @media (max-width: 560px) {
   .motion { width: 44px; height: 44px; padding: 0; justify-content: center; }
   .soon .far { display: none; }
+  .top .bar { gap: 8px; }
   .motion .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
 .motion:focus-visible, .soon:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; }
@@ -114,6 +118,74 @@ em { font-family: var(--serif); font-weight: 400; font-style: italic; }
 .three span { color: var(--cream-soft); font-size: 15.5px; }
 .three .k { display: block; font: 500 11px var(--sans); letter-spacing: 0.18em; text-transform: uppercase; color: var(--butter); margin-bottom: 10px; }
 @media (max-width: 760px) { .three { grid-template-columns: 1fr; gap: 18px; } }
+
+/* Chapter 3: a working example of the run screen and the finish screen. Sample numbers only. */
+.demo-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 40px 64px; align-items: center; }
+.modes { grid-template-columns: 1fr; gap: 0; margin-top: 36px; max-width: 520px; }
+.modes button { display: block; width: 100%; text-align: left; font: inherit; color: inherit; background: none; border: 0; border-top: 1px solid var(--line); padding: 14px 0 14px 16px; cursor: pointer; position: relative; opacity: 0.62; transition: opacity 0.3s; }
+.modes button::before { content: ''; position: absolute; left: 0; top: 16px; bottom: 16px; width: 2px; border-radius: 2px; background: transparent; transition: background 0.3s; }
+.modes button:hover { opacity: 0.85; }
+.modes button[aria-selected='true'] { opacity: 1; }
+.modes button[aria-selected='true']::before { background: var(--butter); }
+.modes button:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; border-radius: 6px; }
+.modes b { font-size: clamp(20px, 1.9vw, 24px); margin-bottom: 2px; }
+.modes span:not(.k) { display: block; font-size: 15px; }
+.modes .k { margin-bottom: 6px; }
+.demo-hint { margin-top: 18px; font: 400 italic 16px var(--serif); color: var(--cream-soft); }
+.phone { position: relative; width: 300px; height: 600px; border-radius: 46px; padding: 14px; background: #0d0c10; box-shadow: 0 0 0 1px rgba(255,255,255,0.12), 0 40px 80px -30px rgba(0,0,0,0.8); justify-self: end; }
+.phone .scr { position: absolute; inset: 14px; border-radius: 34px; background: var(--cream); color: var(--ink); padding: 40px 22px 90px; display: flex; flex-direction: column; overflow: hidden; }
+.phone .scr[hidden] { display: none; }
+.phone .rec { font: 500 11px var(--sans); letter-spacing: 0.16em; text-transform: uppercase; color: #6b5f86; display: flex; align-items: center; gap: 8px; }
+.phone .rec i { width: 7px; height: 7px; border-radius: 50%; background: #e0806a; }
+.rv .phone .rec i { animation: blink 2s ease-in-out infinite; }
+@keyframes blink { 50% { opacity: 0.25; } }
+.phone .silent { margin: auto 0; font: 600 34px/1.1 var(--serif); }
+.phone .ghost { align-self: center; font: 500 14px var(--sans); color: #4a3f6b; background: rgba(43,39,51,0.07); border: 0; border-radius: 999px; padding: 10px 16px; min-height: 40px; cursor: pointer; }
+.phone .ghost:focus-visible, .phone .more:focus-visible, .phone .finish:focus-visible, .splits button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.phone .mini { margin-top: 18px; width: 100%; height: auto; }
+.phone .route { fill: none; stroke: #8c7bc4; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.phone .map circle { fill: var(--ink); }
+.phone .mini .route { stroke-dasharray: 1; stroke-dashoffset: var(--drawn, 0.35); transition: stroke-dashoffset 1s linear; }
+.phone .big { margin-top: auto; display: flex; align-items: baseline; gap: 8px; }
+.phone .big b { font: 600 72px/1 var(--serif); letter-spacing: -0.03em; }
+.phone .big span { font-size: 16px; color: #6b5f86; }
+.phone .pair { display: flex; gap: 28px; margin-top: 16px; }
+.phone .pair b, .phone .nums b { display: block; font: 600 26px/1.1 var(--serif); }
+.phone .pair span, .phone .nums span { font-size: 12px; color: #6b5f86; }
+.phone .block { margin-top: auto; font: 600 54px/1 var(--serif); }
+.phone .left { margin-top: 10px; font-size: 18px; color: #4a3f6b; }
+.phone .left b { font: 600 30px var(--serif); color: var(--ink); }
+.phone .bar { margin-top: 18px; height: 8px; border-radius: 99px; background: rgba(43,39,51,0.1); overflow: hidden; }
+.phone .bar span { display: block; height: 100%; width: var(--done, 46%); background: var(--ink); border-radius: 99px; transition: width 1s linear; }
+.phone .next { margin-top: 14px; font-size: 14px; color: #6b5f86; margin-bottom: auto; }
+.phone .fin { padding: 30px 18px 18px; overflow-y: auto; scrollbar-width: none; }
+.phone .fin-h { font: 600 24px var(--serif); }
+.phone .map { width: 100%; height: auto; margin: 10px 0 4px; background: rgba(43,39,51,0.05); border-radius: 16px; }
+.phone .map .route { stroke-dasharray: 1; stroke-dashoffset: 0; }
+.rv .phone .fin:not([hidden]) .map .route { animation: draw 1.6s ease-out both; }
+@keyframes draw { from { stroke-dashoffset: 1; } }
+.phone .nums { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; margin-top: 8px; }
+.phone .lbl { margin-top: 16px; font-size: 12px; color: #6b5f86; display: flex; justify-content: space-between; gap: 8px; }
+.phone .lbl span { color: var(--ink); font-weight: 600; }
+.splits { display: flex; align-items: flex-end; gap: 6px; height: 64px; margin-top: 8px; }
+.splits button { flex: 1; min-width: 0; height: 100%; border: 0; padding: 0; background: none; cursor: pointer; display: flex; align-items: flex-end; border-radius: 6px; }
+.splits button i { display: block; width: 100%; height: var(--h); border-radius: 6px; background: var(--lilac); transition: background 0.2s; }
+.splits button.part { flex: 0.4; }
+.splits button[aria-pressed='true'] i, .splits button:hover i { background: #8c7bc4; }
+.phone .line { margin-top: 12px; font: 400 italic 15px/1.3 var(--serif); }
+.phone .more { margin-top: 14px; width: 100%; font: 600 14px var(--sans); color: var(--cream); background: var(--ink); border: 0; border-radius: 999px; padding: 11px; cursor: pointer; }
+.phone .deep { margin-top: 12px; border-top: 1px solid rgba(43,39,51,0.12); }
+.phone .deep p { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid rgba(43,39,51,0.12); font-size: 13px; }
+.phone .deep span { color: #6b5f86; }
+.phone .deep b { text-align: right; }
+.phone .fin .ghost { margin-top: 14px; }
+.phone .finish { position: absolute; left: 50%; bottom: 36px; transform: translateX(-50%); font: 600 15px var(--sans); color: var(--cream); background: var(--ink); border: 0; border-radius: 999px; padding: 14px 34px; min-height: 48px; cursor: pointer; box-shadow: 0 10px 24px -10px rgba(0,0,0,0.5); }
+.phone .finish[hidden] { display: none; }
+@media (max-width: 900px) {
+  .demo-wrap { grid-template-columns: 1fr; }
+  .phone { justify-self: center; }
+}
+@media (max-width: 360px) { .phone { width: 100%; } }
 
 /* A saved place, as a small card on the footage */
 .place { margin-top: 40px; display: inline-block; background: rgba(246,241,234,0.94); color: var(--ink); border-radius: 22px; padding: 18px 20px; width: min(340px, 100%); box-shadow: 0 30px 60px -20px rgba(0,0,0,0.6); }
@@ -193,6 +265,7 @@ footer nav a { display: inline-flex; align-items: center; min-height: 44px; }
 /* Small things */
 .note .b button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline transparent; text-underline-offset: 3px; transition: text-decoration-color 0.3s; }
 .note .b button:hover { text-decoration-color: currentColor; }
+.note .b button[aria-disabled='true'] { cursor: default; text-decoration: none; }
 .note .b button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 4px; }
 .again { margin-top: 44px; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font: 400 italic 18px var(--serif); color: var(--cream-soft); text-decoration: none; }
 .again:hover { color: var(--cream); }
