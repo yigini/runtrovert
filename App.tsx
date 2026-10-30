@@ -163,6 +163,9 @@ function Shell() {
       const next = fewer(settingsRef.current.notifyPerWeek);
       update({ notifyPerWeek: next });
       Alert.alert(ui().app.reminders, fewerMessage(next));
+    } else if (data.kind === 'commute') {
+      setSub(null);
+      setTab('run');
     } else if (data.kind === 'plan') {
       setSub(null);
       setTab('train');

@@ -2,7 +2,7 @@
 // Settings; they stay on the phone. From them: whether a run was a commute
 // (it starts near one and ends near the other), the one quiet line the Run tab
 // offers on a weekday morning or late afternoon, how far and how long that run
-// is likely to be, and when the evening-before note goes. Pure, so
+// is likely to be, and when the weekday notes go. Pure, so
 // `npm run test:commute` checks it under plain Node.
 
 import type { LatLon } from './types';
@@ -10,11 +10,13 @@ import type { LatLon } from './types';
 export interface Commute {
   home: LatLon | null;
   work: LatLon | null;
-  /** The day (0 = Sunday … 6) the runner usually runs to work; the evening before gets one note. null = no note. */
-  noteDay: number | null;
+  /** Weekday notes: a run to work in the morning, a run home as work winds down. On by default once both are set. */
+  nudges: Nudges;
 }
 
-export const NO_COMMUTE: Commute = { home: null, work: null, noteDay: null };
+export type Nudges = 'off' | 'morning' | 'afternoon' | 'both';
+
+export const NO_COMMUTE: Commute = { home: null, work: null, nudges: 'both' };
 
 export type CommuteDir = 'toWork' | 'home';
 
@@ -29,8 +31,13 @@ export const MAX_APART_M = 30000;
 export const DETOUR = 1.3;
 /** Seconds per km when there are no runs to learn a pace from. */
 export const DEFAULT_PACE_S = 390;
-export const NOTE_HOUR = 19;
-export const NOTE_MINUTE = 30;
+/** When the notes go: 07:00 (the first minute out of quiet hours) and 16:30. */
+export const MORNING_NOTE = { hour: 7, minute: 0 };
+export const AFTERNOON_NOTE = { hour: 16, minute: 30 };
+/** Days of notes laid out at a time; the app lays them out again on every open and every saved run. */
+export const NOTE_DAYS = 7;
+/** Ten days without a run and the notes go quiet, as every reminder does, until the next run. */
+export const AWAY_DAYS = 10;
 
 /** The morning offer: 05:00 to 10:59. The afternoon one: 14:00 to 20:59. */
 const MORNING = [5, 11];
@@ -122,7 +129,8 @@ export function offerFor(p: { now: number; c: Commute; here: LatLon | null; runs
   const h = d.getHours();
   const dir: CommuteDir | null = h >= MORNING[0] && h < MORNING[1] ? 'toWork' : h >= AFTERNOON[0] && h < AFTERNOON[1] ? 'home' : null;
   if (!dir) return null;
-  if (p.runs.some((r) => sameDay(r.startedAt, p.now))) return null;
+  // A run already today ends the offer, except that a run to work this morning still leaves the run home.
+  if (p.runs.some((r) => sameDay(r.startedAt, p.now) && !(dir === 'home' && r.dir === 'toWork'))) return null;
   const from = dir === 'toWork' ? c.home : c.work;
   if (p.here && metres(p.here, from) > HERE_M) return null;
   return { dir, goal: dir === 'toWork' ? c.work : c.home, ...estimate(dir, c, p.runs) };
@@ -134,19 +142,53 @@ export function roughMinutes(durationS: number): number {
   return m < 15 ? Math.max(1, Math.round(m)) : Math.round(m / 5) * 5;
 }
 
+function dayStart(ms: number): number {
+  const d = new Date(ms);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+export interface CommuteNote {
+  at: number;
+  dir: CommuteDir;
+}
+
 /**
- * When the evening-before note goes: 19:30 the day before `noteDay`, the next
- * one after `now` within a week. The caller drops it on quiet days.
+ * The weekday notes for the next week: "run to work?" at 07:00 and "running
+ * home?" at 16:30, as picked. None on a day that already has a run (a run to
+ * work still leaves the afternoon one), none on a plan rest day, only the
+ * afternoon one on a plan day (the plan's own note is the morning's), and
+ * nothing at all after ten days away.
  */
-export function nextNoteAt(noteDay: number | null, now: number): number | null {
-  if (noteDay == null || noteDay < 0 || noteDay > 6) return null;
-  for (let i = 0; i < 8; i++) {
-    const d = new Date(now);
-    d.setDate(d.getDate() + i);
-    d.setHours(NOTE_HOUR, NOTE_MINUTE, 0, 0);
-    if ((d.getDay() + 1) % 7 !== noteDay) continue;
-    if (d.getTime() <= now + 60_000) continue;
-    return d.getTime();
+export function commuteNotes(p: {
+  now: number;
+  c: Commute;
+  lastRun: { at: number; dir: CommuteDir | null } | null;
+  /** Local midnights of the plan's days: 'rest', or 'session' for any day with something to run. */
+  plan?: Map<number, 'rest' | 'session'>;
+}): CommuteNote[] {
+  const { c } = p;
+  if (!ready(c) || c.nudges === 'off') return [];
+  const out: CommuteNote[] = [];
+  for (let i = 0; i < NOTE_DAYS; i++) {
+    const day = new Date(p.now);
+    day.setDate(day.getDate() + i);
+    day.setHours(0, 0, 0, 0);
+    const wd = day.getDay();
+    if (wd === 0 || wd === 6) continue;
+    const start = day.getTime();
+    if (p.lastRun && Math.round((start - dayStart(p.lastRun.at)) / 86400000) >= AWAY_DAYS) continue;
+    const planDay = p.plan?.get(start);
+    if (planDay === 'rest') continue;
+    const ranToday = p.lastRun != null && dayStart(p.lastRun.at) === start;
+    const slots: Array<[CommuteDir, { hour: number; minute: number }]> = [];
+    if ((c.nudges === 'morning' || c.nudges === 'both') && planDay !== 'session' && !ranToday) slots.push(['toWork', MORNING_NOTE]);
+    if ((c.nudges === 'afternoon' || c.nudges === 'both') && (!ranToday || p.lastRun?.dir === 'toWork')) slots.push(['home', AFTERNOON_NOTE]);
+    for (const [dir, t] of slots) {
+      const at = new Date(start);
+      at.setHours(t.hour, t.minute, 0, 0);
+      if (at.getTime() > p.now + 60_000) out.push({ at: at.getTime(), dir });
+    }
   }
-  return null;
+  return out;
 }

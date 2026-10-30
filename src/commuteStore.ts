@@ -6,10 +6,10 @@
 import * as Notifications from 'expo-notifications';
 import { useEffect, useMemo, useState } from 'react';
 import { getDb, getPoints, listRuns, loadSettings, loadValue, saveValue } from './db';
-import { commuteOf, NO_COMMUTE, nextNoteAt, offerFor, ready, type Commute, type CommuteDir, type Offer, type PastRun } from './commute';
+import { commuteNotes, commuteOf, estimate, NO_COMMUTE, offerFor, ready, type Commute, type CommuteDir, type Offer, type PastRun } from './commute';
 import { ensureChannel, rescheduleReminders } from './notify';
 import { useLastPlace } from './place';
-import { AWAY_QUIET_DAYS, awayDays } from './reminderPlan';
+import { formatDistance } from './geo';
 import { DAY_MS, dayStart } from './training/dates';
 import { schedulePlanReminders } from './training/remind';
 import { loadPlan, runSessions } from './training/store';
@@ -111,51 +111,61 @@ export async function lastCommuteRoute(dir: CommuteDir, c: Commute): Promise<Lat
 }
 
 /**
- * The evening-before note, laid out after the ordinary reminders and the
- * plan's (App.tsx re-plans all three together). It keeps the reminder deal:
- * nothing when reminders are off or after ten days away, never a second note
- * that day (it takes the place of an ordinary line, and gives way to a plan
- * note), and no note before a plan's rest day.
+ * The weekday commute notes (src/commute.ts says which and when), laid out
+ * after the ordinary reminders and the plan's; App.tsx re-plans all three
+ * together on open and after every run. On by default once home and work are
+ * set. Nothing when reminders are set to none. Never more than two notes a
+ * day: a day with a commute note gives up its ordinary line, and a plan day
+ * keeps its own note and only gets the afternoon one.
  */
 export async function scheduleCommuteNote(settingsIn?: Settings): Promise<void> {
   const pending = await Notifications.getAllScheduledNotificationsAsync();
   await Promise.all(pending.filter((n) => n.content.data?.kind === 'commute').map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {})));
   const c = await loadCommute();
-  if (!ready(c) || c.noteDay == null) return;
+  if (!ready(c) || c.nudges === 'off') return;
   const settings = settingsIn ?? (await loadSettings());
   if (settings.notifyPerWeek === 0) return;
   const perm = await Notifications.getPermissionsAsync();
   if (!perm.granted) return;
 
   const now = Date.now();
-  const at = nextNoteAt(c.noteDay, now);
-  if (at == null) return;
   const runs = await listRuns().catch(() => []);
-  const lastRun = runs.length ? Math.max(...runs.map((r) => r.startedAt)) : null;
-  if (lastRun != null && awayDays(lastRun, at) >= AWAY_QUIET_DAYS) return;
+  const tags = await commuteTags(c).catch(() => new Map<number, CommuteDir>());
+  const latest = runs.reduce<Run | null>((a, r) => (!a || r.startedAt > a.startedAt ? r : a), null);
+  const lastRun = latest ? { at: latest.startedAt, dir: tags.get(latest.id) ?? null } : null;
 
   const plan = await loadPlan().catch(() => null);
+  const planDays = new Map<number, 'rest' | 'session'>();
   if (plan && plan.status === 'active') {
-    const runDay = dayStart(at + DAY_MS);
-    const sessions = runSessions(plan).filter((s) => s.date === runDay && !s.skipped);
-    if (!sessions.length || sessions.every((s) => s.kind === 'rest')) return;
+    for (const s of runSessions(plan)) {
+      if (s.skipped) continue;
+      planDays.set(s.date, s.kind === 'rest' && planDays.get(s.date) !== 'session' ? 'rest' : 'session');
+    }
+  }
+  const notes = commuteNotes({ now, c, lastRun, plan: planDays });
+  if (!notes.length) return;
+
+  // Rough distance for the line, from the runner's own commutes once there are some.
+  const past = runs.map((r) => ({ startedAt: r.startedAt, distanceM: r.distanceM, durationS: r.durationS, dir: tags.get(r.id) ?? null }));
+  const dist = (dir: CommuteDir) => formatDistance(estimate(dir, c, past).distanceM, settings.unitsKm);
+
+  const fresh = await Notifications.getAllScheduledNotificationsAsync();
+  const days = new Set(notes.map((n) => dayStart(n.at)));
+  for (const n of fresh) {
+    const t = triggerTime(n.trigger);
+    if (n.content.data?.kind === 'reminder' && t != null && days.has(dayStart(t))) await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
   }
 
-  const day = dayStart(at);
-  const fresh = await Notifications.getAllScheduledNotificationsAsync();
-  const sameDay = fresh.filter((n) => {
-    const t = triggerTime(n.trigger);
-    return t != null && dayStart(t) === day;
-  });
-  if (sameDay.some((n) => n.content.data?.kind === 'plan')) return;
-  for (const n of sameDay) if (n.content.data?.kind === 'reminder') await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
-
   await ensureChannel();
-  const lines = ui().commute.noteLines;
-  await Notifications.scheduleNotificationAsync({
-    content: { title: ui().commute.noteTitle, body: lines[Math.floor(at / DAY_MS) % lines.length], sound: false, data: { kind: 'commute' } },
-    trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(at), channelId: CHANNEL },
-  });
+  for (const n of notes) {
+    const k = Math.floor(n.at / DAY_MS);
+    const titles = n.dir === 'toWork' ? ui().commute.morningTitles : ui().commute.homeTitles;
+    const lines = n.dir === 'toWork' ? ui().commute.morningLines : ui().commute.homeLines;
+    await Notifications.scheduleNotificationAsync({
+      content: { title: titles[k % titles.length], body: lines[k % lines.length](dist(n.dir)), sound: false, data: { kind: 'commute', dir: n.dir } },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(n.at), channelId: CHANNEL },
+    });
+  }
 }
 
 function triggerTime(trigger: unknown): number | null {

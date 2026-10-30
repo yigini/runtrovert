@@ -1,24 +1,21 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { MAX_APART_M, metres, MIN_APART_M } from '../commute';
+import { MAX_APART_M, metres, MIN_APART_M, type Nudges } from '../commute';
 import { saveCommute, useCommute } from '../commuteStore';
 import { colors, fonts, radius, spacing } from '../theme';
 import type { LatLon } from '../types';
-import { dateLocale } from '../i18n/lang';
 import { ui } from '../i18n/ui';
 import { SpotSheet } from './SpotSheet';
 
-/** Monday to Friday, as JS days. */
-const WEEKDAYS = [1, 2, 3, 4, 5];
+const NUDGES: Nudges[] = ['off', 'morning', 'afternoon', 'both'];
 
-function weekdayShort(day: number): string {
-  // 2026-10-26 was a Monday.
-  return new Date(2026, 9, 25 + day).toLocaleDateString(dateLocale(), { weekday: 'short' });
+function nudgeLabel(n: Nudges): string {
+  return n === 'off' ? ui().commute.off : n === 'morning' ? ui().commute.mornings : n === 'afternoon' ? ui().commute.afternoons : ui().commute.both;
 }
 
 /**
  * Settings > Home and work. Two spots, kept on the phone (src/commuteStore.ts),
- * and the one optional evening-before note. Looks like the sections around it.
+ * and the weekday notes about them. Looks like the sections around it.
  */
 export function CommuteSettings() {
   const c = useCommute();
@@ -38,15 +35,15 @@ export function CommuteSettings() {
       {both ? (
         <View style={[styles.row, { flexDirection: 'column', alignItems: 'flex-start', gap: spacing.sm }]}>
           <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-            <Text style={styles.label}>{ui().commute.noteLabel}</Text>
-            <Text style={styles.hint}>{ui().commute.noteHint}</Text>
+            <Text style={styles.label}>{ui().commute.nudgeLabel}</Text>
+            <Text style={styles.hint}>{ui().commute.nudgeHint}</Text>
           </View>
-          <View style={styles.seg} accessibilityRole="radiogroup" accessibilityLabel={ui().commute.noteLabel} accessibilityHint={ui().commute.noteHint}>
-            {[null, ...WEEKDAYS].map((d) => {
-              const on = c.noteDay === d;
-              const label = d == null ? ui().commute.off : weekdayShort(d);
+          <View style={styles.seg} accessibilityRole="radiogroup" accessibilityLabel={ui().commute.nudgeLabel} accessibilityHint={ui().commute.nudgeHint}>
+            {NUDGES.map((n) => {
+              const on = c.nudges === n;
+              const label = nudgeLabel(n);
               return (
-                <Pressable key={d ?? 'off'} onPress={() => saveCommute({ noteDay: d })} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${ui().commute.noteLabel}: ${label}`} style={[styles.segItem, on && styles.segItemOn]}>
+                <Pressable key={n} onPress={() => saveCommute({ nudges: n })} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${ui().commute.nudgeLabel}: ${label}`} style={[styles.segItem, on && styles.segItemOn]}>
                   <Text style={[styles.segText, on && styles.segTextOn]}>{label}</Text>
                 </Pressable>
               );
