@@ -3,11 +3,12 @@
 # Same look as scripts/grade-bg.sh, but 16:9 at 1920x1080 for desktop screens; phones
 # keep the 9:16 app loops. Sources are the original Pexels clips (Pexels licence).
 #
-#   scripts/grade-bg-wide.sh <raw-dir> <out-dir>
+#   scripts/grade-bg-wide.sh <raw-dir> <out-dir> [name ...]
 set -euo pipefail
 
 RAW=${1:?raw dir}
 OUT=${2:?out dir}
+shift 2
 mkdir -p "$OUT"
 
 # name|source file|start s|x|y[|end s]
@@ -20,6 +21,9 @@ mist-beach|8636806-uhd_2560_1440_25fps.mp4|3|0.5|0.5
 rock-coast|5929358-uhd_3840_2160_25fps.mp4|2|0.5|0.5
 snow-plain|7038131-uhd_4096_2160_25fps.mp4|1|0.5|0.5
 trail-bridge|5677457-uhd_3840_2160_24fps.mp4|2|0.5|0.5
+leafy-lane|13947025-hd_1920_1080_30fps.mp4|2|0.5|0.5
+lake-side|4065467-uhd_3840_2160_30fps.mp4|0|0.5|0.5|7
+glass-river|8834377-uhd_4096_2160_25fps.mp4|0|0.5|0.5
 '
 
 FADE=1.2
@@ -52,7 +56,10 @@ format=yuv420p"
   ffmpeg -nostdin -v error -y -ss "$(echo "$L/2" | bc -l)" -i "$OUT/wide-$name.mp4" -frames:v 1 -q:v 4 "$OUT/wide-$name.jpg"
 }
 
-echo "$CLIPS" | while IFS='|' read -r name src start x y stop; do
+while IFS='|' read -r name src start x y stop; do
   [ -z "$name" ] && continue
+  if [ $# -gt 0 ]; then
+    case " $* " in *" $name "*) ;; *) continue ;; esac
+  fi
   grade "$name" "$src" "$start" "$x" "$y" "$stop"
-done
+done <<< "$CLIPS"
