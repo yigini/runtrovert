@@ -93,9 +93,13 @@ class RunService : LifecycleService() {
     lifecycleScope.launch { startHeart() }
     lifecycleScope.launch {
       // Every few seconds, whatever the sensor gave, to the phone. Kept if the phone is out of reach.
+      // Once a minute a hello too: the phone answers with its state, so a Stop
+      // missed while out of reach doesn't leave this watch recording.
+      var ticks = 0
       while (true) {
         delay(5_000)
         flush()
+        if (++ticks % 12 == 0) PhoneLink.send(this@RunService, Paths.HELLO, helloJson(PhoneLink.appVisible))
       }
     }
   }

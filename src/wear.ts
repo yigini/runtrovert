@@ -57,7 +57,8 @@ function startWear(): void {
     } else if (path === PATHS.hr) {
       const runId = current.runId;
       // Kept while the finish screen is up too: the watch's last few seconds arrive just after Stop.
-      if (runId == null || current.status === 'idle') return;
+      // Readings with no run on: the watch missed the Stop. Tell it where things are.
+      if (runId == null || current.status === 'idle') return sendLive();
       void addHeartRate(runId, parseHeart(data)).catch(() => {});
     }
   });

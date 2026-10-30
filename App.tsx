@@ -17,7 +17,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { handleBack } from './src/back';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { OpenSettings } from './src/components/SettingsGear';
-import { discardUnfinishedRuns, getRun } from './src/db';
+import { closeUnfinishedRuns, getRun } from './src/db';
 import { HistoryScreen, type RunsSection } from './src/screens/HistoryScreen';
 import { ListenScreen } from './src/screens/ListenScreen';
 import { RunDetailScreen } from './src/screens/RunDetailScreen';
@@ -128,10 +128,11 @@ function Shell() {
   }, []);
 
   useEffect(() => {
-    // If the app was killed mid-run, pick the run back up; otherwise tidy strays.
+    // If the app was killed mid-run, pick the run back up; otherwise close
+    // strays where they stopped (an empty one is removed, a recorded one kept).
     recoverRun()
       .then((restored) => {
-        if (!restored) return discardUnfinishedRuns();
+        if (!restored) return closeUnfinishedRuns();
       })
       .catch(() => {});
   }, []);
