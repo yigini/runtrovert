@@ -1063,7 +1063,7 @@ export const de: Strings = {
   unlock: {
     name: 'Alles, einmal',
     priceLine: (price, later) => `${price}, einmalig. Es wird ${later}, wenn die vollen Trainingspläne kommen.`,
-    adds: ['Volle Trainingspläne, über Woche 1 hinaus', 'Trends und Fortschritt über Monate', 'Muster in deinen Orten und deiner Energie', 'Backup, Export jedes Laufs, Health Connect', 'Designs und Widgets'],
+    adds: ['Volle Trainingspläne, über Woche 1 hinaus', 'Trends und Fortschritt über Monate', 'Muster in deinen Orten und deiner Energie', 'Export aller Läufe auf einmal'],
     theStoreSaidNo: 'Der Store hat abgelehnt',
     notInThisBuild: 'Nicht in dieser Version',
     purchasesArriveWithTheStore: 'Käufe kommen mit der Store-Version. Testversionen haben alles freigeschaltet.',
