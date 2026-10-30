@@ -1688,6 +1688,26 @@ export const en = {
     updated: 'Paces updated. Every session from today uses them.',
     logPaces: (vdot: number) => `Paces set from a race (VDOT ${vdot}).`,
   },
+  zones: {
+    couldBeEasier: 'This could be easier.',
+    rangeX: (lo: number, hi: number) => `${lo}–${hi} bpm`,
+    title: 'Your heart rate',
+    none: 'Add your maximum heart rate and each step gets a heart-rate range next to how it should feel. The feel still comes first: heat, hills and a short night move the heart, not the effort.',
+    from: { entered: 'The maximum you entered.', measured: 'The highest your watch has seen.', age: 'Estimated from your age (208 − 0.7 × age), give or take ten.' },
+    summary: (max: number, rest: number | null) => (rest != null ? `Max ${max}, resting ${rest} bpm. Ranges use your heart-rate reserve.` : `Max ${max} bpm. A resting heart rate gives ranges that fit you better.`),
+    easyThreshold: (easy: string, threshold: string) => `Easy ${easy}. Comfortably hard ${threshold}.`,
+    set: 'Add my heart rate',
+    change: 'Change',
+    maxLabel: 'Maximum',
+    restLabel: 'Resting (optional)',
+    ageLabel: 'Or your age',
+    measuredHint: (n: number) => `Your watch has seen ${n} bpm.`,
+    nudgeLabel: 'A quiet word on easy days',
+    nudgeHint: 'With the watch: a minute above the easy range gets "This could be easier", at most three times a run.',
+    save: 'Save',
+    remove: 'Remove my numbers',
+    saved: 'Saved. Sessions show heart-rate ranges from now on.',
+  },
 };
 
 export type Strings = typeof en;

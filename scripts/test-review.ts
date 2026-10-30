@@ -7,6 +7,7 @@ import { addDays, dayStart } from '../src/training/dates.ts';
 import { generate } from '../src/training/generate.ts';
 import { pacesFromRace } from '../src/training/paces.ts';
 import { applyFeel } from '../src/training/adapt.ts';
+import { maxFromAge, newNudge, rangeFor, shouldNudge, stepRange } from '../src/training/zones.ts';
 import { MAX_VDOT_STEP, refreshPaces, soFar } from '../src/training/overview.ts';
 import { feelToRpe, reviewSession } from '../src/training/review.ts';
 import { validatePlan } from '../src/training/rules.ts';
@@ -173,6 +174,37 @@ for (const spec of PLANS) {
   const stale = soFar({ ...withPaces, pacesAt: today }, addDays(today, 43));
   if (stale.pacesWeeks !== 6) fail(`paces set 43 days ago read as ${stale.pacesWeeks} weeks`);
   checked += 4;
+}
+
+// ---- Heart-rate ranges ----
+{
+  if (maxFromAge(40) !== 180) fail(`Tanaka max at 40 = ${maxFromAge(40)}, expected 180`);
+  const byMax = { maxHr: 190, restHr: null, source: 'entered' as const, easyNudge: true };
+  const byReserve = { ...byMax, restHr: 50 };
+  const e = rangeFor('easy', '10k', byMax)!;
+  if (e[0] !== 124 || e[1] !== 150) fail(`easy at max 190 = ${e}, expected 124–150 (65–79%)`);
+  const er = rangeFor('easy', '10k', byReserve)!;
+  if (er[0] !== Math.round(50 + 0.59 * 140) || er[1] !== Math.round(50 + 0.74 * 140)) fail(`easy by reserve = ${er}`);
+  // Every effort sits above the one below it.
+  const order = ['walk', 'easy', 'steady', 'threshold', 'hard'] as const;
+  for (const h of [byMax, byReserve]) for (let i = 1; i < order.length; i++) if (rangeFor(order[i], 'half', h)![0] <= rangeFor(order[i - 1], 'half', h)![0]) fail(`${order[i]} is not above ${order[i - 1]}`);
+  if (rangeFor('race', 'marathon', byMax)![1] >= rangeFor('race', '5k', byMax)![1]) fail('marathon race range is not below 5K');
+  if (stepRange({ kind: 'stride', effort: 'fast', durationS: 20 }, '5k', byMax) || stepRange({ kind: 'hard', effort: 'hard', durationS: 60 }, '5k', byMax)) fail('short fast work got a heart-rate range');
+  if (!stepRange({ kind: 'hard', effort: 'hard', durationS: 240 }, '5k', byMax)) fail('a 4-minute interval got no range');
+  if (rangeFor('easy', '10k', { ...byMax, maxHr: 90 })) fail('a nonsense max gave a range');
+  if (rangeFor('easy', '10k', { ...byMax, restHr: 150 })![1] !== 150) fail('a nonsense resting rate was used');
+  // The nudge: a minute over, then six minutes' quiet, three at most.
+  const n = newNudge();
+  let said = 0;
+  for (let t = 0; t < 60 * 60; t += 5) if (shouldNudge(n, 160, t * 1000, 150)) said++;
+  if (said !== 3) fail(`an hour over the easy range gave ${said} nudges, expected 3`);
+  const n2 = newNudge();
+  let early = 0;
+  for (let t = 0; t < 55; t += 5) if (shouldNudge(n2, 160, t * 1000, 150)) early++;
+  if (early) fail('nudged before a full minute over');
+  const n3 = newNudge();
+  for (let t = 0; t < 600; t += 5) if (shouldNudge(n3, t % 50 < 25 ? 160 : 140, t * 1000, 150)) fail('nudged when the heart kept coming back into range');
+  checked += 10;
 }
 
 console.log(`\n${checked} checks, ${failures} failure(s)`);

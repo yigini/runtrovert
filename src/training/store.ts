@@ -11,6 +11,7 @@ import type { Paces } from './paces';
 import { profileFrom } from './profile';
 import { reviewSession, withFeel } from './review';
 import { paceSetFor } from './sessions';
+import { HEART_KEY, type HeartSetup } from './zones';
 import type { Feel, Plan, PlanSetup, Session, StepDone, Week } from './types';
 import { ui } from '../i18n/ui';
 
@@ -59,6 +60,16 @@ export function createPlan(spec: PlanSpec, setup: PlanSetup, runner: RunnerProfi
       log: [],
     },
   };
+}
+
+/** The runner's heart-rate numbers, null until given. Not part of a plan: they outlive it. */
+export async function loadHeart(): Promise<HeartSetup | null> {
+  const h = await loadValue<HeartSetup>(HEART_KEY).catch(() => null);
+  return h && typeof h.maxHr === 'number' ? h : null;
+}
+
+export async function saveHeart(h: HeartSetup | null): Promise<void> {
+  await saveValue(HEART_KEY, h);
 }
 
 export function planSpec(plan: Plan): PlanSpec {

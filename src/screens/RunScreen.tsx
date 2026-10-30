@@ -932,7 +932,7 @@ function GuidedStrip({ g }: { g: GuidedRun }) {
         </Text>
       </View>
       <Text style={styles.guidedStep} numberOfLines={2}>
-        {v.finished ? ui().run.thatIsTheSessionEasy : step ? stepLine(step) : ''}
+        {v.finished ? ui().run.thatIsTheSessionEasy : step ? `${stepLine(step)}${g.range ? ` · ${ui().zones.rangeX(g.range[0], g.range[1])}` : ''}` : ''}
       </Text>
       {!v.finished && (
         <View style={styles.guidedBar}>
