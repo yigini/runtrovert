@@ -1,15 +1,17 @@
 // Where the one active plan lives: a JSON value in the settings table, nothing
 // else. Everything here is local; a plan never leaves the phone.
 
-import { listRuns, loadValue, saveValue } from '../db';
+import { getHeartRate, listRuns, loadValue, saveValue } from '../db';
 import type { Run } from '../types';
-import { applyPain, type PainLevel } from './adapt';
+import { applyFeel, applyPain, type Eased, type PainLevel } from './adapt';
 import { planById, type PlanSpec, type RunnerProfile } from './catalogue';
 import { DAY_MS, addDays, dayStart, daysBetween } from './dates';
 import { generate } from './generate';
 import type { Paces } from './paces';
 import { profileFrom } from './profile';
-import type { Plan, PlanSetup, Session, Week } from './types';
+import { reviewSession, withFeel } from './review';
+import { paceSetFor } from './sessions';
+import type { Feel, Plan, PlanSetup, Session, StepDone, Week } from './types';
 import { ui } from '../i18n/ui';
 
 const KEY = 'trainingPlan';
@@ -151,18 +153,39 @@ function extendKeepPlan(plan: Plan, spec: PlanSpec): boolean {
 
 /**
  * After a run is saved: the day's session is done, at whatever distance was
- * run. `sessionId` names the session that was started from the plan, when it
- * was not today's. Pain reported after the run eases the days ahead.
+ * run, and set against what it asked for (each step, when it was guided).
+ * `sessionId` names the session that was started from the plan, when it was
+ * not today's. Pain reported after the run eases the days ahead, and so does
+ * an easy day that felt hard.
  */
-export async function onRunSaved(run: Run, pain: PainLevel | null, sessionId: string | null = null): Promise<{ plan: Plan | null; advice: string | null }> {
+export async function onRunSaved(
+  run: Run,
+  pain: PainLevel | null,
+  sessionId: string | null = null,
+  how: { steps: StepDone[] | null; feel: Feel | null } = { steps: null, feel: null },
+): Promise<{ plan: Plan | null; advice: string | null; eased: Eased | null; lighter: boolean }> {
   let plan = await loadPlan();
-  if (!plan || plan.status !== 'active') return { plan, advice: null };
+  if (!plan || plan.status !== 'active') return { plan, advice: null, eased: null, lighter: false };
   const day = dayStart(run.startedAt);
   const s = (sessionId && sessionById(plan, sessionId)) || sessionOn(plan, day);
   const meaningful = run.distanceM >= 500 || run.durationS >= 300;
+  let ticked: Session | null = null;
   if (s && !s.done && meaningful) {
     s.done = { runId: run.id, distanceM: run.distanceM, durationS: run.durationS, at: day };
     s.skipped = false;
+    // Steps only belong to the session they were guided from.
+    const steps = sessionId === s.id ? how.steps : null;
+    const heart = steps?.length ? await getHeartRate(run.id).catch(() => []) : [];
+    s.result = reviewSession({ session: s, steps, run, feel: how.feel, paces: racePaces(plan), heart });
+    ticked = s;
+  }
+  let eased: Eased | null = null;
+  let lighter = false;
+  if (ticked && how.feel) {
+    const r = applyFeel(plan, day, ticked.id, how.feel);
+    plan = r.plan;
+    eased = r.eased;
+    lighter = r.lighter;
   }
   let advice: string | null = null;
   if (pain && pain !== 'none') {
@@ -171,12 +194,26 @@ export async function onRunSaved(run: Run, pain: PainLevel | null, sessionId: st
     advice = r.advice;
   }
   await savePlan(plan);
-  return { plan, advice };
+  return { plan, advice, eased, lighter };
+}
+
+/** "How did it feel?" answered later, on the session page. Same adaptation as after the run. */
+export function setFeel(plan: Plan, sessionId: string, feel: Feel): { plan: Plan; eased: Eased | null; lighter: boolean } {
+  const p = clone(plan);
+  const s = sessionById(p, sessionId);
+  if (!s || !s.done) return { plan: p, eased: null, lighter: false };
+  s.result = withFeel(s, s.result, feel, racePaces(p));
+  return applyFeel(p, s.done.at || s.date, s.id, feel);
+}
+
+/** Paces are judged only when they came from a race the runner gave (rule 8). */
+function racePaces(plan: Plan) {
+  return plan.paces ? paceSetFor(plan.runner, plan.paces, planSpec(plan).goal) : null;
 }
 
 /**
  * A run was deleted: the session it completed keeps its tick, but the run's
- * date, distance and time leave the plan with it.
+ * date, distance, time and steps leave the plan with it.
  */
 export async function forgetRun(runId: number): Promise<void> {
   const plan = await loadPlan();
@@ -185,6 +222,8 @@ export async function forgetRun(runId: number): Promise<void> {
   for (const s of plan.weeks.flatMap((w) => w.sessions)) {
     if (s.done && s.done.runId === runId) {
       s.done = { runId: 0, distanceM: 0, durationS: 0, at: 0 };
+      // The answer stays; the steps and the load were the run's numbers.
+      if (s.result) s.result = { ...s.result, steps: [], load: null, verdict: 'unguided' };
       changed = true;
     }
   }

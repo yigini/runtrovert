@@ -9,6 +9,7 @@ import { Button } from '../components/Button';
 import { Face } from '../components/Mark';
 import { MoodPicker } from '../components/MoodPicker';
 import { MusicStrip } from '../components/MusicStrip';
+import { FeelPicker } from '../components/FeelPicker';
 import { PainPicker } from '../components/PainPicker';
 import { PlaceFinishCard } from '../components/PlaceFinishCard';
 import { QuietPicker } from '../components/QuietPicker';
@@ -36,14 +37,14 @@ import { continueRun, ensurePermissions, getState, haltRun, lap, pauseRun, resum
 import { colors, fonts, radius, spacing, type } from '../theme';
 import { applyEnergy, type PainLevel } from '../training/adapt';
 import { loadPlan, nextSession, savePlan, todaySession } from '../training/store';
-import type { Plan, Session, Step } from '../training/types';
+import type { Feel, Plan, Session, Step, StepDone } from '../training/types';
 import { createWorkout, formatLeft, leftClock, stepFeel, stepLine, stepName } from '../training/workout';
 import type { LatLon, Mood, Quiet, Run } from '../types';
 import { planSessionOpen } from '../unlock';
 import { onWatchCommand } from '../wear';
 import type { WatchCommand } from '../wearProtocol';
 import { cachedWeather } from '../weather';
-import { beginWorkout, endWorkout, subscribeWorkout, type GuidedRun } from '../workoutRun';
+import { beginWorkout, endWorkout, subscribeWorkout, takeWorkoutSteps, type GuidedRun } from '../workoutRun';
 import type { Offer } from '../commute';
 import { lastCommuteRoute, loadCommute } from '../commuteStore';
 import { liveFacts, recordRunFacts } from '../you';
@@ -70,7 +71,15 @@ const HOLD_TO_STOP_MS = 1000;
 /** Stories are only asked for on the finish screen. */
 const NO_POINTS: StatPoint[] = [];
 
-export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0, focused = true, onOpenPlan, onPlanChanged, onBrowseListen, onInk, ghost = null, onGhostTaken, onWatchStart }: { onSaved: (runId: number, share?: boolean, extra?: { pain: PainLevel | null; sessionId: string | null }) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number; focused?: boolean; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; onInk?: (ink: boolean) => void; ghost?: Ghost | null; onGhostTaken?: () => void; onWatchStart?: () => void }) {
+/** What the finish screen hands over with a saved run, for the plan. */
+export interface RunExtra {
+  pain: PainLevel | null;
+  sessionId: string | null;
+  feel: Feel | null;
+  steps: StepDone[] | null;
+}
+
+export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0, focused = true, onOpenPlan, onPlanChanged, onBrowseListen, onInk, ghost = null, onGhostTaken, onWatchStart }: { onSaved: (runId: number, share?: boolean, extra?: RunExtra) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number; focused?: boolean; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; onInk?: (ink: boolean) => void; ghost?: Ghost | null; onGhostTaken?: () => void; onWatchStart?: () => void }) {
   const { settings } = useSettings();
   const km = settings.unitsKm;
   const [track, setTrack] = useState<TrackingState>(getState());
@@ -111,6 +120,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   const [planNext, setPlanNext] = useState<Session | null>(null); // the next session, on a rest day
   const [planShown, setPlanShown] = useState<Plan | null>(null); // active or paused, for the welcome back after a break
   const [pain, setPain] = useState<PainLevel | null>(null);
+  const [feel, setFeel] = useState<Feel | null>(null);
   const [guided, setGuided] = useState<GuidedRun | null>(null);
   const session = requested ?? planSession;
   const sessionOpen = !!session && !session.done && !session.skipped;
@@ -401,7 +411,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     }
     if (id != null) await recordRunFacts(id, startedAt, durationS).catch(() => {});
     if (id != null) await keepPlace(id).catch(() => {});
-    const extra = { pain, sessionId: guided?.session.id ?? null };
+    const extra: RunExtra = { pain, sessionId: guided?.session.id ?? null, feel, steps: guided ? takeWorkoutSteps(final?.distanceM ?? 0, durationS) : null };
     reset();
     if (id != null) onSaved(id, share, extra);
   }
@@ -452,6 +462,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     setRunSilent(false);
     onRequestTaken?.();
     setPain(null);
+    setFeel(null);
     setPhase('idle');
     setMoodBefore(null);
     setMoodAfter(null);
@@ -538,6 +549,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
           <MoodPicker title={ui().run.andYourEnergyNow} value={moodAfter} onChange={setMoodAfter} />
           <QuietPicker value={quiet} onChange={setQuiet} />
           <TextInput style={styles.note} placeholder={ui().run.aNoteIfYouWant} placeholderTextColor={colors.inkMuted} value={note} onChangeText={setNote} multiline />
+          {hasPlan && (!!guided || (!!session && sessionOpen && session.kind !== 'rest')) && <FeelPicker value={feel} onChange={setFeel} />}
           {hasPlan && <PainPicker value={pain} onChange={setPain} />}
           <RunStatsView
             run={{ startedAt: final.startedAt ?? Date.now(), endedAt: finishPoints.length ? finishPoints[finishPoints.length - 1].ts : null, distanceM: final.distanceM, durationS: final.durationS, elevationGainM: final.elevationGainM, quiet, moodBefore, moodAfter }}
