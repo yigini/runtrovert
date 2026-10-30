@@ -35,6 +35,7 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 600; line-height: 0.98; let
 em { font-family: var(--serif); font-weight: 400; font-style: italic; }
 .skip { position: absolute; left: -999px; top: 8px; background: var(--cream); color: var(--ink); padding: 8px 14px; border-radius: 999px; z-index: 50; }
 .skip:focus { left: 16px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 :focus-visible { outline: 2px solid var(--butter); outline-offset: 3px; border-radius: 6px; }
 
 /* Film grain over everything: the footage is soft, this makes it feel shot, not stocked. */
@@ -52,12 +53,15 @@ em { font-family: var(--serif); font-weight: 400; font-style: italic; }
 .motion { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 .motion[hidden] { display: none; }
 .motion .ic { width: 10px; height: 11px; border-left: 3px solid currentColor; border-right: 3px solid currentColor; box-sizing: border-box; }
-.motion[aria-pressed="true"] .ic { border-right: 0; border-left: 10px solid currentColor; border-top: 5.5px solid transparent; border-bottom: 5.5px solid transparent; height: 0; width: 0; }
+.motion.is-paused .ic { border-right: 0; border-left: 10px solid currentColor; border-top: 5.5px solid transparent; border-bottom: 5.5px solid transparent; height: 0; width: 0; }
 .soon { white-space: nowrap; }
 .brand { flex-shrink: 0; }
+/* Narrow phones and high zoom: the mark stands in for the name, which stays for screen readers */
+@media (max-width: 380px) { .brand span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } .acts { gap: 6px; } .soon { padding: 7px 12px; } }
 @media (max-width: 560px) {
   .motion { width: 44px; height: 44px; padding: 0; justify-content: center; }
   .soon .far { display: none; }
+  .top .bar { gap: 8px; }
   .motion .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
 .motion:focus-visible, .soon:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; }
@@ -193,6 +197,7 @@ footer nav a { display: inline-flex; align-items: center; min-height: 44px; }
 /* Small things */
 .note .b button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline transparent; text-underline-offset: 3px; transition: text-decoration-color 0.3s; }
 .note .b button:hover { text-decoration-color: currentColor; }
+.note .b button[aria-disabled='true'] { cursor: default; text-decoration: none; }
 .note .b button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 4px; }
 .again { margin-top: 44px; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font: 400 italic 18px var(--serif); color: var(--cream-soft); text-decoration: none; }
 .again:hover { color: var(--cream); }
