@@ -1,23 +1,39 @@
-// Loops play only while on screen. Lines rotate in the app's own voice (src/lines.ts,
+// Loops load near the screen and play only on it. Lines rotate in the app's own voice (src/lines.ts,
 // src/i18n/voice/en.ts). People who asked for less motion get still posters and one line each.
 (function () {
   var still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var videos = document.querySelectorAll('video[data-loop]');
+  var wide = window.matchMedia('(min-aspect-ratio: 1/1)');
+  var videos = Array.prototype.slice.call(document.querySelectorAll('video[data-loop]'));
   var chapters = document.querySelectorAll('.ch');
 
-  if (still) videos.forEach(function (v) { v.removeAttribute('autoplay'); v.pause(); });
+  // Posters are plain <img>s (lazy, sized per screen). A loop is fetched only when its
+  // chapter comes near: 1080p widescreen on landscape screens, the 9:16 app loop on phones.
+  function load(v) {
+    var src = wide.matches ? v.dataset.wide : v.dataset.tall;
+    if (v.dataset.src === src) return;
+    v.dataset.src = src;
+    v.src = src;
+    v.addEventListener('playing', function () { v.classList.add('on'); }, { once: true });
+  }
+  function play(v) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
+
+  if (!still && 'IntersectionObserver' in window) {
+    var near = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { load(e.target); near.unobserve(e.target); } });
+    }, { rootMargin: '50% 0px' });
+    var seen = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { load(e.target); play(e.target); } else e.target.pause(); });
+    }, { threshold: 0.1 });
+    // The hero's poster paints first; its loop starts once the page has loaded.
+    window.addEventListener('load', function () {
+      videos.forEach(function (v) { near.observe(v); seen.observe(v); });
+    });
+    wide.addEventListener('change', function () {
+      videos.forEach(function (v) { if (v.dataset.src) { v.classList.remove('on'); load(v); play(v); } });
+    });
+  }
 
   if ('IntersectionObserver' in window) {
-    if (!still) {
-      var seen = new IntersectionObserver(function (entries) {
-        entries.forEach(function (e) {
-          if (e.isIntersecting) { var p = e.target.play(); if (p && p.catch) p.catch(function () {}); }
-          else e.target.pause();
-        });
-      }, { threshold: 0.1 });
-      videos.forEach(function (v) { seen.observe(v); });
-    }
-
     var n = document.getElementById('rail-n'), name = document.getElementById('rail-name'), bar = document.getElementById('rail-bar');
     var at = new IntersectionObserver(function (entries) {
       entries.forEach(function (e) {

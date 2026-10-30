@@ -35,3 +35,10 @@ touches `site/`. One-time setup:
 
 Bump the `?v=` number on `style.css` and `site.js` in both HTML files whenever either
 changes, so browsers that cached the old file fetch the new one.
+
+## Footage
+
+`media/bg-*` are the app's 9:16 loops (phones). `media/wide-*` are 1920x1080 versions for
+landscape screens, made from the original Pexels clips with `scripts/grade-bg-wide.sh`
+(same grade; Pexels licence, IDs in `assets/CREDITS.md`). Posters are `<img>`s that load
+lazily; `site.js` attaches a chapter's loop only when it comes near the screen.
