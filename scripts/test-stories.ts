@@ -10,6 +10,8 @@ import {
   isDull,
   MAX_CELLS,
   padded,
+  paddedIds,
+  askOrder,
   parseEntities,
   parseExtracts,
   parseGeosearch,
@@ -43,6 +45,15 @@ assert.equal(new Set(cells).size, cells.length, 'each square once');
 const long = Array.from({ length: 3000 }, (_, i) => at(i * 20, i * 5)); // 60 km diagonal
 assert.equal(cellsFor(long).length, MAX_CELLS, 'a very long run asks about an even spread');
 assert.deepEqual(cellsFor([]), []);
+// The order of the requests doesn't follow the run.
+assert.deepEqual(askOrder(['41.04,28.98', '41.03,28.97', '41.03,28.98']), ['41.03,28.97', '41.03,28.98', '41.04,28.98']);
+assert.deepEqual(askOrder(cells.slice().reverse()), askOrder(cells), 'out and back ask the same way');
+// Street IDs go out among others from the same squares.
+const wd = paddedIds(['Q9', 'Q9', 'Q3'], ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q9'], 5);
+assert.equal(wd.length, 5);
+assert.ok(wd.includes('Q9') && wd.includes('Q3'), 'the wanted ones are always asked for');
+assert.deepEqual(wd, wd.slice().sort(), 'sorted, so their place says nothing');
+assert.deepEqual(paddedIds(['Q7'], ['Q7']), ['Q7'], 'nothing to mix in with: just the one');
 
 // Passed: within 40 m of the line, not of a fix.
 assert.ok(passed(at(502, 30), route), '30 m off the line');

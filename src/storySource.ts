@@ -3,10 +3,12 @@ import { lang } from './i18n/lang';
 import {
   cellBox,
   cellCentre,
+  askOrder,
   cellsFor,
   CELL_RADIUS_M,
   MAX_PLACES,
   padded,
+  paddedIds,
   parseEntities,
   parseExtracts,
   parseGeosearch,
@@ -25,8 +27,9 @@ import {
 
 // Where Things you passed comes from. Only after a run, only when switched on
 // in Settings. Each service is asked about squares of about 1 km (stories.ts),
-// never sent the route, and every answer is kept on the phone for a month, so
-// a usual loop asks once. Wikipedia text is CC BY-SA 4.0, OpenStreetMap data
+// in a fixed order rather than the run's, never sent the route. The few pages and
+// street IDs wanted go out mixed in with others from the same squares. Every answer
+// is kept on the phone for a month, so a usual loop asks once. Wikipedia text is CC BY-SA 4.0, OpenStreetMap data
 // ODbL, Wikidata CC0; the finish card credits all three.
 
 const UA = 'Runtrovert/1.0 (https://runtrovert.app)';
@@ -119,8 +122,11 @@ async function streetsFrom(cells: string[], route: StoryPt[], l: string, dark: b
   // A few spare streets, in case one is named after itself.
   const hits = streetsPassed(ways, route, 4);
   if (!hits.length) return [];
-  const ids = [...new Set(hits.map((h) => h.way.qid))];
-  const entities = await kept<Array<[string, Entity]>>(`streets:wd:${l}:${ids.sort().join(',')}`, async () => [
+  const ids = paddedIds(
+    hits.map((h) => h.way.qid),
+    ways.map((w) => w.qid),
+  );
+  const entities = await kept<Array<[string, Entity]>>(`streets:wd:${l}:${ids.join(',')}`, async () => [
     ...parseEntities(await getJson(`https://www.wikidata.org/w/api.php?${new URLSearchParams({ action: 'wbgetentities', format: 'json', origin: '*', props: 'labels|descriptions', languages: `${l}|en`, ids: ids.join('|') })}`), l),
   ]).catch(() => [] as Array<[string, Entity]>);
   const byId = new Map(entities);
@@ -133,7 +139,7 @@ async function streetsFrom(cells: string[], route: StoryPt[], l: string, dark: b
 /** What a finished run went past. Empty when nothing worth a line was near, or the network was not there. */
 export async function storiesFor(route: StoryPt[], { dark = false } = {}): Promise<RouteStories> {
   const l = lang();
-  const cells = cellsFor(route);
+  const cells = askOrder(cellsFor(route));
   if (!cells.length) return { places: [], streets: [], wiki: l };
   let wiki: string = l;
   let places = await placesFrom(l, cells, route, dark);
