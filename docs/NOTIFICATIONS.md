@@ -35,7 +35,7 @@ Nothing runs in the background.
 
 `rescheduleReminders` in `src/notify.ts` is the only place that schedules
 notes ahead of time. Other features hand it notes through a `NoteSource`
-(the training plan's `planNotes`; Run to work / Run home next). `fitNotes` in
+(the training plan's `planNotes`, Run to work / Run home's `commuteSource`). `fitNotes` in
 `reminderPlan.ts` merges them: a source's `ownedDays` silence the ordinary
 reminders on those days, extras win the day's places by priority (plan 10,
 commute 5), and the cap above holds across all of them. Everything it places
