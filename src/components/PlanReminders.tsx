@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import { notificationStatus, rescheduleReminders, turnOnNotifications, type NotifyStatus } from '../notify';
+import { DEFAULT_PER_WEEK } from '../reminderPlan';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing } from '../theme';
-import { schedulePlanReminders } from '../training/remind';
 import { ui } from '../i18n/ui';
 
 /**
@@ -39,11 +39,9 @@ export function usePlanReminders(paused = false) {
       setStatus(await notificationStatus());
       if (!ok) return;
     }
-    const next = settings.notifyPerWeek === 0 ? { ...settings, notifyPerWeek: 3 as const } : settings;
-    if (next !== settings) update({ notifyPerWeek: 3 });
-    await rescheduleReminders(next)
-      .then(() => schedulePlanReminders(next))
-      .catch(() => {});
+    const next = settings.notifyPerWeek === 0 ? { ...settings, notifyPerWeek: DEFAULT_PER_WEEK } : settings;
+    if (next !== settings) update({ notifyPerWeek: DEFAULT_PER_WEEK });
+    await rescheduleReminders(next).catch(() => {});
   }, [status, settings, update]);
 
   return { state, turnOn };

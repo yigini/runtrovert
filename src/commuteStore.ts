@@ -3,21 +3,19 @@
 // Settings, so nothing that reads settings for any other reason carries them.
 // Nothing here is ever sent anywhere.
 
-import * as Notifications from 'expo-notifications';
 import { useEffect, useMemo, useState } from 'react';
 import { getDb, getPoints, listRuns, loadSettings, loadValue, saveValue } from './db';
 import { commuteNotes, commuteOf, estimate, NO_COMMUTE, offerFor, ready, type Commute, type CommuteDir, type Offer, type PastRun } from './commute';
-import { ensureChannel, rescheduleReminders } from './notify';
+import { rescheduleReminders, type NoteContent } from './notify';
+import type { ExtraNote } from './reminderPlan';
 import { useLastPlace } from './place';
 import { formatDistance } from './geo';
 import { DAY_MS, dayStart } from './training/dates';
-import { schedulePlanReminders } from './training/remind';
 import { loadPlan, runSessions } from './training/store';
 import type { LatLon, Run, Settings } from './types';
 import { ui } from './i18n/ui';
 
 const KEY = 'commute';
-const CHANNEL = 'runtrovert-quiet';
 
 let current: Commute | null = null;
 const listeners = new Set<(c: Commute) => void>();
@@ -34,13 +32,11 @@ export async function saveCommute(patch: Partial<Commute>): Promise<Commute> {
   current = next;
   await saveValue(KEY, next);
   listeners.forEach((l) => l(next));
-  // The note may take an ordinary line's day, or give one back: lay all three out again.
+  // The note may take an ordinary line's day, or give one back: lay everything out again.
   loadSettings()
     .then(async (s) => {
       if (!s.onboarded) return;
       await rescheduleReminders(s);
-      await schedulePlanReminders(s);
-      await scheduleCommuteNote(s);
     })
     .catch(() => {});
   return next;
@@ -142,45 +138,13 @@ export async function commuteNoteList(settings: Settings, now: number): Promise<
   });
 }
 
-/**
- * Lays the commute notes out after the ordinary reminders and the plan's
- * (App.tsx re-plans all three together on open and after every run). A day
- * with a commute note gives up its ordinary line, and a plan day only gets the
- * afternoon one, so never more than two a day. Once the shared scheduler in
- * notify.ts takes note sources, commuteNoteList() goes there and this goes.
- */
-export async function scheduleCommuteNote(settingsIn?: Settings): Promise<void> {
-  const pending = await Notifications.getAllScheduledNotificationsAsync();
-  await Promise.all(pending.filter((n) => n.content.data?.kind === 'commute').map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {})));
-  const settings = settingsIn ?? (await loadSettings());
-  const notes = await commuteNoteList(settings, Date.now());
-  if (!notes.length) return;
-  const perm = await Notifications.getPermissionsAsync();
-  if (!perm.granted) return;
-
-  const fresh = await Notifications.getAllScheduledNotificationsAsync();
-  const days = new Set(notes.map((n) => dayStart(n.at)));
-  for (const n of fresh) {
-    const t = triggerTime(n.trigger);
-    if (n.content.data?.kind === 'reminder' && t != null && days.has(dayStart(t))) await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
-  }
-
-  await ensureChannel();
-  for (const n of notes) {
-    await Notifications.scheduleNotificationAsync({
-      content: { title: n.title, body: n.body, sound: false, data: { kind: 'commute', dir: n.dir } },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(n.at), channelId: CHANNEL },
-    });
-  }
-}
-
-function triggerTime(trigger: unknown): number | null {
-  const t = trigger as { value?: number; dateComponents?: { year?: number; month?: number; day?: number } } | null;
-  if (!t) return null;
-  if (typeof t.value === 'number') return t.value;
-  const c = t.dateComponents;
-  if (c && c.year != null && c.month != null && c.day != null) return new Date(c.year, c.month - 1, c.day, 12).getTime();
-  return null;
+/** The commute notes for the one scheduler in notify.ts. A day with one gives up its ordinary line. */
+export async function commuteSource(settings: Settings, now: number): Promise<{ notes: ExtraNote<NoteContent>[]; ownedDays: number[] }> {
+  const notes = await commuteNoteList(settings, now);
+  return {
+    notes: notes.map((n) => ({ at: n.at, priority: 5, payload: { title: n.title, body: n.body, data: { kind: 'commute', dir: n.dir } } })),
+    ownedDays: [...new Set(notes.map((n) => dayStart(n.at)))],
+  };
 }
 
 /** The Run tab's one line, worked out from the runs it already has. null when there's nothing to offer. */

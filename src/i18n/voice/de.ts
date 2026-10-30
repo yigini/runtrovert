@@ -272,7 +272,7 @@ export const de: VoicePack = {
         'Nebel zieht auf. Selbst die, die immer winken, sehen dich nicht.',
       ],
       morning: [
-        'Guten Morgen. Die einzige Benachrichtigung, die du heute von mir bekommst.',
+        'Guten Morgen. Eine kurze Nachricht, dann lass ich dich in Ruhe.',
         'Die Straßen schlafen noch. Schließ dich an, in Bewegung.',
         'Früher Lauf: Der Tag hat noch nicht angefangen, Dinge von dir zu wollen.',
         'Morgen. Im Park sind ungefähr drei Leute und ein Graureiher.',
@@ -323,6 +323,21 @@ export const de: VoicePack = {
       'Ein beendeter Lauf ist ein Gespräch, das du nicht führen musstest.',
     ],
     titles: ['Runtrovert', 'Hallo', 'Ein leises Wort', 'Psst', 'Kleiner Gedanke', 'Nur so', 'Kein Druck'],
+    afternoon: [
+      'Feierabend ist fast da. Nach Hause laufen, oder eine Runde, wenn du dort bist?',
+      'Der Arbeitstag klingt aus. Der ruhige Teil kann anfangen, wann du willst.',
+      'Laptop bald zu? Zwanzig Minuten draußen räumen das Postfach aus dem Kopf.',
+      'Fast Feierabend. Ein kurzer Lauf ist eine gute Tür zwischen Arbeit und Abend.',
+      'Genug geredet für heute? Der Asphalt fragt nichts.',
+      'Bald zu Hause. Die Schuhe stehen an der Tür, falls du magst.',
+    ],
+    weekend: [
+      'Wochenende. Keine Pläne nötig. Eine Runde zählt als einer.',
+      'Nichts im Kalender? Ein Lauf passt gut in die Lücken.',
+      'Die Wege sind um diese Zeit am Wochenende langsam. Viel Platz.',
+      'Samstag oder Sonntag, der Strecke ist es egal. Uns auch.',
+      'Ein fauler Tag verträgt einen kurzen Lauf. Er nimmt nicht viel davon.',
+    ],
   },
 
   tips: {

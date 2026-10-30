@@ -50,10 +50,10 @@ function AskStep({ onAnswer }: { onAnswer: (yes: boolean) => void }) {
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <View style={{ flex: 1, minHeight: 160 }} />
         <Text style={styles.h2} accessibilityRole="header">{ui().welcome.aNudgeNowAndThen}</Text>
-        <Text style={styles.lede}>{ui().welcome.threeShortNotesAWeek}</Text>
+        <Text style={styles.lede}>{ui().welcome.notesADay}</Text>
 
         <View style={styles.list}>
-          <Item title={ui().welcome.neverMoreThanYouPicked} text={ui().welcome.threeAWeekUnlessYou} />
+          <Item title={ui().welcome.neverMoreThanYouPicked} text={ui().welcome.twoADayAtMost} />
           <Item title={ui().welcome.neverAGuiltTrip} text={ui().welcome.noStreaksNoYouMissed} />
           <Item title={ui().welcome.easyToQuieten} text={ui().welcome.everyNoteHasAFewer} />
           <Item title={ui().welcome.writtenOnThisPhone} text={ui().welcome.notSentFromAnywhereNo} />

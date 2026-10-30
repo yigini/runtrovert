@@ -266,7 +266,7 @@ export const pt: VoicePack = {
         'A neblina chegou. Nem quem sempre acena consegue te ver.',
       ],
       morning: [
-        'Bom dia. A única notificação que você vai receber de mim hoje.',
+        'Bom dia. Um aviso curto e depois te deixo em paz.',
         'As ruas ainda estão dormindo. Junte-se a elas, em movimento.',
         'Corrida cedo: o dia ainda não começou a te pedir coisas.',
         'Manhã. No parque tem umas três pessoas e um bem-te-vi.',
@@ -315,6 +315,21 @@ export const pt: VoicePack = {
       'Uma corrida terminada é uma conversa que você não precisou ter.',
     ],
     titles: ['Runtrovert', 'Oi', 'Baixinho', 'Psiu', 'Uma ideia', 'Só comentando', 'Sem pressão'],
+    afternoon: [
+      'O expediente está quase no fim. Voltar para casa correndo, ou uma volta quando chegar?',
+      'O dia de trabalho está acabando. A parte quieta começa quando você quiser.',
+      'Fechando o notebook logo? Vinte minutos lá fora tiram a caixa de entrada da cabeça.',
+      'Quase fim do dia. Uma corrida curta é uma boa porta entre o trabalho e a noite.',
+      'Já falou o bastante por hoje? O asfalto não pergunta nada.',
+      'Quase em casa. O tênis perto da porta, se der vontade.',
+    ],
+    weekend: [
+      'Fim de semana. Não precisa de plano. Uma volta já conta.',
+      'Nada na agenda? Uma corrida cabe bem nos espaços.',
+      'A esta hora, no fim de semana, os caminhos andam devagar. Espaço de sobra.',
+      'Sábado ou domingo, o percurso não liga. Nós também não.',
+      'Um dia preguiçoso aguenta uma corrida curta. Ela não toma muito dele.',
+    ],
   },
 
   tips: {
