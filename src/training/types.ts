@@ -112,6 +112,7 @@ export interface Plan {
   weeks: Week[];
   runner: RunnerProfile; // the starting point the plan was built from
   paces: Paces | null;
+  pacesAt?: number; // when the paces were last set from a race; createdAt before the first refresh
   status: PlanStatus;
   createdAt: number;
   healthCheckAt: number | null;
@@ -124,5 +125,6 @@ export type PlanEvent =
   | { at: number; kind: 'ill'; days: number }
   | { at: number; kind: 'holiday'; from: number; to: number }
   | { at: number; kind: 'rebuilt'; reason: string }
+  | { at: number; kind: 'paces'; vdot: number; capped: boolean }
   | { at: number; kind: 'feel'; feel: Feel; sessionId: string; eased: boolean }
   | { at: number; kind: 'paused' | 'resumed' | 'stopped' | 'finished' };

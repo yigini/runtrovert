@@ -21,6 +21,7 @@ import { createPlan, currentProfile, historyCount, lastRunAt, markDone, nextSess
 import type { Feel, Plan, PlanSetup, Session, Step, StepDone, Week } from '../training/types';
 import { createWorkout, stepName } from '../training/workout';
 import { LockRow } from '../components/LockRow';
+import { PlanSoFarView } from './PlanSoFarView';
 import { isUnlocked, openWeeks, planSessionOpen, planWeekOpen, trainLine } from '../unlock';
 import { openUnlock, useUnlocked } from '../unlockState';
 import { live, ui } from '../i18n/ui';
@@ -41,7 +42,8 @@ type Page =
   | { kind: 'rules' }
   | { kind: 'how'; first: boolean }
   | { kind: 'away' }
-  | { kind: 'ill' };
+  | { kind: 'ill' }
+  | { kind: 'sofar' };
 
 const TIER_LABEL: Record<Tier, string> = live(() => ui().train.tier);
 const TIER_FILL: Record<Tier, string> = { start: colors.sky, keep: colors.mint, comeback: colors.lilac, finish: colors.mint, improve: colors.butter, race: colors.peach };
@@ -148,6 +150,21 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
       />
     );
   }
+  if (view.kind === 'sofar') {
+    return (
+      <PlanSoFarView
+        plan={active}
+        spec={spec}
+        today={today}
+        unitsKm={settings.unitsKm}
+        onBack={() => setView({ kind: 'week', index: null })}
+        onCommit={async (next, said) => {
+          await commit(next);
+          Alert.alert(ui().app.noted, said);
+        }}
+      />
+    );
+  }
   if (view.kind === 'ill') {
     return (
       <IllView
@@ -172,6 +189,7 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
       onOpen={(id) => setView({ kind: 'session', id })}
       onStart={(s) => onStartSession(s)}
       onHow={() => setView({ kind: 'how', first: false })}
+      onSoFar={() => setView({ kind: 'sofar' })}
       onWeek={(index) => setView({ kind: 'week', index })}
       onRules={() => setView({ kind: 'rules' })}
       onAway={() => setView({ kind: 'away' })}
@@ -472,6 +490,7 @@ function WeekView(props: {
   onOpen: (id: string) => void;
   onStart: (s: Session) => void;
   onHow: () => void;
+  onSoFar: () => void;
   onWeek: (index: number) => void;
   onRules: () => void;
   onAway: () => void;
@@ -562,6 +581,7 @@ function WeekView(props: {
       <Section title={ui().train.theWholePlan}>
         <WeekStrip weeks={weeks} current={current} shown={week} keep={spec.tier === 'keep'} onWeek={props.onWeek} />
         <Text style={styles.hint}>{planLine(plan, spec, current, total, today)}</Text>
+        <Row label={ui().soFar.title} hint={ui().soFar.rowHint} onPress={props.onSoFar} />
       </Section>
 
       <Section title={ui().train.reminders}>
@@ -1147,6 +1167,8 @@ function logLine(e: Plan['log'][number]): string {
       return ui().train.stopped;
     case 'finished':
       return ui().train.finished;
+    case 'paces':
+      return ui().soFar.logPaces(e.vdot);
     case 'feel':
       return e.eased ? ui().review.logEased : ui().review.logFelt(ui().review.feel[e.feel]);
   }
