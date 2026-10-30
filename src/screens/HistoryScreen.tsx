@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, SectionList, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { spokenDistance, spokenDuration, spokenPace } from '../a11y';
+import { DeepMonthsView } from '../components/DeepStats';
 import { patternFormat, PatternsView } from '../components/PatternsView';
 import { PlacesList } from '../components/PlacesList';
 import { SettingsGear } from '../components/SettingsGear';
@@ -77,6 +78,7 @@ export function HistoryScreen({
         <ScrollView contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xl }} showsVerticalScrollIndicator={false}>
           {title}
           <PatternsView patterns={patterns} />
+          <DeepMonthsView km={km} refreshKey={refreshKey} />
         </ScrollView>
       </View>
     );

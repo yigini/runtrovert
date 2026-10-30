@@ -92,6 +92,7 @@ export interface Settings {
   language: Lang | null; // null = follow the phone
   silentDay: string | null; // "Run in silence today" from the Listen sheet, as a dayKey
   comeback: { since: number; choice: ComebackChoice } | null; // what was done with the plan after a break; `since` = the last run then
+  deepStats: boolean; // "Show me everything" left open on the run page and in Patterns
   onboarded: boolean;
 }
 
@@ -125,5 +126,6 @@ export const DEFAULT_SETTINGS: Settings = {
   language: null,
   silentDay: null,
   comeback: null,
+  deepStats: false,
   onboarded: false,
 };
