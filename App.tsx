@@ -262,7 +262,7 @@ function Shell() {
             />
           )}
           {sub === 'everything' && <EverythingScreen onBack={() => setSub(everythingFrom)} onChanged={() => setRefreshKey((k) => k + 1)} />}
-          {sub === 'listen' && <ListenScreen onBack={() => setSub(null)} />}
+          {sub === 'listen' && <ListenScreen runLive={liveRun} onBack={() => setSub(null)} />}
           {sub == null && tab === 'train' && (
             <TrainScreen
               refreshKey={planKey + refreshKey}

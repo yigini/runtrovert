@@ -429,6 +429,8 @@ export const es: Strings = {
     energyAfter: (avg) => `energía ${avg} después`,
   },
   listen: {
+    backToYourRun: 'Volver a tu carrera',
+    stillRecording: 'Tu carrera se sigue grabando',
     adverts: 'Estos programas llevan sus propios anuncios. Runtrovert no tiene anuncios molestos ni invasivos y nunca ve lo que escuchas. Cuando se abre un programa, tu app de pódcasts y quien aloja el programa ven una conexión normal, dirección IP incluida, como en cualquier descarga.',
     theOneThisVersionShipped: ', la que venía con esta versión',
     xMinutes: (n) => `, ${n} minutos`,
@@ -542,6 +544,7 @@ export const es: Strings = {
     deleteRun2: 'Borrar la salida',
   },
   run: {
+    listenHint: 'Elige música o un pódcast. Tu carrera sigue grabándose.',
     unitWord: (km) => (km ? 'kilómetros' : 'millas'),
     thenSpoken: (next) => ` Después ${next}.`,
     lastBlockSpoken: ' Último bloque.',
