@@ -22,6 +22,16 @@
   var paused = false;
   try { paused = localStorage.getItem('motion') === 'off'; } catch (e) {}
   var visible = [];
+  var root = document.documentElement;
+  if (!still && !paused) root.classList.add('rv');
+
+  // Each chapter's text settles in once, the first time the chapter comes on screen.
+  if ('IntersectionObserver' in window) {
+    var arrive = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('seen'); arrive.unobserve(e.target); } });
+    }, { threshold: 0.2 });
+    Array.prototype.forEach.call(chapters, function (c, i) { if (i === 0) c.classList.add('seen'); else arrive.observe(c); });
+  } else Array.prototype.forEach.call(chapters, function (c) { c.classList.add('seen'); });
 
   if (!still && 'IntersectionObserver' in window) {
     var near = new IntersectionObserver(function (entries) {
@@ -67,6 +77,42 @@
     chapters.forEach(function (c) { at.observe(c); });
   }
 
+  // Small things for whoever looks closely. None of them is stored or sent anywhere.
+  var ticker = document.getElementById('ticker'), h = new Date().getHours();
+  var hour = h >= 22 || h < 5 ? 'Late one. Tomorrow’s run can wait for tomorrow.'
+    : h < 7 ? 'Up early. The streets are still yours.' : null;
+  if (hour && ticker) ticker.textContent = hour;
+
+  var fewer = document.getElementById('fewer'), nudge = document.getElementById('nudge');
+  if (fewer) fewer.addEventListener('click', function () {
+    nudge.textContent = 'Fewer it is. See you in a few days.';
+    nudge.style.opacity = 1;
+    fewer.textContent = 'Noted';
+    fewer.disabled = true;
+  });
+
+  var title = document.title;
+  document.addEventListener('visibilitychange', function () {
+    document.title = document.hidden ? 'Out for a run · Runtrovert' : title;
+  });
+
+  var whisper = document.getElementById('whisper'), idle, said = 0;
+  var whispers = ['Nobody’s rushing you.', 'Still here? Same. Take your time.'];
+  function rest() {
+    clearTimeout(idle);
+    if (said < whispers.length) idle = setTimeout(function () {
+      whisper.textContent = whispers[said++];
+      whisper.classList.add('on');
+      setTimeout(function () { whisper.classList.remove('on'); }, 6000);
+    }, 40000);
+  }
+  if (whisper) {
+    ['scroll', 'pointerdown', 'keydown', 'mousemove'].forEach(function (t) { window.addEventListener(t, rest, { passive: true }); });
+    rest();
+  }
+
+  if (window.console) console.log('%cNo trackers in here. Just this note, and nobody will know you read it.', 'font: italic 14px Georgia, serif; color: #c9e7d6');
+
   if (still) return;
   var toggle = document.getElementById('motion');
   function setPaused(p) {
@@ -75,6 +121,7 @@
     toggle.setAttribute('aria-pressed', String(p));
     toggle.querySelector('.lbl').textContent = p ? 'Play motion' : 'Pause motion';
     visible.forEach(function (v) { if (p) v.pause(); else play(v); });
+    root.classList.toggle('rv', !p);
   }
   if (toggle) {
     toggle.hidden = false;
@@ -83,26 +130,30 @@
   }
 
   function rotate(el, lines, ms) {
-    if (!el) return;
-    var i = 0;
+    if (!el) return {};
+    var i = 0, stop = false;
     setInterval(function () {
-      if (paused) return;
+      if (paused || stop) return;
       el.style.opacity = 0;
-      setTimeout(function () { i = (i + 1) % lines.length; el.textContent = lines[i]; el.style.opacity = 1; }, 600);
+      setTimeout(function () { if (!stop) { i = (i + 1) % lines.length; el.textContent = lines[i]; } el.style.opacity = 1; }, 600);
     }, ms);
+    return { stop: function () { stop = true; } };
   }
-  rotate(document.getElementById('ticker'), [
+  var shares = [
     'New 5 km best. Nobody saw. That was the plan.',
     'Run number one. Nobody watched, which helped.',
     'Longest run yet. Didn’t need anyone to clap.',
     'Slowest run this month. Best mood after.',
     'Ran between storms. The sky held off. Mostly.'
-  ], 4200);
-  rotate(document.getElementById('nudge'), [
+  ];
+  if (hour !== null) shares.unshift(hour);
+  rotate(document.getElementById('ticker'), shares, 4200);
+  var nudges = rotate(document.getElementById('nudge'), [
     'The pavement has no opinions about your pace.',
     'Out there, nobody needs anything from you.',
     'A run is a meeting with one attendee. Attendance is great.',
     'The quiet streets are quietest right now. Take the hint.',
     'The only group run that works: you, and your shadow at a distance.'
   ], 3800);
+  if (fewer) fewer.addEventListener('click', function () { if (nudges.stop) nudges.stop(); });
 })();
