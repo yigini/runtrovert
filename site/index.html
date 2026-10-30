@@ -10,9 +10,13 @@
   <link rel="icon" href="favicon.png">
   <meta property="og:title" content="Runtrovert: Private Running">
   <meta property="og:description" content="Your run. Your space. Nobody's watching, that's the point. A running app with no feed, no account and no subscription.">
-  <meta property="og:image" content="https://runtrovert.app/media/bg-sunset-beach.jpg">
+  <meta property="og:image" content="https://runtrovert.app/media/wide-sunset-beach.jpg">
   <meta property="og:url" content="https://runtrovert.app/">
-  <link rel="stylesheet" href="style.css?v=2">
+  <link rel="preload" href="fonts/Fraunces_600SemiBold.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/DMSans_400Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" as="image" href="media/wide-sunset-beach.jpg" media="(min-aspect-ratio: 1/1)">
+  <link rel="preload" as="image" href="media/bg-sunset-beach.jpg" media="(max-aspect-ratio: 1/1)">
+  <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -30,7 +34,8 @@
 <main id="main">
 
 <section class="ch hero" data-name="Nobody's watching">
-  <video data-loop muted playsinline loop autoplay preload="auto" poster="media/bg-sunset-beach.jpg"><source src="media/bg-sunset-beach.mp4" type="video/mp4"></video>
+  <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-sunset-beach.jpg"><img src="media/bg-sunset-beach.jpg" alt="" fetchpriority="high" decoding="async"></picture>
+  <video data-loop data-wide="media/wide-sunset-beach.mp4" data-tall="media/bg-sunset-beach.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in">
     <p class="num"><b>Your run. Your space.</b>Runtrovert · Private running</p>
     <h1>Nobody's<br>watching.<br><em>That's the point.</em></h1>
@@ -55,7 +60,8 @@
 </section>
 
 <section class="ch left" data-name="Leave the audience out">
-  <video data-loop muted playsinline loop preload="none" poster="media/bg-forest-path.jpg"><source src="media/bg-forest-path.mp4" type="video/mp4"></video>
+  <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-green-tunnel.jpg"><img src="media/bg-forest-path.jpg" alt="" loading="lazy" decoding="async"></picture>
+  <video data-loop data-wide="media/wide-green-tunnel.mp4" data-tall="media/bg-forest-path.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in">
     <span class="num"><b>02</b>People</span>
     <h2>A run with <em>one attendee.</em></h2>
@@ -64,7 +70,8 @@
 </section>
 
 <section class="ch left" data-name="Every number, or none">
-  <video data-loop muted playsinline loop preload="none" poster="media/bg-night-track.jpg"><source src="media/bg-night-track.mp4" type="video/mp4"></video>
+  <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-track-day.jpg"><img src="media/bg-night-track.jpg" alt="" loading="lazy" decoding="async"></picture>
+  <video data-loop data-wide="media/wide-track-day.mp4" data-tall="media/bg-night-track.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in">
     <span class="num"><b>03</b>Today's run</span>
     <h2>Every number. <em>Or none until the end.</em></h2>
@@ -77,22 +84,24 @@
 </section>
 
 <section class="ch left" data-name="Your places">
-  <video data-loop muted playsinline loop preload="none" poster="media/bg-seawall.jpg" style="object-position: 30% center"><source src="media/bg-seawall.mp4" type="video/mp4"></video>
+  <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-park-trees.jpg"><img class="shift" src="media/bg-seawall.jpg" alt="" loading="lazy" decoding="async"></picture>
+  <video data-loop data-wide="media/wide-park-trees.mp4" data-tall="media/bg-seawall.mp4" class="shift" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in">
     <span class="num"><b>04</b>Your places</span>
     <h2>It remembers the loops <em>you love.</em></h2>
     <p class="say">Run the same route a few times and Runtrovert offers to keep it. Name it, tag it, note how busy it was. <strong>"Run this again" puts your old line on the map to follow.</strong> Over the months, it learns when it's usually quiet there, only from your own notes. <span class="lock">Everything, once</span></p>
     <div class="place" aria-label="Example of a saved place">
-      <p class="t">Seawall loop</p>
-      <p class="m">5.2 km · 9 runs · last on Sunday</p>
-      <div class="row"><span>flat</span><span>sea air</span><span class="mint">Hardly anyone</span></div>
+      <p class="t">Park loop</p>
+      <p class="m">4.8 km · 9 runs · last on Sunday</p>
+      <div class="row"><span>flat</span><span>under trees</span><span class="mint">Hardly anyone</span></div>
       <p class="go">Run this again</p>
     </div>
   </div>
 </section>
 
 <section class="ch left" data-name="Quiet reminders">
-  <video data-loop muted playsinline loop preload="none" poster="media/bg-mist-beach.jpg"><source src="media/bg-mist-beach.mp4" type="video/mp4"></video>
+  <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-mist-beach.jpg"><img src="media/bg-mist-beach.jpg" alt="" loading="lazy" decoding="async"></picture>
+  <video data-loop data-wide="media/wide-mist-beach.mp4" data-tall="media/bg-mist-beach.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in">
     <span class="num"><b>05</b>Reminders</span>
     <h2>A nudge. <em>Never a guilt trip.</em></h2>
@@ -109,7 +118,8 @@
 </section>
 
 <section class="ch left" data-name="What leaves your phone">
-  <video data-loop muted playsinline loop preload="none" poster="media/bg-rock-coast.jpg"><source src="media/bg-rock-coast.mp4" type="video/mp4"></video>
+  <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-rock-coast.jpg"><img src="media/bg-rock-coast.jpg" alt="" loading="lazy" decoding="async"></picture>
+  <video data-loop data-wide="media/wide-rock-coast.mp4" data-tall="media/bg-rock-coast.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in">
     <span class="num"><b>06</b>Privacy</span>
     <h2>No server. <em>Here's the whole list.</em></h2>
@@ -124,7 +134,8 @@
 </section>
 
 <section class="ch left" data-name="Pay once, or never" id="price">
-  <video data-loop muted playsinline loop preload="none" poster="media/bg-snow-plain.jpg"><source src="media/bg-snow-plain.mp4" type="video/mp4"></video>
+  <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-snow-plain.jpg"><img src="media/bg-snow-plain.jpg" alt="" loading="lazy" decoding="async"></picture>
+  <video data-loop data-wide="media/wide-snow-plain.mp4" data-tall="media/bg-snow-plain.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in">
     <span class="num"><b>07</b>Price</span>
     <h2>Free for every run. <em>Once for the long run.</em></h2>
@@ -156,7 +167,8 @@
 </section>
 
 <section class="ch end" data-name="Run alone" id="get">
-  <video data-loop muted playsinline loop preload="none" poster="media/bg-trail-bridge.jpg"><source src="media/bg-trail-bridge.mp4" type="video/mp4"></video>
+  <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-trail-bridge.jpg"><img src="media/bg-trail-bridge.jpg" alt="" loading="lazy" decoding="async"></picture>
+  <video data-loop data-wide="media/wide-trail-bridge.mp4" data-tall="media/bg-trail-bridge.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in">
     <span class="num"><b>08</b>Soon</span>
     <h2>Run alone. <em>Not lonely.</em></h2>
@@ -183,6 +195,6 @@
   </div>
 </footer>
 
-<script src="site.js?v=2" defer></script>
+<script src="site.js?v=3" defer></script>
 </body>
 </html>
