@@ -193,3 +193,61 @@ jobs:
           name: runtrovert-aab
           path: runtrovert-*.aab
           retention-days: 30
+
+  # The Wear OS app (wear/), its own small Gradle project. Same package name and the same
+  # stable test key as the phone APK: the watch and phone only talk to their own twin.
+  wear:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Test signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.RUNTROVERT_TEST_KEYSTORE }}
+          KEY_PASSWORD: ${{ secrets.RUNTROVERT_TEST_KEY_PASSWORD }}
+        run: |
+          mkdir -p $HOME/.android
+          KS=$HOME/.android/test.keystore
+          if [ -n "$KEYSTORE_B64" ] && [ -n "$KEY_PASSWORD" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > $KS
+            ALIAS=runtrovert-test
+            echo "Signing with the stable test key"
+          else
+            KEY_PASSWORD=android
+            ALIAS=androiddebugkey
+            keytool -genkeypair -keystore $KS -storepass android -alias $ALIAS -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+            echo "::warning::No test key secrets; this watch APK won't pair with the phone APK"
+          fi
+          echo "KS=$KS" >> $GITHUB_ENV
+          echo "KS_ALIAS=$ALIAS" >> $GITHUB_ENV
+          echo "::add-mask::$KEY_PASSWORD"
+          echo "KS_PASS=$KEY_PASSWORD" >> $GITHUB_ENV
+
+      - name: Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-wear-${{ runner.os }}-${{ hashFiles('wear/**/*.gradle*', 'wear/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Build release APK (test-signed)
+        working-directory: wear
+        run: >-
+          ./gradlew :app:assembleRelease --no-daemon
+          "-Pandroid.injected.signing.store.file=$KS" "-Pandroid.injected.signing.store.password=$KS_PASS" "-Pandroid.injected.signing.key.alias=$KS_ALIAS" "-Pandroid.injected.signing.key.password=$KS_PASS"
+
+      - name: Rename
+        run: cp wear/app/build/outputs/apk/release/app-release.apk runtrovert-wear-${{ github.run_number }}.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runtrovert-wear-apk
+          path: runtrovert-wear-*.apk
+          retention-days: 30

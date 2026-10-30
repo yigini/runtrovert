@@ -243,6 +243,10 @@ function Shell() {
               onInk={setRunInk}
               ghost={ghost}
               onGhostTaken={() => setGhost(null)}
+              onWatchStart={() => {
+                setSub(null);
+                setTab('run');
+              }}
             />
           </View>
           {sub === 'settings' && (

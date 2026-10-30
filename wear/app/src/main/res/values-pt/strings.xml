@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Written by scripts/make-wear-strings.ts from src/i18n/ui/pt.ts. Edit there, then npm run wear:strings. -->
+<resources>
+  <string name="start">Começar</string>
+  <string name="pause">Pausar</string>
+  <string name="resume">Retomar</string>
+  <string name="holdToStop">Segure para parar</string>
+  <string name="holdHint">Segure por um segundo para terminar a corrida</string>
+  <string name="endRun">Terminar a corrida?</string>
+  <string name="endIt">Terminar</string>
+  <string name="keepGoing">Continuar</string>
+  <string name="recording">Gravando</string>
+  <string name="paused">Pausada</string>
+  <string name="autoPaused">Pausa automática</string>
+  <string name="starting">Começando no seu celular…</string>
+  <string name="openingPhone">Abrindo o Runtrovert no seu celular…</string>
+  <string name="noPhone">Celular não está perto</string>
+  <string name="noPhoneHint">O Runtrovert grava no seu celular. Leve-o com você e abra o app uma vez.</string>
+  <string name="finishOnPhone">Parada. Guarde ou descarte no celular.</string>
+  <string name="finishLast">Sua última corrida está esperando no celular.</string>
+  <string name="heartRate">Frequência cardíaca</string>
+  <string name="bpm">bpm</string>
+  <string name="hrAsk">A frequência cardíaca deste relógio vai para a corrida no seu celular, e para nenhum outro lugar.</string>
+  <string name="allow">Permitir</string>
+  <string name="notNow">Agora não</string>
+  <string name="runInProgress">Corrida em andamento</string>
+  <string name="tapToFollow">Toque para acompanhar no relógio</string>
+  <string name="channelName">Sua corrida</string>
+  <string name="channelHint">A corrida do celular, no seu relógio</string>
+  <string name="tileHint">Toque para começar a correr</string>
+  <string name="km">km</string>
+  <string name="mi">mi</string>
+  <string name="kmN">Km %1$s</string>
+  <string name="mileN">Milha %1$s</string>
+  <string name="time">Tempo</string>
+  <string name="distance">Distância</string>
+  <string name="pace">Ritmo</string>
+</resources>

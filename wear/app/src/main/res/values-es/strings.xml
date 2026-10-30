@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Written by scripts/make-wear-strings.ts from src/i18n/ui/es.ts. Edit there, then npm run wear:strings. -->
+<resources>
+  <string name="start">Empezar</string>
+  <string name="pause">Pausa</string>
+  <string name="resume">Seguir</string>
+  <string name="holdToStop">Mantén para parar</string>
+  <string name="holdHint">Mantén un segundo para terminar la carrera</string>
+  <string name="endRun">¿Terminar la carrera?</string>
+  <string name="endIt">Terminar</string>
+  <string name="keepGoing">Seguir corriendo</string>
+  <string name="recording">Grabando</string>
+  <string name="paused">En pausa</string>
+  <string name="autoPaused">Pausa automática</string>
+  <string name="starting">Empezando en tu teléfono…</string>
+  <string name="openingPhone">Abriendo Runtrovert en tu teléfono…</string>
+  <string name="noPhone">Teléfono no cercano</string>
+  <string name="noPhoneHint">Runtrovert graba en tu teléfono. Llévalo contigo y abre la app una vez.</string>
+  <string name="finishOnPhone">Parada. Guárdala o descártala en tu teléfono.</string>
+  <string name="finishLast">Tu última carrera te espera en el teléfono.</string>
+  <string name="heartRate">Pulso</string>
+  <string name="bpm">ppm</string>
+  <string name="hrAsk">El pulso de este reloj va a la carrera en tu teléfono, y a ningún otro sitio.</string>
+  <string name="allow">Permitir</string>
+  <string name="notNow">Ahora no</string>
+  <string name="runInProgress">Carrera en curso</string>
+  <string name="tapToFollow">Toca para seguirla en el reloj</string>
+  <string name="channelName">Tu carrera</string>
+  <string name="channelHint">La carrera de tu teléfono, en tu reloj</string>
+  <string name="tileHint">Toca para empezar a correr</string>
+  <string name="km">km</string>
+  <string name="mi">mi</string>
+  <string name="kmN">Km %1$s</string>
+  <string name="mileN">Milla %1$s</string>
+  <string name="time">Tiempo</string>
+  <string name="distance">Distancia</string>
+  <string name="pace">Ritmo</string>
+</resources>

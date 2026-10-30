@@ -83,6 +83,12 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
           note TEXT
         );
         CREATE INDEX IF NOT EXISTS idx_visits_place ON place_visits(place_id, at);
+        CREATE TABLE IF NOT EXISTS heart_rate (
+          run_id INTEGER NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+          ts INTEGER NOT NULL,
+          bpm INTEGER NOT NULL,
+          PRIMARY KEY (run_id, ts)
+        );
         CREATE TABLE IF NOT EXISTS bg_fixes (
           ts INTEGER PRIMARY KEY,
           lat REAL NOT NULL,
@@ -200,6 +206,7 @@ export async function deleteRun(runId: number) {
   await db.withTransactionAsync(async () => {
     await db.runAsync('DELETE FROM points WHERE run_id = ?', runId);
     await db.runAsync('DELETE FROM splits WHERE run_id = ?', runId);
+    await db.runAsync('DELETE FROM heart_rate WHERE run_id = ?', runId);
     await db.runAsync('DELETE FROM run_facts WHERE run_id = ?', runId);
     await db.runAsync('DELETE FROM run_sources WHERE run_id = ?', runId);
     // A deleted run takes its line in a place's log with it; the place itself stays.
@@ -351,8 +358,26 @@ export async function discardUnfinishedRuns() {
   await db.withTransactionAsync(async () => {
     await db.runAsync('DELETE FROM points WHERE run_id IN (SELECT id FROM runs WHERE ended_at IS NULL)');
     await db.runAsync('DELETE FROM splits WHERE run_id IN (SELECT id FROM runs WHERE ended_at IS NULL)');
+    await db.runAsync('DELETE FROM heart_rate WHERE run_id IN (SELECT id FROM runs WHERE ended_at IS NULL)');
     await db.runAsync('DELETE FROM runs WHERE ended_at IS NULL');
   });
+}
+
+// ---- Heart rate (from a watch) -----------------------------------------------
+
+/** Readings sent by the watch mid-run. A reading already stored is skipped. */
+export async function addHeartRate(runId: number, samples: Array<[number, number]>): Promise<void> {
+  if (samples.length === 0) return;
+  const db = await getDb();
+  await db.withTransactionAsync(async () => {
+    for (const [ts, bpm] of samples) await db.runAsync('INSERT OR IGNORE INTO heart_rate (run_id, ts, bpm) VALUES (?, ?, ?)', runId, ts, bpm);
+  });
+}
+
+export async function getHeartRate(runId: number): Promise<Array<{ ts: number; bpm: number }>> {
+  const db = await getDb();
+  const rows = await db.getAllAsync('SELECT ts, bpm FROM heart_rate WHERE run_id = ? ORDER BY ts ASC', runId);
+  return rows.map((r: any) => ({ ts: r.ts, bpm: r.bpm }));
 }
 
 // ---- Splits ----------------------------------------------------------------
