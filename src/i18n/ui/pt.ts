@@ -1576,4 +1576,18 @@ export const pt: Strings = {
     distance: 'Distância',
     pace: 'Ritmo',
   },
+  planNotes: {
+    eveTitle: 'Amanhã',
+    eveLong: (title) => `${title}. Leve o tempo todo. Hoje à noite: água, uma refeição de verdade e cama cedo se der.`,
+    eveHard: (title) => `${title}. Se hoje foi puxado, amanhã ainda pode ser leve.`,
+    raceEveTitle: 'Amanhã é dia de prova',
+    raceEve: 'Separe o kit hoje, um café da manhã que você conhece, nada novo. Uma noite agitada antes da prova não muda nada.',
+    previewTitle: 'Próxima semana',
+    preview: (runs, total) => `${runs} corridas, cerca de ${total}.`,
+    lighter: 'Uma semana mais leve, para o treino assentar.',
+    longOn: (day) => `Longão na ${day}.`,
+    hardOn: (days) => `Mais duro: ${days}.`,
+    raceWeekTitle: 'Semana de prova',
+    raceWeek: 'Menos corrida, a mesma afiação. Nada novo daqui em diante: tênis, comida, roupa.',
+  },
 };

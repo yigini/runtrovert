@@ -1572,4 +1572,18 @@ export const ja: Strings = {
     distance: '距離',
     pace: 'ペース',
   },
+  planNotes: {
+    eveTitle: '明日',
+    eveLong: (title) => `${title}。最後までゆっくり。今夜は水分としっかりした食事を。眠れそうなら早めに。`,
+    eveHard: (title) => `${title}。今日が大変だったなら、明日は楽にしても大丈夫。`,
+    raceEveTitle: '明日はレース',
+    raceEve: '今夜のうちに持ち物を準備。朝食はいつものもので、新しいことはなし。レース前夜に眠れなくても、結果は変わりません。',
+    previewTitle: '来週',
+    preview: (runs, total) => `${runs}回のラン、約${total}。`,
+    lighter: '練習をなじませる軽めの週です。',
+    longOn: (day) => `ロング走は${day}。`,
+    hardOn: (days) => `きつめの日：${days}。`,
+    raceWeekTitle: 'レースウィーク',
+    raceWeek: '量は減らし、キレはそのまま。ここからは新しいことはなし：シューズ、食事、ウェア。',
+  },
 };

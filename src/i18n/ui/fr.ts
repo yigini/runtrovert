@@ -1576,4 +1576,18 @@ export const fr: Strings = {
     distance: 'Distance',
     pace: 'Allure',
   },
+  planNotes: {
+    eveTitle: 'Demain',
+    eveLong: (title) => `${title}. Facile tout du long. Ce soir : de l’eau, un vrai repas, et au lit tôt si ça vient.`,
+    eveHard: (title) => `${title}. Si aujourd’hui t’a pris beaucoup, demain peut rester facile.`,
+    raceEveTitle: 'Demain, c’est la course',
+    raceEve: 'Prépare tes affaires ce soir, un petit-déjeuner que tu connais, rien de nouveau. Une nuit agitée avant une course ne change rien.',
+    previewTitle: 'La semaine prochaine',
+    preview: (runs, total) => `${runs} sorties, environ ${total}.`,
+    lighter: 'Une semaine plus légère, pour laisser le travail s’installer.',
+    longOn: (day) => `Sortie longue ${day}.`,
+    hardOn: (days) => `Plus dur : ${days}.`,
+    raceWeekTitle: 'Semaine de course',
+    raceWeek: 'Moins de course, le même tranchant. Plus rien de nouveau : chaussures, repas, tenue.',
+  },
 };

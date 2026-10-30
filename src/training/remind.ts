@@ -4,13 +4,16 @@
 // extra on top, and with reminders off there is nothing at all. Paused plans
 // hand the days back to the ordinary reminders. Ten days without a run and
 // the plan goes quiet too, until the next run (Run home says welcome back).
+// At the daily cadences the plan also says a word the evening before a long,
+// hard or race day and looks at the week ahead on Sunday (planNotes.ts).
 
 import { listRuns } from '../db';
 import type { NoteContent, NoteSource } from '../notify';
 import { AWAY_QUIET_DAYS, awayDays, type ExtraNote } from '../reminderPlan';
 import { addDays, DAY_MS, dayStart } from './dates';
 import { planSessionOpen } from '../unlock';
-import { loadPlan, runSessions } from './store';
+import { loadPlan, planSpec, runSessions } from './store';
+import { planExtras } from './planNotes';
 import { live, ui } from '../i18n/ui';
 
 const HORIZON_DAYS = 14;
@@ -28,11 +31,11 @@ export const planNotes: NoteSource = async (settings, now) => {
   const today = dayStart(now);
   const runs = await listRuns().catch(() => []);
   const lastRun = runs.length ? Math.max(...runs.map((r) => r.startedAt)) : null;
+  // Weeks the plan can't guide yet get the ordinary reminders, which never mention the unlock.
+  const open = (s: { id: string; date: number }) => (lastRun == null || awayDays(lastRun, s.date) < AWAY_QUIET_DAYS) && planSessionOpen(plan, s.id);
   const upcoming = runSessions(plan)
     .filter((s) => !s.skipped && !s.done && s.kind !== 'rest' && s.date >= today && s.date < today + HORIZON_DAYS * DAY_MS)
-    .filter((s) => lastRun == null || awayDays(lastRun, s.date) < AWAY_QUIET_DAYS)
-    // Weeks the plan can't guide yet get the ordinary reminders, which never mention the unlock.
-    .filter((s) => planSessionOpen(plan, s.id))
+    .filter(open)
     .slice(0, MAX_PLAN_PENDING);
   if (!upcoming.length) return none;
 
@@ -51,5 +54,13 @@ export const planNotes: NoteSource = async (settings, now) => {
       payload: { title: s.kind === 'race' ? ui().remind.raceDay : TITLES[i % TITLES.length], body: `${s.title}. ${s.summary}`, data: { kind: 'plan', sessionId: s.id } },
     });
   }
+  const timeBased = (() => {
+    try {
+      return planSpec(plan).timeBased;
+    } catch {
+      return false;
+    }
+  })();
+  notes.push(...planExtras({ plan, now, perWeek: settings.notifyPerWeek, unitsKm: settings.unitsKm, timeBased, open }));
   return { notes, ownedDays };
 };

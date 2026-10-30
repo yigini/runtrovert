@@ -1586,6 +1586,20 @@ export const en = {
     distance: 'Distance',
     pace: 'Pace',
   },
+  planNotes: {
+    eveTitle: 'Tomorrow',
+    eveLong: (title: string) => `${title}. Easy all the way. Tonight: water, a proper meal, an early night if it comes.`,
+    eveHard: (title: string) => `${title}. If today took a lot out of you, tomorrow can still be easy.`,
+    raceEveTitle: 'Tomorrow is race day',
+    raceEve: 'Kit out tonight, a breakfast you know, nothing new. A restless night before a race changes nothing.',
+    previewTitle: 'Next week',
+    preview: (runs: number, total: string) => `${runs} runs, about ${total}.`,
+    lighter: 'A lighter week, to let the work sink in.',
+    longOn: (day: string) => `Long run on ${day}.`,
+    hardOn: (days: string) => `Harder: ${days}.`,
+    raceWeekTitle: 'Race week',
+    raceWeek: 'Less running, the same sharpness. Nothing new from here: shoes, food, kit.',
+  },
 };
 
 export type Strings = typeof en;
