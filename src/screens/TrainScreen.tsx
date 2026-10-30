@@ -5,10 +5,11 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { BackButton } from '../components/BackButton';
 import { SettingsGear } from '../components/SettingsGear';
 import { Button } from '../components/Button';
+import { FeelPicker } from '../components/FeelPicker';
 import { PlanReminderCard } from '../components/PlanReminders';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
-import { applyHoliday, applyIllness, missedState, moveSession, rebuild, type MissedState } from '../training/adapt';
+import { applyHoliday, applyIllness, dayName, missedState, moveSession, rebuild, type MissedState } from '../training/adapt';
 import { GOAL_LABEL, PLANS, checkGate, daysFit, planById, plansFor, type Goal, type PlanSpec, type RunnerProfile, type Tier } from '../training/catalogue';
 import { WEEKDAY_LONG, WEEKDAY_SHORT, addDays, dayStart, daysBetween, formatDay, mondayOf, weekdayOf } from '../training/dates';
 import { generate } from '../training/generate';
@@ -16,8 +17,9 @@ import { planToIcs } from '../training/ics';
 import { formatRaceTime, formatSPerKm, pacesFromRace, type Paces } from '../training/paces';
 import { RULES } from '../training/rules';
 import { EFFORT_LABEL, paceFor, paceSetFor } from '../training/sessions';
-import { createPlan, currentProfile, historyCount, lastRunAt, markDone, nextSession, runSessions, planEnd, planProgress, planSpec, refreshPlan, savePlan, setStatus, skipSession, todaySession, weekProgress } from '../training/store';
-import type { Plan, PlanSetup, Session, Step, Week } from '../training/types';
+import { createPlan, currentProfile, historyCount, lastRunAt, markDone, nextSession, runSessions, planEnd, planProgress, planSpec, refreshPlan, savePlan, setFeel, setStatus, skipSession, todaySession, weekProgress } from '../training/store';
+import type { Feel, Plan, PlanSetup, Session, Step, StepDone, Week } from '../training/types';
+import { createWorkout, stepName } from '../training/workout';
 import { LockRow } from '../components/LockRow';
 import { isUnlocked, openWeeks, planSessionOpen, planWeekOpen, trainLine } from '../unlock';
 import { openUnlock, useUnlocked } from '../unlockState';
@@ -118,6 +120,12 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
         onStart={() => onStartSession(s)}
         onDone={() => commit(markDone(active, s.id))}
         onSkip={() => commit(skipSession(active, s.id))}
+        onFeel={(f) => {
+          const r = setFeel(active, s.id, f);
+          commit(r.plan);
+          const said = [r.eased ? ui().review.easedX(r.eased.title, dayName(r.eased.date)) : null, r.lighter ? ui().review.nextWeekLighter : null].filter(Boolean).join(' ');
+          if (said) Alert.alert(ui().app.noted, said);
+        }}
         onMove={(date) => {
           const r = moveSession(active, s.id, date);
           if (!r.ok) Alert.alert(ui().train.notThatDay, r.reason);
@@ -782,7 +790,7 @@ function HowView({ plan, spec, first, onDone }: { plan: Plan; spec: PlanSpec; fi
 
 // ---- One session -----------------------------------------------------------------
 
-function SessionView({ plan, spec, session: s, unitsKm, today, onBack, onStart, onDone, onSkip, onMove }: { plan: Plan; spec: PlanSpec; session: Session; unitsKm: boolean; today: number; onBack: () => void; onStart: () => void; onDone: () => void; onSkip: () => void; onMove: (date: number) => void }) {
+function SessionView({ plan, spec, session: s, unitsKm, today, onBack, onStart, onDone, onSkip, onFeel, onMove }: { plan: Plan; spec: PlanSpec; session: Session; unitsKm: boolean; today: number; onBack: () => void; onStart: () => void; onDone: () => void; onSkip: () => void; onFeel: (f: Feel) => void; onMove: (date: number) => void }) {
   const paces = paceSetFor(plan.runner, plan.paces, spec.goal);
   const week = plan.weeks.find((w) => w.sessions.includes(s));
   const free = week ? [0, 1, 2, 3, 4, 5, 6].map((d) => addDays(week.start, d)).filter((d) => d >= today && d !== s.date && !week.sessions.some((x) => x.date === d && x.kind !== 'strength')) : [];
@@ -805,6 +813,7 @@ function SessionView({ plan, spec, session: s, unitsKm, today, onBack, onStart, 
         </Text>
       )}
       {s.skipped && <Text style={[styles.body, { color: colors.muted }]}>{ui().train.skippedNothingLost}</Text>}
+      {s.done && s.kind !== 'strength' && <HowItWent session={s} unitsKm={unitsKm} onFeel={onFeel} />}
 
       {s.steps.length > 0 && (
         <Section title={ui().train.xMinAboutX(s.minutes, fmtKm(s.km, unitsKm))}>
@@ -832,6 +841,55 @@ function SessionView({ plan, spec, session: s, unitsKm, today, onBack, onStart, 
         </View>
       )}
     </ScrollView>
+  );
+}
+
+/** Planned against done, step by step, then how it felt. Recovery jogs between reps are left out to keep it short. */
+function HowItWent({ session: s, unitsKm, onFeel }: { session: Session; unitsKm: boolean; onFeel: (f: Feel) => void }) {
+  const r = s.result;
+  const shown = (r?.steps ?? []).filter((st) => st.kind !== 'jog' && st.kind !== 'float');
+  const missing = r && r.steps.length ? createWorkout(s.steps).steps.slice(r.steps.length).filter((st) => st.kind !== 'jog' && st.kind !== 'float') : [];
+  return (
+    <Section title={ui().review.howItWent}>
+      {r && <Text style={styles.body}>{ui().review.verdict[r.verdict]}</Text>}
+      {shown.map((st, k) => (
+        <DoneRow key={k} step={st} unitsKm={unitsKm} />
+      ))}
+      {missing.map((st, k) => (
+        <View key={`m${k}`} style={styles.stepRow}>
+          <View style={[styles.stepDot, { backgroundColor: colors.track }]} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.stepLabel, { color: colors.muted }]}>{stepName(st)}</Text>
+            <Text style={styles.hint}>{ui().review.notRun}</Text>
+          </View>
+        </View>
+      ))}
+      {r?.feel ? (
+        <Text style={styles.hint}>
+          {ui().review.feltX(ui().review.feel[r.feel])}
+          {r.load != null ? ` ${ui().review.loadX(r.load)}` : ''}
+        </Text>
+      ) : (
+        <FeelPicker value={null} onChange={onFeel} />
+      )}
+    </Section>
+  );
+}
+
+function DoneRow({ step: st, unitsKm }: { step: StepDone; unitsKm: boolean }) {
+  const fill = st.kind === 'hard' ? colors.peach : st.kind === 'walk' ? colors.lilac : st.kind === 'stride' ? colors.butter : colors.mint;
+  const planned = st.plannedS != null ? fmtDur(st.plannedS, true) : fmtKm((st.plannedM ?? 0) / 1000, unitsKm);
+  const ran = st.plannedS != null ? fmtDur(st.s, true) : fmtKm(st.m / 1000, unitsKm);
+  const pace = st.m >= 100 && st.kind !== 'walk' ? ui().review.paceX(formatSPerKm(st.s / (st.m / 1000), unitsKm), unitsKm) : null;
+  const bits = [ui().review.xPlannedXRun(planned, ran), pace, st.hr ? ui().review.xBpm(st.hr) : null, st.full ? null : ui().review.stoppedHere].filter(Boolean);
+  return (
+    <View style={styles.stepRow}>
+      <View style={[styles.stepDot, { backgroundColor: fill }]} />
+      <View style={{ flex: 1 }}>
+        <Text style={styles.stepLabel}>{stepName(st as Step)}</Text>
+        <Text style={styles.hint}>{bits.join(' · ')}</Text>
+      </View>
+    </View>
   );
 }
 
@@ -1089,6 +1147,8 @@ function logLine(e: Plan['log'][number]): string {
       return ui().train.stopped;
     case 'finished':
       return ui().train.finished;
+    case 'feel':
+      return e.eased ? ui().review.logEased : ui().review.logFelt(ui().review.feel[e.feel]);
   }
 }
 

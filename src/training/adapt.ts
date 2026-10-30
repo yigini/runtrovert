@@ -9,7 +9,8 @@ import { addDays, daysBetween, mondayOf, weekdayOf } from './dates';
 import { START_LADDER, generate } from './generate';
 import * as T from './sessions';
 import { paceSetFor, toSession, type PaceSet } from './sessions';
-import type { Plan, Session, Week } from './types';
+import type { Feel, Plan, Session, Week } from './types';
+import { shouldFeelEasy } from './review';
 import { ui } from '../i18n/ui';
 
 export type MissedKind = 'none' | 'repeat' | 'stepback' | 'comeback';
@@ -273,6 +274,50 @@ function lighten(week: Week, paces: PaceSet, note: string) {
     else Object.assign(s, toSession(T.easyRun(Math.max(15, Math.floor((s.minutes * 0.7) / 5) * 5)), s.id, s.date, paces), { note });
   }
   retotal(week);
+}
+
+// ---- How it felt ------------------------------------------------------------------
+
+/** The hard session that gave way, as it was before. */
+export interface Eased {
+  title: string;
+  date: number;
+}
+
+/**
+ * After a session: "How did it feel?". An easy session that felt hard, or a
+ * hard one with no words left, is a sign of fatigue before it is a sign of
+ * anything else (Foster 1998; Halson 2014). The next hard session within three
+ * days becomes easy running, and two such answers in a week make the next week
+ * lighter (unless this week is already a light one). A plan never gets harder
+ * from an answer.
+ */
+export function applyFeel(plan: Plan, date: number, sessionId: string, feel: Feel): { plan: Plan; eased: Eased | null; lighter: boolean } {
+  const p = clone(plan);
+  const s = p.weeks.flatMap((w) => w.sessions).find((x) => x.id === sessionId);
+  const tough = !!s && (shouldFeelEasy(s) ? feel >= 4 : s.hard || s.kind === 'long' ? feel >= 5 : false);
+  if (!tough) {
+    p.log.push({ at: date, kind: 'feel', feel, sessionId, eased: false });
+    return { plan: p, eased: null, lighter: false };
+  }
+  const paces = pacesOf(p);
+  const next = runSessions(p).find((x) => x.date > date && x.date <= addDays(date, 3) && x.hard && !x.done && !x.skipped && x.kind !== 'race');
+  const eased: Eased | null = next ? { title: next.title, date: next.date } : null;
+  if (next) Object.assign(next, toSession(T.easyRun(Math.min(next.minutes, 30, Math.max(15, Math.floor((next.minutes * 0.8) / 5) * 5))), next.id, next.date, paces), { note: ui().adapt.madeEasyLastFeltHard(next.title) });
+  p.log.push({ at: date, kind: 'feel', feel, sessionId, eased: true });
+
+  const toughs = p.log.filter((e) => e.kind === 'feel' && e.eased && date - e.at < 7 * DAY && e.at <= date).length;
+  const week = weekOf(p, date);
+  // In a week that is already light, the light week is the answer; the next one builds from before it as planned.
+  if (toughs >= 2 && week && week.kind !== 'light') {
+    const following = p.weeks.find((w) => w.start === addDays(week.start, 7));
+    if (following && following.kind !== 'race' && following.kind !== 'light' && following.kind !== 'taper') {
+      lighten(following, paces, ui().adapt.lighterWeekTwoHardFeels);
+      return { plan: relayout(p, addDays(following.start, 7), ui().adapt.afterALighterWeekThe, date), eased, lighter: true };
+    }
+  }
+  // Like a low-energy day, the week keeps its planned total: it is still the base the next weeks build on.
+  return { plan: p, eased, lighter: false };
 }
 
 // ---- Pain ---------------------------------------------------------------------

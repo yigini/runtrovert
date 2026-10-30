@@ -2,7 +2,7 @@
 // time. Pure: the run screen feeds it numbers and reads back where it is.
 
 import { EFFORT_LABEL } from './sessions';
-import type { Step } from './types';
+import type { Step, StepDone } from './types';
 import { ui } from '../i18n/ui';
 import { decimal } from '../i18n/lang';
 
@@ -11,6 +11,8 @@ export interface WorkoutState {
   index: number; // current step; steps.length when finished
   stepStartM: number;
   stepStartS: number;
+  stepStartTs: number; // wall clock when the current step began; 0 until the first tick
+  log: StepDone[]; // the steps closed so far, as run
 }
 
 export interface WorkoutView {
@@ -25,24 +27,45 @@ export interface WorkoutView {
 }
 
 export function createWorkout(steps: Step[]): WorkoutState {
-  return { steps: steps.filter((s) => (s.durationS ?? 0) > 0 || (s.distanceM ?? 0) > 0), index: 0, stepStartM: 0, stepStartS: 0 };
+  return { steps: steps.filter((s) => (s.durationS ?? 0) > 0 || (s.distanceM ?? 0) > 0), index: 0, stepStartM: 0, stepStartS: 0, stepStartTs: 0, log: [] };
 }
 
-/** Feed the latest totals; says whether the step changed. Only moving time counts, so pauses stretch a step rather than skip it. */
-export function advance(w: WorkoutState, distanceM: number, durationS: number): { view: WorkoutView; changed: boolean } {
+/**
+ * Feed the latest totals; says whether the step changed. Only moving time
+ * counts, so pauses stretch a step rather than skip it. `now` is the wall
+ * clock, kept with each closed step so its heart rate can be found later.
+ */
+export function advance(w: WorkoutState, distanceM: number, durationS: number, now = 0): { view: WorkoutView; changed: boolean } {
   let changed = false;
+  if (!w.stepStartTs) w.stepStartTs = now;
   while (w.index < w.steps.length) {
     const s = w.steps[w.index];
     const doneS = durationS - w.stepStartS;
     const doneM = distanceM - w.stepStartM;
     const over = s.durationS != null ? doneS >= s.durationS : doneM >= (s.distanceM ?? 0);
     if (!over) break;
+    // A tick that closes a timed step carries the metres up to it; close enough at one tick a second.
+    w.log.push(done(s, s.durationS ?? doneS, s.distanceM ?? doneM, w.stepStartTs, now, true));
     w.stepStartS += s.durationS ?? doneS;
     w.stepStartM += s.distanceM ?? doneM;
+    w.stepStartTs = now;
     w.index++;
     changed = true;
   }
   return { view: view(w, distanceM, durationS), changed };
+}
+
+/** The run stopped: the step in progress closes where it was. Steps never begun are left out. */
+export function finishWorkout(w: WorkoutState, distanceM: number, durationS: number, now = 0): StepDone[] {
+  advance(w, distanceM, durationS, now);
+  const s = w.steps[w.index];
+  const doneS = durationS - w.stepStartS;
+  if (s && doneS >= 1) w.log.push(done(s, doneS, Math.max(0, distanceM - w.stepStartM), w.stepStartTs, now, false));
+  return w.log;
+}
+
+function done(s: Step, sec: number, m: number, from: number, to: number, full: boolean): StepDone {
+  return { kind: s.kind, effort: s.effort, label: s.label, plannedS: s.durationS, plannedM: s.distanceM, s: Math.round(sec), m: Math.round(m), from, to, full };
 }
 
 export function view(w: WorkoutState, distanceM: number, durationS: number): WorkoutView {
