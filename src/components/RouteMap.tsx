@@ -41,6 +41,7 @@ export function RouteMap({
   markers,
   fps,
   ghost,
+  pins,
 }: {
   path: LatLon[];
   here?: LatLon | null;
@@ -60,6 +61,8 @@ export function RouteMap({
   fps?: number;
   /** A place's loop, drawn faintly under the live line: "Run this again". */
   ghost?: LatLon[] | null;
+  /** Small dots for Things you passed, on the finish map. */
+  pins?: Array<{ lat: number; lon: number }>;
 }) {
   const { settings, ready, update } = useSettings();
   const plain = offline || settings.plainMap || !settings.mapNoticeSeen;
@@ -147,6 +150,14 @@ export function RouteMap({
           <GeoJSONSource id="route" data={line}>
             <Layer id="route-casing" type="line" paint={{ 'line-color': colors.cream, 'line-width': 8, 'line-opacity': 0.9 }} layout={{ 'line-cap': 'round', 'line-join': 'round' }} />
             <Layer id="route-line" type="line" paint={{ 'line-color': colors.ink, 'line-width': 4 }} layout={{ 'line-cap': 'round', 'line-join': 'round' }} />
+          </GeoJSONSource>
+        )}
+        {pins && pins.length > 0 && (
+          <GeoJSONSource
+            id="pins"
+            data={{ type: 'FeatureCollection', features: pins.map((p) => ({ type: 'Feature' as const, properties: {}, geometry: { type: 'Point' as const, coordinates: [p.lon, p.lat] } })) }}
+          >
+            <Layer id="pins-dot" type="circle" paint={{ 'circle-radius': 5, 'circle-color': colors.butter, 'circle-stroke-color': colors.ink, 'circle-stroke-width': 2 }} />
           </GeoJSONSource>
         )}
         {showMarkers ? (

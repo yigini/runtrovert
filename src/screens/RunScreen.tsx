@@ -13,6 +13,7 @@ import { PainPicker } from '../components/PainPicker';
 import { PlaceFinishCard } from '../components/PlaceFinishCard';
 import { QuietPicker } from '../components/QuietPicker';
 import { RouteMap } from '../components/RouteMap';
+import { StoriesCard, storyPins, useRouteStories } from '../components/StoriesCard';
 import { SavePlaceSheet } from '../components/SavePlaceSheet';
 import { suggestName } from '../places';
 import { createPlace, dismissLoop, finishPlace, logRun, saveSig, type FinishPlace, type PlaceDraft } from '../placeStore';
@@ -62,6 +63,9 @@ const TINY_RUN_M = 50;
 /** How long Stop is held before the run ends. Long enough that a sleeve or a pocket can't do it. */
 const HOLD_TO_STOP_MS = 1000;
 
+/** Stories are only asked for on the finish screen. */
+const NO_POINTS: StatPoint[] = [];
+
 export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0, focused = true, onOpenPlan, onPlanChanged, onBrowseListen, onInk, ghost = null, onGhostTaken, onWatchStart }: { onSaved: (runId: number, share?: boolean, extra?: { pain: PainLevel | null; sessionId: string | null }) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number; focused?: boolean; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; onInk?: (ink: boolean) => void; ghost?: Ghost | null; onGhostTaken?: () => void; onWatchStart?: () => void }) {
   const { settings } = useSettings();
   const km = settings.unitsKm;
@@ -90,6 +94,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   const [placeDraft, setPlaceDraft] = useState<PlaceDraft | null>(null);
   const [placeSheet, setPlaceSheet] = useState(false);
   const [ghostRun, setGhostRun] = useState<Ghost | null>(null);
+  const stories = useRouteStories(phase === 'finish' ? finishPoints : NO_POINTS);
   const veil = useRef(new Animated.Value(1)).current;
   // Heights of the words and the numbers laid over the finish map, so the route is framed between them.
   const [finishPad, setFinishPad] = useState({ top: 140, bottom: 170 });
@@ -484,6 +489,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
             fill
             interactive={false}
             fitPadding={{ top: finishPad.top + 24, right: 36, bottom: finishPad.bottom + 24, left: 36 }}
+            pins={storyPins(stories)}
           />
           <View style={styles.finishTop} pointerEvents="box-none" onLayout={(e) => setFinishPad((p) => ({ ...p, top: e.nativeEvent.layout.y + e.nativeEvent.layout.height }))}>
             <View style={styles.finishTopRow} pointerEvents="box-none">
@@ -514,6 +520,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         <View style={{ padding: spacing.md, paddingTop: spacing.lg, gap: spacing.lg }}>
           {you && <YouLine title={you.title} detail={you.detail} />}
           <PlaceFinishCard found={found} draft={placeDraft} onOffer={() => setPlaceSheet(true)} onNotNow={placeNotNow} />
+          <StoriesCard stories={stories} moodBefore={moodBefore} />
           <UnlockNudge />
           <MoodPicker title={ui().run.andYourEnergyNow} value={moodAfter} onChange={setMoodAfter} />
           <QuietPicker value={quiet} onChange={setQuiet} />

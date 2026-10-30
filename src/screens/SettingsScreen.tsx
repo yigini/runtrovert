@@ -178,6 +178,17 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onBack, runLive
         </Row>
       </Section>
 
+      <Section title={ui().stories.section} bg={colors.butter} fg={colors.butterDeep}>
+        <Row label={ui().stories.thingsYouPassedSetting} hint={ui().stories.thingsYouPassedHint}>
+          <Switch value={settings.stories} onValueChange={(v) => update({ stories: v, storiesOffered: true })} trackColor={{ true: colors.ink }} />
+        </Row>
+        {settings.stories && (
+          <Row label={ui().stories.darkerHistory} hint={ui().stories.darkerHistoryHint}>
+            <Switch value={settings.storiesDark} onValueChange={(v) => update({ storiesDark: v })} trackColor={{ true: colors.ink }} />
+          </Row>
+        )}
+      </Section>
+
       <Section title={ui().settings.theSky} bg={colors.sky} fg={colors.skyDeep}>
         <Row label={ui().settings.localWeatherOnTheHome} hint={ui().settings.aLocationRoundedToAbout}>
           <Switch value={settings.weather} onValueChange={(v) => update({ weather: v })} trackColor={{ true: colors.ink }} />
@@ -212,6 +223,7 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onBack, runLive
 
       <Section title={ui().settings.privacy} bg={colors.white} fg={colors.muted}>
         <Text style={styles.privacy}>{ui().settings.runtrovertHasNoServerYour}</Text>
+        <Text style={styles.privacy}>{ui().stories.privacyLine}</Text>
         <MoneyNote />
       </Section>
       <PresetSheet open={presets} value={settings.runPreset ?? 'just'} onPick={(p) => update({ runPreset: p })} onClose={() => setPresets(false)} />
