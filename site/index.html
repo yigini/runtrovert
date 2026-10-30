@@ -4,230 +4,172 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Runtrovert: Private Running</title>
-  <meta name="description" content="A private running app for people who'd rather run alone. No account, no feed, no subscription. Your runs stay on your phone.">
-  <meta name="theme-color" content="#17151c">
+  <meta name="description" content="A running app for people who'd rather run alone. No feed, no followers, no account, no subscription. Your runs stay on your phone.">
+  <meta name="theme-color" content="#141218">
   <link rel="canonical" href="https://runtrovert.app/">
   <link rel="icon" href="favicon.png">
   <meta property="og:title" content="Runtrovert: Private Running">
-  <meta property="og:description" content="Your run. Your space. No account, no feed, no subscription.">
+  <meta property="og:description" content="Your run. Your space. Nobody's watching, that's the point. A running app with no feed, no account and no subscription.">
   <meta property="og:image" content="https://runtrovert.app/media/bg-sunset-beach.jpg">
   <meta property="og:url" content="https://runtrovert.app/">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
+<div class="grain" aria-hidden="true"></div>
 
 <header class="top">
-  <div class="wrap">
-    <a class="brand" href="./"><img src="mark.svg" alt="" width="30" height="30">Runtrovert</a>
-    <nav aria-label="Main">
-      <a class="opt" href="#places">Your places</a>
-      <a class="opt" href="#privacy">What leaves your phone</a>
-      <a class="opt" href="#price">Price</a>
-      <a href="privacy.html">Privacy policy</a>
-    </nav>
+  <div class="bar">
+    <a class="brand" href="./"><img src="mark.svg" alt="" width="28" height="28">Runtrovert</a>
+    <a class="soon" href="#get"><i></i>Coming soon to Android</a>
   </div>
 </header>
 
+<div class="rail" aria-hidden="true"><span id="rail-n">01</span><span class="bar"><span id="rail-bar"></span></span><span id="rail-name">Nobody's watching</span></div>
+
 <main id="main">
 
-<section class="hero">
-  <div class="hero-bg" aria-hidden="true">
-    <video data-loop muted playsinline loop preload="metadata" poster="media/bg-sunset-beach.jpg"><source src="media/bg-sunset-beach.mp4" type="video/mp4"></video>
-  </div>
-  <div class="wrap">
-    <div>
-      <p class="eyebrow">Runtrovert · Private running</p>
-      <h1>Your run.<br><em>Your space.</em></h1>
-      <p class="lede">A running app for people who'd rather run alone. No feed, no followers, no cheering. Your runs are saved on your phone, and we never see them.</p>
-      <ul class="facts" aria-label="In short">
-        <li>No account</li>
-        <li>No subscription</li>
-        <li>No analytics</li>
-        <li>No annoying, intrusive ads</li>
-      </ul>
-      <div class="badges">
-        <!-- Placeholder until the Play listing exists. Swap for Google's official badge (per Google's badge rules) and the store link. -->
-        <a class="badge primary" aria-disabled="true" role="link"><small>Coming soon to</small><strong>Google Play</strong></a>
-        <a class="badge ghost" aria-disabled="true" role="link"><small>Later on the</small><strong>App Store</strong></a>
+<section class="ch hero" data-name="Nobody's watching">
+  <video data-loop muted playsinline loop autoplay preload="auto" poster="media/bg-sunset-beach.jpg"><source src="media/bg-sunset-beach.mp4" type="video/mp4"></video>
+  <div class="in">
+    <p class="num"><b>Your run. Your space.</b>Runtrovert · Private running</p>
+    <h1>Nobody's<br>watching.<br><em>That's the point.</em></h1>
+    <p class="what"><strong>Runtrovert is a running app for people who'd rather run alone.</strong> No feed, no followers, no account. Your runs stay on your phone.</p>
+    <p class="ticker" id="ticker">New 5 km best. Nobody saw. That was the plan.</p>
+    <div class="foot">
+      <div class="stores">
+        <a class="store" aria-disabled="true" role="link" aria-label="Google Play, coming soon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3.5v17l9-8.5z" fill="#c9e7d6"/><path d="M5 3.5l11.5 6.4L14 12.5z" fill="#c5dcf0"/><path d="M5 20.5l11.5-6.4L14 11.5z" fill="#f7c9b6"/><path d="M16.5 9.9L20 12l-3.5 2.1-2.5-2.1z" fill="#f5e3a8"/></svg>
+          <span><small>Soon on</small><strong>Google Play</strong></span><span class="tagsoon">Soon</span>
+        </a>
+        <a class="store later" aria-disabled="true" role="link" aria-label="App Store, later">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="#d9d0f0" stroke-width="1.6"/><path d="M8.5 15.5l4-7m-1 0l4 7M7.5 13h9" stroke="#d9d0f0" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>
+          <span><small>Later on the</small><strong>App Store</strong></span><span class="tagsoon">Later</span>
+        </a>
       </div>
-      <p class="note muted">Android first. iPhone after that.</p>
-    </div>
-    <div class="device">
-      <div class="phone" aria-label="The Runtrovert home screen" role="img">
-        <div class="screen">
-          <video data-loop muted playsinline loop preload="metadata" poster="media/bg-sunset-beach.jpg"><source src="media/bg-sunset-beach.mp4" type="video/mp4"></video>
-          <div class="wash"></div>
-          <div class="status"><span>7:41</span><span>18°</span></div>
-          <div class="ui">
-            <p class="sky">Clear and still. The beach is yours.</p>
-            <p class="sub">Best window until 8:30 · T-shirt weather · Light until 18:12</p>
-            <div class="chips"><span class="on">Clear my head</span><span>Just run</span><span>My plan</span></div>
-            <span class="start">Start</span>
-            <div class="tabs"><b>Run</b><span>Your runs</span><span>Train</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="band">
-  <div class="wrap">
-    <p class="kicker">Three dials, all yours</p>
-    <h2>You decide who's there, what you see and <em>how loud it gets.</em></h2>
-    <p class="intro">Most running apps are built to be watched. Runtrovert does what a running app does, and leaves the audience out.</p>
-    <div class="dials">
-      <article class="dial">
-        <span class="dot" style="background: var(--lilac)"></span>
-        <h3>People</h3>
-        <p>Nobody, unless you say so.</p>
-        <ul>
-          <li>No feed, followers, kudos or leaderboards</li>
-          <li>Sharing is one run, through your phone's own share sheet</li>
-          <li>Shared routes stay off unless you switch them on</li>
-        </ul>
-      </article>
-      <article class="dial">
-        <span class="dot" style="background: var(--peach)"></span>
-        <h3>Information</h3>
-        <p>Every number, or none until the end.</p>
-        <ul>
-          <li><b>Clear my head:</b> silent, numbers wait for the finish</li>
-          <li><b>Just run:</b> distance, time, pace and the map</li>
-          <li><b>Follow my plan:</b> today's session, block by block</li>
-        </ul>
-      </article>
-      <article class="dial">
-        <span class="dot" style="background: var(--butter)"></span>
-        <h3>Noise</h3>
-        <p>Quiet by default.</p>
-        <ul>
-          <li>No streaks, no "you missed a day", no red badges</li>
-          <li>Reminders written on your phone, never after 9 pm</li>
-          <li>Every reminder has a "Fewer, please" button</li>
-        </ul>
-      </article>
-    </div>
-  </div>
-</section>
-
-<section class="band" id="places">
-  <div class="wrap feature">
-    <div class="device">
-      <div class="phone" aria-label="A saved place in Runtrovert" role="img">
-        <div class="screen">
-          <video data-loop muted playsinline loop preload="none" poster="media/bg-seawall.jpg" style="object-position: 22% center"><source src="media/bg-seawall.mp4" type="video/mp4"></video>
-          <div class="wash"></div>
-          <div class="ui">
-            <div class="card">
-              <p class="t">Seawall loop</p>
-              <p class="m">5.2 km · 9 runs · last on Sunday</p>
-              <div class="row"><span>flat</span><span>sea air</span><span class="mint">Hardly anyone</span></div>
-              <p class="again">Run this again</p>
-            </div>
-            <div class="tabs"><span>Run</span><b>Your runs</b><span>Train</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div>
-      <p class="kicker">Your places</p>
-      <h2>It remembers the loops <em>you love.</em></h2>
-      <p class="intro">Run the same route a few times and Runtrovert offers to keep it. Give it a name, a few tags and a note on how busy it was. It's a private map of the places that feel like yours.</p>
-      <ul class="points">
-        <li>Spots the same loop whichever way round you run it</li>
-        <li>"Run this again" puts your old line on the map to follow</li>
-        <li>After a run, mark it Busy, A few people or Hardly anyone</li>
-        <li>"When it's usually quiet here", built only from your own notes <span class="tag">Everything, once</span></li>
+      <ul class="nos" aria-label="What it doesn't have">
+        <li>Account</li><li>Subscription</li><li>Analytics</li><li>Leaderboards</li>
       </ul>
     </div>
   </div>
 </section>
 
-<section class="band">
-  <div class="wrap">
-    <p class="kicker">Everything you'd expect</p>
-    <h2>A full running app. <em>Nobody watching.</em></h2>
-    <div class="grid">
-      <article class="cell"><span class="swatch" style="background: var(--sky)"></span><h3>The sky, first</h3><p>The home screen opens with today's weather in a sentence, the best window to go, what to wear and how long the light lasts.</p></article>
-      <article class="cell"><span class="swatch" style="background: var(--peach)"></span><h3>Every number</h3><p>Splits, pace and climb for every run, heart rate when a watch is on, and a recording that keeps going with the screen off.</p></article>
-      <article class="cell"><span class="swatch" style="background: var(--lilac)"></span><h3>You vs you</h3><p>Personal bests and a six-week baseline, only ever compared with your own runs. No leaderboards.</p></article>
-      <article class="cell"><span class="swatch" style="background: var(--mint)"></span><h3>Training plans</h3><p>From your first run to a marathon, built on cautious rules. Week 1 of every plan is free to try.</p></article>
-      <article class="cell"><span class="swatch" style="background: var(--butter)"></span><h3>Listen</h3><p>Running podcasts that open in your own podcast app. We never see what you play.</p></article>
-      <article class="cell"><span class="swatch" style="background: var(--sky)"></span><h3>Welcome back</h3><p>Away for ten days or more? It offers an easier way back in, without a guilt trip.</p></article>
-      <article class="cell"><span class="swatch" style="background: var(--peach)"></span><h3>Your files, in and out</h3><p>Bring runs in as GPX or FIT files, and take them out again for another app or your own records. You can upload them to Strava or Garmin Connect yourself.</p></article>
-      <article class="cell"><span class="swatch" style="background: var(--mint)"></span><h3>On your wrist</h3><p>A Wear OS watch app with time, distance and pace, Start and Pause, and heart rate into the run, over the direct link between phone and watch.</p></article>
-      <article class="cell"><span class="swatch" style="background: var(--lilac)"></span><h3>Eight languages</h3><p>English, Deutsch, Español, Français, Italiano, Português, Türkçe and 日本語.</p></article>
+<section class="ch left" data-name="Leave the audience out">
+  <video data-loop muted playsinline loop preload="none" poster="media/bg-forest-path.jpg"><source src="media/bg-forest-path.mp4" type="video/mp4"></video>
+  <div class="in">
+    <span class="num"><b>02</b>People</span>
+    <h2>A run with <em>one attendee.</em></h2>
+    <p class="say">No feed, no followers, no kudos, no leaderboards. Nobody asks how it went. <strong>If you want to share a run, it's one run, sent to one person, through your phone's own share sheet.</strong> The route stays off unless you switch it on.</p>
+  </div>
+</section>
+
+<section class="ch left" data-name="Every number, or none">
+  <video data-loop muted playsinline loop preload="none" poster="media/bg-night-track.jpg"><source src="media/bg-night-track.mp4" type="video/mp4"></video>
+  <div class="in">
+    <span class="num"><b>03</b>Today's run</span>
+    <h2>Every number. <em>Or none until the end.</em></h2>
+    <ul class="three">
+      <li><span class="k">Silent</span><b>Clear my head</b><span>Nothing on screen. Every number waits for the finish.</span></li>
+      <li><span class="k">Live</span><b>Just run</b><span>Distance, time, pace and the map, with your usual cues.</span></li>
+      <li><span class="k">Block by block</span><b>Follow my plan</b><span>Today's session, and a voice only when a block changes.</span></li>
+    </ul>
+  </div>
+</section>
+
+<section class="ch left" data-name="Your places">
+  <video data-loop muted playsinline loop preload="none" poster="media/bg-seawall.jpg" style="object-position: 30% center"><source src="media/bg-seawall.mp4" type="video/mp4"></video>
+  <div class="in">
+    <span class="num"><b>04</b>Your places</span>
+    <h2>It remembers the loops <em>you love.</em></h2>
+    <p class="say">Run the same route a few times and Runtrovert offers to keep it. Name it, tag it, note how busy it was. <strong>"Run this again" puts your old line on the map to follow.</strong> Over the months, it learns when it's usually quiet there, only from your own notes. <span class="lock">Everything, once</span></p>
+    <div class="place" aria-label="Example of a saved place">
+      <p class="t">Seawall loop</p>
+      <p class="m">5.2 km · 9 runs · last on Sunday</p>
+      <div class="row"><span>flat</span><span>sea air</span><span class="mint">Hardly anyone</span></div>
+      <p class="go">Run this again</p>
     </div>
   </div>
 </section>
 
-<section class="band privacy" id="privacy">
-  <div class="wrap">
-    <p class="kicker">What leaves your phone</p>
-    <h2>Runtrovert has no server. <em>Here's the whole list.</em></h2>
-    <p class="intro">Your runs, routes, places, notes and settings are saved on your phone. The app fetches three things, and you can switch each of them off. Like any website, each of these services sees your IP address. Your route itself is never sent.</p>
-    <div class="leaves">
-      <div class="leave"><b>Map tiles</b><p>The street map comes from OpenFreeMap, which sees the area on screen.</p><span class="off">Off with Plain map: your route and live dot still work</span></div>
-      <div class="leave"><b>The weather</b><p>Open-Meteo gets a location rounded to about 1 km and sends a forecast back. No key, no account, no cookies.</p><span class="off">Off with the weather switch</span></div>
-      <div class="leave"><b>The Listen list</b><p>If you say yes, one file that's the same for everyone, downloaded when you open Listen, plus covers for the shows you scroll past.</p><span class="off">Off unless you say yes</span></div>
+<section class="ch left" data-name="Quiet reminders">
+  <video data-loop muted playsinline loop preload="none" poster="media/bg-mist-beach.jpg"><source src="media/bg-mist-beach.mp4" type="video/mp4"></video>
+  <div class="in">
+    <span class="num"><b>05</b>Reminders</span>
+    <h2>A nudge. <em>Never a guilt trip.</em></h2>
+    <p class="say">A few short notes a week, written on your phone. No streaks, no "you missed a day", no red badges, nothing after 9 pm. <strong>Every one has a "Fewer, please" button.</strong></p>
+    <div class="note" aria-live="off">
+      <img src="mark.svg" alt="">
+      <div>
+        <p class="h">Runtrovert · now</p>
+        <p class="l" id="nudge">The pavement has no opinions about your pace.</p>
+        <p class="b"><span>Fewer, please</span><span>Open</span></p>
+      </div>
     </div>
-    <div class="never">
-      <div><strong>No account</strong>Nothing to sign up for. Nothing to forget.</div>
-      <div><strong>No analytics</strong>Nothing counts your taps or your runs.</div>
-      <div><strong>No push server</strong>Reminders are written and scheduled on your phone.</div>
-      <div><strong>Gone when you delete it</strong>A phone backup keeps a copy until it's replaced.</div>
-    </div>
-    <p class="note muted" style="margin-top: 32px">The full detail is in the <a href="privacy.html">privacy policy</a>.</p>
   </div>
 </section>
 
-<section class="band" id="price">
-  <div class="wrap">
-    <p class="kicker">Price</p>
-    <h2>Free for every run. <em>One payment for the long run.</em></h2>
-    <p class="intro">No subscription, no data sold. Nobody pays to be left alone.</p>
+<section class="ch left" data-name="What leaves your phone">
+  <video data-loop muted playsinline loop preload="none" poster="media/bg-rock-coast.jpg"><source src="media/bg-rock-coast.mp4" type="video/mp4"></video>
+  <div class="in">
+    <span class="num"><b>06</b>Privacy</span>
+    <h2>No server. <em>Here's the whole list.</em></h2>
+    <p class="say">Your runs, routes, places and notes are saved on your phone. The app fetches three things, each with a switch. <strong>Your route itself is never sent.</strong></p>
+    <ul class="three">
+      <li><span class="k">Plain map turns it off</span><b>Map tiles</b><span>OpenFreeMap sees which area is on screen.</span></li>
+      <li><span class="k">Weather switch</span><b>The forecast</b><span>Open-Meteo gets a location rounded to about 1 km.</span></li>
+      <li><span class="k">Only if you say yes</span><b>The Listen list</b><span>One file, the same for everyone.</span></li>
+    </ul>
+    <p class="say" style="font-size: 15px; margin-top: 28px">Each of these services sees your IP address, like any website. No account, no analytics, no push server. The full detail is in the <a href="privacy.html">privacy policy</a>.</p>
+  </div>
+</section>
+
+<section class="ch left" data-name="Pay once, or never" id="price">
+  <video data-loop muted playsinline loop preload="none" poster="media/bg-snow-plain.jpg"><source src="media/bg-snow-plain.mp4" type="video/mp4"></video>
+  <div class="in">
+    <span class="num"><b>07</b>Price</span>
+    <h2>Free for every run. <em>Once for the long run.</em></h2>
     <div class="price">
-      <div class="plan free">
+      <div class="tier">
         <p class="label">Free, always</p>
         <p class="amount">€0</p>
-        <p class="small">Every run, for good</p>
+        <p class="small">Nobody pays to be left alone.</p>
         <ul>
-          <li>Recording and every number from every run</li>
-          <li>Your whole history</li>
-          <li>Your places, saved and logged</li>
-          <li>Silent runs, quiet reminders, the map</li>
-          <li>Listen and the watch app</li>
-          <li>Week 1 of every training plan</li>
-          <li>Export a single run as GPX</li>
+          <li>Recording, every number from every run, your history</li>
+          <li>Your places, silent runs, quiet reminders, the map</li>
+          <li>Listen, the Wear OS watch app, week 1 of every plan</li>
+          <li>GPX export of a single run</li>
         </ul>
       </div>
-      <div class="plan once">
+      <div class="tier once">
         <p class="label">Everything, once</p>
         <p class="amount">€4.99</p>
-        <p class="small">One payment, kept by your store account. It becomes €6.99 when full training plans arrive.</p>
+        <p class="small">One payment, kept by your store account. €6.99 once full training plans arrive. No subscription, ever.</p>
         <ul>
           <li>Full training plans, past week 1</li>
           <li>Trends and progress over months</li>
           <li>Patterns in your places and your energy</li>
-          <li>Backup and export of every run</li>
-          <li>Themes and widgets</li>
+          <li>Backup and export of every run, themes, widgets</li>
         </ul>
       </div>
     </div>
   </div>
 </section>
 
-<section class="band close">
-  <div class="bg" aria-hidden="true">
-    <video data-loop muted playsinline loop preload="none" poster="media/bg-trail-bridge.jpg"><source src="media/bg-trail-bridge.mp4" type="video/mp4"></video>
-  </div>
-  <div class="wrap">
+<section class="ch end" data-name="Run alone" id="get">
+  <video data-loop muted playsinline loop preload="none" poster="media/bg-trail-bridge.jpg"><source src="media/bg-trail-bridge.mp4" type="video/mp4"></video>
+  <div class="in">
+    <span class="num"><b>08</b>Soon</span>
     <h2>Run alone. <em>Not lonely.</em></h2>
-    <div class="badges">
-      <a class="badge primary" aria-disabled="true" role="link"><small>Coming soon to</small><strong>Google Play</strong></a>
-      <a class="badge ghost" aria-disabled="true" role="link"><small>Later on the</small><strong>App Store</strong></a>
+    <p class="say">Android first, in eight languages. iPhone after that.</p>
+    <div class="stores">
+      <a class="store" aria-disabled="true" role="link" aria-label="Google Play, coming soon">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3.5v17l9-8.5z" fill="#c9e7d6"/><path d="M5 3.5l11.5 6.4L14 12.5z" fill="#c5dcf0"/><path d="M5 20.5l11.5-6.4L14 11.5z" fill="#f7c9b6"/><path d="M16.5 9.9L20 12l-3.5 2.1-2.5-2.1z" fill="#f5e3a8"/></svg>
+        <span><small>Soon on</small><strong>Google Play</strong></span><span class="tagsoon">Soon</span>
+      </a>
+      <a class="store later" aria-disabled="true" role="link" aria-label="App Store, later">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="#d9d0f0" stroke-width="1.6"/><path d="M8.5 15.5l4-7m-1 0l4 7M7.5 13h9" stroke="#d9d0f0" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>
+        <span><small>Later on the</small><strong>App Store</strong></span><span class="tagsoon">Later</span>
+      </a>
     </div>
   </div>
 </section>
@@ -235,12 +177,9 @@
 </main>
 
 <footer>
-  <div class="wrap">
+  <div class="bar">
     <p>© 2026 Runtrovert. This site has no cookies and no analytics.</p>
-    <nav aria-label="Footer">
-      <a href="privacy.html">Privacy policy</a>
-      <a href="mailto:hello@runtrovert.app">hello@runtrovert.app</a>
-    </nav>
+    <nav aria-label="Footer"><a href="privacy.html">Privacy policy</a><a href="mailto:hello@runtrovert.app">hello@runtrovert.app</a></nav>
   </div>
 </footer>
 
