@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, AppState, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
+import { CommuteSettings } from '../components/CommuteSettings';
 import { PresetSheet } from '../components/PresetSheet';
 import { appByKey } from '../music';
 import { notificationStatus, previewLine, sendLineNow, turnOnNotifications, type NotifyStatus } from '../notify';
@@ -177,6 +178,8 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onBack, runLive
           <Switch value={settings.plainMap} onValueChange={(v) => update({ plainMap: v, mapNoticeSeen: true })} trackColor={{ true: colors.ink }} />
         </Row>
       </Section>
+
+      <CommuteSettings />
 
       <Section title={ui().stories.section} bg={colors.butter} fg={colors.butterDeep}>
         <Row label={ui().stories.thingsYouPassedSetting} hint={ui().stories.thingsYouPassedHint}>

@@ -17,6 +17,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { handleBack } from './src/back';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { OpenSettings } from './src/components/SettingsGear';
+import { scheduleCommuteNote } from './src/commuteStore';
 import { closeUnfinishedRuns, getRun } from './src/db';
 import { HistoryScreen, type RunsSection } from './src/screens/HistoryScreen';
 import { ListenScreen } from './src/screens/ListenScreen';
@@ -142,6 +143,7 @@ function Shell() {
     if (ready && settings.onboarded) {
       rescheduleReminders(settings)
         .then(() => schedulePlanReminders(settings))
+        .then(() => scheduleCommuteNote(settings))
         .catch(() => {});
     }
   }, [ready, settings.onboarded, settings.notifyPerWeek, settings.notifyHour, settings.notifyMinute, settings.notifyAuto, settings.weather, settings.language, planKey]);
@@ -161,6 +163,9 @@ function Shell() {
       const next = fewer(settingsRef.current.notifyPerWeek);
       update({ notifyPerWeek: next });
       Alert.alert(ui().app.reminders, fewerMessage(next));
+    } else if (data.kind === 'commute') {
+      setSub(null);
+      setTab('run');
     } else if (data.kind === 'plan') {
       setSub(null);
       setTab('train');
@@ -209,6 +214,7 @@ function Shell() {
     setPlanKey((k) => k + 1);
     rescheduleReminders({ ...settings })
       .then(() => schedulePlanReminders(settings))
+      .then(() => scheduleCommuteNote(settings))
       .catch(() => {});
   }
 
