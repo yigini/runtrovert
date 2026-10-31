@@ -1,6 +1,6 @@
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
 import { SettingsGear } from '../components/SettingsGear';
@@ -16,6 +16,7 @@ import { generate } from '../training/generate';
 import { planToIcs } from '../training/ics';
 import { formatRaceTime, formatSPerKm, pacesFromRace, type Paces } from '../training/paces';
 import { RULES } from '../training/rules';
+import { LoadFailed } from '../components/LoadFailed';
 import { EFFORT_LABEL, paceFor, paceSetFor } from '../training/sessions';
 import { createPlan, currentProfile, historyCount, lastRunAt, markDone, nextSession, runSessions, planEnd, planProgress, planSpec, loadHeart, refreshPlan, savePlan, setFeel, setStatus, skipSession, todaySession, weekProgress } from '../training/store';
 import type { Feel, Plan, PlanSetup, Session, Step, StepDone, Week } from '../training/types';
@@ -40,11 +41,14 @@ type Page =
   | { kind: 'health'; spec: PlanSpec; setup: PlanSetup; runner: RunnerProfile; paces: Paces | null }
   | { kind: 'week'; index: number | null }
   | { kind: 'session'; id: string }
-  | { kind: 'rules' }
+  | { kind: 'rules'; back?: Page }
   | { kind: 'how'; first: boolean }
   | { kind: 'away' }
   | { kind: 'ill' }
   | { kind: 'sofar' };
+
+/** A plan's setup as typed so far, before it is made. */
+type DetailDraft = { days: number; runDays: number[]; longDay: number; raceDate: number; extra: boolean; weekly: number; longest: number; raceKm: number | null; h: string; m: string; sec: string };
 
 const TIER_LABEL: Record<Tier, string> = live(() => ui().train.tier);
 const TIER_FILL: Record<Tier, string> = { start: colors.sky, keep: colors.mint, comeback: colors.lilac, finish: colors.mint, improve: colors.butter, race: colors.peach };
@@ -59,6 +63,11 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
   const [lastRun, setLastRun] = useState<number | null>(null);
   const [view, setView] = useState<Page>({ kind: 'catalogue' });
   const [heart, setHeart] = useState<HeartSetup | null>(null);
+  // A read that failed says so, instead of an empty tab.
+  const [failed, setFailed] = useState(false);
+  const [tries, setTries] = useState(0);
+  // What was typed into a plan's setup, kept while moving between its steps and the rules.
+  const drafts = useRef<Record<string, DetailDraft>>({});
   useEffect(() => {
     loadHeart().then(setHeart).catch(() => {});
   }, [refreshKey, view.kind]);
@@ -74,8 +83,10 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
   }, []);
 
   useEffect(() => {
-    reload().catch(() => {});
-  }, [reload, refreshKey]);
+    reload()
+      .then(() => setFailed(false))
+      .catch(() => setFailed(true));
+  }, [reload, refreshKey, tries]);
 
   async function commit(next: Plan | null) {
     await savePlan(next);
@@ -83,14 +94,18 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
     onChanged();
   }
 
+  if (failed && (plan === undefined || !profile)) return <LoadFailed text={ui().train.couldntOpenYourPlan} onRetry={() => setTries((n) => n + 1)} />;
   if (plan === undefined || !profile) return <View style={styles.screen} />;
 
   const active = plan && (plan.status === 'active' || plan.status === 'paused') ? plan : null;
 
-  if (view.kind === 'rules') return <RulesView onBack={() => setView(active ? { kind: 'week', index: null } : { kind: 'catalogue' })} />;
+  if (view.kind === 'rules') {
+    const back = view.back;
+    return <RulesView onBack={() => setView(back ?? (active ? { kind: 'week', index: null } : { kind: 'catalogue' }))} />;
+  }
 
   if (!active) {
-    if (view.kind === 'detail') return <DetailView spec={view.spec} profile={profile} historyN={historyN} unitsKm={settings.unitsKm} onBack={() => setView({ kind: 'catalogue' })} onRules={() => setView({ kind: 'rules' })} onStart={(setup, runner, paces) => setView({ kind: 'health', spec: view.spec, setup, runner, paces })} />;
+    if (view.kind === 'detail') return <DetailView spec={view.spec} profile={profile} historyN={historyN} unitsKm={settings.unitsKm} draft={drafts.current[view.spec.id]} onDraft={(d) => (drafts.current[view.spec.id] = d)} onBack={() => setView({ kind: 'catalogue' })} onRules={() => setView({ kind: 'rules', back: view })} onStart={(setup, runner, paces) => setView({ kind: 'health', spec: view.spec, setup, runner, paces })} />;
     if (view.kind === 'health') {
       return (
         <HealthView
@@ -102,6 +117,7 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
               return;
             }
             await commit(made.plan);
+            delete drafts.current[view.spec.id];
             setView({ kind: 'how', first: true });
           }}
         />
@@ -279,20 +295,26 @@ function PlanCard({ spec, profile, historyN, onPress }: { spec: PlanSpec; profil
 
 // ---- Plan page and setup -------------------------------------------------------
 
-function DetailView({ spec, profile, historyN, unitsKm, onBack, onRules, onStart }: { spec: PlanSpec; profile: RunnerProfile; historyN: number; unitsKm: boolean; onBack: () => void; onRules: () => void; onStart: (setup: PlanSetup, runner: RunnerProfile, paces: Paces | null) => void }) {
+function DetailView({ spec, profile, historyN, unitsKm, draft, onDraft, onBack, onRules, onStart }: { spec: PlanSpec; profile: RunnerProfile; historyN: number; unitsKm: boolean; draft?: DetailDraft; onDraft: (d: DetailDraft) => void; onBack: () => void; onRules: () => void; onStart: (setup: PlanSetup, runner: RunnerProfile, paces: Paces | null) => void }) {
   const today = dayStart(Date.now());
   const thin = historyN < 4;
-  const [days, setDays] = useState(spec.daysOptions.find((d) => daysFit(spec, profile, d)) ?? spec.daysOptions[0]);
-  const [runDays, setRunDays] = useState<number[]>(DEFAULT_DAYS[days] ?? [2, 4, 6]);
-  const [longDay, setLongDay] = useState<number>(defaultLongDay(DEFAULT_DAYS[days] ?? [2, 4, 6]));
-  const [raceDate, setRaceDate] = useState<number>(addDays(mondayOf(today), 7 * spec.weeks - 1));
-  const [extra, setExtra] = useState(false);
-  const [weekly, setWeekly] = useState(Math.round(profile.weeklyKm));
-  const [longest, setLongest] = useState(Math.round(profile.longestKm30));
-  const [raceKm, setRaceKm] = useState<number | null>(null);
-  const [h, setH] = useState('');
-  const [m, setM] = useState('');
-  const [sec, setSec] = useState('');
+  const firstDays = draft?.days ?? spec.daysOptions.find((d) => daysFit(spec, profile, d)) ?? spec.daysOptions[0];
+  const [days, setDays] = useState(firstDays);
+  const [runDays, setRunDays] = useState<number[]>(draft?.runDays ?? DEFAULT_DAYS[firstDays] ?? [2, 4, 6]);
+  const [longDay, setLongDay] = useState<number>(draft?.longDay ?? defaultLongDay(DEFAULT_DAYS[firstDays] ?? [2, 4, 6]));
+  const [raceDate, setRaceDate] = useState<number>(draft?.raceDate ?? addDays(mondayOf(today), 7 * spec.weeks - 1));
+  const [extra, setExtra] = useState(draft?.extra ?? false);
+  const [weekly, setWeekly] = useState(draft?.weekly ?? Math.round(profile.weeklyKm));
+  const [longest, setLongest] = useState(draft?.longest ?? Math.round(profile.longestKm30));
+  const [raceKm, setRaceKm] = useState<number | null>(draft?.raceKm ?? null);
+  const [h, setH] = useState(draft?.h ?? '');
+  const [m, setM] = useState(draft?.m ?? '');
+  const [sec, setSec] = useState(draft?.sec ?? '');
+  // Kept above this screen, so Back from the health questions or the rules finds it as it was.
+  useEffect(() => {
+    onDraft({ days, runDays, longDay, raceDate, extra, weekly, longest, raceKm, h, m, sec });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [days, runDays, longDay, raceDate, extra, weekly, longest, raceKm, h, m, sec]);
 
   function pickDays(n: number) {
     setDays(n);

@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
 import { DeepRunView } from '../components/DeepStats';
 import { Button } from '../components/Button';
@@ -8,7 +8,7 @@ import { RouteMap } from '../components/RouteMap';
 import { ShareSheet } from '../components/ShareSheet';
 import { RunStatsView } from '../components/RunStats';
 import { YouLine } from '../components/YouLine';
-import { deleteRun, getHeartRate, getPoints, getRun, getRunSource, getSplits, highestHeartRate, setMoodAfter, type RunSource } from '../db';
+import { deleteRun, getHeartRate, getPoints, getRun, getRunSource, getSplits, highestHeartRate, setMoodAfter, setRunNote, type RunSource } from '../db';
 import { cleanHeart, heartSummary, type HeartSample, type HeartSummary } from '../heart';
 import { shareRunGpx } from '../io/store';
 import { SavePlaceSheet } from '../components/SavePlaceSheet';
@@ -40,6 +40,17 @@ export function RunDetailScreen({
 }) {
   const km = useSettings().settings.unitsKm;
   const [run, setRun] = useState<Run | null>(null);
+  const [noteDraft, setNoteDraft] = useState<string | null>(null);
+  // Leaving the screen mid-edit still keeps what was typed.
+  const pendingNote = useRef<{ before: string | null; text: string | null }>({ before: null, text: null });
+  pendingNote.current = { before: run?.note ?? null, text: noteDraft };
+  useEffect(
+    () => () => {
+      const { before, text } = pendingNote.current;
+      if (text != null && (text.trim() || null) !== before) setRunNote(runId, text).catch(() => {});
+    },
+    [runId],
+  );
   const [path, setPath] = useState<LatLon[]>([]);
   const [points, setPoints] = useState<StatPoint[]>([]);
   const [splits, setSplits] = useState<Split[]>([]);
@@ -102,6 +113,32 @@ export function RunDetailScreen({
   const tail = lastKm ? run.distanceM - lastKm.atDistanceM : run.distanceM;
   const tailDur = lastKm ? run.durationS - lastKm.atDurationS : run.durationS;
   const partial = tail > 20 ? { index: kmSplits.length + 1, distanceM: tail, durationS: tailDur } : null;
+
+  async function changeMood(m: Mood | null) {
+    if (!run) return;
+    const before = run.moodAfter;
+    setRun({ ...run, moodAfter: m });
+    try {
+      await setMoodAfter(runId, m);
+    } catch {
+      setRun({ ...run, moodAfter: before });
+      Alert.alert(ui().runDetail.couldntSaveThat, ui().common.tryAgainInAMoment);
+    }
+  }
+
+  async function saveNote() {
+    if (!run || noteDraft == null) return;
+    const next = noteDraft.trim() || null;
+    if (next === (run.note ?? null)) return;
+    try {
+      await setRunNote(runId, next);
+      setRun({ ...run, note: next });
+      setNoteDraft(null);
+    } catch {
+      // What was typed stays in the box for another try.
+      Alert.alert(ui().runDetail.couldntSaveThat, ui().common.tryAgainInAMoment);
+    }
+  }
 
   async function onSaveGpx() {
     setSaving(true);
@@ -187,17 +224,31 @@ export function RunDetailScreen({
       {line && <YouLine title={line.title.replace('\n', ' ')} detail={line.detail} />}
       <RunStatsView run={run} points={points} splits={kmSplits} laps={laps} partial={partial} sun={weather} km={km} heart={heart} />
       <DeepRunView points={points} kmPaces={kmPaces} heart={beats} maxHr={maxHr} km={km} />
-      {run.moodAfter == null && run.endedAt != null ? (
-        <MoodPicker
-          title={ui().runDetail.andYourEnergyNow}
-          value={null}
-          onChange={(m: Mood) => {
-            setRun({ ...run, moodAfter: m });
-            setMoodAfter(runId, m).catch(() => {});
-          }}
-        />
+      {/* The reflection stays editable: energy can be changed or cleared, the note rewritten. */}
+      {run.endedAt != null ? (
+        <View style={{ gap: spacing.xs }}>
+          <MoodPicker title={run.moodAfter == null ? ui().runDetail.andYourEnergyNow : ui().runDetail.energyAfter} value={run.moodAfter} onChange={(m: Mood) => void changeMood(m)} />
+          {run.moodAfter != null ? (
+            <Pressable onPress={() => void changeMood(null)} accessibilityRole="button" accessibilityHint={ui().runDetail.clearEnergyHint} hitSlop={8} style={{ alignSelf: 'flex-end' }}>
+              <Text style={styles.clear}>{ui().runDetail.clearEnergy}</Text>
+            </Pressable>
+          ) : null}
+        </View>
       ) : null}
-      {run.note ? <Text style={styles.note}>{run.note}</Text> : null}
+      {run.endedAt != null ? (
+        <TextInput
+          style={styles.note}
+          value={noteDraft ?? run.note ?? ''}
+          onChangeText={setNoteDraft}
+          onEndEditing={() => void saveNote()}
+          placeholder={ui().runDetail.aNoteIfYouWant}
+          placeholderTextColor={colors.muted}
+          accessibilityLabel={ui().runDetail.aNoteIfYouWant}
+          multiline
+        />
+      ) : run.note ? (
+        <Text style={styles.note}>{run.note}</Text>
+      ) : null}
       {cmp && <Button title={ui().runDetail.shareWithSomeone} variant="secondary" onPress={() => setSharing(true)} style={{ marginTop: spacing.sm }} />}
       {path.length > 1 ? <Button title={saving ? ui().runDetail.saving : ui().runDetail.saveAsGpx} variant="secondary" onPress={onSaveGpx} disabled={saving} /> : null}
       <Button title={ui().runDetail.deleteRun2} variant="danger" onPress={onDelete} style={{ marginTop: spacing.lg }} />
@@ -217,5 +268,6 @@ const styles = StyleSheet.create({
   placeLink: { alignSelf: 'flex-start', minHeight: 36, justifyContent: 'center' },
   placeLinkText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.mintDeep, textDecorationLine: 'underline' },
   placeText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.mintDeep },
+  clear: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.muted, textDecorationLine: 'underline' },
   note: { fontFamily: fonts.body, color: colors.text, fontSize: 15, lineHeight: 22, backgroundColor: colors.butter, borderRadius: radius.lg, padding: spacing.md },
 });

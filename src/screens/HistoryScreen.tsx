@@ -17,6 +17,7 @@ import { colors, fonts, radius, spacing, type } from '../theme';
 import type { Quiet, Run } from '../types';
 import type { CommuteDir } from '../commute';
 import { commuteTags, useCommute } from '../commuteStore';
+import { LoadFailed } from '../components/LoadFailed';
 import { ui } from '../i18n/ui';
 import { dateLocale, monthName, upperFirst } from '../i18n/lang';
 
@@ -49,9 +50,14 @@ export function HistoryScreen({
   // Runs between home and work, tagged softly. Empty until both are set in Settings.
   const commute = useCommute();
   const [tags, setTags] = useState<Map<number, CommuteDir>>(new Map());
+  // A failed read keeps whatever was shown before, and never pretends there are no runs.
+  const [failed, setFailed] = useState(false);
+  const [tries, setTries] = useState(0);
   useEffect(() => {
-    load().catch(() => setData({ runs: [], placeOf: new Map(), places: [] }));
-  }, [load, refreshKey]);
+    load()
+      .then(() => setFailed(false))
+      .catch(() => setFailed(true));
+  }, [load, refreshKey, tries]);
   useEffect(() => {
     if (commute) commuteTags(commute).then(setTags).catch(() => {});
   }, [commute, refreshKey]);
@@ -112,6 +118,14 @@ export function HistoryScreen({
       <YouSection km={km} refreshKey={refreshKey} />
     </View>
   );
+
+  if (!data && failed) {
+    return (
+      <View style={styles.screen}>
+        <LoadFailed text={ui().history.couldntOpenYourRuns} onRetry={() => setTries((n) => n + 1)} />
+      </View>
+    );
+  }
 
   if (data && runs.length === 0) {
     return (

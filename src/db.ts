@@ -196,10 +196,16 @@ export async function finishRun(
   );
 }
 
-/** The energy check, filled in later (from the after-run note). */
-export async function setMoodAfter(runId: number, mood: Mood): Promise<void> {
+/** The energy check, filled in later (from the after-run note), changed, or cleared. */
+export async function setMoodAfter(runId: number, mood: Mood | null): Promise<void> {
   const db = await getDb();
   await db.runAsync('UPDATE runs SET mood_after = ? WHERE id = ?', mood, runId);
+}
+
+/** The after-run note, written or corrected later. Empty clears it. */
+export async function setRunNote(runId: number, note: string | null): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('UPDATE runs SET note = ? WHERE id = ?', note && note.trim() ? note.trim() : null, runId);
 }
 
 export async function deleteRun(runId: number) {

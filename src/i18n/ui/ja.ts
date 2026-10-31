@@ -67,7 +67,7 @@ export const ja: Strings = {
     savedWithThisRunWhen: '「残す」を押すと、このランと一緒に保存されます。この端末だけに。',
     nameItNoteHowBusy: '名前をつけて、混み具合をメモ。この端末だけに。',
     notNowThisLoopWon: 'いまはいい。このコースはもう提案しません。',
-    notNow: 'いまはいい',
+    notNow: 'このコースはもう提案しない',
     saveAsAPlace: 'このコースを場所として保存',
     saveAsAPlaceHint: '名前をつけて「あなたの場所」に残します。この端末だけに。',
   },
@@ -81,6 +81,7 @@ export const ja: Strings = {
     howBusyYouFoundIt: (n, list) => `直近${n}回の混み具合：${list}`,
     runXAgain: (name) => `${name}をもう一度走る`,
     runThisAgain: 'もう一度ここを走る',
+    couldntOpenYourPlaces: 'いまは場所を開けませんでした。',
   },
   planReminders: {
     noReminders: 'プランのリマインダーはありません。',
@@ -384,6 +385,7 @@ export const ja: Strings = {
     patterns: '傾向',
     opensThisRun: 'このランを開く',
     energy: (delta) => ` · エネルギー ${delta > 0 ? '+' : ''}${delta}`,
+    couldntOpenYourRuns: 'いまはランを開けませんでした。',
   },
   home: {
     next: (day, title) => `次：${day}、${title}`,
@@ -530,6 +532,7 @@ export const ja: Strings = {
     localShowsFrom: '地元の番組',
     chosenHereKeptHereThe: 'ここで選び、ここに残ります。ダウンロードは全員同じものです。',
     thePhoneSRegion: '端末の地域',
+    couldntUpdate: '更新できませんでした。保存済みのリストを表示しています。',
   },
   place: {
     since: (date) => `${date}から`,
@@ -553,6 +556,8 @@ export const ja: Strings = {
     runThisAgain: 'もう一度ここを走る',
     lastRunX: (when) => `前回のラン ${when}`,
     yourLastNote: 'ここでの最後のメモ',
+    couldntSaveTheChange: '変更を保存できませんでした',
+    couldntForgetIt: 'この場所を削除できませんでした',
   },
   runDetail: {
     broughtIn: (from, on) => `${on}に${from}から読み込み。`,
@@ -574,6 +579,11 @@ export const ja: Strings = {
     saveAsAPlace: '場所として保存',
     addToX: (name) => `${name} に追加`,
     addToXHint: 'このランをその場所の記録に加えます',
+    energyAfter: 'ラン後のエネルギー',
+    clearEnergy: '消す',
+    clearEnergyHint: 'このランのエネルギーの回答を消します',
+    aNoteIfYouWant: 'メモ（任意）',
+    couldntSaveThat: '保存できませんでした',
   },
   run: {
     listenHint: '音楽かポッドキャストを選べます。ランの記録は続きます。',
@@ -687,6 +697,9 @@ export const ja: Strings = {
     thatSOneQuietlyLogged: 'またひとつ。\n静かに記録しました。',
     doneGoBeUnavailable: '完了。\nさあ、つかまらない人になって。',
     legsDidTheTalking: '脚が語ってくれました。',
+    saving: '保存中…',
+    couldntSaveTheRun: 'ランを保存できませんでした',
+    theRunIsStillHere: 'ラン、回答、メモはそのまま残っています。少ししてからもう一度試してください。',
   },
   settings: {
     language: '言語',
@@ -1105,6 +1118,7 @@ export const ja: Strings = {
     noWayToShareFrom: 'ここからは共有できません',
     theCalendarFileIsAt: (uri) => `カレンダーファイルの場所：${uri}。`,
     couldNotMakeTheCalendar: 'カレンダーファイルを作れませんでした',
+    couldntOpenYourPlan: 'いまはプランを開けませんでした。',
   },
   unlock: {
     name: 'すべてを、一度だけ',
@@ -1481,6 +1495,8 @@ export const ja: Strings = {
     days: (n) => `${n}日`,
     runs: (n) => `${n}回`,
     mood: { 1: 'ぐったり', 2: 'いまいち', 3: 'ふつう', 4: 'よい', 5: '回復' },
+    tryAgain: 'もう一度試す',
+    tryAgainInAMoment: '少ししてからもう一度試してください。何も変わっていません。',
   },
   painPicker: {
     title: 'どこか痛みますか？',

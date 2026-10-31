@@ -69,7 +69,7 @@ export const de: Strings = {
     savedWithThisRunWhen: 'Wird mit diesem Lauf gespeichert, wenn du auf Behalten tippst. Nur auf diesem Handy.',
     nameItNoteHowBusy: 'Gib ihm einen Namen, notier, wie voll es war. Nur auf diesem Handy.',
     notNowThisLoopWon: 'Nicht jetzt. Diese Runde wird nicht noch einmal angeboten.',
-    notNow: 'Nicht jetzt',
+    notNow: 'Diese Runde nicht mehr anbieten',
     saveAsAPlace: 'Diese Strecke als Ort speichern',
     saveAsAPlaceHint: 'Gib ihr einen Namen, dann steht sie bei Deine Orte. Nur auf diesem Handy.',
   },
@@ -83,6 +83,7 @@ export const de: Strings = {
     howBusyYouFoundIt: (n, list) => `Wie voll du es fandest, letzte ${n} Läufe: ${list}`,
     runXAgain: (name) => `${name} noch einmal laufen`,
     runThisAgain: 'Noch einmal laufen',
+    couldntOpenYourPlaces: 'Deine Orte ließen sich gerade nicht öffnen.',
   },
   planReminders: {
     noReminders: 'Keine Erinnerungen für den Plan. ',
@@ -386,6 +387,7 @@ export const de: Strings = {
     patterns: 'Muster',
     opensThisRun: 'Öffnet diesen Lauf',
     energy: (delta) => ` · Energie ${delta > 0 ? '+' : ''}${delta}`,
+    couldntOpenYourRuns: 'Deine Läufe ließen sich gerade nicht öffnen.',
   },
   home: {
     next: (day, title) => `Als Nächstes: ${day}, ${title}`,
@@ -532,6 +534,7 @@ export const de: Strings = {
     localShowsFrom: 'Lokale Sendungen aus',
     chosenHereKeptHereThe: 'Hier gewählt, hier gemerkt. Der Download ist für alle derselbe.',
     thePhoneSRegion: 'Die Region des Handys',
+    couldntUpdate: 'Keine Aktualisierung möglich. Du siehst deine gespeicherte Liste.',
   },
   place: {
     since: (date) => `seit ${date}`,
@@ -555,6 +558,8 @@ export const de: Strings = {
     runThisAgain: 'Noch einmal laufen',
     lastRunX: (when) => `Zuletzt gelaufen ${when}`,
     yourLastNote: 'Deine letzte Notiz hier',
+    couldntSaveTheChange: 'Änderung konnte nicht gespeichert werden',
+    couldntForgetIt: 'Dieser Ort konnte nicht vergessen werden',
   },
   runDetail: {
     broughtIn: (from, on) => `Geholt aus ${from} am ${on}.`,
@@ -576,6 +581,11 @@ export const de: Strings = {
     saveAsAPlace: 'Als Ort speichern',
     addToX: (name) => `Zu ${name} hinzufügen`,
     addToXHint: 'Trägt diesen Lauf in das Protokoll dieses Orts ein',
+    energyAfter: 'Energie nach dem Lauf',
+    clearEnergy: 'Löschen',
+    clearEnergyHint: 'Entfernt die Energie-Antwort für diesen Lauf',
+    aNoteIfYouWant: 'Eine Notiz, wenn du magst',
+    couldntSaveThat: 'Das ließ sich nicht speichern',
   },
   run: {
     listenHint: 'Musik oder einen Podcast wählen. Dein Lauf wird weiter aufgezeichnet.',
@@ -689,6 +699,9 @@ export const de: Strings = {
     thatSOneQuietlyLogged: 'Einer mehr.\nLeise notiert.',
     doneGoBeUnavailable: 'Fertig.\nJetzt nicht erreichbar sein.',
     legsDidTheTalking: 'Die Beine haben geredet.',
+    saving: 'Wird gespeichert…',
+    couldntSaveTheRun: 'Lauf konnte nicht gespeichert werden',
+    theRunIsStillHere: 'Der Lauf, deine Antworten und deine Notiz sind noch da. Versuch es gleich noch mal.',
   },
   settings: {
     language: 'Sprache',
@@ -1107,6 +1120,7 @@ export const de: Strings = {
     noWayToShareFrom: 'Von hier aus lässt sich nichts teilen',
     theCalendarFileIsAt: (uri) => `Die Kalenderdatei liegt unter ${uri}.`,
     couldNotMakeTheCalendar: 'Kalenderdatei ließ sich nicht erstellen',
+    couldntOpenYourPlan: 'Dein Plan ließ sich gerade nicht öffnen.',
   },
   unlock: {
     name: 'Alles, einmal',
@@ -1484,6 +1498,8 @@ export const de: Strings = {
     days: tage,
     runs: laeufe,
     mood: { 1: 'Leer', 2: 'Müde', 3: 'Okay', 4: 'Gut', 5: 'Aufgeladen' },
+    tryAgain: 'Noch mal versuchen',
+    tryAgainInAMoment: 'Versuch es gleich noch mal. Es wurde nichts geändert.',
   },
   painPicker: {
     title: 'Tut etwas weh?',

@@ -68,23 +68,26 @@ export async function storedShelf(): Promise<{ shelf: Shelf; fetchedAt: number |
   return { shelf: BUNDLED, fetchedAt: null };
 }
 
-/** Download today's list if the stored one is more than three hours old (or always, with force). Never throws. */
-export async function refreshShelf(force = false): Promise<{ shelf: Shelf; fetchedAt: number | null }> {
+/**
+ * Download today's list if the stored one is more than three hours old (or always, with force). Never throws:
+ * a failed download hands back the saved list with failed set, so the screen can say it didn't update.
+ */
+export async function refreshShelf(force = false): Promise<{ shelf: Shelf; fetchedAt: number | null; failed?: boolean }> {
   const current = await storedShelf();
   if (!force && current.fetchedAt && Date.now() - current.fetchedAt < FRESH_MS) return current;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 12000);
   try {
     const res = await fetch(SHELF_URL, { signal: ctrl.signal, headers: { Accept: 'application/json' }, credentials: 'omit' });
-    if (!res.ok) return current;
+    if (!res.ok) return { ...current, failed: true };
     const shelf = await res.json();
-    if (!isShelf(shelf)) return current;
+    if (!isShelf(shelf)) return { ...current, failed: true };
     const stored = { shelf, fetchedAt: Date.now() };
     await saveValue(KEY, stored).catch(() => {});
     pruneShelfCovers(shelf);
     return stored;
   } catch {
-    return current;
+    return { ...current, failed: true };
   } finally {
     clearTimeout(timer);
   }

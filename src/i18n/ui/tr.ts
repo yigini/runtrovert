@@ -70,7 +70,7 @@ export const tr: Strings = {
     savedWithThisRunWhen: 'Tut’a bastığında bu koşuyla birlikte kaydedilir. Sadece bu telefonda.',
     nameItNoteHowBusy: 'Bir ad ver, ne kadar kalabalık olduğunu not et. Sadece bu telefonda.',
     notNowThisLoopWon: 'Şimdi değil. Bu tur bir daha önerilmeyecek.',
-    notNow: 'Şimdi değil',
+    notNow: 'Bu turu bir daha önerme',
     saveAsAPlace: 'Bu rotayı yer olarak kaydet',
     saveAsAPlaceHint: 'Bir ad ver, Yerlerin arasına girsin. Sadece bu telefonda.',
   },
@@ -84,6 +84,7 @@ export const tr: Strings = {
     howBusyYouFoundIt: (n, list) => `Son ${n} koşuda ne kadar kalabalık buldun: ${list}`,
     runXAgain: (name) => `Yine koş: ${name}`,
     runThisAgain: 'Burayı yine koş',
+    couldntOpenYourPlaces: 'Yerlerin şu an açılamadı.',
   },
   planReminders: {
     noReminders: 'Plan için hatırlatma yok. ',
@@ -387,6 +388,7 @@ export const tr: Strings = {
     patterns: 'Örüntüler',
     opensThisRun: 'Bu koşuyu açar',
     energy: (delta) => ` · enerji ${delta > 0 ? '+' : ''}${delta}`,
+    couldntOpenYourRuns: 'Koşuların şu an açılamadı.',
   },
   home: {
     next: (day, title) => `Sıradaki: ${day}, ${title}`,
@@ -533,6 +535,7 @@ export const tr: Strings = {
     localShowsFrom: 'Yerel programlar, ülke:',
     chosenHereKeptHereThe: 'Burada seçilir, burada saklanır. İndirme herkes için aynıdır.',
     thePhoneSRegion: 'Telefonun bölgesi',
+    couldntUpdate: 'Güncellenemedi. Kayıtlı listen gösteriliyor.',
   },
   place: {
     since: (date) => `${date} tarihinden beri`,
@@ -556,6 +559,8 @@ export const tr: Strings = {
     runThisAgain: 'Burayı yine koş',
     lastRunX: (when) => `Son koşu ${when}`,
     yourLastNote: 'Buradaki son notun',
+    couldntSaveTheChange: 'Değişiklik kaydedilemedi',
+    couldntForgetIt: 'Bu yer unutulamadı',
   },
   runDetail: {
     broughtIn: (from, on) => `Kaynak: ${from}. İçe aktarma tarihi: ${on}.`,
@@ -577,6 +582,11 @@ export const tr: Strings = {
     saveAsAPlace: 'Yer olarak kaydet',
     addToX: (name) => `Şuraya ekle: ${name}`,
     addToXHint: 'Bu koşuyu o yerin kaydına ekler',
+    energyAfter: 'Koşudan sonra enerji',
+    clearEnergy: 'Temizle',
+    clearEnergyHint: 'Bu koşunun enerji cevabını kaldırır',
+    aNoteIfYouWant: 'İstersen bir not',
+    couldntSaveThat: 'Kaydedilemedi',
   },
   run: {
     listenHint: 'Müzik ya da podcast seç. Koşun kaydedilmeye devam ediyor.',
@@ -690,6 +700,9 @@ export const tr: Strings = {
     thatSOneQuietlyLogged: 'Bir tane daha.\nSessizce kaydedildi.',
     doneGoBeUnavailable: 'Bitti.\nŞimdi ulaşılamaz ol.',
     legsDidTheTalking: 'Konuşmayı bacaklar yaptı.',
+    saving: 'Kaydediliyor…',
+    couldntSaveTheRun: 'Koşu kaydedilemedi',
+    theRunIsStillHere: 'Koşu, cevapların ve notun hâlâ burada. Birazdan tekrar dene.',
   },
   settings: {
     language: 'Dil',
@@ -1108,6 +1121,7 @@ export const tr: Strings = {
     noWayToShareFrom: 'Buradan paylaşılamıyor',
     theCalendarFileIsAt: (uri) => `Takvim dosyasının yeri: ${uri}.`,
     couldNotMakeTheCalendar: 'Takvim dosyası oluşturulamadı',
+    couldntOpenYourPlan: 'Planın şu an açılamadı.',
   },
   unlock: {
     name: 'Her şey, bir kez',
@@ -1484,6 +1498,8 @@ export const tr: Strings = {
     days: (n) => `${n} gün`,
     runs: (n) => `${n} koşu`,
     mood: { 1: 'Tükenmiş', 2: 'Düşük', 3: 'İdare eder', 4: 'İyi', 5: 'Şarj oldu' },
+    tryAgain: 'Tekrar dene',
+    tryAgainInAMoment: 'Birazdan tekrar dene. Hiçbir şey değişmedi.',
   },
   painPicker: {
     title: 'Bir yerin ağrıdı mı?',

@@ -126,12 +126,15 @@ export function ListenScreen({ onBack, runLive = false }: { onBack?: () => void;
 
   // Pull down for today's list now, whatever the age of the one on the phone.
   const [pulling, setPulling] = useState(false);
+  // A pull that didn't get through says so; the saved list stays usable underneath.
+  const [pullFailed, setPullFailed] = useState(false);
   async function pull() {
     if (settings.listenDownload !== 'on') return;
     setPulling(true);
     const s = await refreshShelf(true);
     setShelf(s.shelf);
     setFetchedAt(s.fetchedAt);
+    setPullFailed(!!s.failed);
     setPulling(false);
   }
 
@@ -189,6 +192,11 @@ export function ListenScreen({ onBack, runLive = false }: { onBack?: () => void;
       <View style={{ gap: spacing.sm }}>
         <Text style={styles.h1} accessibilityRole="header" maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>{ui().listen.listen}</Text>
         <Text style={styles.lede}>{ui().listen.voicesToTakeWithYou}</Text>
+        {pullFailed ? (
+          <Text style={styles.pullFailed} accessibilityLiveRegion="polite">
+            {ui().listen.couldntUpdate}
+          </Text>
+        ) : null}
       </View>
 
       <View style={styles.sound}>
@@ -1081,6 +1089,7 @@ function flag(cc: string | null): string {
 }
 
 const styles = StyleSheet.create({
+  pullFailed: { fontFamily: fonts.bodySemi, fontSize: 14, lineHeight: 20, color: colors.text, backgroundColor: colors.butter, borderRadius: radius.md, paddingHorizontal: 12, paddingVertical: 8, alignSelf: 'flex-start' },
   recording: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', backgroundColor: colors.ink, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 8 },
   recordingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.mint },
   recordingText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.cream },

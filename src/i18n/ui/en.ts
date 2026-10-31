@@ -68,7 +68,7 @@ export const en = {
     savedWithThisRunWhen: 'Saved with this run when you press Keep it. Only on this phone.',
     nameItNoteHowBusy: 'Name it, note how busy it was. Only on this phone.',
     notNowThisLoopWon: 'Not now. This loop won\'t be offered again.',
-    notNow: 'Not now',
+    notNow: 'Don’t offer this loop again',
     saveAsAPlace: 'Save this route as a place',
     saveAsAPlaceHint: 'Name it and keep it in Your places. Only on this phone.',
   },
@@ -82,6 +82,7 @@ export const en = {
     howBusyYouFoundIt: (rated: string | number, rated2: string | number) => `How busy you found it, last ${rated} runs: ${rated2}`,
     runXAgain: (name: string | number) => `Run ${name} again`,
     runThisAgain: 'Run this again',
+    couldntOpenYourPlaces: 'Couldn’t open your places just now.',
   },
   planReminders: {
     noReminders: 'No reminders for the plan. ',
@@ -387,6 +388,7 @@ export const en = {
     patterns: 'Patterns',
     opensThisRun: 'Opens this run',
     energy: (delta: number) => ` · energy ${delta > 0 ? '+' : ''}${delta}`,
+    couldntOpenYourRuns: 'Couldn’t open your runs just now.',
   },
   home: {
     next: (day: string, title: string) => `Next: ${day}, ${title}`,
@@ -533,6 +535,7 @@ export const en = {
     localShowsFrom: 'Local shows from',
     chosenHereKeptHereThe: 'Chosen here, kept here. The download is the same for everyone.',
     thePhoneSRegion: 'The phone\'s region',
+    couldntUpdate: 'Couldn’t update. Showing your saved list.',
   },
   place: {
     since: (date: string) => `since ${date}`,
@@ -556,6 +559,8 @@ export const en = {
     runThisAgain: 'Run this again',
     lastRunX: (lastWhen: string | number) => `Last run ${lastWhen}`,
     yourLastNote: 'Your last note here',
+    couldntSaveTheChange: 'Couldn’t save the change',
+    couldntForgetIt: 'Couldn’t forget this place',
   },
   runDetail: {
     broughtIn: (from: string, on: string) => `Brought in from ${from} on ${on}.`,
@@ -577,6 +582,11 @@ export const en = {
     saveAsAPlace: 'Save as a place',
     addToX: (name: string | number) => `Add to ${name}`,
     addToXHint: 'Puts this run in that place’s log',
+    energyAfter: 'Energy after the run',
+    clearEnergy: 'Clear',
+    clearEnergyHint: 'Removes the energy answer for this run',
+    aNoteIfYouWant: 'A note, if you want',
+    couldntSaveThat: 'Couldn’t save that',
   },
   run: {
     listenHint: 'Pick music or a podcast. Your run keeps recording.',
@@ -691,6 +701,9 @@ export const en = {
     thatSOneQuietlyLogged: 'That’s one.\nQuietly logged.',
     doneGoBeUnavailable: 'Done.\nGo be unavailable.',
     legsDidTheTalking: 'Legs did the talking.',
+    saving: 'Saving…',
+    couldntSaveTheRun: 'Couldn’t save the run',
+    theRunIsStillHere: 'The run, your answers and your note are still here. Try again in a moment.',
   },
   settings: {
     language: 'Language',
@@ -1111,6 +1124,7 @@ export const en = {
     noWayToShareFrom: 'No way to share from here',
     theCalendarFileIsAt: (uri: string | number) => `The calendar file is at ${uri}.`,
     couldNotMakeTheCalendar: 'Could not make the calendar file',
+    couldntOpenYourPlan: 'Couldn’t open your plan just now.',
   },
   unlock: {
     name: 'Everything, once',
@@ -1491,6 +1505,8 @@ export const en = {
     runs: (n: number) => `${n} ${n === 1 ? 'run' : 'runs'}`,
     // The five energy faces, 1 (Drained) to 5 (Recharged).
     mood: { 1: 'Drained', 2: 'Low', 3: 'Okay', 4: 'Good', 5: 'Recharged' },
+    tryAgain: 'Try again',
+    tryAgainInAMoment: 'Try again in a moment. Nothing was changed.',
   },
   painPicker: {
     title: 'Anything hurt?',
