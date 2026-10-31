@@ -249,6 +249,7 @@ function Catalogue({ profile, historyN, lastPlan, onPick, onRules }: { profile: 
       <Pressable onPress={onRules} style={{ paddingVertical: spacing.sm }} accessibilityRole="button">
         <Text style={styles.link}>{ui().train.theNineRulesEveryPlan}</Text>
       </Pressable>
+      <Text style={styles.foot}>{ui().train.howPlansAreBuilt}</Text>
       <Text style={styles.foot}>{ui().train.noAccountNoServerA}</Text>
     </ScrollView>
   );
@@ -994,6 +995,7 @@ function RulesView({ onBack }: { onBack: () => void }) {
         </View>
       ))}
       <Text style={styles.foot}>{ui().train.warningSigns}</Text>
+      <Text style={styles.foot}>{ui().train.howPlansAreBuilt}</Text>
       <Text style={styles.foot}>{ui().train.aPlanIsNotMedical}</Text>
     </ScrollView>
   );

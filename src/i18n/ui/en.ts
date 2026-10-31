@@ -888,6 +888,7 @@ export const en = {
     xIsDoneXRuns: (name: string | number, done: string | number, fmtKm: string | number) => `${name} is done. ${done} runs, ${fmtKm}. Quietly logged.`,
     theNineRulesEveryPlan: 'The nine rules every plan keeps →',
     noAccountNoServerA: 'No account, no server. A plan is a file on your phone.',
+    howPlansAreBuilt: 'How these plans are built: on your phone, for you alone, from your recent runs or the numbers you give. Each follows nine rules from training research and coaching practice (Daniels, Seiler, Bosquet, Frandsen and others). Every week is checked against them before you see it, and again after any change. Guidance, not medical advice.',
     expectsX: (lower: string | number) => `Expects ${lower}`,
     noHistoryNeeded: 'No history needed.',
     fitsWhereYouAreNow: 'Fits where you are now.',

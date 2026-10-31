@@ -883,6 +883,7 @@ export const ja: Strings = {
     xIsDoneXRuns: (name, done, km) => `${name}を完了。${done}回、${km}。静かに記録しました。`,
     theNineRulesEveryPlan: 'すべてのプランが守る9つのルール →',
     noAccountNoServerA: 'アカウントもサーバーもなし。プランは端末の中のファイルです。',
+    howPlansAreBuilt: 'このプランの作り方：あなたのスマホの中で、あなただけのために、最近のランか入力した数値から作ります。どれもトレーニング研究とコーチの実践にもとづく9つのルール（Daniels、Seiler、Bosquet、Frandsenほか）に従い、毎週、表示する前と変更のたびにそのルールで確認します。目安であり、医学的な助言ではありません。',
     expectsX: (x) => `目安：${x}`,
     noHistoryNeeded: '履歴は不要です。',
     fitsWhereYouAreNow: 'いまのあなたに合っています。',
