@@ -33,6 +33,8 @@
   <string name="mi">mi</string>
   <string name="kmN">Km %1$s</string>
   <string name="mileN">Mile %1$s</string>
+  <string name="complicationRun">Run</string>
+  <string name="complicationHint">Start a run</string>
   <string name="time">Time</string>
   <string name="distance">Distance</string>
   <string name="pace">Pace</string>

@@ -32,6 +32,8 @@
   <string name="mi">mi</string>
   <string name="kmN">Km %1$s</string>
   <string name="mileN">Milla %1$s</string>
+  <string name="complicationRun">Correr</string>
+  <string name="complicationHint">Empezar a correr</string>
   <string name="time">Tiempo</string>
   <string name="distance">Distancia</string>
   <string name="pace">Ritmo</string>

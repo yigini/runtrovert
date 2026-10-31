@@ -32,6 +32,20 @@ class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     setContent { RunApp(this) }
+    startFromIntent(intent)
+  }
+
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    startFromIntent(intent)
+  }
+
+  /** The tile and the complication open the app with START: with no run on, it starts one, as if Start was tapped. */
+  private fun startFromIntent(intent: Intent?) {
+    if (intent?.getBooleanExtra(START, false) != true) return
+    intent.removeExtra(START) // not again on rotation or a return to the app
+    if (PhoneLink.live.value?.active == true || local.value != Local.None) return
+    onStartTapped()
   }
 
   override fun onResume() {
@@ -119,5 +133,10 @@ class MainActivity : ComponentActivity() {
 
   companion object {
     private const val ASKED = "heartAsked"
+    const val START = "app.runtrovert.wear.START"
+
+    /** Opens the app; with [start], a run starts too unless one is already on. */
+    fun openIntent(ctx: android.content.Context, start: Boolean): Intent =
+      Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK).putExtra(START, start)
   }
 }

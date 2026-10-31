@@ -78,11 +78,13 @@ message path says what it is (`src/wearProtocol.ts`, `wear/.../Protocol.kt`):
 
 1. ✓ Notifications.
 2. Notification actions on Android, Live Activity on iOS.
-3. ✓ Wear OS app, phase 1 (remote mode, heart rate, km buzz, tile). Next: heart
-   rate in You vs you, trends and the GPX/FIT export; a complication; then
-   standalone recording with the watch GPS.
+3. ✓ Wear OS app, phase 1 (remote mode, heart rate, km buzz, tile).
+   ✓ Phase 2: heart rate from any watch or strap over Bluetooth, heart rate in
+   the GPX/FIT export, a complication; the tile and complication start a run.
+   Next: heart rate in You vs you and trends; then standalone recording with
+   the watch GPS.
 4. Apple Watch app in remote mode, then standalone.
-5. Bluetooth heart-rate straps on the phone (separate; uses BLE, not the watch).
+5. ✓ Bluetooth heart-rate straps on the phone (shipped with phase 2, below).
 
 Steps 3 and 4 need native builds: Wear OS fits the existing GitHub Actions
 Android job; the Apple Watch app needs a macOS runner and the Apple Developer
@@ -117,8 +119,15 @@ others). Free: nothing here goes through `isUnlocked()`.
   deleted with it, and shown on the run's stats as time-weighted average and max.
   Asked for once, with our own line first: "Heart rate from this watch goes into
   the run on your phone, and nowhere else." Saying no keeps everything else.
-- **A tile** one swipe from the watch face: tap to start, or mid-run, where the
+- **A tile** one swipe from the watch face: tap to start, or, mid-run, where the
   run is at. It refreshes on state changes only.
+- **A complication** (phase 2) for any watch face slot that takes short text
+  or an icon: the mark and "Run". A tap starts a run, the same as Start in
+  the app (the phone's countdown still runs). Mid-run it shows the run's
+  time, ticking by the minute on the watch face itself ("12m"), or "Paused".
+  Refreshed on state changes only, never on a timer. Add it by long-pressing
+  the watch face → Edit → a complication slot → Runtrovert. The tile's tap
+  starts a run too now, when none is on.
 - **Ongoing activity**: while a run is on, it shows on the watch face and in the
   recents, with a stopwatch that ticks by itself.
 
@@ -166,3 +175,55 @@ next to the phone app), it goes on over Wi-Fi from a computer, once:
 
 Updates install the same way with `adb install -r`. Turn Wireless debugging off
 afterwards; it drains the battery.
+
+
+## Heart rate from any watch or strap (phase 2)
+
+Not everyone has a Wear OS watch. Most running watches and every chest strap
+can send heart rate over the standard Bluetooth Heart Rate service, and the
+phone now reads it directly:
+
+- **Garmin**: on the watch, Heart rate → Broadcast heart rate (on some models
+  Settings → Sensors → Wrist heart rate → Broadcast, or "Broadcast during
+  activity").
+- **Polar, Coros, Suunto, Wahoo, Amazfit** and most others have the same
+  setting, often called "HR broadcast" or "Share HR".
+- **Chest straps** (Polar H9/H10, Garmin HRM, Wahoo TICKR...) do it as soon as
+  they touch skin.
+- Fitbit and Apple Watch don't broadcast. A Wear OS watch with the Runtrovert
+  app doesn't need this: it already sends its readings.
+
+**Settings → Heart rate from a strap or watch → Find one.** The phone looks for
+12 s for anything offering the Heart Rate service; tap the one to use. While
+the Settings page is open it shows the live reading, so you know it works
+before going out. After that the phone connects by itself when a run starts
+and lets go when it ends; out of range and back in, it reconnects on its own.
+
+**How the readings are used.** Everything goes through one inlet,
+`src/heartIn.ts`, whichever device sent it: into the `heart_rate` table with
+the run, the run's average and max, deep stats' heart zones, each plan step's
+heart-rate range (#59) and the optional "This could be easier" on easy
+running. If a strap and the Wear OS app both send, the strap wins
+(`keepReading` in `src/heart.ts`): chest straps read truer, and two sources
+would zigzag. The watch takes over again if the strap goes quiet for 15 s.
+
+**Export.** A run's GPX carries heart rate in Garmin's TrackPointExtension
+(`<gpxtpx:hr>`), and its FIT file in each record (field 3) and in the
+session's average and max (fields 16, 17), so Strava, Garmin Connect,
+Runalyze and intervals.icu show it. Notes, energy, busyness and what you told
+a plan stay out.
+
+**Privacy.** The phone talks to the sensor directly. It asks for Android's
+"Nearby devices" permission (`BLUETOOTH_SCAN`, marked `neverForLocation`, and
+`BLUETOOTH_CONNECT`) only when you tap Find; on Android 11 and older,
+scanning runs under the location permission the app already has. Only the
+strap's name and Bluetooth address are saved, on the phone. Free, like the
+rest of the watch work: nothing here goes through `isUnlocked()`.
+
+**Code.** `modules/runtrovert-heart` (Kotlin, Android's own Bluetooth LE
+classes, no library, so the phone APK grows by a few KB), `src/strap.ts` (the
+JS side: permission, scan, connect for a run) and
+`src/components/StrapSettings.tsx`. `npm run test:heart` covers the
+two-source rule and heart rate on export points; `npm run test:io` the GPX
+and FIT output.
+

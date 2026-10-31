@@ -14,8 +14,8 @@ android {
     minSdk = 30 // Wear OS 3, the first with Health Services
     targetSdk = 36
     // Watch builds count from 100000 so they never collide with the phone's codes on Play.
-    versionCode = 100001
-    versionName = "0.1.0"
+    versionCode = 100002
+    versionName = "0.2.0"
   }
 
   buildTypes {
@@ -66,4 +66,6 @@ dependencies {
   implementation("androidx.wear.protolayout:protolayout:1.3.0")
   implementation("androidx.wear.protolayout:protolayout-material:1.3.0")
   implementation("androidx.wear.protolayout:protolayout-expression:1.3.0")
+  // A complication on any watch face: tap to start, the run's time while it's on.
+  implementation("androidx.wear.watchface:watchface-complications-data-source-ktx:1.2.1")
 }

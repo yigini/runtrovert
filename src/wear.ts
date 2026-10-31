@@ -1,6 +1,6 @@
 import { requireOptionalNativeModule } from 'expo';
 import { AppState, Platform } from 'react-native';
-import { addHeartRate } from './db';
+import { heartIn } from './heartIn';
 import { liveJson, OPEN_FOR_MS, parseCommand, parseHeart, parseHello, PATHS, shouldSend, splitJson, type LiveForWatch, type WatchCommand, type WatchStatus } from './wearProtocol';
 
 /**
@@ -37,13 +37,6 @@ function sendLive(needsOpen = false) {
   send(PATHS.live, liveJson(current, needsOpen));
 }
 
-let heartListener: ((bpm: number, ts: number) => void) | null = null;
-
-/** The latest reading from the watch during a run, for the guided session. One listener; null to stop. */
-export function setHeartListener(l: ((bpm: number, ts: number) => void) | null): void {
-  heartListener = l;
-}
-
 /** Once, when the settings first load. Says hello to a watch that may be waiting on a Start. */
 function startWear(): void {
   if (!native || started) return;
@@ -62,13 +55,8 @@ function startWear(): void {
       if (c) commandHandler?.(c);
       sendLive(); // the watch waits on an answer to know the app is up
     } else if (path === PATHS.hr) {
-      const runId = current.runId;
-      // Kept while the finish screen is up too: the watch's last few seconds arrive just after Stop.
       // Readings with no run on: the watch missed the Stop. Tell it where things are.
-      if (runId == null || current.status === 'idle') return sendLive();
-      const samples = parseHeart(data);
-      void addHeartRate(runId, samples).catch(() => {});
-      if (samples.length) heartListener?.(samples[samples.length - 1][1], samples[samples.length - 1][0]);
+      if (!heartIn('watch', parseHeart(data))) sendLive();
     }
   });
   AppState.addEventListener('change', (next) => {
