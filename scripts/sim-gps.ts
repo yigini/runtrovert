@@ -1,3 +1,7 @@
+// Stress demo, not the accuracy check: every fix here jumps about independently
+// (white noise, ±acc/2 per axis every second), far harsher than a phone's fused
+// location, whose error drifts slowly. The filter reads a few % long on it.
+// npm run test:accuracy has realistic error, known courses and real runs.
 import { GpsFilter, haversineM, type RawFix } from '../src/gps/kalman.ts';
 
 // Deterministic RNG
