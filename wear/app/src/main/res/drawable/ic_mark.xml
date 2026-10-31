@@ -1,9 +1,8 @@
-<!-- The Runtrovert mark (src/components/Mark.tsx): an open ring and a dot. -->
+<!-- The Runtrovert mark (src/components/Mark.tsx): one loop whose finish runs past its start. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp"
     android:viewportWidth="240" android:viewportHeight="240">
-  <path android:pathData="M185.7,102.4 A68,68 0,1 1,137.6 54.3"
+  <path android:pathData="M104,176 C56,160 40,100 76,66 C112,32 184,40 198,96 C210,148 180,196 136,200"
       android:strokeColor="#FFFFFFFF" android:strokeWidth="32" android:strokeLineCap="round"
       android:fillColor="#00000000" />
-  <path android:pathData="M120,96 a24,24 0,1 0,0.1 0 z" android:fillColor="#FFFFFFFF" />
 </vector>
