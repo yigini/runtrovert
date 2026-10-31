@@ -36,6 +36,19 @@ httpd -t && systemctl reload httpd
 certbot-renew.timer renews the certificate. Any other server: change the IPs in the
 VirtualHost lines and the paths to match its Apache layout.
 
+## Access log: 14 days
+
+privacy.html says each day's access log is deleted after 14 days. The container logs no
+visits (`access_log off`); the host's Apache logs them to `/var/log/httpd/runtrovert_*.log`.
+Install the rotation once, as root:
+
+    cp /opt/runtrovert/deploy/site/logrotate-runtrovert /etc/logrotate.d/runtrovert
+    logrotate -d /etc/logrotate.d/runtrovert   # dry run: no errors, no "duplicate log entry"
+
+If the dry run says another logrotate file already covers those paths (DirectAdmin's own
+`/etc/logrotate.d/httpd` with a `/var/log/httpd/*log` glob), don't install this file; set
+that file's retention to 14 days or less instead, or leave it and tell us what it keeps.
+
 ## Updating
 
 Merge to main. Within 10 minutes `update.sh` pulls the repo and the container serves the
