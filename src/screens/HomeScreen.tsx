@@ -18,7 +18,7 @@ import { useCommuteOffer } from '../commuteStore';
 import { hideHomePlace, homePlaceCard, type HomePlace, type Place } from '../placeStore';
 import { homeFootage } from '../footage';
 import { formatDistance } from '../geo';
-import { effectivePreset, presetInfo } from '../presets';
+import { effectivePreset, presetInfo, type RunPreset } from '../presets';
 import { clock, formatTemp, headline, suggestions } from '../sky';
 import { useSettings } from '../settings';
 import { seasonalLine } from '../surprises';
@@ -41,7 +41,7 @@ import { dateLocale } from '../i18n/lang';
  * Ten days or more since the last run, it says welcome back instead: no plan
  * day, nothing overdue, one free run, and the plan as a separate choice.
  */
-export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, planToday, planNext, plan, onOpenPlan, onPlanChanged, onBrowseListen, onRunPlace, welcomeBack = true }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; onCommute?: (o: Offer) => void; onRunFree?: () => void; planToday?: Session | null; planNext?: Session | null; plan?: Plan | null; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; onRunPlace?: (p: Place) => void; welcomeBack?: boolean }) {
+export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, planToday, planNext, plan, onOpenPlan, onPlanChanged, onBrowseListen, onRunPlace, welcomeBack = true, runPreset, onRunWithoutPlan }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; onCommute?: (o: Offer) => void; onRunFree?: () => void; planToday?: Session | null; planNext?: Session | null; plan?: Plan | null; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; onRunPlace?: (p: Place) => void; welcomeBack?: boolean; runPreset?: RunPreset; onRunWithoutPlan?: () => void }) {
   const { settings, update } = useSettings();
   const [presetSheet, setPresetSheet] = useState(false);
   const [listen, setListen] = useState(false);
@@ -52,7 +52,8 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
   const [skyOpen, setSkyOpen] = useState(false);
   const lastRunAt = runs.length ? Math.max(...runs.map((r) => r.startedAt)) : null;
   const sessionToday = !!planToday && !planToday.done && !planToday.skipped;
-  const preset = effectivePreset(settings.runPreset, sessionToday);
+  // The run screen says which kind will start (a session opened from Train is always followed), so Start never promises another.
+  const preset = runPreset ?? effectivePreset(settings.runPreset, sessionToday);
   // The chip shows what was picked, even on a day My plan has nothing to follow.
   const picked = settings.runPreset ?? preset;
   const metric = settings.unitsKm;
@@ -255,11 +256,20 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
           </Pressable>
         </View>
         {/* The run's kind lives in the Start button now; this opens the choice. Remembered, so most days nobody taps it. */}
-        <Pressable onPress={() => setPresetSheet(true)} accessibilityRole="button" accessibilityLabel={ui().home.runKindX(presetInfo(preset).name)} accessibilityHint={ui().home.changesHowThisRunLooks} hitSlop={10} style={{ alignSelf: 'center' }}>
-          <Text style={styles.kindLine}>
-            {presetInfo(preset).name} · <Text style={styles.kindLink}>{ui().home.change}</Text>
-          </Text>
-        </Pressable>
+        {onRunWithoutPlan ? (
+          // Opened from Train: the session is followed, and the way out is a run without it.
+          <Pressable onPress={onRunWithoutPlan} accessibilityRole="button" accessibilityHint={ui().home.runWithoutThePlanHint} hitSlop={10} style={{ alignSelf: 'center' }}>
+            <Text style={styles.kindLine}>
+              {presetInfo(preset).name} · <Text style={styles.kindLink}>{ui().home.runWithoutThePlan}</Text>
+            </Text>
+          </Pressable>
+        ) : (
+          <Pressable onPress={() => setPresetSheet(true)} accessibilityRole="button" accessibilityLabel={ui().home.runKindX(presetInfo(preset).name)} accessibilityHint={ui().home.changesHowThisRunLooks} hitSlop={10} style={{ alignSelf: 'center' }}>
+            <Text style={styles.kindLine}>
+              {presetInfo(preset).name} · <Text style={styles.kindLink}>{ui().home.change}</Text>
+            </Text>
+          </Pressable>
+        )}
       </View>
       )}
       {plan && back ? (
