@@ -885,6 +885,7 @@ export const de: Strings = {
     xIsDoneXRuns: (name, done, km) => `${name} ist geschafft. ${done} Läufe, ${km}. Leise notiert.`,
     theNineRulesEveryPlan: 'Die neun Regeln, an die sich jeder Plan hält →',
     noAccountNoServerA: 'Kein Konto, kein Server. Ein Plan ist eine Datei auf deinem Handy.',
+    howPlansAreBuilt: 'So entstehen diese Pläne: auf deinem Handy, nur für dich, aus deinen letzten Läufen oder den Zahlen, die du angibst. Jeder folgt neun Regeln aus Trainingsforschung und Trainerpraxis (Daniels, Seiler, Bosquet, Frandsen und andere). Jede Woche wird daran geprüft, bevor du sie siehst, und nach jeder Änderung erneut. Eine Orientierung, kein medizinischer Rat.',
     expectsX: (x) => `Setzt voraus: ${x}`,
     noHistoryNeeded: 'Kein Verlauf nötig.',
     fitsWhereYouAreNow: 'Passt zu deinem Stand.',

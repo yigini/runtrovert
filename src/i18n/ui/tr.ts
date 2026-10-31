@@ -886,6 +886,7 @@ export const tr: Strings = {
     xIsDoneXRuns: (name, done, km) => `${name} tamamlandı. ${done} koşu, ${km}. Sessizce kaydedildi.`,
     theNineRulesEveryPlan: 'Her planın uyduğu dokuz kural →',
     noAccountNoServerA: 'Hesap yok, sunucu yok. Plan, telefonundaki bir dosyadır.',
+    howPlansAreBuilt: 'Bu planlar nasıl hazırlanır: telefonunda, yalnızca senin için, son koşularından ya da verdiğin sayılardan. Her biri antrenman araştırmalarından ve antrenör pratiğinden gelen dokuz kurala uyar (Daniels, Seiler, Bosquet, Frandsen ve diğerleri). Her hafta sen görmeden önce ve her değişiklikten sonra bu kurallara göre kontrol edilir. Tıbbi tavsiye değil, bir rehber.',
     expectsX: (x) => `Beklenen: ${x}`,
     noHistoryNeeded: 'Geçmiş gerekmez.',
     fitsWhereYouAreNow: 'Şu anki durumuna uyar.',
