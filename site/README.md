@@ -1,6 +1,6 @@
 # runtrovert.app
 
-The landing page and privacy policy. Plain HTML and CSS, no build step, no
+The landing page, privacy policy and credits. Plain HTML and CSS, no build step, no
 third-party requests (fonts are self-hosted, subset WOFF2 of the app's Fraunces
 and DM Sans; footage is four of the app's own loops from `assets/`).
 
