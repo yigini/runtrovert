@@ -157,9 +157,12 @@ const ART_PX = 256;
 let sharp; // loaded on first use; without it the shelf simply has no covers
 const drawn = new Set();
 
+/** Shows that asked us not to use their cover (content/listen.json "noArt"): they keep initials. */
+let noArt = new Set();
+
 /** Saves the show's cover as <dir>/<id>.jpg. True when the file is there. */
 async function saveArt(r, dir) {
-  if (!dir) return false;
+  if (!dir || noArt.has(r.collectionId)) return false;
   if (drawn.has(r.collectionId)) return true;
   const url = r.artworkUrl600 ?? r.artworkUrl100;
   if (!url) return false;
@@ -244,7 +247,9 @@ async function main() {
   if (artDir) await mkdir(artDir, { recursive: true });
   const today = new Date().toISOString().slice(0, 10);
   const cutoff = Date.now() - ACTIVE_DAYS * 86400000;
-  const picked = JSON.parse(await readFile(new URL('../content/listen.json', import.meta.url), 'utf8')).shows;
+  const listen = JSON.parse(await readFile(new URL('../content/listen.json', import.meta.url), 'utf8'));
+  const picked = listen.shows;
+  noArt = new Set((listen.noArt ?? []).map(Number));
   const offersIn = JSON.parse(await readFile(new URL('../content/offers.json', import.meta.url), 'utf8')).offers;
 
   // 1. Hand-picked shows: refresh feed, count and newest episodes.

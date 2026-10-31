@@ -447,6 +447,7 @@ export const de: Strings = {
     backToYourRun: 'Zurück zu deinem Lauf',
     stillRecording: 'Dein Lauf wird noch aufgezeichnet',
     adverts: 'Diese Sendungen haben ihre eigene Werbung. Runtrovert hat keine nervige, aufdringliche Werbung und sieht nie, was du hörst. Öffnet sich eine Sendung, sehen deine Podcast-App und der Host der Sendung eine normale Verbindung, samt IP-Adresse, wie bei jedem Download.',
+    coversBelong: 'Die Cover gehören den jeweiligen Shows und zeigen dir nur den Weg zu ihnen. Jedes wird einmal geladen und bleibt auf diesem Handy.',
     theOneThisVersionShipped: ', die mit dieser Version kam',
     xMinutes: (n) => `, ${n} Minuten`,
     nearYouX: (flag) => `In deiner Nähe ${flag}`,

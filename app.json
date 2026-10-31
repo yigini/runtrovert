@@ -73,6 +73,7 @@
       [
         "expo-notifications",
         {
+          "icon": "./assets/notification-icon.png",
           "color": "#2b2733",
           "defaultChannel": "runtrovert-quiet"
         }
