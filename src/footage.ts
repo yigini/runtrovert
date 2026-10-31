@@ -1,62 +1,51 @@
 import type { Weather } from './forecast';
 
-// Which background loop the sky gets. Every loop is someone running, nothing else. The home screen already writes its
+// Which background loop the sky gets. Every loop is running, filmed like a film: close or far, always calm. The home screen already writes its
 // headline from the weather; the footage follows the same reading, so fog
 // looks like fog and a hot day looks hot. Pure, so it runs under plain Node.
 // The clips themselves are required in components/AmbientBackground.tsx.
 
 export type Footage =
-  | 'tree' // distant runner past a big tree, summer
   | 'sunset-beach' // runner along the surf, sun on the water
   | 'mist-beach' // grey beach, fog, runner from behind
   | 'snow-plain' // white field, one figure in blue
   | 'grey-path' // overcast park path, runner from behind
-  | 'green-hill' // green slope, blue sky
   | 'rock-coast' // rocky shore, runner from behind
-  | 'forest-path' // woodland path, runner from behind
   | 'green-tunnel' // summer trail under trees
   | 'dirt-road' // aerial, runner and long shadow on a farm track
-  | 'field-pine' // aerial, one pine and a tiny runner
   | 'grey-beach' // overcast beach, runner in red
-  | 'night-track' // floodlit track, black and white
-  | 'seawall' // pale seawall from above, one runner
   | 'winter-city' // low sun, snowy street
-  | 'grey-city' // wet city street, grey light
-  | 'farm-aerial' // aerial, lanes between fields
   | 'trail-bridge' // legs on a forest footbridge
-  | 'rice-field' // ripe paddy under a grey sky, runner from behind
+  | 'rice-field' // ripe paddy under a grey sky
   | 'park-trees' // bare park trees, runner in a hood
   | 'track-day' // empty red track, one runner far off
   | 'dirt-track' // low aerial over a dirt track, big clouds
   | 'leafy-lane' // aerial, one runner down a lane walled with trees
   | 'bare-woods' // bare spring woods, runner from behind
-  | 'tree-avenue' // park path under tall trees, runners from behind
+  | 'tree-avenue' // park path under tall trees
   | 'lake-side' // grey morning by a still lake, runner side on
-  | 'glass-river' // low sun, glass wall by the river, runner from behind
+  | 'glass-river' // low sun, glass wall by the river
   | 'night-park' // park at night under orange lamps
-  | 'hood-path' // grey sky, hooded runner on a path
   | 'sunny-park' // low winter sun, bare trees, one runner through an empty city park
-  | 'river-bridge' // grey morning, riverside boardwalk, bridge and skyline, runner from behind
+  | 'river-bridge' // grey morning, riverside boardwalk, bridge and skyline
+  | 'sunset-water' // runner towards camera, sunset mirrored in wet sand
+  | 'cobbles' // close on feet over sunlit cobbles
+  | 'blade-stride' // close on a blade runner's stride by the sea
+  | 'sun-trees' // low sun through a row of trees, a runner passing
+  | 'sea-road' // seafront road in bright sun, slow motion
+  | 'dark-forest' // deep woods, runner from behind, moody light
 
 /** Pexels video ids, for assets/CREDITS.md. Licence: free use, no attribution required. */
 export const PEXELS: Record<Footage, number> = {
-  tree: 12000664,
   'sunset-beach': 7444958,
   'mist-beach': 8636806,
   'snow-plain': 7038131,
   'grey-path': 5114847,
-  'green-hill': 15627765,
   'rock-coast': 5929358,
-  'forest-path': 14936182,
   'green-tunnel': 15294983,
   'dirt-road': 15479756,
-  'field-pine': 15479762,
   'grey-beach': 8637379,
-  'night-track': 20540592,
-  seawall: 13777117,
   'winter-city': 7218876,
-  'grey-city': 5310959,
-  'farm-aerial': 15928220,
   'trail-bridge': 5677457,
   'rice-field': 18274390,
   'park-trees': 7062128,
@@ -68,32 +57,37 @@ export const PEXELS: Record<Footage, number> = {
   'lake-side': 4065467,
   'glass-river': 8834377,
   'night-park': 3126162,
-  'hood-path': 12752370,
   'sunny-park': 7218851,
   'river-bridge': 5033913,
+  'sunset-water': 7733300,
+  cobbles: 3209242,
+  'blade-stride': 6022795,
+  'sun-trees': 853771,
+  'sea-road': 16686655,
+  'dark-forest': 13494091,
 };
 
 export type Scene = 'storm' | 'snow' | 'rain' | 'fog' | 'night' | 'dusk' | 'cold' | 'heat' | 'wind' | 'clear' | 'cloud';
 
 /** Several loops per scene, rotated by day, so the same weather rarely shows the same picture twice running. */
 const POOLS: Record<Scene, Footage[]> = {
-  storm: ['grey-city', 'mist-beach', 'hood-path', 'river-bridge'],
+  storm: ['mist-beach', 'dark-forest', 'river-bridge', 'grey-beach'],
   snow: ['snow-plain', 'winter-city'],
-  rain: ['grey-city', 'grey-path', 'mist-beach', 'hood-path', 'river-bridge'],
-  fog: ['mist-beach', 'grey-beach', 'forest-path', 'tree-avenue'],
-  night: ['night-track', 'night-park'],
-  dusk: ['sunset-beach', 'glass-river'],
-  cold: ['winter-city', 'snow-plain', 'rock-coast', 'park-trees', 'bare-woods', 'lake-side', 'hood-path', 'sunny-park'],
-  heat: ['dirt-road', 'field-pine', 'rice-field', 'dirt-track', 'leafy-lane'],
-  wind: ['rock-coast', 'grey-beach', 'farm-aerial', 'dirt-track', 'rice-field', 'bare-woods'],
-  clear: ['tree', 'green-hill', 'dirt-road', 'field-pine', 'farm-aerial', 'rock-coast', 'green-tunnel', 'dirt-track', 'track-day', 'leafy-lane', 'bare-woods', 'glass-river', 'sunny-park'],
-  cloud: ['grey-path', 'grey-beach', 'forest-path', 'green-tunnel', 'grey-city', 'park-trees', 'rice-field', 'track-day', 'tree-avenue', 'lake-side', 'hood-path', 'river-bridge'],
+  rain: ['grey-path', 'mist-beach', 'river-bridge', 'dark-forest'],
+  fog: ['mist-beach', 'grey-beach', 'tree-avenue', 'dark-forest'],
+  night: ['night-park', 'dark-forest'],
+  dusk: ['sunset-beach', 'sunset-water', 'sun-trees', 'glass-river'],
+  cold: ['winter-city', 'snow-plain', 'rock-coast', 'park-trees', 'bare-woods', 'lake-side', 'sunny-park'],
+  heat: ['dirt-road', 'rice-field', 'dirt-track', 'leafy-lane', 'sea-road', 'blade-stride'],
+  wind: ['rock-coast', 'grey-beach', 'dirt-track', 'rice-field', 'bare-woods', 'blade-stride'],
+  clear: ['green-tunnel', 'dirt-road', 'rock-coast', 'dirt-track', 'track-day', 'leafy-lane', 'bare-woods', 'glass-river', 'sunny-park', 'sun-trees', 'blade-stride', 'sea-road', 'cobbles'],
+  cloud: ['grey-path', 'grey-beach', 'green-tunnel', 'park-trees', 'rice-field', 'track-day', 'tree-avenue', 'lake-side', 'river-bridge', 'dark-forest'],
 };
 
 /** Behind the motto, once. */
-export const WELCOME: Footage = 'seawall';
+export const WELCOME: Footage = 'sunset-water';
 /** Behind the countdown: runners already on their way. */
-export const COUNTDOWN: Footage[] = ['trail-bridge', 'green-tunnel', 'forest-path', 'tree-avenue', 'river-bridge'];
+export const COUNTDOWN: Footage[] = ['cobbles', 'blade-stride', 'trail-bridge', 'green-tunnel', 'river-bridge'];
 
 /** Same order of precedence as the headline in sky.ts, so words and picture agree. */
 export function sceneFor(w: Weather | null, now = Date.now()): Scene {
