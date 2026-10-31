@@ -1,7 +1,7 @@
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Alert, Animated, Dimensions, Easing, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { AccessibilityInfo, Alert, Animated, Dimensions, Easing, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { DISPLAY_MAX_SCALE, spokenDistance, spokenDuration, spokenPace, spokenRun } from '../a11y';
 import { AmbientBackground } from '../components/AmbientBackground';
@@ -191,7 +191,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     if (!ghost || phase !== 'idle') return;
     setGhostRun(ghost);
     onGhostTaken?.();
-    void onStart();
+    void begin('just');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ghost, phase]);
   useEffect(() => {
@@ -258,7 +258,15 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
       .then((c) => lastCommuteRoute(o.dir, c))
       .catch(() => null);
     setGhostRun({ name: o.dir === 'toWork' ? ui().commute.runToWork : ui().commute.runHome, path: path ?? [], goal: o.goal });
-    await onStart();
+    // The line to follow is only drawn in Just run, so a route run always opens as one.
+    await begin('just');
+  }
+
+  // Opened from Train, but not today: the runner's usual kind of run, no session behind it.
+  async function onRunWithoutPlan() {
+    const kind: RunPreset = settings.runPreset && settings.runPreset !== 'plan' ? settings.runPreset : 'just';
+    onRequestTaken?.();
+    await begin(kind, null);
   }
 
   // Welcome back: a free run, as Just run, whatever was picked last time.
@@ -275,9 +283,13 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         await savePlan(r.plan);
         if (r.fatigue === 'doctor') Alert.alert(ui().run.fiveLowDaysInTwo, ui().run.thatIsMoreThanA);
         else if (r.fatigue === 'lighter') Alert.alert(ui().run.threeLowDaysThisWeek, ui().run.nextWeekIsLighterNothing);
+        // The eased (or kept) session is the one that runs: state set here only shows on the next render.
+        const next = r.plan.weeks.flatMap((w) => w.sessions).find((x) => x.id === session.id) ?? todaySession(r.plan);
         setPlanSession(todaySession(r.plan));
         onRequestTaken?.();
         if (choice === 'rest') return;
+        await begin('plan', next);
+        return;
       }
     } catch {
       // the run still happens
@@ -285,15 +297,36 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     await begin();
   }
 
-  async function begin(as: RunPreset = preset) {
+  /** Runs the session passed in, not the one this render happened to hold. */
+  async function begin(as: RunPreset = preset, run: Session | null = session) {
     const perm = await ensurePermissions();
     if (!perm.ok) {
       setGhostRun(null);
-      Alert.alert(ui().run.locationNeeded, ui().run.runtrovertCanOnlyRecordA);
+      Alert.alert(ui().run.locationNeeded, ui().run.runtrovertCanOnlyRecordA, [
+        { text: ui().run.cancel, style: 'cancel' },
+        { text: ui().run.openPhoneSettings, onPress: () => void Linking.openSettings().catch(() => {}) },
+      ]);
       return;
     }
+    // Nothing starts behind the warning: the runner picks first.
     if (!perm.background) {
-      Alert.alert(ui().run.backgroundLocation, ui().run.withoutAlwaysLocationTheRun);
+      const pick = await new Promise<'run' | 'settings' | 'cancel'>((resolve) =>
+        Alert.alert(
+          ui().run.backgroundLocation,
+          ui().run.withoutAlwaysLocationTheRun,
+          [
+            { text: ui().run.cancel, style: 'cancel', onPress: () => resolve('cancel') },
+            { text: ui().run.openPhoneSettings, onPress: () => resolve('settings') },
+            { text: ui().run.runAnyway, onPress: () => resolve('run') },
+          ],
+          { cancelable: true, onDismiss: () => resolve('cancel') },
+        ),
+      );
+      if (pick !== 'run') {
+        setGhostRun(null);
+        if (pick === 'settings') Linking.openSettings().catch(() => {});
+        return;
+      }
     }
     setLayout(as);
     setShowTime(false);
@@ -311,19 +344,19 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
           if (countdownRef.current) clearInterval(countdownRef.current);
           countdownRef.current = null;
           cueCountdown(0);
-          await go(as);
+          await go(as, run);
         } else {
           cueCountdown(n);
         }
       }, 1000);
     } else {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-      await go(as);
+      await go(as, run);
     }
   }
 
-  async function go(as: RunPreset = preset) {
-    if (as === 'plan' && session && sessionOpen) beginWorkout(session);
+  async function go(as: RunPreset = preset, run: Session | null = session) {
+    if (as === 'plan' && run && !run.done && !run.skipped) beginWorkout(run);
     try {
       await startRun(moodBefore);
       setPhase('active');
@@ -487,12 +520,12 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   /** "Run this again" from the home screen's place: the same as from the place itself. */
   function runPlace(p: Place) {
     setGhostRun({ placeId: p.id, name: p.name, path: p.sig.pts.map(([latitude, longitude]) => ({ latitude, longitude })) });
-    void onStart();
+    void begin('just');
   }
 
   // ---- Idle ------------------------------------------------------------------
   if (phase === 'idle') {
-    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} onCommute={onCommute} onRunFree={onRunFree} planToday={session} planNext={requested ? null : planNext} plan={requested ? null : planShown} welcomeBack={!requested} onOpenPlan={onOpenPlan} onPlanChanged={onPlanChanged} onBrowseListen={onBrowseListen} onRunPlace={runPlace} />;
+    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} onCommute={onCommute} onRunFree={onRunFree} planToday={session} planNext={requested ? null : planNext} plan={requested ? null : planShown} welcomeBack={!requested} onOpenPlan={onOpenPlan} onPlanChanged={onPlanChanged} onBrowseListen={onBrowseListen} onRunPlace={runPlace} runPreset={preset} onRunWithoutPlan={requested && sessionOpen ? onRunWithoutPlan : undefined} />;
   }
 
   // ---- Countdown -------------------------------------------------------------
@@ -849,7 +882,7 @@ function StopButton({ onStop, wide }: { onStop: () => void; wide?: boolean }) {
   }
 
   return (
-    <View style={wide && { flex: 1 }}>
+    <View style={wide ? { flex: 1 } : { alignItems: 'center' }}>
       {hint && (
         <View style={styles.holdHint} pointerEvents="none">
           <Text style={styles.holdHintText}>{ui().run.holdToStop}</Text>
@@ -877,6 +910,12 @@ function StopButton({ onStop, wide }: { onStop: () => void; wide?: boolean }) {
           </>
         )}
       </Pressable>
+      {/* Said all the time, so nobody has to find out by tapping. */}
+      {!wide && (
+        <Text style={styles.stopCaption} importantForAccessibility="no" accessibilityElementsHidden>
+          {ui().run.holdToStop}
+        </Text>
+      )}
     </View>
   );
 }
@@ -1105,6 +1144,7 @@ const styles = StyleSheet.create({
   stopFill: { position: 'absolute', width: 64, height: 64, borderRadius: 32, backgroundColor: colors.peachDeep, opacity: 0.45 },
   holdHint: { position: 'absolute', bottom: 74, right: -6, backgroundColor: 'rgba(246,241,234,0.94)', borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 6, minWidth: 110, alignItems: 'center' },
   holdHintText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.ink },
+  stopCaption: { marginTop: 4, fontFamily: fonts.bodySemi, fontSize: 12, color: colors.inkMuted },
   calm: { flex: 1, backgroundColor: colors.cream, padding: spacing.md + 4, paddingTop: spacing.lg },
   calmTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   calmStatus: { flexDirection: 'row', alignItems: 'center', gap: 6 },
