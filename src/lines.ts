@@ -1,13 +1,27 @@
 /**
- * Notification lines. Every one is original. Tone: quiet, dry, kind.
- * Never shame, never shout, never "streak". Rotated so nothing repeats for months.
+ * Notification lines. Every one is original.
+ *
+ * THE VOICE: observant, warm, precise, occasionally dry. Read every line,
+ * in every language pack, against these before it ships:
+ *  - Observe what the app actually knows (your runs, your usual hour, the
+ *    forecast). Never claim what it can't: no "the park is empty", "nobody
+ *    will be out", "it's quiet now", "it's safe".
+ *  - Never argue with the runner's body. Low energy, pain and rest are
+ *    answers, not excuses, and never something to talk someone out of.
+ *  - Never shame, never shout, never guilt, never "streak".
+ *  - The point is your own space, not getting away from people. Other people
+ *    are not the problem; don't joke as if they were.
+ *  - Dry is welcome now and then. Warm comes first.
+ *  - Never mention the unlock or anything for sale.
+ * With "Fewer words" on (Settings), the PLAIN lines below are used instead:
+ * the plain fact, no joke.
  *
  * Moods:
  *  nudge     – ordinary day, gentle invitation
  *  rest      – ran yesterday or today; rest is the message
  *  quiet     – 3–6 days since the last run
  *  gap       – 7+ days; welcome back, no guilt
- *  weather   – rain / cold / dark; introvert advantages
+ *  weather   – rain / cold / dark
  *  morning   – early slot
  *  evening   – late slot
  */
@@ -15,35 +29,34 @@ export type Mood = 'nudge' | 'rest' | 'quiet' | 'gap' | 'weather' | 'morning' | 
 
 export const LINES: Record<Mood, string[]> = {
   nudge: [
-    'Hi there. The park is empty at 7. Just saying.',
+    'Hi there. Early runs have a light of their own. Just saying.',
     'No pressure. But your shoes looked at the door again.',
     'Small run, small-talk-free. Twenty minutes?',
     'Headphones optional. People optional. Run recommended.',
     'The route you like is still there. It kept the spot.',
     'A run is a meeting with one attendee. Attendance is great.',
-    'Nobody will ask how you are out there. That is the whole point.',
+    'Out there, nobody needs anything from you.',
     'Today could use a loop. Any loop. Even a small one.',
     'You don’t have to talk to anyone to lace up.',
     'Out, back, shower, quiet. A good afternoon, honestly.',
     'The pavement has no opinions about your pace.',
     'A run counts even if nobody knows about it. Especially then.',
     'Quick one? The world will still be loud when you get back.',
-    'Legs: available. Weather: fine. Excuses: respectfully declined.',
+    'Shoes: by the door. Route: where you left it. The rest is up to you.',
     'Thirty minutes where your phone only counts kilometres.',
     'Running is the one hobby where leaving early is called finishing.',
-    'Your energy might say no. Your energy has been wrong before.',
-    'One run. Zero conversations. Infinite smugness. Reasonable deal.',
-    'The quiet streets are quietest right now. Take the hint.',
+    'Not feeling it today? That’s an answer too. The route will keep.',
+    'One run, your pace, your route. Reasonable deal.',
     'The best part of a run is the bit where nobody can reach you.',
     'A gentle reminder that you own a pair of running shoes.',
     'Not a push. A nudge. The difference is about five minutes.',
-    'There is a version of today where you ran. It is slightly better.',
+    'There is a version of today with a short run in it. Your call.',
     'If you need a reason: there isn’t one. That’s allowed.',
     'A run is a long walk that’s in a hurry to be alone.',
     'Your route misses you. Routes don’t say that often.',
     'Twenty minutes outside beats twenty minutes of thinking about it.',
     'It’s a good day to be a dot moving across a map.',
-    'The only group run that works: you, and your shadow at a distance.',
+    'A group run of one: you set the pace and the route.',
     'Reminder: fresh air is free and asks no questions.',
   ],
   rest: [
@@ -71,7 +84,7 @@ export const LINES: Record<Mood, string[]> = {
     'The shoes are getting suspicious. Reassure them.',
     'If the week got loud, a run is the quietest room you own.',
     'Gentle reminder: a bad short run is better than a great planned one.',
-    'Haven’t run this week? The week isn’t over, and nobody’s keeping score. Except, quietly, you.',
+    'Haven’t run this week? The week isn’t over, and nobody’s keeping score.',
     'A run would fix roughly one thing today. That’s a decent ratio.',
     'Your pace from last week is unbothered. It’ll wait.',
     'Restarting is just starting with better shoes.',
@@ -86,41 +99,41 @@ export const LINES: Record<Mood, string[]> = {
     'Nothing is lost. Fitness is loyal; it leaves slowly and comes back quickly.',
     'No streak to rescue. Just a run to enjoy, if you fancy it.',
     'Start small. The map doesn’t care how small.',
-    'Someone has to run around that lake. It might as well be the quiet one.',
+    'Someone has to run that loop again. It might as well be you.',
     'You don’t owe anyone a comeback. You can just go for a run.',
     'If today is the day: lovely. If not: tomorrow is also a day.',
     'The first run back is mostly about proving the shoes still fit.',
   ],
   weather: [
-    'It’s raining. Nobody will be out. You know what that means.',
-    'Cold out. Fewer people. Almost like the weather is on your side.',
-    'Grey skies clear the paths. Best time to have them to yourself.',
+    'It’s raining. Fewer people tend to go out in it, if that helps.',
+    'Cold out. Layers on, and the first kilometre warms you up.',
+    'Grey skies, soft light. A good day for an easy one.',
     'Dark early. Headlamp on. The world shrinks to one quiet circle.',
     'Drizzle is the introvert’s crowd control.',
     'Wind in your face means the route is doing half the thinking.',
-    'Bad weather, empty park. Honestly, perfect.',
+    'Not the nicest weather. A short loop still counts.',
     'Puddles don’t make conversation. Ideal running companions.',
     'A run in the rain is a shower you take on the way to the shower.',
-    'The fog is in. Even the joggers who wave can’t see you.',
+    'The fog is in. The world is about fifty metres wide today.',
   ],
   morning: [
     'Good morning. One short note, then I’ll leave you be.',
     'The streets are still asleep. Join them, moving.',
     'Early run: the day hasn’t started asking things of you yet.',
-    'Morning. The park has roughly three people and a heron.',
-    'Sunrise runs: you’re out before anyone can suggest a group one.',
+    'Morning. The light is low and the air is new.',
+    'Sunrise runs: the day starts on your terms.',
     'Coffee, shoes, door. Conversation not required.',
     'The quiet hour is open. Reservation for one.',
-    'Morning light and an empty towpath. Hard to improve on.',
+    'Morning light and a route you know. Hard to improve on.',
   ],
   evening: [
     'Evening. The day is done talking. Go somewhere it can’t follow.',
     'A short run before dark. Then the sofa can have you.',
-    'Dusk run: everyone else is indoors being social. Enjoy the outdoors being not.',
-    'The last light is the best light. Also the emptiest.',
+    'Dusk run: the light goes soft and the day lets go.',
+    'The last light is the best light. Worth catching.',
     'A loop before dinner. Nobody at the table needs to know.',
     'End the day as a dot on a map. Quiet, moving, yours.',
-    'Evening air, low sun, no crowd. Take the easy win.',
+    'Evening air, low sun. An easy win, if you want it.',
     'Tomorrow can be loud. Tonight, a run and then nothing.',
   ],
 };
@@ -139,7 +152,7 @@ export const AFTERNOON_LINES = [
 export const WEEKEND_LINES = [
   'Weekend. No plans needed. A loop counts as one.',
   'Nothing on the calendar? A run fits neatly in the gaps.',
-  'The paths are slow at this hour on a weekend. Plenty of room.',
+  'Weekend mornings move slowly. Plenty of time for a loop.',
   'Saturday or Sunday, the route doesn’t mind. Neither do we.',
   'A lazy day can hold a short run. It won’t take much of it.',
 ];
@@ -158,10 +171,10 @@ export const RHYTHM_LINES = [
 
 /** Wet now, dry later. {time} is the first dry hour. */
 export const WINDOW_LINES = [
-  'Rain until {time}, then dry. The paths stay empty a bit longer than the clouds do.',
+  'Rain until {time}, then dry. The clouds go first. You can follow.',
   'Wet now. Dry from {time}. Most people won’t notice. You will.',
-  'Dry from {time}. The puddles will have cleared the park for you.',
-  'It eases off around {time}. Fewer people, fresher air, same route.',
+  'Dry from {time}. Puddles, but no more rain.',
+  'It eases off around {time}. Fresher air, same route.',
 ];
 
 /** The single line in week two, after a week of not opening the app. Then silence. */
@@ -184,8 +197,27 @@ export const AFTER_RUN_LINES = [
   'The map has a new line on it. Only you can see it.',
   'Good. Now go be unavailable for a while.',
   'Legs did the talking. Everything else can stay quiet.',
-  'A run finished is a conversation you didn’t have to have.',
+  'A run finished. Nothing else is needed from you today.',
 ];
+
+/** "Fewer words": one plain fact per kind of note, no joke. {day} and {time} as above. */
+export const PLAIN = {
+  nudge: ['A run today, if you want one.', 'Time for a short run, if you like.'],
+  morning: 'Morning. A run before the day starts?',
+  evening: 'Evening. A short run before dark?',
+  quiet: 'A few days since your last run. A short one, if you want.',
+  gap: 'It’s been a while since your last run. Start small, whenever you like.',
+  weather: 'Rain or fog in the forecast. Dress for it if you go.',
+  rhythm: '{day}. You usually run around now.',
+  window: 'Rain until {time}, then dry.',
+  afternoon: 'Work’s nearly done. A run home, or once you’re there?',
+  weekend: 'Weekend. A run fits in, if you want one.',
+  last: 'That’s the last reminder for a while.',
+  afterRunTitle: 'Run saved.',
+  afterRun: 'It’s on this phone, nowhere else.',
+  reflectTitle: 'How was that?',
+  reflect: 'How do you feel now? One tap to note it.',
+};
 
 export const TITLES = ['Runtrovert', 'Hi there', 'A quiet word', 'Psst', 'Small thought', 'Just saying', 'Low-key', 'No pressure'];
 

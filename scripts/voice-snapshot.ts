@@ -122,6 +122,7 @@ export function snapshot(): Record<string, unknown> {
   out.lines = {
     moods: r.moods, rhythm: r.rhythm, window: r.window, last: r.last, reflectTitles: r.reflectTitles,
     reflectLines: r.reflectLines, afterRunTitles: r.afterRunTitles, afterRunLines: r.afterRunLines, titles: r.titles,
+    plain: r.plain,
   };
   out.tips = { topics: TOPICS.map((t) => ({ key: t.key, title: voice().tips.topics[t.key] })), tips: localTips() };
   return out;

@@ -77,6 +77,7 @@ export interface Settings {
   notifyCadence: number; // 2 once older weekly settings moved to daily
   seenNews: string; // id of the last "What's new" line dismissed
   afterRunNote: boolean; // a quiet "run saved" notification
+  fewerWords: boolean; // reminders, the after-run note and the finish line keep to the plain fact
   weather: boolean; // fetch the local forecast for the home screen (Open-Meteo, coarse location)
   runNotes: boolean; // live stats on the lock screen and a note per km (watches mirror these)
   watch: boolean; // the Wear OS app: live run on the wrist, its buttons, its heart rate into the run
@@ -117,6 +118,7 @@ export const DEFAULT_SETTINGS: Settings = {
   notifyCadence: 2,
   seenNews: '',
   afterRunNote: true,
+  fewerWords: false,
   weather: true,
   runNotes: true,
   watch: true,

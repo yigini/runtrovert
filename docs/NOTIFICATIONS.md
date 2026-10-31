@@ -31,6 +31,12 @@ Nothing runs in the background.
 - **Fewer, please.** Button on every reminder: one or two a day → one a day →
   a few a week → off.
 
+## Voice and "Fewer words"
+
+The voice rule sits at the top of `src/lines.ts`: observant, warm, precise, occasionally dry. Lines never claim what the app can't know ("the park is empty"), never argue with the runner's body, never shame, and never treat other people as the problem. Every language pack is read against it.
+
+Settings > Quiet reminders > **Fewer words** (`settings.fewerWords`, off by default, free) swaps every reminder, the after-run note and the commute note for the plain fact (`reminders.plain` in each voice pack, titled just "Runtrovert"), and the finish screen shows distance and time instead of a line, with the you-vs-you headline only. Plan notes are factual already and don't change.
+
 ## One scheduler
 
 `rescheduleReminders` in `src/notify.ts` is the only place that schedules

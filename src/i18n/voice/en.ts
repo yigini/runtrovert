@@ -3,7 +3,7 @@
 // written; this file gathers them with the lines that used to be inline.
 
 import type { EffortKey } from '../../progress';
-import { AFTER_RUN_LINES, AFTER_RUN_TITLES, AFTERNOON_LINES, LAST_LINES, LINES, REFLECT_LINES, REFLECT_TITLES, RHYTHM_LINES, TITLES, WEEKEND_LINES, WINDOW_LINES } from '../../lines';
+import { AFTER_RUN_LINES, AFTER_RUN_TITLES, AFTERNOON_LINES, LAST_LINES, LINES, PLAIN, REFLECT_LINES, REFLECT_TITLES, RHYTHM_LINES, TITLES, WEEKEND_LINES, WINDOW_LINES } from '../../lines';
 import { TIPS, TOPICS } from '../../tips';
 import type { VoicePack } from './types';
 import { clockDigits, distNumber, word } from './util';
@@ -116,10 +116,10 @@ export const en: VoicePack = {
     headline: {
       storm: () => ['Thunder about.\nThe sofa is also a route.', 'Storms around.\nMaybe give it an hour.'],
       snow: (t) => ['Snow. Fresh tracks,\nall of them yours.', `${t} and snow.\nThe world went silent.`],
-      rain: (t) => [`${t} and rain.\nThe park is yours.`, 'Rain. Everyone else\nstayed in.'],
+      rain: (t) => [`${t} and rain.\nThe air will be clean.`, 'Rain. Everyone else\nstayed in.'],
       drizzle: (t) => [`${t} and drizzle.\nEveryone else stayed in.`, 'Light rain. Just enough\nto keep people indoors.'],
       fog: (t) => ['Fog. The world\nwent quiet for you.', `${t} and fog.\nNobody can see you anyway.`],
-      dark: (t) => ['Dark out.\nFewer eyes, more stars.', `${t} under streetlights.\nThe roads are empty.`],
+      dark: (t) => ['Dark out.\nFewer eyes, more stars.', `${t} under streetlights.\nWear something bright.`],
       cold: (t) => [`${t}. Cold enough\nto keep the crowds home.`, `${t}. The keen ones\nare still in bed.`],
       hot: (t) => [`${t} already.\nGo early, or go slow.`, `${t}. Shade first,\npace second.`],
       wind: () => ['Windy. Out against it,\nhome with it.', 'Wind’s up. Hard out,\neasy home.'],
@@ -209,6 +209,7 @@ export const en: VoicePack = {
     titles: TITLES,
     afternoon: AFTERNOON_LINES,
     weekend: WEEKEND_LINES,
+    plain: PLAIN,
   },
 
   tips: {

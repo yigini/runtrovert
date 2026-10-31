@@ -137,8 +137,8 @@
     'The pavement has no opinions about your pace.',
     'Out there, nobody needs anything from you.',
     'A run is a meeting with one attendee. Attendance is great.',
-    'The quiet streets are quietest right now. Take the hint.',
-    'The only group run that works: you, and your shadow at a distance.'
+    'Shoes: by the door. Route: where you left it. The rest is up to you.',
+    'A group run of one: you set the pace and the route.'
   ], 3800);
 
   var fewer = document.getElementById('fewer'), said = document.getElementById('fewer-said');

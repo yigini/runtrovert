@@ -51,6 +51,7 @@ import type { Offer } from '../commute';
 import { lastCommuteRoute, loadCommute } from '../commuteStore';
 import { liveFacts, recordRunFacts } from '../you';
 import { ui } from '../i18n/ui';
+import { voice } from '../i18n/voice';
 
 type Phase = 'idle' | 'countdown' | 'active' | 'finish';
 
@@ -408,7 +409,8 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     const startedAt = final?.startedAt ?? Date.now();
     const durationS = final?.durationS ?? 0;
     const id = await stopRun({ moodAfter, quiet, note: note.trim() || null });
-    if (id != null && surprise?.once) {
+    // With Fewer words the line wasn't shown, so a once-only one stays for later.
+    if (id != null && surprise?.once && !settings.fewerWords) {
       const seen = (await loadValue<string[]>(SEEN_KEY).catch(() => null)) ?? [];
       saveValue(SEEN_KEY, [...seen, surprise.id]).catch(() => {});
     }
@@ -512,7 +514,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     const partialKm = final.currentKm.distanceM > 20 ? { index: final.splits.length + 1, ...final.currentKm } : null;
     const mapH = Math.max(Math.round(Dimensions.get('window').height * 0.62), finishPad.top + finishCardH + 160);
     const askFeel = hasPlan && (!!guided || (!!session && sessionOpen && session.kind !== 'rest'));
-    const you = live ? youVsYou(compare({ ...live.run, moodBefore, moodAfter }, live.history), km) : null;
+    const you = live ? youVsYou(compare({ ...live.run, moodBefore, moodAfter }, live.history), km, settings.fewerWords) : null;
     return (
       <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
         {/* The run, framed: your route fills the space between the words and the numbers. */}
@@ -532,7 +534,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
                 <Text style={styles.resumeText}>{ui().run.resumeRun2}</Text>
               </Pressable>
             </View>
-            <Text style={styles.finishTitle} maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>{surprise?.line ?? finishLine()}</Text>
+            <Text style={styles.finishTitle} maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>{settings.fewerWords ? ui().run.plainFinish(voice().distance(final.distanceM, km), voice().minutes(final.durationS)) : surprise?.line ?? finishLine()}</Text>
           </View>
           <View
             style={styles.finishCard}

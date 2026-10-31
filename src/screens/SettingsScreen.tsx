@@ -27,7 +27,7 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onBack, runLive
   const { settings, update } = useSettings();
   const [presets, setPresets] = useState(false);
   const preset = settings.runPreset ? presetInfo(settings.runPreset) : null;
-  const [preview, setPreview] = useState(previewLine());
+  const [preview, setPreview] = useState(previewLine(settings.fewerWords));
 
   const [status, setStatus] = useState<NotifyStatus>('granted');
   // App.tsx re-plans reminders when these settings change. Here we only keep the
@@ -43,7 +43,7 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onBack, runLive
   }, [settings.batteryMode]);
 
   async function onSendNow() {
-    const ok = await sendLineNow();
+    const ok = await sendLineNow(settings.fewerWords);
     setStatus(await notificationStatus());
     if (ok) Alert.alert(ui().settings.onItsWay, ui().settings.lockYourPhoneOneArrives);
     else Alert.alert(ui().settings.notificationsAreOff, ui().settings.turnOnNotificationsForRuntrovert);
@@ -171,7 +171,17 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onBack, runLive
         <Row label={ui().settings.afterARun} hint={ui().settings.oneQuietNoteFifteenMinutes}>
           <Switch value={settings.afterRunNote} onValueChange={(v) => update({ afterRunNote: v })} trackColor={{ true: colors.ink }} />
         </Row>
-        <Pressable onPress={() => setPreview(previewLine())} style={styles.preview} accessibilityRole="button" accessibilityLabel={ui().settings.soundsLikeX(preview)} accessibilityHint={ui().settings.showsAnotherExample}>
+        <Row label={ui().settings.fewerWords} hint={ui().settings.fewerWordsHint}>
+          <Switch
+            value={settings.fewerWords}
+            onValueChange={(v) => {
+              update({ fewerWords: v });
+              setPreview(previewLine(v));
+            }}
+            trackColor={{ true: colors.ink }}
+          />
+        </Row>
+        <Pressable onPress={() => setPreview(previewLine(settings.fewerWords))} style={styles.preview} accessibilityRole="button" accessibilityLabel={ui().settings.soundsLikeX(preview)} accessibilityHint={ui().settings.showsAnotherExample}>
           <Text style={styles.previewLabel}>{ui().settings.soundsLike}</Text>
           <Text style={styles.previewText}>{preview}</Text>
           <Text style={styles.previewHint}>{ui().settings.tapForAnother}</Text>
