@@ -41,7 +41,7 @@ import { dateLocale } from '../i18n/lang';
  * Ten days or more since the last run, it says welcome back instead: no plan
  * day, nothing overdue, one free run, and the plan as a separate choice.
  */
-export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, planToday, planNext, plan, onOpenPlan, onPlanChanged, onBrowseListen, onRunPlace, welcomeBack = true, runPreset, onRunWithoutPlan }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; onCommute?: (o: Offer) => void; onRunFree?: () => void; planToday?: Session | null; planNext?: Session | null; plan?: Plan | null; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; onRunPlace?: (p: Place) => void; welcomeBack?: boolean; runPreset?: RunPreset; onRunWithoutPlan?: () => void }) {
+export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, planToday, planNext, plan, onOpenPlan, onPlanChanged, onBrowseListen, onRunPlace, welcomeBack = true, runPreset, onRunWithoutPlan, route = null, onClearRoute }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; onCommute?: (o: Offer) => void; onRunFree?: () => void; planToday?: Session | null; planNext?: Session | null; plan?: Plan | null; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; onRunPlace?: (p: Place) => void; welcomeBack?: boolean; runPreset?: RunPreset; onRunWithoutPlan?: () => void; route?: { name: string } | null; onClearRoute?: () => void }) {
   const { settings, update } = useSettings();
   const [presetSheet, setPresetSheet] = useState(false);
   const [listen, setListen] = useState(false);
@@ -155,7 +155,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
 
       </ScrollView>
 
-      {back && !others ? (
+      {back && !others && !route ? (
         <View style={styles.dock}>
           <MoodPicker inline title={ui().home.energyRightNow} value={mood} onChange={onMood} />
           <View style={styles.startRow}>
@@ -184,7 +184,21 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
       <View style={styles.dock}>
         {/* One suggestion at a time, the most useful one for now: the plan's session, a run to work or home,
             the place you usually run at this hour, the plan's next day, then what's new or the daily tip. */}
-        {sessionToday && planToday ? (
+        {route ? (
+          // A route picked from Run this again or Run to work: it waits for Start, and can be taken off.
+          <View>
+            <View style={styles.placeCard}>
+              <View style={styles.placeMain}>
+                <Text style={styles.commuteLabel}>{ui().home.yourRoute}</Text>
+                <Text style={[styles.commuteText, { flex: 1 }]} numberOfLines={1}>{route.name}</Text>
+              </View>
+              <Pressable onPress={onClearRoute} accessibilityRole="button" accessibilityLabel={ui().home.removeRoute} hitSlop={8} style={styles.placeHide}>
+                <Text style={styles.routeX}>×</Text>
+              </Pressable>
+            </View>
+            <Text style={styles.routeHint}>{ui().home.routeHint}</Text>
+          </View>
+        ) : sessionToday && planToday ? (
           <PlanCard label={ui().home.todayFromYourPlan} title={planToday.title} hint={planToday.summary} onPress={onOpenPlan} />
         ) : commute && onCommute ? (
           <Pressable
@@ -250,13 +264,13 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
         )}
         <MoodPicker inline title={ui().home.energyRightNow} value={mood} onChange={onMood} />
         <View style={styles.startRow}>
-          <Button title={preset === 'plan' ? ui().home.startTodaySSession : ui().home.start} onPress={onStart} style={{ minHeight: 62, flex: 1 }} />
+          <Button title={preset === 'plan' && !route ? ui().home.startTodaySSession : ui().home.start} onPress={onStart} style={{ minHeight: 62, flex: 1 }} />
           <Pressable onPress={() => setListen(true)} accessibilityRole="button" accessibilityLabel={ui().home.listen} accessibilityHint={ui().home.musicPodcastsOrASilent} style={({ pressed }) => [styles.listen, pressed && { opacity: 0.85 }]}>
             <HeadphonesGlyph />
           </Pressable>
         </View>
         {/* The run's kind lives in the Start button now; this opens the choice. Remembered, so most days nobody taps it. */}
-        {onRunWithoutPlan ? (
+        {route ? null : onRunWithoutPlan ? (
           // Opened from Train: the session is followed, and the way out is a run without it.
           <Pressable onPress={onRunWithoutPlan} accessibilityRole="button" accessibilityHint={ui().home.runWithoutThePlanHint} hitSlop={10} style={{ alignSelf: 'center' }}>
             <Text style={styles.kindLine}>
@@ -432,5 +446,7 @@ const styles = StyleSheet.create({
   placeMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 48 },
   placeNote: { fontFamily: fonts.body, fontSize: 12, color: colors.inkMuted },
   placeHide: { minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 8 },
+  routeX: { fontFamily: fonts.bodySemi, fontSize: 22, lineHeight: 24, color: colors.inkSoft },
+  routeHint: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.inkSoft, marginTop: 6, paddingHorizontal: 4 },
   placeHideText: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.inkMuted, textDecorationLine: 'underline' },
 });

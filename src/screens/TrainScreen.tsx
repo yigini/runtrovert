@@ -304,6 +304,9 @@ function DetailView({ spec, profile, historyN, unitsKm, draft, onDraft, onBack, 
   const [longDay, setLongDay] = useState<number>(draft?.longDay ?? defaultLongDay(DEFAULT_DAYS[firstDays] ?? [2, 4, 6]));
   const [raceDate, setRaceDate] = useState<number>(draft?.raceDate ?? addDays(mondayOf(today), 7 * spec.weeks - 1));
   const [extra, setExtra] = useState(draft?.extra ?? false);
+  // Today or next Monday. Unpicked, it's Monday when at most one run day is left this week,
+  // so a plan started on a Saturday doesn't spend its first week on nothing.
+  const [startPick, setStartPick] = useState<'today' | 'monday' | null>(null);
   const [weekly, setWeekly] = useState(draft?.weekly ?? Math.round(profile.weeklyKm));
   const [longest, setLongest] = useState(draft?.longest ?? Math.round(profile.longestKm30));
   const [raceKm, setRaceKm] = useState<number | null>(draft?.raceKm ?? null);
@@ -342,9 +345,14 @@ function DetailView({ spec, profile, historyN, unitsKm, draft, onDraft, onBack, 
     const easy = paces ? Math.round((paces.easy[0] + paces.easy[1]) / 2) : profile.easyPaceSPerKm;
     return thin ? { weeklyKm: weekly, longestKm30: longest, runsPerWeek: weekly > 0 ? days : 0, easyPaceSPerKm: easy } : { ...profile, easyPaceSPerKm: easy };
   }, [thin, weekly, longest, days, profile, paces]);
+  const monIdx = (d: number) => (d + 6) % 7; // Monday 0 … Sunday 6
+  const isMonday = weekdayOf(today) === 1;
+  const leftThisWeek = runDays.filter((d) => monIdx(d) >= monIdx(weekdayOf(today))).length;
+  const startMonday = !isMonday && (startPick ?? (leftThisWeek <= 1 ? 'monday' : 'today')) === 'monday';
+  const startDate = startMonday ? addDays(mondayOf(today), 7) : today;
   const setup: PlanSetup = useMemo(
-    () => ({ planId: spec.id, startDate: today, raceDate: spec.raceKm != null ? raceDate : null, runDays, longRunDay: longDay, daysPerWeek: runDays.length, extraRecovery: extra, race: paces && raceKm != null ? { distanceKm: raceKm, timeS } : null }),
-    [spec, today, raceDate, runDays, longDay, extra, paces, raceKm, timeS],
+    () => ({ planId: spec.id, startDate, raceDate: spec.raceKm != null ? raceDate : null, runDays, longRunDay: longDay, daysPerWeek: runDays.length, extraRecovery: extra, race: paces && raceKm != null ? { distanceKm: raceKm, timeS } : null }),
+    [spec, startDate, raceDate, runDays, longDay, extra, paces, raceKm, timeS],
   );
   const preview = useMemo(() => generate({ spec, setup, runner, paces }), [spec, setup, runner, paces]);
   const gate = checkGate(spec, runner);
@@ -405,6 +413,16 @@ function DetailView({ spec, profile, historyN, unitsKm, draft, onDraft, onBack, 
             <Chip label={ui().train.day} onPress={() => setRaceDate((d) => addDays(d, -1))} />
             <Chip label={ui().train.day2} onPress={() => setRaceDate((d) => addDays(d, 1))} />
           </View>
+        </Section>
+      )}
+
+      {!isMonday && (
+        <Section title={ui().train.whenToStart}>
+          <View style={styles.chips}>
+            <Chip label={ui().train.startTodayX(leftThisWeek)} on={!startMonday} onPress={() => setStartPick('today')} small />
+            <Chip label={ui().train.startNextMonday} on={startMonday} onPress={() => setStartPick('monday')} small />
+          </View>
+          {!startMonday && leftThisWeek <= 2 ? <Text style={styles.hint}>{ui().train.fullFirstWeek}</Text> : null}
         </Section>
       )}
 

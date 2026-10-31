@@ -188,12 +188,12 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
       alive = false;
     };
   }, [phase, finishPoints]);
-  // "Run this again": straight into the run, the loop drawn under it.
+  // "Run this again": the loop is picked and waits on the home screen; the runner
+  // still sets their energy and presses Start.
   useEffect(() => {
     if (!ghost || phase !== 'idle') return;
     setGhostRun(ghost);
     onGhostTaken?.();
-    void begin('just');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ghost, phase]);
   useEffect(() => {
@@ -242,6 +242,11 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   }, []);
 
   async function onStart() {
+    // A route waits here: the line to follow is only drawn in Just run, so it runs as one.
+    if (ghostRun) {
+      await begin('just', null);
+      return;
+    }
     // A low face before a hard or long day: the plan gives way before the run, not after.
     if (session && sessionOpen && preset === 'plan' && (session.hard || session.kind === 'long') && moodBefore != null && moodBefore <= 2) {
       Alert.alert(ui().run.lowEnergyAndXIs(session.title), ui().run.easyDaysAreAllowedNothing, [
@@ -259,9 +264,8 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     const path = await loadCommute()
       .then((c) => lastCommuteRoute(o.dir, c))
       .catch(() => null);
+    // Picked, not started: Start (below the energy question) begins it.
     setGhostRun({ name: o.dir === 'toWork' ? ui().commute.runToWork : ui().commute.runHome, path: path ?? [], goal: o.goal });
-    // The line to follow is only drawn in Just run, so a route run always opens as one.
-    await begin('just');
   }
 
   // Opened from Train, but not today: the runner's usual kind of run, no session behind it.
@@ -537,12 +541,11 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   /** "Run this again" from the home screen's place: the same as from the place itself. */
   function runPlace(p: Place) {
     setGhostRun({ placeId: p.id, name: p.name, path: p.sig.pts.map(([latitude, longitude]) => ({ latitude, longitude })) });
-    void begin('just');
   }
 
   // ---- Idle ------------------------------------------------------------------
   if (phase === 'idle') {
-    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} onCommute={onCommute} onRunFree={onRunFree} planToday={session} planNext={requested ? null : planNext} plan={requested ? null : planShown} welcomeBack={!requested} onOpenPlan={onOpenPlan} onPlanChanged={onPlanChanged} onBrowseListen={onBrowseListen} onRunPlace={runPlace} runPreset={preset} onRunWithoutPlan={requested && sessionOpen ? onRunWithoutPlan : undefined} />;
+    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} onCommute={onCommute} onRunFree={onRunFree} planToday={session} planNext={requested ? null : planNext} plan={requested ? null : planShown} welcomeBack={!requested} onOpenPlan={onOpenPlan} onPlanChanged={onPlanChanged} onBrowseListen={onBrowseListen} onRunPlace={runPlace} route={ghostRun ? { name: ghostRun.name } : null} onClearRoute={() => setGhostRun(null)} runPreset={preset} onRunWithoutPlan={requested && sessionOpen ? onRunWithoutPlan : undefined} />;
   }
 
   // ---- Countdown -------------------------------------------------------------
@@ -802,6 +805,12 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
             <View style={[styles.dot, { backgroundColor: halted ? colors.butter : colors.mint }]} />
             <Text style={[styles.statusText, { color: halted ? colors.butter : colors.mint }]}>{autoPaused ? ui().run.autoPaused : paused ? ui().run.paused : ui().run.recording}</Text>
           </View>
+          {/* The route being followed, by name (Run this again, Run to work). */}
+          {ghostRun ? (
+            <View style={[styles.statusPill, { flexShrink: 1 }]}>
+              <Text style={[styles.statusText, { color: colors.onInkMuted }]} numberOfLines={1}>{ghostRun.name}</Text>
+            </View>
+          ) : null}
           <View style={styles.statusPill}>
             <Text style={[styles.statusText, { color: colors.onInkMuted }]}>{gpsLabel(track.gps)}</Text>
           </View>
