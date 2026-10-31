@@ -109,9 +109,10 @@ export function leftClock(v: WorkoutView): string {
 }
 
 export function formatMin(sec: number): string {
-  if (sec < 60) return ui().common.sec(Math.round(sec));
+  sec = Math.round(sec); // first, so 4:59.6 reads 5 min, never 4 min 60 s
+  if (sec < 60) return ui().common.sec(sec);
   const m = Math.floor(sec / 60);
-  const s = Math.round(sec % 60);
+  const s = sec % 60;
   return s ? ui().workout.xMinXS(m, s) : ui().common.min(m);
 }
 

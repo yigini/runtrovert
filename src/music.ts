@@ -42,6 +42,8 @@ export interface MusicApp {
   name: string;
   android: string; // package
   ios?: string; // URL scheme, declared in app.json LSApplicationQueriesSchemes
+  /** A podcast app: kept so a strip already pointed at it still works, never offered for music. */
+  podcast?: true;
 }
 
 export const MUSIC_APPS: MusicApp[] = [
@@ -52,8 +54,8 @@ export const MUSIC_APPS: MusicApp[] = [
   { key: 'deezer', name: 'Deezer', android: 'deezer.android.app', ios: 'deezer:' },
   { key: 'tidal', name: 'Tidal', android: 'com.aspiro.tidal', ios: 'tidal:' },
   { key: 'soundcloud', name: 'SoundCloud', android: 'com.soundcloud.android', ios: 'soundcloud:' },
-  { key: 'pocketcasts', name: 'Pocket Casts', android: 'au.com.shiftyjelly.pocketcasts', ios: 'pktc:' },
-  { key: 'podcasts', name: 'Apple Podcasts', android: '', ios: 'podcasts:' },
+  { key: 'pocketcasts', name: 'Pocket Casts', android: 'au.com.shiftyjelly.pocketcasts', ios: 'pktc:', podcast: true },
+  { key: 'podcasts', name: 'Apple Podcasts', android: '', ios: 'podcasts:', podcast: true },
 ];
 
 /** True where the strip can press play/skip itself (Android). */
@@ -63,10 +65,10 @@ export function appByKey(key: string | null): MusicApp | null {
   return MUSIC_APPS.find((a) => a.key === key) ?? null;
 }
 
-/** The music apps on this phone, in our list's order. */
+/** The music apps on this phone, in our list's order. Podcast apps have their own picker. */
 export async function installedApps(): Promise<MusicApp[]> {
   if (Platform.OS === 'android') {
-    const candidates = MUSIC_APPS.filter((a) => a.android);
+    const candidates = MUSIC_APPS.filter((a) => a.android && !a.podcast);
     if (!native?.installed) return [];
     try {
       const found = new Set(native.installed(candidates.map((a) => a.android)));
@@ -77,7 +79,7 @@ export async function installedApps(): Promise<MusicApp[]> {
   }
   const out: MusicApp[] = [];
   for (const a of MUSIC_APPS) {
-    if (!a.ios) continue;
+    if (!a.ios || a.podcast) continue;
     try {
       if (await Linking.canOpenURL(a.ios)) out.push(a);
     } catch {

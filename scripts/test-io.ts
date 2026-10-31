@@ -124,6 +124,14 @@ check(fitCrc(fitHr) === 0, 'FIT with heart rate: CRC');
 check(fitHr.length === fitOut.length + pts.length + 3 + 2 + 6, 'FIT: one byte per record, two on the session, three field definitions');
 const fitHrBack = parseFit(fitHr);
 check(fitHrBack.runs.length === 1 && fitHrBack.runs[0].segments.flat().length === pts.length, 'FIT with heart rate still reads back');
+// ...and comes back in on import (Argon review: it used to be dropped).
+const gpxBeats = parseGpx(gpxHr).runs[0].heart ?? [];
+check(gpxBeats.length === pts.length && gpxBeats.every((h, i) => h.bpm === heart[i].bpm && h.ts === heart[i].ts), 'GPX import keeps heart rate');
+const ns3 = gpxHr.replace(/gpxtpx:/g, 'ns3:');
+check((parseGpx(ns3).runs[0].heart ?? []).length === pts.length, 'GPX import reads Garmin ns3:hr too');
+const fitBeats = fitHrBack.runs[0].heart ?? [];
+check(fitBeats.length === pts.length && fitBeats.every((h, i) => h.bpm === heart[i].bpm && Math.abs(h.ts - heart[i].ts) < 1000), 'FIT import keeps heart rate');
+check((parseFit(fitOut).runs[0].heart ?? []).length === 0, 'FIT without heart rate: none invented');
 
 // A treadmill run: totals, no track. Kept, since it's still a run.
 const treadmill: ImportedRun = { segments: [], startedAt: START, endedAt: START + 1800000, distanceM: 5000, movingS: 1750, elevationGainM: null, sport: 'running', name: null, externalId: null };

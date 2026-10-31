@@ -533,7 +533,10 @@ export function pauseRun(): void {
 }
 
 export function resumeRun(): void {
-  if (state.status !== 'paused') return;
+  if (state.status !== 'paused' && state.status !== 'autopaused') return;
+  // Auto-paused and the runner taps play: they're going now, so auto-pause
+  // starts counting stillness from this moment, not from the crossing.
+  if (state.status === 'autopaused') lastMovementTs = Date.now();
   openSegment();
   state.status = 'running';
   void persist(true);

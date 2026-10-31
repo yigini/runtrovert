@@ -48,9 +48,7 @@ export function formatPace(distanceM: number, durationS: number, km = true): str
   const unit = km ? 1000 : MILE_M;
   const secPerUnit = durationS / (distanceM / unit);
   if (!isFinite(secPerUnit) || secPerUnit > 60 * 60) return '–';
-  const m = Math.floor(secPerUnit / 60);
-  const s = Math.round(secPerUnit % 60);
-  return `${m}:${String(s).padStart(2, '0')}`;
+  return minSec(secPerUnit);
 }
 
 /** Instantaneous pace from a speed in m/s. */
@@ -59,9 +57,7 @@ export function formatSpeedAsPace(mps: number, km = true): string {
   const unit = km ? 1000 : MILE_M;
   const secPerUnit = unit / mps;
   if (secPerUnit > 60 * 60) return '–';
-  const m = Math.floor(secPerUnit / 60);
-  const s = Math.round(secPerUnit % 60);
-  return `${m}:${String(s).padStart(2, '0')}`;
+  return minSec(secPerUnit);
 }
 
 export function formatElevation(m: number, km = true): string {
@@ -71,4 +67,10 @@ export function formatElevation(m: number, km = true): string {
 /** Rough calories for running: ~1 kcal per kg per km, assuming 70 kg until weight is a setting. */
 export function estimateCalories(distanceM: number, weightKg = 70): number {
   return Math.round((distanceM / 1000) * weightKg * 1.0);
+}
+
+/** m:ss, rounded to the whole second first so 5:59.6 reads 6:00, never 5:60. */
+export function minSec(sec: number): string {
+  const t = Math.round(sec);
+  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 }

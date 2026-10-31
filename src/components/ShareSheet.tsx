@@ -38,7 +38,8 @@ const CARD_RATIO = 1350 / 1080;
 
 function roughTime(ms: number): string {
   const h = new Date(ms).getHours();
-  return h < 7 ? ui().shareSheet.earlyMorning : h < 11 ? 'morning' : h < 14 ? 'midday' : h < 17 ? 'afternoon' : h < 21 ? 'evening' : 'night';
+  const t = ui().shareSheet;
+  return h < 7 ? t.earlyMorning : h < 11 ? t.morning : h < 14 ? t.midday : h < 17 ? t.afternoon : h < 21 ? t.evening : t.night;
 }
 
 export function ShareSheet({

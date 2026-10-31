@@ -358,7 +358,8 @@ export function daysFit(spec: PlanSpec, r: RunnerProfile, days: number): boolean
 
 function bridgeFor(spec: PlanSpec): string | null {
   if (spec.tier === 'race') return spec.goal === 'marathon' ? 'marathon-improve' : spec.goal === 'half' ? 'half-improve' : '10k-improve';
-  if (spec.tier === 'improve') return ui().catalogue.xFinish(spec.goal);
+  // A plan id, never translated (the 7 other languages once turned it into words).
+  if (spec.tier === 'improve') return `${spec.goal}-finish`;
   if (spec.goal === 'marathon') return 'half-finish';
   if (spec.goal === 'half') return '10k-finish';
   if (spec.goal === '10k') return '5k-finish';

@@ -2,7 +2,8 @@
 // date, through the nine rules. Also the VDOT table and a printed sample.
 //   npm run test:plans            all plans, summary
 //   npm run test:plans -- half-improve   print one plan week by week
-import { PLANS, checkGate, daysFit, type PlanSpec, type RunnerProfile } from '../src/training/catalogue.ts';
+import { PLANS, checkGate, daysFit, planById, type PlanSpec, type RunnerProfile } from '../src/training/catalogue.ts';
+import { setLang } from '../src/i18n/lang.ts';
 import { addDays, dayStart, WEEKDAY_SHORT } from '../src/training/dates.ts';
 import { generate } from '../src/training/generate.ts';
 import { formatRaceTime, formatSPerKm, pacesFor, vdotFromRace } from '../src/training/paces.ts';
@@ -236,6 +237,25 @@ function doneUntil<P extends { weeks: Week[] }>(plan: P, date: number): P {
     if (events !== runsPlanned) fail(`ics has ${events} events for ${runsPlanned} sessions`);
     if (!ics.startsWith('BEGIN:VCALENDAR') || !ics.trimEnd().endsWith('END:VCALENDAR')) fail('ics is not a calendar');
   }
+}
+
+// The bridge plan named under a failed gate is a real plan, in every language
+// (it was once a translated phrase, so seven languages lost the plan's name).
+{
+  const none: RunnerProfile = { weeklyKm: 0, longestKm30: 0, runsPerWeek: 0, easyPaceSPerKm: 390 };
+  for (const l of ['en', 'de', 'es', 'fr', 'it', 'ja', 'pt', 'tr'] as const) {
+    setLang(l);
+    for (const spec of PLANS) {
+      const g = checkGate(spec, none);
+      if (!g.ok && g.bridge != null && !planById(g.bridge)) fail(`${l}: ${spec.id} points at bridge "${g.bridge}", which is no plan`);
+    }
+  }
+  setLang('en');
+}
+
+// Paces never read "5:60".
+for (const [s, want] of [[359.6, '6:00'], [359.4, '5:59'], [300, '5:00'], [59.7, '1:00']] as const) {
+  if (formatSPerKm(s) !== want) fail(`formatSPerKm(${s}) = ${formatSPerKm(s)}, want ${want}`);
 }
 
 console.log(`\n${generated} plans generated, ${failures} failure(s)`);

@@ -6,7 +6,7 @@ import { lastPlace } from '../place';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing } from '../theme';
 import type { LatLon } from '../types';
-import { MAP_STYLE } from './RouteMap';
+import { askAboutTiles, MAP_STYLE } from './RouteMap';
 import { Button } from './Button';
 import { ui } from '../i18n/ui';
 
@@ -17,7 +17,7 @@ import { ui } from '../i18n/ui';
  * to aim at, so the sheet says so and leans on where you are.
  */
 export function SpotSheet({ open, title, initial, onSave, onClose }: { open: boolean; title: string; initial: LatLon | null; onSave: (p: LatLon) => void; onClose: () => void }) {
-  const { settings } = useSettings();
+  const { settings, update } = useSettings();
   const plain = settings.plainMap || !settings.mapNoticeSeen;
   const [start, setStart] = useState<LatLon | null>(initial);
   const center = useRef<LatLon | null>(initial);
@@ -30,6 +30,8 @@ export function SpotSheet({ open, title, initial, onSave, onClose }: { open: boo
     center.current = initial;
     setStart(initial);
     if (!initial) lastPlace().then((p) => p && setStart((cur) => cur ?? p));
+    // Streets need the one-time map question answered first, as on every other map.
+    if (!settings.plainMap && !settings.mapNoticeSeen) askAboutTiles(update);
   }, [open]);
 
   async function useHere() {
@@ -62,7 +64,7 @@ export function SpotSheet({ open, title, initial, onSave, onClose }: { open: boo
         <View style={styles.sheet}>
           <View style={styles.grabber} />
           <Text style={styles.h2} accessibilityRole="header">{title}</Text>
-          <Text style={styles.small}>{plain ? ui().commute.plainHint : ui().commute.sheetHint}</Text>
+          <Text style={styles.small}>{settings.plainMap ? ui().commute.plainHint : start ? ui().commute.sheetHint : ui().commute.noMapYet}</Text>
           {start && !plain ? (
             <View style={styles.map}>
               <MapLibreMap

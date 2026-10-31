@@ -1,10 +1,11 @@
 import { heartAt, type HeartSample } from '../heart';
-import type { ImportedRun, ParseResult, TrackPoint } from './types';
+import { plausibleBpm, type ImportedRun, type ParseResult, type TrackPoint } from './types';
 
 // GPX in and out, on the phone. No DOM in React Native, so this reads the few
 // tags a run needs with patterns that tolerate namespaces (gpx:trkpt),
 // either attribute order, self-closing points and the extensions Garmin,
-// Strava, Coros, Suunto and Polar add (heart rate and so on, ignored).
+// Strava, Coros, Suunto and Polar add. Heart rate (gpxtpx:hr, ns3:hr) is kept;
+// the rest (cadence, power, temperature) is ignored.
 
 const TAG = (name: string) => new RegExp(`<(?:[\\w-]+:)?${name}\\b([^>]*?)(?:\\/>|>([\\s\\S]*?)<\\/(?:[\\w-]+:)?${name}\\s*>)`, 'g');
 
@@ -34,8 +35,9 @@ function encode(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function points(body: string, tag: 'trkpt' | 'rtept'): { pts: TrackPoint[]; untimed: number } {
+function points(body: string, tag: 'trkpt' | 'rtept'): { pts: TrackPoint[]; untimed: number; heart: HeartSample[] } {
   const pts: TrackPoint[] = [];
+  const heart: HeartSample[] = [];
   let untimed = 0;
   for (const m of body.matchAll(TAG(tag))) {
     const lat = Number(attr(m[1], 'lat'));
@@ -50,8 +52,10 @@ function points(body: string, tag: 'trkpt' | 'rtept'): { pts: TrackPoint[]; unti
     const e = child(m[2], 'ele');
     const alt = e != null && e !== '' && Number.isFinite(Number(e)) ? Number(e) : null;
     pts.push({ ts, lat, lon, alt });
+    const hr = Number(child(m[2], 'hr'));
+    if (plausibleBpm(hr)) heart.push({ ts, bpm: Math.round(hr) });
   }
-  return { pts, untimed };
+  return { pts, untimed, heart };
 }
 
 /** Every track in a GPX file. Each <trk> is one activity; each <trkseg> in it is a piece between pauses. */
@@ -64,11 +68,13 @@ export function parseGpx(text: string): ParseResult {
   for (const trk of text.matchAll(TAG('trk'))) {
     const body = trk[2] ?? '';
     const segments: TrackPoint[][] = [];
+    const heart: HeartSample[] = [];
     let untimed = 0;
     const segs = [...body.matchAll(TAG('trkseg'))];
     for (const s of segs.length ? segs : [[body, '', body] as unknown as RegExpMatchArray]) {
       const r = points(s[2] ?? '', 'trkpt');
       untimed += r.untimed;
+      heart.push(...r.heart);
       const sorted = r.pts.sort((a, b) => a.ts - b.ts);
       if (sorted.length) segments.push(sorted);
     }
@@ -88,6 +94,7 @@ export function parseGpx(text: string): ParseResult {
       sport: child(head, 'type')?.toLowerCase() ?? null,
       name: child(head, 'name'),
       externalId: null,
+      heart: heart.sort((a, b) => a.ts - b.ts),
     });
   }
   // A planned route has no times, so it can't be a run. Say so rather than staying silent.

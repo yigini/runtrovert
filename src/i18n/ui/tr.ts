@@ -265,6 +265,11 @@ export const tr: Strings = {
   },
   shareSheet: {
     earlyMorning: 'sabah erkenden',
+    morning: 'sabah',
+    midday: 'öğlen',
+    afternoon: 'öğleden sonra',
+    evening: 'akşam',
+    night: 'gece',
     best: 'Rekor',
     distance: 'Mesafe',
     time: 'Süre',
@@ -302,7 +307,7 @@ export const tr: Strings = {
     moneyAfter: '. Abonelik yok, veri satışı yok, can sıkıcı ya da rahatsız edici reklam yok. Dinle’deki sponsor rafı işaretlidir ve seni göremez.',
     itSYoursThankYou: 'Artık senin. Teşekkürler.',
     unlockedInThisTestBuild: 'Bu test sürümünde kilidi açık.',
-    plansMonthsOfTrendsBackup: (price) => `Planlar, ayların eğilimleri, yedekleme. ${price}, bir kez.`,
+    plansMonthsOfTrendsBackup: (price) => `Planlar, ayların eğilimleri, tüm koşuları dışa aktarma. ${price}, bir kez.`,
     howThisAppMakesMoney: 'Bu uygulama nasıl para kazanıyor',
   },
   youSection: {
@@ -593,6 +598,7 @@ export const tr: Strings = {
     clearEnergyHint: 'Bu koşunun enerji cevabını kaldırır',
     aNoteIfYouWant: 'İstersen bir not',
     couldntSaveThat: 'Kaydedilemedi',
+    runGone: 'Bu koşu artık burada değil. Silinmiş olabilir.',
   },
   run: {
     listenHint: 'Müzik ya da podcast seç. Koşun kaydedilmeye devam ediyor.',
@@ -681,6 +687,8 @@ export const tr: Strings = {
     numbers: 'Sayılar',
     map: 'Harita',
     lap: 'Tur',
+    lapsDone: (n) => `${n} tur`,
+    followMe: 'Beni takip et',
     stopTheRun: 'Koşu durdurulsun mu?',
     stop: 'Dur',
     holdToStop: 'Durdurmak için basılı tut',
@@ -715,6 +723,7 @@ export const tr: Strings = {
     phoneLanguage: (name) => `Telefonun dili (${name})`,
     languageHint: 'Uygulamadaki her şey, hatırlatmalar dahil. Notların ve başlamış bir plan kendi kelimelerini korur.',
     languageAfterRun: 'Bu koşudan sonra değiştirebilirsin.',
+    unitsAfterRun: 'Birimleri bu koşudan sonra değiştirebilirsin.',
     battery: {
       auto: { label: 'Otomatik', hint: 'Pil %25’e düşene ya da telefon güç tasarrufuna geçene kadar tam GPS, sonra daha hafif.' },
       best: { label: 'En yüksek doğruluk', hint: 'Saniyede bir konum. En hassas ara süreler, en çok pil.' },
@@ -825,6 +834,7 @@ export const tr: Strings = {
     whereHome: 'Ev nerede?',
     whereWork: 'İş nerede?',
     sheetHint: 'İğne yerine oturana kadar haritayı kaydır. Kapının önü olması gerekmez: birkaç yüz metre yakını yeter.',
+    noMapYet: 'Harita son koşunun yakınında açılır. İlk koşundan önce şu an bulunduğun yeri kullan.',
     useHere: 'Şu an bulunduğum yer',
     locating: 'Konumun bulunuyor…',
     noLocation: 'Runtrovert için konum kapalı, bunun yerine haritayı kullan.',
@@ -1354,7 +1364,6 @@ export const tr: Strings = {
     aRecentRunOfX: (km, you) => `yakın zamanda ${km} km’lik bir koşu (sen: ${you})`,
     xRunsAWeekYou: (n, you) => `haftada ${n} koşu (sen: ${you})`,
     thisPlanExpectsX: (short) => `Bu plan şunu bekler: ${short}.`,
-    xFinish: (goal) => `${goal} Bitir`,
   },
   comeback: {
     easeBackIn: 'Yavaşça geri dön',

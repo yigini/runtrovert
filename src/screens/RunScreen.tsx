@@ -82,7 +82,7 @@ export interface RunExtra {
   steps: StepDone[] | null;
 }
 
-export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0, focused = true, onOpenPlan, onPlanChanged, onBrowseListen, onInk, ghost = null, onGhostTaken, onWatchStart }: { onSaved: (runId: number, share?: boolean, extra?: RunExtra) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number; focused?: boolean; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; onInk?: (ink: boolean) => void; ghost?: Ghost | null; onGhostTaken?: () => void; onWatchStart?: () => void }) {
+export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey = 0, focused = true, onOpenPlan, onPlanChanged, onBrowseListen, onInk, ghost = null, onGhostTaken, onWatchStart, onCountdown }: { onSaved: (runId: number, share?: boolean, extra?: RunExtra) => void; requested?: Session | null; onRequestTaken?: () => void; planKey?: number; focused?: boolean; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; onInk?: (ink: boolean) => void; ghost?: Ghost | null; onGhostTaken?: () => void; onWatchStart?: () => void; onCountdown?: (on: boolean) => void }) {
   const { settings } = useSettings();
   const km = settings.unitsKm;
   const [track, setTrack] = useState<TrackingState>(getState());
@@ -102,6 +102,8 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
   const [mapFront, setMapFront] = useState(false);
+  // A finger moved the map: it stays put until "Follow me" or back to the numbers.
+  const [mapHeld, setMapHeld] = useState(false);
   const [countFootage, setCountFootage] = useState<Footage>('trail-bridge');
   // The finish line for this run, when it has earned one; otherwise finishLine().
   const [surprise, setSurprise] = useState<Surprise | null>(null);
@@ -148,6 +150,13 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     };
   }, [keepAwake]);
   useEffect(() => subscribe(setTrack), []);
+  // The tab bar goes the moment the countdown starts, so the run can't begin behind another tab.
+  useEffect(() => onCountdown?.(phase === 'countdown'), [phase]);
+  // A run picked back up after the phone closed the app arrives after this
+  // screen is drawn: show it, rather than a Start button over a live run.
+  useEffect(() => {
+    if (phase === 'idle' && track.status !== 'idle') setPhase('active');
+  }, [phase, track.status]);
   useEffect(() => {
     if (phase === 'idle') listRuns().then(setRuns);
   }, [phase]);
@@ -381,12 +390,14 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     Haptics.selectionAsync();
     const next = !mapFront;
     setMapFront(next);
+    setMapHeld(false);
     Animated.timing(veil, { toValue: next ? 0 : 1, duration: reduceMotion ? 0 : 260, useNativeDriver: true }).start();
   }
 
   function onPauseResume() {
     Haptics.selectionAsync();
-    if (track.status === 'paused') resumeRun();
+    // Auto-paused counts as paused here: play resumes it, it never turns into a manual pause.
+    if (track.status === 'paused' || track.status === 'autopaused') resumeRun();
     else pauseRun();
   }
 
@@ -663,8 +674,8 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   const statusLine = `${autoPaused ? ui().run.autoPaused : paused ? ui().run.paused : ui().run.recording}${track.gps === 'lost' ? ui().run.gpsLost : ''}`;
   const lightControls = (
     <View style={styles.controls}>
-      <Pressable onPress={onPauseResume} accessibilityRole="button" accessibilityLabel={paused ? ui().run.resume : ui().run.pause} style={({ pressed }) => [styles.roundBtn, styles.roundLight, pressed && { opacity: 0.85 }]}>
-        <Text style={[styles.roundGlyph, { color: colors.ink }]}>{paused ? '▶' : '❚❚'}</Text>
+      <Pressable onPress={onPauseResume} accessibilityRole="button" accessibilityLabel={halted ? ui().run.resume : ui().run.pause} style={({ pressed }) => [styles.roundBtn, styles.roundLight, pressed && { opacity: 0.85 }]}>
+        <Text style={[styles.roundGlyph, { color: colors.ink }]}>{halted ? '▶' : '❚❚'}</Text>
       </Pressable>
       <StopButton wide onStop={() => void onStop()} />
     </View>
@@ -787,6 +798,8 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         path={track.path}
         here={track.here}
         follow
+        hold={mapFront && mapHeld}
+        onUserMove={mapFront ? () => setMapHeld(true) : undefined}
         fill
         ghost={ghostRun?.path}
         goal={ghostRun?.goal}
@@ -822,6 +835,11 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         {settings.musicStrip && <MusicStrip appKey={settings.musicApp} />}
 
         <View style={styles.toggleRow}>
+          {mapFront && mapHeld ? (
+            <Pressable onPress={() => setMapHeld(false)} accessibilityRole="button" style={({ pressed }) => [styles.mapToggle, pressed && { opacity: 0.85 }]}>
+              <Text style={styles.mapToggleText}>{ui().run.followMe}</Text>
+            </Pressable>
+          ) : null}
           {onBrowseListen ? (
             <Pressable onPress={onBrowseListen} accessibilityRole="button" accessibilityLabel={ui().listen.listen} accessibilityHint={ui().run.listenHint} style={({ pressed }) => [styles.mapToggle, styles.listenPill, pressed && { opacity: 0.85 }]}>
               <NoteGlyph color={colors.ink} />
@@ -834,11 +852,22 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         </View>
 
         <View style={styles.controls}>
-          <Pressable onPress={onPauseResume} accessibilityRole="button" accessibilityLabel={paused ? ui().run.resume : ui().run.pause} style={styles.roundBtn}>
-            <Text style={styles.roundGlyph}>{paused ? '▶' : '❚❚'}</Text>
+          <Pressable onPress={onPauseResume} accessibilityRole="button" accessibilityLabel={halted ? ui().run.resume : ui().run.pause} style={styles.roundBtn}>
+            <Text style={styles.roundGlyph}>{halted ? '▶' : '❚❚'}</Text>
           </Pressable>
-          <Pressable onPress={() => lap()} disabled={paused} accessibilityRole="button" style={({ pressed }) => [styles.lapBtn, pressed && { opacity: 0.85 }, paused && { opacity: 0.4 }]}>
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+              void lap();
+            }}
+            disabled={halted}
+            accessibilityRole="button"
+            accessibilityLabel={track.laps.length ? `${ui().run.lap}, ${ui().run.lapsDone(track.laps.length)}` : ui().run.lap}
+            style={({ pressed }) => [styles.lapBtn, pressed && { opacity: 0.85 }, halted && { opacity: 0.4 }]}
+          >
             <Text style={styles.lapText}>{ui().run.lap}</Text>
+            {/* The count is the confirmation: it ticks up the moment a lap is marked. */}
+            {track.laps.length > 0 && <Text style={styles.lapCount}>{ui().run.lapsDone(track.laps.length)}</Text>}
           </Pressable>
           <StopButton onStop={() => void onStop()} />
         </View>
@@ -1157,11 +1186,12 @@ const styles = StyleSheet.create({
   roundGlyph: { color: colors.cream, fontSize: 18, fontFamily: fonts.bodyBold },
   lapBtn: { flex: 1, height: 64, borderRadius: radius.pill, backgroundColor: 'rgba(232,226,245,0.94)', alignItems: 'center', justifyContent: 'center' },
   lapText: { fontFamily: fonts.bodySemi, fontSize: 17, color: colors.lilacDeep },
+  lapCount: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.lilacDeep },
   stopSquare: { width: 20, height: 20, borderRadius: 5, backgroundColor: colors.ink },
   stopFill: { position: 'absolute', width: 64, height: 64, borderRadius: 32, backgroundColor: colors.peachDeep, opacity: 0.45 },
   holdHint: { position: 'absolute', bottom: 74, right: -6, backgroundColor: 'rgba(246,241,234,0.94)', borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 6, minWidth: 110, alignItems: 'center' },
   holdHintText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.ink },
-  stopCaption: { marginTop: 4, fontFamily: fonts.bodySemi, fontSize: 12, color: colors.inkMuted },
+  stopCaption: { marginTop: 4, fontFamily: fonts.bodySemi, fontSize: 12, color: colors.onInkMuted },
   calm: { flex: 1, backgroundColor: colors.cream, padding: spacing.md + 4, paddingTop: spacing.lg },
   calmTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   calmStatus: { flexDirection: 'row', alignItems: 'center', gap: 6 },
