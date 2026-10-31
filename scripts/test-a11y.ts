@@ -1,6 +1,6 @@
 // npm run test:a11y — what screen readers say for distances, times and paces.
 import assert from 'node:assert/strict';
-import { spokenDistance, spokenDuration, spokenPace, spokenRun } from '../src/a11y.ts';
+import { spokenBpm, spokenDistance, spokenDuration, spokenPace, spokenPaceSec, spokenRun } from '../src/a11y.ts';
 
 assert.equal(spokenDistance(4210), '4.21 kilometres');
 assert.equal(spokenDistance(1609.344, false), '1.00 miles');
@@ -18,5 +18,11 @@ assert.equal(spokenPace(20, 100), 'no pace yet');
 assert.equal(spokenPace(1000, 5), 'no pace yet');
 
 assert.equal(spokenRun({ distanceM: 5000, durationS: 1500 }), '5.00 kilometres, 25 minutes, average 5 minutes per kilometre');
+
+assert.equal(spokenPaceSec(332), '5 minutes 32 seconds per kilometre');
+assert.equal(spokenPaceSec(300, false), '8 minutes 3 seconds per mile');
+assert.equal(spokenPaceSec(0), 'no pace yet');
+assert.equal(spokenPaceSec(Infinity), 'no pace yet');
+assert.equal(spokenBpm(151.6), '152 beats per minute');
 
 console.log('a11y: ok');

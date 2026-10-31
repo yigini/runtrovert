@@ -34,6 +34,18 @@ export function spokenPace(distanceM: number, durationS: number, km = true): str
   return ui().a11y.perUnit(spokenDuration(Math.round(secPerUnit)), km);
 }
 
+/** A pace already worked out in seconds per kilometre: "5 minutes 32 seconds per kilometre". */
+export function spokenPaceSec(secPerKm: number, km = true): string {
+  const s = km ? secPerKm : (secPerKm * MILE_M) / 1000;
+  if (!isFinite(s) || s <= 0 || s > 60 * 60) return ui().a11y.noPaceYet;
+  return ui().a11y.perUnit(spokenDuration(Math.round(s)), km);
+}
+
+/** "152 beats per minute". */
+export function spokenBpm(bpm: number): string {
+  return ui().a11y.bpm(Math.round(bpm));
+}
+
 /** The live run in one sentence, for the numbers block on the run screen. */
 export function spokenRun(t: { distanceM: number; durationS: number }, km = true): string {
   return ui().a11y.xXAverageX(spokenDistance(t.distanceM, km), spokenDuration(t.durationS), spokenPace(t.distanceM, t.durationS, km));

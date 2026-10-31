@@ -138,6 +138,6 @@ const styles = StyleSheet.create({
   app: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.pill, backgroundColor: 'rgba(246,241,234,0.08)' },
   appText: { flexShrink: 1, fontFamily: fonts.bodySemi, fontSize: 14, color: colors.cream },
   buttons: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  btn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  btn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   btnMain: { backgroundColor: 'rgba(217,208,240,0.22)' },
 });

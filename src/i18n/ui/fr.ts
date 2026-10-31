@@ -177,6 +177,11 @@ export const fr: Strings = {
     xOfDaylightLeftWhen: (m) => `Il restait ${m} de jour à l’arrivée.`,
   },
   deepStats: {
+    steadySpoken: (pace, from) => `À ${pace}, à partir de ${from}, à 3 pour cent près tout du long.`,
+    driftSpoken: (first, second) => `Allure par battement, première moitié contre seconde : ${first}, puis ${second}. Sous 5 pour cent, c’est stable.`,
+    zonesSpoken: (max) => `Parts de la fréquence cardiaque la plus haute que ta montre a donnée à ce téléphone, ${max}. Un repère, pas une valeur médicale.`,
+    less: 'Moins',
+    more: 'Plus',
     showMeEverything: 'Tout me montrer',
     showLess: 'Montrer moins',
     showMeEverythingHint: 'Ouvre les stats détaillées. Elles restent ouvertes jusqu’à ce que tu les fermes.',
@@ -440,6 +445,7 @@ export const fr: Strings = {
     hidesTheSkyDetails: 'Masque les détails du ciel',
   },
   listen: {
+    opensTheShow: 'Ouvre l’émission et ses derniers épisodes',
     backToYourRun: 'Retour à ta course',
     stillRecording: 'Ta course est toujours enregistrée',
     adverts: 'Ces émissions ont leurs propres pubs. Runtrovert n’a pas de pubs agaçantes ou intrusives et ne voit jamais ce que tu écoutes. Quand une émission s’ouvre, ton appli de podcasts et l’hébergeur de l’émission voient une connexion normale, adresse IP comprise, comme pour n’importe quel téléchargement.',
@@ -1146,6 +1152,7 @@ export const fr: Strings = {
     ifOneEverAnnoysYou: 'Si l’un d’eux t’agace un jour, c’est un bug. Les Réglages ont l’interrupteur.',
   },
   a11y: {
+    bpm: (n) => `${n} battements par minute`,
     distance: (n, km) => `${n} ${km ? 'kilomètres' : 'miles'}`,
     hours: (n) => `${n} ${n <= 1 ? 'heure' : 'heures'}`,
     minutes: (n) => `${n} ${n <= 1 ? 'minute' : 'minutes'}`,

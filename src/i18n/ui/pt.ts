@@ -176,6 +176,11 @@ export const pt: Strings = {
     xOfDaylightLeftWhen: (m) => `Ainda havia ${m} de luz quando você terminou.`,
   },
   deepStats: {
+    steadySpoken: (pace, from) => `A ${pace}, a partir de ${from}, dentro de 3 por cento o caminho todo.`,
+    driftSpoken: (first, second) => `Ritmo por batimento, primeira metade contra a segunda: ${first}, depois ${second}. Abaixo de 5 por cento é estável.`,
+    zonesSpoken: (max) => `Partes da frequência cardíaca mais alta que o relógio deu a este telemóvel, ${max}. Um guia, não um valor médico.`,
+    less: 'Menos',
+    more: 'Mais',
     showMeEverything: 'Mostra-me tudo',
     showLess: 'Mostrar menos',
     showMeEverythingHint: 'Abre as estatísticas a fundo. Ficam abertas até as fechares.',
@@ -439,6 +444,7 @@ export const pt: Strings = {
     hidesTheSkyDetails: 'Oculta os detalhes do céu',
   },
   listen: {
+    opensTheShow: 'Abre o programa e os episódios mais recentes',
     backToYourRun: 'Voltar à tua corrida',
     stillRecording: 'A tua corrida continua a ser gravada',
     adverts: 'Esses programas têm os próprios anúncios. O Runtrovert não tem anúncios chatos ou invasivos e nunca vê o que você ouve. Quando um programa abre, seu app de podcasts e quem hospeda o programa veem uma conexão normal, endereço IP incluído, como em qualquer download.',
@@ -1145,6 +1151,7 @@ export const pt: Strings = {
     ifOneEverAnnoysYou: 'Se algum dia um deles te incomodar, é um bug. Em Ajustes tem o botão.',
   },
   a11y: {
+    bpm: (n) => `${n} batimentos por minuto`,
     distance: (n, km) => `${n} ${km ? 'quilômetros' : 'milhas'}`,
     hours: (n) => `${n} ${n <= 1 ? 'hora' : 'horas'}`,
     minutes: (n) => `${n} ${n <= 1 ? 'minuto' : 'minutos'}`,

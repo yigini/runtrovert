@@ -174,6 +174,11 @@ export const en = {
     xOfDaylightLeftWhen: (mins: string | number) => `${mins} of daylight left when you finished.`,
   },
   deepStats: {
+    steadySpoken: (pace: string, from: string) => `At ${pace}, from ${from} in, within 3 percent the whole way.`,
+    driftSpoken: (first: string, second: string) => `Pace per heartbeat, first half against second: ${first}, then ${second}. Under 5 percent is steady.`,
+    zonesSpoken: (max: string) => `Shares of the highest heart rate your watch has given this phone, ${max}. A guide, not a medical number.`,
+    less: 'Less',
+    more: 'More',
     showMeEverything: 'Show me everything',
     showLess: 'Show less',
     showMeEverythingHint: 'Opens the deep stats. They stay open until you close them.',
@@ -439,6 +444,7 @@ export const en = {
     hidesTheSkyDetails: 'Hides the sky details',
   },
   listen: {
+    opensTheShow: 'Opens the show and its latest episodes',
     backToYourRun: 'Back to your run',
     stillRecording: 'Your run is still recording',
     adverts: 'These shows carry their own adverts. Runtrovert has no annoying, intrusive ads and never sees what you play. When a show opens, your podcast app and the show\'s host see a normal connection, IP address included, like any download.',
@@ -1148,6 +1154,7 @@ export const en = {
     ifOneEverAnnoysYou: 'If one ever annoys you, that’s a bug. Settings has the switch.',
   },
   a11y: {
+    bpm: (n: number) => `${n} beats per minute`,
     distance: (n: string, km: boolean) => `${n} ${km ? 'kilometres' : 'miles'}`,
     hours: (n: number) => `${n} ${n === 1 ? 'hour' : 'hours'}`,
     minutes: (n: number) => `${n} ${n === 1 ? 'minute' : 'minutes'}`,
