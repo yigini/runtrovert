@@ -176,6 +176,11 @@ export const tr: Strings = {
     xOfDaylightLeftWhen: (m) => `Bitirdiğinde ${m} gün ışığı kalmıştı.`,
   },
   deepStats: {
+    steadySpoken: (pace, from) => `${pace} temposunda, ${from} noktasından itibaren, yol boyunca yüzde 3 içinde.`,
+    driftSpoken: (first, second) => `Kalp atışı başına tempo, ilk yarı ve ikinci yarı: ${first}, sonra ${second}. Yüzde 5'in altı istikrarlı demek.`,
+    zonesSpoken: (max) => `Saatinin bu telefona verdiği en yüksek nabzın payları: ${max}. Bir yol gösterici, tıbbi bir değer değil.`,
+    less: 'Az',
+    more: 'Çok',
     showMeEverything: 'Hepsini göster',
     showLess: 'Daha az göster',
     showMeEverythingHint: 'Derin istatistikleri açar. Sen kapatana kadar açık kalır.',
@@ -439,6 +444,7 @@ export const tr: Strings = {
     hidesTheSkyDetails: 'Hava ayrıntılarını gizler',
   },
   listen: {
+    opensTheShow: 'Programı ve son bölümlerini açar',
     backToYourRun: 'Koşuna dön',
     stillRecording: 'Koşun hâlâ kaydediliyor',
     adverts: 'Bu programların kendi reklamları var. Runtrovert’ta can sıkıcı, rahatsız edici reklam yok ve ne dinlediğini asla görmez. Bir program açıldığında podcast uygulaman ve programın sunucusu normal bir bağlantı görür, IP adresi dahil, her indirmede olduğu gibi.',
@@ -1144,6 +1150,7 @@ export const tr: Strings = {
     ifOneEverAnnoysYou: 'Biri seni rahatsız ederse bu bir hatadır. Düğmesi Ayarlar’da.',
   },
   a11y: {
+    bpm: (n) => `dakikada ${n} atım`,
     distance: (n, km) => `${n} ${km ? 'kilometre' : 'mil'}`,
     hours: (n) => `${n} saat`,
     minutes: (n) => `${n} dakika`,

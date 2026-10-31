@@ -173,6 +173,11 @@ export const ja: Strings = {
     xOfDaylightLeftWhen: (m) => `ゴールしたとき、日没まで${m}残っていました。`,
   },
   deepStats: {
+    steadySpoken: (pace, from) => `${pace}で、${from}地点から、ずっと3パーセント以内。`,
+    driftSpoken: (first, second) => `心拍あたりのペース、前半と後半の比較：${first}、その後${second}。5パーセント未満なら安定です。`,
+    zonesSpoken: (max) => `ウォッチがこのスマホに送った最高心拍、${max}に対する割合です。目安であり、医学的な数値ではありません。`,
+    less: '少ない',
+    more: '多い',
     showMeEverything: 'すべて見る',
     showLess: '閉じる',
     showMeEverythingHint: '詳しい数字を開きます。閉じるまで開いたままです。',
@@ -436,6 +441,7 @@ export const ja: Strings = {
     hidesTheSkyDetails: '空の詳細を閉じます',
   },
   listen: {
+    opensTheShow: '番組と最新エピソードを開きます',
     backToYourRun: 'ランに戻る',
     stillRecording: 'ランはまだ記録中です',
     adverts: 'これらの番組には番組自身の広告が入ります。Runtrovertにはうっとうしい広告も邪魔な広告もなく、あなたが何を聴いているかも見ません。番組を開くと、ポッドキャストアプリと番組の配信元には、ふつうのダウンロードと同じく、IPアドレスを含む通常の接続が見えます。',
@@ -1141,6 +1147,7 @@ export const ja: Strings = {
     ifOneEverAnnoysYou: 'うっとうしいと感じたら、それはバグです。スイッチは設定にあります。',
   },
   a11y: {
+    bpm: (n) => `毎分${n}拍`,
     distance: (n, km) => `${n}${km ? 'キロメートル' : 'マイル'}`,
     hours: (n) => `${n}時間`,
     minutes: (n) => `${n}分`,

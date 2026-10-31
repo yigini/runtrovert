@@ -11,11 +11,14 @@ import { colors, fonts, radius, spacing, type } from '../theme';
 import { useUnlocked } from '../unlockState';
 import { LockGlyph, LockRow } from './LockRow';
 import { ui } from '../i18n/ui';
+import { DISPLAY_MAX_SCALE, spokenBpm, spokenDistance, spokenPaceSec } from '../a11y';
 import { dateLocale, decimal } from '../i18n/lang';
 
 // "Show me everything": the deep stats, closed by default so the run page and
 // Patterns stay calm. Once opened they stay open (settings.deepStats) until the
 // runner closes them. One run is free; months of runs come with Everything, once.
+// Screen readers hear every number as words ("5 minutes 32 seconds per
+// kilometre", not "5:32 /km"), and every chart has the same facts in text.
 
 function paceText(sPerKm: number, km: boolean): string {
   const s = km ? sPerKm : (sPerKm * MILE_M) / 1000;
@@ -72,7 +75,12 @@ function RunCards({ deep, km, hasHeart }: { deep: DeepRun; km: boolean; hasHeart
         <Card title={s.wobble} value={s.wobbleValue(pct(deep.wobble.pct))} line={s.wobbleDetail(deep.wobble.quickest, deep.wobble.slowest, unit)} />
       ) : null}
       {deep.steady ? (
-        <Card title={s.steady} value={formatDistance(deep.steady.m, km)} line={s.steadyDetail(paceText(deep.steady.pace, km), unit, formatDistance(deep.steady.fromM, km))} />
+        <Card
+          title={s.steady}
+          value={formatDistance(deep.steady.m, km)}
+          line={s.steadyDetail(paceText(deep.steady.pace, km), unit, formatDistance(deep.steady.fromM, km))}
+          spoken={[s.steady, spokenDistance(deep.steady.m, km), s.steadySpoken(spokenPaceSec(deep.steady.pace, km), spokenDistance(deep.steady.fromM, km))].join('. ')}
+        />
       ) : null}
       {deep.grade ? (
         <Card title={s.grade} detail={s.gradeDetail}>
@@ -82,7 +90,9 @@ function RunCards({ deep, km, hasHeart }: { deep: DeepRun; km: boolean; hasHeart
         </Card>
       ) : null}
       {deep.drift ? (
-        <Card title={s.drift} value={`${deep.drift.pct < 0 ? '−' : ''}${pct(deep.drift.pct)}%`} tone={colors.lilacSoft} line={`${s.driftWord(deep.drift.pct)}. ${s.driftDetail(deep.drift.firstBpm, deep.drift.secondBpm)}`} />
+        <Card title={s.drift} value={`${deep.drift.pct < 0 ? '−' : ''}${pct(deep.drift.pct)}%`} tone={colors.lilacSoft} line={`${s.driftWord(deep.drift.pct)}. ${s.driftDetail(deep.drift.firstBpm, deep.drift.secondBpm)}`}
+          spoken={[s.drift, `${deep.drift.pct < 0 ? '−' : ''}${pct(deep.drift.pct)}%`, s.driftWord(deep.drift.pct), s.driftSpoken(spokenBpm(deep.drift.firstBpm), spokenBpm(deep.drift.secondBpm))].join('. ')}
+        />
       ) : null}
       {deep.zones ? <Zones zones={deep.zones} /> : null}
       {any && !hasHeart ? <Text style={type.small}>{s.needsAWatch}</Text> : null}
@@ -92,12 +102,12 @@ function RunCards({ deep, km, hasHeart }: { deep: DeepRun; km: boolean; hasHeart
 }
 
 /** A card with a title, maybe a big value and a line, then any rows. With no rows it reads as one. */
-function Card({ title, value, line, detail, tone = colors.white, children }: { title: string; value?: string; line?: string; detail?: string; tone?: string; children?: React.ReactNode }) {
+function Card({ title, value, line, detail, spoken, tone = colors.white, children }: { title: string; value?: string; line?: string; detail?: string; spoken?: string; tone?: string; children?: React.ReactNode }) {
   const rows = React.Children.count(children) > 0;
   return (
-    <View style={[styles.card, { backgroundColor: tone }]} accessible={!rows} accessibilityLabel={rows ? undefined : [title, value, line, detail].filter(Boolean).join('. ')}>
+    <View style={[styles.card, { backgroundColor: tone }]} accessible={!rows} accessibilityLabel={rows ? undefined : spoken ?? [title, value, line, detail].filter(Boolean).join('. ')}>
       <Text style={styles.cardTitle} accessibilityRole={rows ? 'header' : undefined}>{title}</Text>
-      {value ? <Text style={styles.value}>{value}</Text> : null}
+      {value ? <Text style={styles.value} maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>{value}</Text> : null}
       {line ? <Text style={type.small}>{line}</Text> : null}
       {children}
       {detail ? <Text style={type.small}>{detail}</Text> : null}
@@ -109,7 +119,7 @@ function GradeRow({ label, b, km }: { label: string; b: Bucket | null; km: boole
   if (!b) return null;
   const value = `${paceText(b.pace, km)} /${distanceUnit(km)} · ${formatDistance(b.m, km)}`;
   return (
-    <View style={styles.row} accessible accessibilityLabel={`${label}: ${value}`}>
+    <View style={styles.row} accessible accessibilityLabel={`${label}: ${spokenPaceSec(b.pace, km)}, ${spokenDistance(b.m, km)}`}>
       <Text style={styles.rowLabel}>{label}</Text>
       <Text style={styles.rowValue}>{value}</Text>
     </View>
@@ -123,7 +133,7 @@ function Zones({ zones }: { zones: NonNullable<DeepRun['zones']> }) {
   const total = zones.seconds.reduce((a, b) => a + b, 0) || 1;
   return (
     <View style={[styles.card, { backgroundColor: colors.lilacSoft }]}>
-      <Text style={styles.cardTitle}>{s.zones}</Text>
+      <Text style={styles.cardTitle} accessibilityRole="header">{s.zones}</Text>
       {zones.seconds.map((sec, i) => {
         const min = Math.round(sec / 60);
         return (
@@ -132,13 +142,13 @@ function Zones({ zones }: { zones: NonNullable<DeepRun['zones']> }) {
               <Text style={styles.rowLabel}>{s.zoneNames[i]}</Text>
               <Text style={styles.rowValue}>{ui().common.min(min)}</Text>
             </View>
-            <View style={styles.track}>
+            <View style={styles.track} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
               <View style={[styles.fill, { width: `${(sec / total) * 100}%`, backgroundColor: ZONE_TONES[i] }]} />
             </View>
           </View>
         );
       })}
-      <Text style={type.small}>{s.zonesDetail(zones.maxHr)}</Text>
+      <Text style={type.small} accessibilityLabel={s.zonesSpoken(spokenBpm(zones.maxHr))}>{s.zonesDetail(zones.maxHr)}</Text>
     </View>
   );
 }
@@ -278,8 +288,9 @@ function MonthCards({ deep, km }: { deep: DeepMonths; km: boolean }) {
 function GroupRow({ label, g, km, extra = [] }: { label: string; g: Group; km: boolean; extra?: Array<string | null> }) {
   const value = [g.pace != null ? `${paceText(g.pace, km)} /${distanceUnit(km)}` : null, ...extra].filter(Boolean).join(' · ');
   const runs = ui().deepStats.runsN(g.n);
+  const said = [g.pace != null ? spokenPaceSec(g.pace, km) : null, ...extra].filter(Boolean).join(', ');
   return (
-    <View style={{ gap: 2 }} accessible accessibilityLabel={`${label}, ${runs}: ${value}`}>
+    <View style={{ gap: 2 }} accessible accessibilityLabel={`${label}, ${runs}: ${said}`}>
       <View style={styles.row}>
         <Text style={styles.rowLabel}>{label}</Text>
         <Text style={styles.rowValue}>{value}</Text>
@@ -297,7 +308,7 @@ function Year({ year }: { year: DeepMonths['year'] }) {
   const hours = decimal((year.minutes / 60).toFixed(year.minutes >= 600 ? 0 : 1));
   const cols = year.weeks.length;
   const cell = w > 0 ? (w - CELL_GAP * (cols - 1)) / cols : 0;
-  const tone = (m: number) => (m <= 0 ? colors.cream : m < 25 ? colors.mintSoft : m < 50 ? colors.mint : colors.mintDeep);
+  const tone = yearTone;
   return (
     <View style={styles.card} accessible accessibilityLabel={s.yearSpoken(year.days, hours)}>
       <Text style={styles.cardTitle}>{s.year}</Text>
@@ -310,9 +321,23 @@ function Year({ year }: { year: DeepMonths['year'] }) {
           </Svg>
         ) : null}
       </View>
+      <View style={styles.legend} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+        <Text style={styles.count}>{s.less}</Text>
+        {[0, 10, 30, 60].map((m) => (
+          <View key={m} style={[styles.swatch, { backgroundColor: tone(m) }]} />
+        ))}
+        <Text style={styles.count}>{s.more}</Text>
+      </View>
       <Text style={type.small}>{s.yearDetail(year.days, hours)}</Text>
     </View>
   );
+}
+
+// Four steps a phone in sunlight can still tell apart: no run, a short one, a
+// middling one, a long one. The same facts are in the line under the grid.
+const YEAR_MID = '#6fa58a';
+function yearTone(m: number): string {
+  return m <= 0 ? colors.cream : m < 25 ? colors.mint : m < 50 ? YEAR_MID : colors.mintDeep;
 }
 
 const styles = StyleSheet.create({
@@ -322,12 +347,14 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.white, borderRadius: radius.lg, padding: spacing.md, gap: 8 },
   cardTitle: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.4, textTransform: 'uppercase', color: colors.inkMuted },
   value: { fontFamily: fonts.display, fontSize: 26, lineHeight: 30, letterSpacing: -0.5, color: colors.text, fontVariant: ['tabular-nums'] },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: spacing.sm },
+  row: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: spacing.sm },
   rowLabel: { fontFamily: fonts.body, fontSize: 14, color: colors.text, flexShrink: 1 },
   rowValue: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text, fontVariant: ['tabular-nums'], textAlign: 'right' },
   count: { fontFamily: fonts.body, fontSize: 12, color: colors.muted },
   track: { height: 8, borderRadius: 4, backgroundColor: colors.white, overflow: 'hidden' },
   fill: { height: 8, borderRadius: 4 },
+  legend: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-end' },
+  swatch: { width: 12, height: 12, borderRadius: 2 },
   locked: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 36 },
   lockedText: { fontFamily: fonts.body, fontSize: 15, color: colors.inkSoft },
 });

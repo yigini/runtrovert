@@ -14,6 +14,8 @@ import {
   View,
   useWindowDimensions,
   type ImageSourcePropType,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { BackButton } from '../components/BackButton';
@@ -50,6 +52,9 @@ import {
 import { colors, fonts, radius, spacing } from '../theme';
 import type { PodcastApp } from '../types';
 import { ui } from '../i18n/ui';
+import { DISPLAY_MAX_SCALE } from '../a11y';
+import { dateLocale } from '../i18n/lang';
+import { useReduceMotion } from '../motion';
 
 /**
  * Everything you hear on a run, in one place: which app plays your music, which
@@ -57,6 +62,10 @@ import { ui } from '../i18n/ui';
  * taking along. Runtrovert never plays audio itself: a show opens in the runner's
  * own podcast app, so the podcast hosts never meet a Runtrovert user.
  * Kit & offers lives at the very bottom, only when a sponsor exists.
+ *
+ * With TalkBack or VoiceOver: section names are headings, app and country
+ * pickers are radio groups, each episode card is two stops (the card, then its
+ * Open button), and every sheet keeps the reader inside it until it closes.
  */
 
 type Tint = { bg: string; fg: string };
@@ -169,12 +178,12 @@ export function ListenScreen({ onBack, runLive = false }: { onBack?: () => void;
         </View>
       ) : null}
       <View style={{ gap: spacing.sm }}>
-        <Text style={styles.h1} accessibilityRole="header">{ui().listen.listen}</Text>
+        <Text style={styles.h1} accessibilityRole="header" maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>{ui().listen.listen}</Text>
         <Text style={styles.lede}>{ui().listen.voicesToTakeWithYou}</Text>
       </View>
 
       <View style={styles.sound}>
-        <Text style={styles.soundEyebrow}>{ui().listen.yourSound}</Text>
+        <Text style={styles.soundEyebrow} accessibilityRole="header">{ui().listen.yourSound}</Text>
         <View style={styles.rowGap}>
           <AppTile
             kind="music"
@@ -207,7 +216,7 @@ export function ListenScreen({ onBack, runLive = false }: { onBack?: () => void;
 
       {settings.listenDownload === 'ask' ? (
         <View style={[styles.card, { backgroundColor: colors.butter }]}>
-          <Text style={styles.cardTitle}>{ui().listen.getTodaySEpisodesAnd}</Text>
+          <Text style={styles.cardTitle} accessibilityRole="header">{ui().listen.getTodaySEpisodesAnd}</Text>
           <Text style={styles.cardText}>{ui().listen.oneSmallDownloadFromRuntrovert}</Text>
           <View style={styles.rowGap}>
             <Pill label={ui().listen.yesKeepItFresh} dark onPress={() => update({ listenDownload: 'on' })} />
@@ -269,7 +278,7 @@ export function ListenScreen({ onBack, runLive = false }: { onBack?: () => void;
       {localFirst ? null : localRail}
 
       {!local.length && shelf && Object.keys(shelf.regions).length ? (
-        <Pressable onPress={() => setCountries(true)} accessibilityRole="button">
+        <Pressable onPress={() => setCountries(true)} accessibilityRole="button" style={styles.linkRow}>
           <Text style={styles.link}>{ui().listen.pickACountryForLocal}</Text>
         </Pressable>
       ) : null}
@@ -390,88 +399,125 @@ export function ListenSheet({ open, onClose, onBrowse }: { open: boolean; onClos
   };
 
   return (
-    <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel={ui().listen.close} accessibilityRole="button">
-        <Pressable style={[styles.sheet, { maxHeight: '94%' }]} onPress={() => {}} accessible={false}>
-          <View style={styles.grabber} />
-          <ScrollView contentContainerStyle={{ gap: spacing.md }} showsVerticalScrollIndicator={false}>
-            <View style={{ gap: 2 }}>
-              <Text style={styles.h2} accessibilityRole="header">{ui().listen.listen}</Text>
-              <Text style={styles.lede}>{ui().listen.somethingToTakeWithYou}</Text>
-            </View>
+    <SheetModal
+      visible={open}
+      onClose={onClose}
+      sheetStyle={[styles.sheet, { maxHeight: '94%' }]}
+      after={
+        <AppSheet
+          picking={picking}
+          musicApps={musicApps}
+          musicApp={settings.musicApp}
+          podcastApp={settings.podcastApp}
+          onClose={() => setPicking(null)}
+          onMusic={(key) => {
+            update({ musicApp: key });
+            setPicking(null);
+          }}
+          onPodcast={(app) => {
+            const show = picking?.kind === 'podcast' ? picking.then : null;
+            const ep = picking?.kind === 'podcast' ? picking.ep : null;
+            update({ podcastApp: app });
+            setPicking(null);
+            if (show && app) openShowIn(show, app, ep);
+          }}
+        />
+      }
+    >
+      <View style={styles.grabber} />
+      <ScrollView contentContainerStyle={{ gap: spacing.md }} showsVerticalScrollIndicator={false}>
+        <View style={{ gap: 2 }}>
+          <Text style={styles.h2} accessibilityRole="header">{ui().listen.listen}</Text>
+          <Text style={styles.lede}>{ui().listen.somethingToTakeWithYou}</Text>
+        </View>
 
-            <View style={styles.sound}>
-              <View style={styles.rowGap}>
-                <AppTile compact kind="music" label={ui().listen.music} value={appByKey(settings.musicApp)?.name ?? ui().listen.phoneSDefault} onPress={() => setPicking({ kind: 'music' })} />
-                <AppTile compact kind="podcast" label={ui().listen.podcasts} value={podcastApp ? short(podcastApp.label) : ui().listen.askEachTime} onPress={() => setPicking({ kind: 'podcast', then: null })} />
-              </View>
-              <MusicStrip appKey={settings.musicApp} />
-            </View>
+        <View style={styles.sound}>
+          <View style={styles.rowGap}>
+            <AppTile compact kind="music" label={ui().listen.music} value={appByKey(settings.musicApp)?.name ?? ui().listen.phoneSDefault} onPress={() => setPicking({ kind: 'music' })} />
+            <AppTile compact kind="podcast" label={ui().listen.podcasts} value={podcastApp ? short(podcastApp.label) : ui().listen.askEachTime} onPress={() => setPicking({ kind: 'podcast', then: null })} />
+          </View>
+          <MusicStrip appKey={settings.musicApp} />
+        </View>
 
-            {two.length ? (
-              <View style={{ gap: spacing.sm }}>
-                <Text style={styles.sheetEyebrow}>{usual ? ui().listen.fitsYourUsualXMinutes(usual) : ui().listen.newThisWeek}</Text>
-                {two.map((f) => (
-                  <Pressable
-                    key={f.show.id}
-                    onPress={() => (settings.podcastApp ? openShowIn(f.show, settings.podcastApp, f.ep) : setPicking({ kind: 'podcast', then: f.show, ep: f.ep }))}
-                    accessibilityRole="button"
-                    accessibilityLabel={ui().listen.xXXOpensIn(f.ep.title, f.show.name, f.ep.min ? ui().listen.xMinutes(f.ep.min) : '')}
-                    style={({ pressed }) => [styles.miniEp, pressed && { opacity: 0.85 }]}
-                  >
-                    <Cover show={f.show} size={56} tint={tintOf(f.show)} online={online} />
-                    <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                      <Text style={styles.epsTitle} numberOfLines={2}>
-                        {f.ep.title}
-                      </Text>
-                      <Text style={styles.hint} numberOfLines={1}>
-                        {f.show.name}
-                        {f.ep.min ? ui().listen.xMin(f.ep.min) : ''} · {whenLabel(f.ep.date, today)}
-                      </Text>
-                    </View>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
+        {two.length ? (
+          <View style={{ gap: spacing.sm }}>
+            <Text style={styles.sheetEyebrow}>{usual ? ui().listen.fitsYourUsualXMinutes(usual) : ui().listen.newThisWeek}</Text>
+            {two.map((f) => (
+              <Pressable
+                key={f.show.id}
+                onPress={() => (settings.podcastApp ? openShowIn(f.show, settings.podcastApp, f.ep) : setPicking({ kind: 'podcast', then: f.show, ep: f.ep }))}
+                accessibilityRole="button"
+                accessibilityLabel={ui().listen.xXXOpensIn(f.ep.title, f.show.name, f.ep.min ? ui().listen.xMinutes(f.ep.min) : '')}
+                style={({ pressed }) => [styles.miniEp, pressed && { opacity: 0.85 }]}
+              >
+                <Cover show={f.show} size={56} tint={tintOf(f.show)} online={online} />
+                <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                  <Text style={styles.epsTitle} numberOfLines={2}>
+                    {f.ep.title}
+                  </Text>
+                  <Text style={styles.hint} numberOfLines={1}>
+                    {f.show.name}
+                    {f.ep.min ? ui().listen.xMin(f.ep.min) : ''} · {whenLabel(f.ep.date, today)}
+                  </Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
 
-            <Pressable onPress={onBrowse} accessibilityRole="button" style={styles.sheetLine}>
-              <Text style={styles.sheetLineText}>{ui().listen.browseEveryShelf}</Text>
-              <Text style={styles.sheetLineText} importantForAccessibility="no">›</Text>
-            </Pressable>
-            <View style={[styles.sheetLine, styles.sheetLineRule]}>
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text style={styles.sheetLineText}>{ui().listen.runInSilenceToday}</Text>
-                <Text style={styles.hint}>{ui().listen.noVoiceNoBuzzOn}</Text>
-              </View>
-              <Switch
-                value={silent}
-                onValueChange={(v) => update({ silentDay: v ? dayKey(Date.now()) : null })}
-                trackColor={{ true: colors.ink }}
-                accessibilityLabel={ui().listen.runInSilenceToday}
-              />
-            </View>
-            <Button title={ui().listen.backToStart} onPress={onClose} />
-          </ScrollView>
+        <Pressable onPress={onBrowse} accessibilityRole="button" style={styles.sheetLine}>
+          <Text style={styles.sheetLineText}>{ui().listen.browseEveryShelf}</Text>
+          <Text style={styles.sheetLineText} importantForAccessibility="no">›</Text>
         </Pressable>
-      </Pressable>
-      <AppSheet
-        picking={picking}
-        musicApps={musicApps}
-        musicApp={settings.musicApp}
-        podcastApp={settings.podcastApp}
-        onClose={() => setPicking(null)}
-        onMusic={(key) => {
-          update({ musicApp: key });
-          setPicking(null);
-        }}
-        onPodcast={(app) => {
-          const show = picking?.kind === 'podcast' ? picking.then : null;
-          const ep = picking?.kind === 'podcast' ? picking.ep : null;
-          update({ podcastApp: app });
-          setPicking(null);
-          if (show && app) openShowIn(show, app, ep);
-        }}
-      />
+        <View style={[styles.sheetLine, styles.sheetLineRule]}>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={styles.sheetLineText}>{ui().listen.runInSilenceToday}</Text>
+            <Text style={styles.hint}>{ui().listen.noVoiceNoBuzzOn}</Text>
+          </View>
+          <Switch
+            value={silent}
+            onValueChange={(v) => update({ silentDay: v ? dayKey(Date.now()) : null })}
+            trackColor={{ true: colors.ink }}
+            accessibilityLabel={ui().listen.runInSilenceToday}
+          />
+        </View>
+        <Button title={ui().listen.backToStart} onPress={onClose} />
+      </ScrollView>
+    </SheetModal>
+  );
+}
+
+/**
+ * A sheet over the page. Tapping the shade closes it; with a screen reader the
+ * shade is a "Close" button of its own, so the sheet's words stay separate items
+ * (a shade wrapped around the sheet would swallow them). The reader stays in
+ * the sheet, and the phone's reduce-motion setting turns the slide off.
+ */
+function SheetModal({
+  visible,
+  onClose,
+  sheetStyle,
+  fade,
+  after,
+  children,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  sheetStyle: StyleProp<ViewStyle>;
+  fade?: boolean;
+  after?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const still = useReduceMotion();
+  return (
+    <Modal visible={visible} transparent animationType={still ? 'none' : fade ? 'fade' : 'slide'} onRequestClose={onClose}>
+      <View style={styles.scrim}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityRole="button" accessibilityLabel={ui().listen.close} />
+        <View style={sheetStyle} accessibilityViewIsModal onAccessibilityEscape={onClose}>
+          {children}
+        </View>
+      </View>
+      {after}
     </Modal>
   );
 }
@@ -480,9 +526,9 @@ function SectionHead({ title, hint, action }: { title: string; hint?: string; ac
   return (
     <View style={{ gap: 2 }}>
       <View style={styles.headRow}>
-        <Text style={styles.h2}>{title}</Text>
+        <Text style={styles.h2} accessibilityRole="header">{title}</Text>
         {action ? (
-          <Pressable onPress={action.onPress} accessibilityRole="button" hitSlop={8}>
+          <Pressable onPress={action.onPress} accessibilityRole="button" hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}>
             <Text style={styles.headAction}>{action.label}</Text>
           </Pressable>
         ) : null}
@@ -519,6 +565,7 @@ function Rail({
             onPress={() => onOpen(s)}
             accessibilityRole="button"
             accessibilityLabel={ui().listen.xByX(s.name, s.by)}
+            accessibilityHint={ui().listen.opensTheShow}
             style={({ pressed }) => [styles.tile, pressed && { opacity: 0.85 }]}
           >
             <Cover show={s} size={TILE} tint={tint} online={online} />
@@ -556,32 +603,38 @@ function EpisodeCard({
   onMore: () => void;
 }) {
   const { show, ep, fits } = item;
+  const meta = `${ep.min ? ui().listen.xMin3(ep.min) : ''}${whenLabel(ep.date, today)}`;
   return (
-    <Pressable onPress={onMore} accessibilityRole="button" style={[styles.epCard, { width, backgroundColor: tint.bg }]}>
-      <View style={styles.epTop}>
-        <Cover show={show} size={88} tint={tint} online={online} onTint />
-        <View style={{ flex: 1, gap: 4 }}>
-          <Text style={[styles.epShow, { color: tint.fg }]} numberOfLines={1}>
-            {show.name}
-          </Text>
-          <Text style={styles.epTitle} numberOfLines={3}>
-            {ep.title}
-          </Text>
-        </View>
-      </View>
-      <View style={styles.epBottom}>
-        <Text style={[styles.epMeta, { color: tint.fg }]}>
-          {ep.min ? ui().listen.xMin3(ep.min) : ''}
-          {whenLabel(ep.date, today)}
-        </Text>
-        {fits ? (
-          <View style={styles.fits}>
-            <Text style={styles.fitsText}>{ui().listen.fitsYourRun}</Text>
+    <View style={[styles.epCard, { width, backgroundColor: tint.bg }]}>
+      <Pressable
+        onPress={onMore}
+        accessibilityRole="button"
+        accessibilityLabel={[show.name, ep.title, meta, fits ? ui().listen.fitsYourRun : null].filter(Boolean).join('. ')}
+        accessibilityHint={ui().listen.opensTheShow}
+        style={({ pressed }) => [{ gap: 14 }, pressed && { opacity: 0.85 }]}
+      >
+        <View style={styles.epTop}>
+          <Cover show={show} size={88} tint={tint} online={online} onTint />
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={[styles.epShow, { color: tint.fg }]} numberOfLines={1}>
+              {show.name}
+            </Text>
+            <Text style={styles.epTitle} numberOfLines={3}>
+              {ep.title}
+            </Text>
           </View>
-        ) : null}
-      </View>
-      <PlayButton label={label} onPress={onOpen} wide />
-    </Pressable>
+        </View>
+        <View style={styles.epBottom}>
+          <Text style={[styles.epMeta, { color: tint.fg }]}>{meta}</Text>
+          {fits ? (
+            <View style={styles.fits}>
+              <Text style={styles.fitsText}>{ui().listen.fitsYourRun}</Text>
+            </View>
+          ) : null}
+        </View>
+      </Pressable>
+      <PlayButton label={label} spoken={`${label}: ${ep.title}`} onPress={onOpen} wide />
+    </View>
   );
 }
 
@@ -603,66 +656,64 @@ function ShowSheet({
   const { settings } = useSettings();
   const show = item?.show;
   return (
-    <Modal visible={!!item} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.scrim} onPress={onClose}>
-        {show && item ? (
-          <Pressable style={[styles.sheet, { backgroundColor: item.tint.bg }]} onPress={() => {}}>
-            <View style={styles.grabber} />
-            <View style={styles.epTop}>
-              <Cover show={show} size={112} tint={item.tint} online={online} onTint />
-              <View style={{ flex: 1, gap: 4 }}>
-                <Text style={styles.sheetName}>{show.name}</Text>
-                <Text style={[styles.showBy, { color: item.tint.fg }]}>
-                  {show.by}
-                  {show.since ? ui().listen.sinceX(show.since) : show.episodes ? ui().listen.xEpisodes(show.episodes) : ''}
-                </Text>
-              </View>
+    <SheetModal visible={!!item} onClose={onClose} sheetStyle={[styles.sheet, { backgroundColor: item?.tint.bg ?? colors.cream }]}>
+      {show && item ? (
+        <>
+          <View style={styles.grabber} />
+          <View style={styles.epTop}>
+            <Cover show={show} size={112} tint={item.tint} online={online} onTint />
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={styles.sheetName} accessibilityRole="header" maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>{show.name}</Text>
+              <Text style={[styles.showBy, { color: item.tint.fg }]}>
+                {show.by}
+                {show.since ? ui().listen.sinceX(show.since) : show.episodes ? ui().listen.xEpisodes(show.episodes) : ''}
+              </Text>
             </View>
-            {show.why ? <Text style={styles.why}>{show.why}</Text> : null}
-            {show.latest.length ? (
-              <View style={styles.eps}>
-                <Text style={[styles.epsLabel, { color: item.tint.fg }]}>{ui().listen.latest}</Text>
-                {show.latest.map((e) => (
-                  <Pressable
-                    key={e.title + e.date}
-                    onPress={() => onOpen(settings.podcastApp, e)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${e.title}. ${buttonLabel(settings.podcastApp, show, e)}`}
-                    style={({ pressed }) => [styles.epsRow, pressed && { opacity: 0.7 }]}
-                  >
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Text style={styles.epsTitle} numberOfLines={2}>
-                        {e.title}
-                      </Text>
-                      <Text style={styles.showBy}>
-                        {e.min ? ui().listen.xMin4(e.min) : ''}
-                        {whenLabel(e.date, today)}
-                        {fitsRun(e.min, usual) ? ui().listen.fitsYourUsualRun : ''}
-                      </Text>
-                    </View>
-                    <Svg width={22} height={22} viewBox="0 0 22 22" importantForAccessibility="no">
-                      <Circle cx={11} cy={11} r={11} fill={colors.ink} />
-                      <Path d="M8.5 6.5 L15.5 11 L8.5 15.5 Z" fill={colors.cream} />
-                    </Svg>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
-            <View style={[styles.rowGap, { alignItems: 'center' }]}>
-              <PlayButton label={buttonLabel(settings.podcastApp, show)} onPress={() => onOpen(settings.podcastApp)} />
-              {settings.podcastApp ? <Pill label={ui().listen.anotherApp} onPress={() => onOpen(null)} /> : null}
+          </View>
+          {show.why ? <Text style={styles.why}>{show.why}</Text> : null}
+          {show.latest.length ? (
+            <View style={styles.eps}>
+              <Text style={[styles.epsLabel, { color: item.tint.fg }]} accessibilityRole="header">{ui().listen.latest}</Text>
+              {show.latest.map((e) => (
+                <Pressable
+                  key={e.title + e.date}
+                  onPress={() => onOpen(settings.podcastApp, e)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${e.title}. ${buttonLabel(settings.podcastApp, show, e)}`}
+                  style={({ pressed }) => [styles.epsRow, pressed && { opacity: 0.7 }]}
+                >
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={styles.epsTitle} numberOfLines={2}>
+                      {e.title}
+                    </Text>
+                    <Text style={styles.showBy}>
+                      {e.min ? ui().listen.xMin4(e.min) : ''}
+                      {whenLabel(e.date, today)}
+                      {fitsRun(e.min, usual) ? ui().listen.fitsYourUsualRun : ''}
+                    </Text>
+                  </View>
+                  <Svg width={22} height={22} viewBox="0 0 22 22" importantForAccessibility="no">
+                    <Circle cx={11} cy={11} r={11} fill={colors.ink} />
+                    <Path d="M8.5 6.5 L15.5 11 L8.5 15.5 Z" fill={colors.cream} />
+                  </Svg>
+                </Pressable>
+              ))}
             </View>
-            {settings.podcastApp && openTarget(settings.podcastApp, show)?.kind === 'search' ? (
-              <Pressable onPress={() => shareFeed(show)} accessibilityRole="button">
-                <Text style={[styles.hint, { color: item.tint.fg }]}>
-                  {ui().listen.notFoundInYourAppYet}
-                </Text>
-              </Pressable>
-            ) : null}
-          </Pressable>
-        ) : null}
-      </Pressable>
-    </Modal>
+          ) : null}
+          <View style={[styles.rowGap, { alignItems: 'center' }]}>
+            <PlayButton label={buttonLabel(settings.podcastApp, show)} onPress={() => onOpen(settings.podcastApp)} />
+            {settings.podcastApp ? <Pill label={ui().listen.anotherApp} onPress={() => onOpen(null)} /> : null}
+          </View>
+          {settings.podcastApp && openTarget(settings.podcastApp, show)?.kind === 'search' ? (
+            <Pressable onPress={() => shareFeed(show)} accessibilityRole="button" style={styles.linkRow}>
+              <Text style={[styles.hint, { color: item.tint.fg }]}>
+                {ui().listen.notFoundInYourAppYet}
+              </Text>
+            </Pressable>
+          ) : null}
+        </>
+      ) : null}
+    </SheetModal>
   );
 }
 
@@ -691,39 +742,41 @@ function AppSheet({
   const music = picking?.kind === 'music';
   const forShow = picking?.kind === 'podcast' && picking.then;
   return (
-    <Modal visible={!!picking} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.scrim} onPress={onClose}>
-        <Pressable style={[styles.sheet, { maxHeight: '80%' }]} onPress={() => {}}>
-          <View style={styles.grabber} />
-          <Text style={styles.cardTitle}>{music ? ui().listen.musicFrom : ui().listen.podcastsIn}</Text>
-          <Text style={styles.hint}>
-            {music
-              ? ui().listen.openedFromTheRunScreen
-              : forShow
-                ? ui().listen.whereShouldShowsOpenRemembered
-                : ui().listen.showsOpenThereRememberedOn}
-          </Text>
-          <ScrollView contentContainerStyle={{ gap: 6 }}>
-            {music
-              ? [{ key: null, name: ui().listen.phoneSDefault } as { key: string | null; name: string }, ...musicApps].map((a) => (
-                  <SheetRow key={a.key ?? 'default'} label={a.name} on={musicApp === a.key} onPress={() => onMusic(a.key)} />
-                ))
-              : [
-                  ...(forShow ? [] : [<SheetRow key="ask" label={ui().listen.askEachTime} on={podcastApp == null} onPress={() => onPodcast(null)} />]),
-                  ...podcastApps.map((a) => (
-                    <SheetRow key={a.key} label={a.label} note={a.here ? ui().listen.onThisPhone : undefined} on={podcastApp === a.key} onPress={() => onPodcast(a.key)} />
-                  )),
-                ]}
-          </ScrollView>
-        </Pressable>
-      </Pressable>
-    </Modal>
+    <SheetModal visible={!!picking} onClose={onClose} sheetStyle={[styles.sheet, { maxHeight: '80%' }]}>
+      <View style={styles.grabber} />
+      <Text style={styles.cardTitle} accessibilityRole="header">{music ? ui().listen.musicFrom : ui().listen.podcastsIn}</Text>
+      <Text style={styles.hint}>
+        {music
+          ? ui().listen.openedFromTheRunScreen
+          : forShow
+            ? ui().listen.whereShouldShowsOpenRemembered
+            : ui().listen.showsOpenThereRememberedOn}
+      </Text>
+      <ScrollView contentContainerStyle={{ gap: 6 }} accessibilityRole="radiogroup">
+        {music
+          ? [{ key: null, name: ui().listen.phoneSDefault } as { key: string | null; name: string }, ...musicApps].map((a) => (
+              <SheetRow key={a.key ?? 'default'} label={a.name} on={musicApp === a.key} onPress={() => onMusic(a.key)} />
+            ))
+          : [
+              ...(forShow ? [] : [<SheetRow key="ask" label={ui().listen.askEachTime} on={podcastApp == null} onPress={() => onPodcast(null)} />]),
+              ...podcastApps.map((a) => (
+                <SheetRow key={a.key} label={a.label} note={a.here ? ui().listen.onThisPhone : undefined} on={podcastApp === a.key} onPress={() => onPodcast(a.key)} />
+              )),
+            ]}
+      </ScrollView>
+    </SheetModal>
   );
 }
 
 function SheetRow({ label, note, on, onPress }: { label: string; note?: string; on: boolean; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} style={[styles.sheetRow, on && styles.sheetRowOn]} accessibilityRole="button" accessibilityState={{ selected: on }}>
+    <Pressable
+      onPress={onPress}
+      style={[styles.sheetRow, on && styles.sheetRowOn]}
+      accessibilityRole="radio"
+      accessibilityState={{ checked: on }}
+      accessibilityLabel={note ? `${label}, ${note}` : label}
+    >
       <Text style={[styles.sheetText, on && styles.sheetTextOn]}>{label}</Text>
       {note ? <Text style={[styles.sheetNote, on && { color: colors.onInkMuted }]}>{note}</Text> : null}
     </Pressable>
@@ -757,21 +810,23 @@ function Cover({ show, size, tint, online, onTint }: { show: Show; size: number;
   const src: ImageSourcePropType | null = failed ? null : coverFor(show, online);
   const r = Math.round(size * 0.16);
   if (src) {
-    return <Image source={src} onError={() => setFailed(true)} style={{ width: size, height: size, borderRadius: r, backgroundColor: colors.white }} accessibilityIgnoresInvertColors />;
+    return <Image source={src} onError={() => setFailed(true)} style={{ width: size, height: size, borderRadius: r, backgroundColor: colors.white }} accessibilityIgnoresInvertColors accessible={false} importantForAccessibility="no" />;
   }
+  // Initials drawn to fit the square: they don't grow with the font size, and the
+  // show's name is read out by whatever holds the cover.
   return (
-    <View style={[styles.art, { width: size, height: size, borderRadius: r, backgroundColor: onTint ? colors.white : tint.bg }]}>
-      <Text style={[styles.artText, { color: tint.fg, fontSize: size * 0.32 }]}>{initials(show.name)}</Text>
+    <View style={[styles.art, { width: size, height: size, borderRadius: r, backgroundColor: onTint ? colors.white : tint.bg }]} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+      <Text style={[styles.artText, { color: tint.fg, fontSize: size * 0.32 }]} allowFontScaling={false}>{initials(show.name)}</Text>
     </View>
   );
 }
 
-function PlayButton({ label, onPress, wide }: { label: string; onPress: () => void; wide?: boolean }) {
+function PlayButton({ label, spoken, onPress, wide }: { label: string; spoken?: string; onPress: () => void; wide?: boolean }) {
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={spoken ?? label}
       style={({ pressed }) => [styles.play, wide && { justifyContent: 'center' }, pressed && { opacity: 0.85 }]}
     >
       <Svg width={14} height={14} viewBox="0 0 14 14">
@@ -817,7 +872,7 @@ function KitShelf({ offers, onBack }: { offers: Offer[]; onBack: () => void }) {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xl }}>
       <BackButton label={ui().listen.listen} onPress={onBack} />
-      <Text style={styles.h1}>{ui().listen.kitOffers}</Text>
+      <Text style={styles.h1} accessibilityRole="header" maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>{ui().listen.kitOffers}</Text>
       <Text style={styles.lede}>{ui().listen.paidForByThemOpened}</Text>
       {topics.length ? (
         <View style={[styles.rowGap, { flexWrap: 'wrap' }]}>
@@ -852,6 +907,7 @@ function KitShelf({ offers, onBack }: { offers: Offer[]; onBack: () => void }) {
           onBack();
         }}
         accessibilityRole="button"
+        style={styles.linkRow}
       >
         <Text style={styles.link}>{ui().listen.hideThisShelfForGood}</Text>
       </Pressable>
@@ -861,32 +917,35 @@ function KitShelf({ offers, onBack }: { offers: Offer[]; onBack: () => void }) {
 
 function CountryChooser({ open, codes, current, onClose, onPick }: { open: boolean; codes: string[]; current: string | null; onClose: () => void; onPick: (cc: string | null) => void }) {
   return (
-    <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.scrim} onPress={onClose}>
-        <Pressable style={[styles.sheet, { maxHeight: '75%' }]} onPress={() => {}}>
-          <Text style={styles.cardTitle}>{ui().listen.localShowsFrom}</Text>
-          <Text style={styles.hint}>{ui().listen.chosenHereKeptHereThe}</Text>
-          <ScrollView>
-            <Pressable onPress={() => onPick(null)} style={[styles.sheetRow, current == null && styles.sheetRowOn]}>
-              <Text style={[styles.sheetText, current == null && styles.sheetTextOn]}>{ui().listen.thePhoneSRegion}</Text>
-            </Pressable>
-            {codes.map((c) => (
-              <Pressable key={c} onPress={() => onPick(c)} style={[styles.sheetRow, current === c && styles.sheetRowOn]}>
-                <Text style={[styles.sheetText, current === c && styles.sheetTextOn]}>
-                  {flag(c)} {c.toUpperCase()}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
+    <SheetModal visible={open} onClose={onClose} fade sheetStyle={[styles.sheet, { maxHeight: '75%' }]}>
+      <Text style={styles.cardTitle} accessibilityRole="header">{ui().listen.localShowsFrom}</Text>
+      <Text style={styles.hint}>{ui().listen.chosenHereKeptHereThe}</Text>
+      <ScrollView contentContainerStyle={{ gap: 6 }} accessibilityRole="radiogroup">
+        <Pressable onPress={() => onPick(null)} style={[styles.sheetRow, current == null && styles.sheetRowOn]} accessibilityRole="radio" accessibilityState={{ checked: current == null }}>
+          <Text style={[styles.sheetText, current == null && styles.sheetTextOn]}>{ui().listen.thePhoneSRegion}</Text>
         </Pressable>
-      </Pressable>
-    </Modal>
+        {codes.map((c) => (
+          <Pressable
+            key={c}
+            onPress={() => onPick(c)}
+            style={[styles.sheetRow, current === c && styles.sheetRowOn]}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: current === c }}
+            accessibilityLabel={countryName(c)}
+          >
+            <Text style={[styles.sheetText, current === c && styles.sheetTextOn]}>
+              {flag(c)} {c.toUpperCase()}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </SheetModal>
   );
 }
 
 function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: on }} style={[styles.chip, on && styles.chipOn]}>
+    <Pressable onPress={onPress} accessibilityRole="checkbox" accessibilityState={{ checked: on }} style={[styles.chip, on && styles.chipOn]}>
       <Text style={[styles.chipText, on && styles.chipTextOn]}>{label}</Text>
     </Pressable>
   );
@@ -903,6 +962,16 @@ function Pill({ label, dark, onPress }: { label: string; dark?: boolean; onPress
 function initials(name: string): string {
   const words = name.replace(/^the\s+/i, '').split(/[\s\-–|:]+/).filter((w) => w && !/^[\d.#&+]+$/.test(w));
   return ((words[0]?.[0] ?? '') + (words[1]?.[0] ?? '')).toUpperCase() || '•';
+}
+
+/** "Germany" (in the app's language) for "de", for screen readers; the code itself if the phone can't say. */
+function countryName(cc: string): string {
+  try {
+    const DN = (Intl as unknown as { DisplayNames?: new (l: string[], o: { type: 'region' }) => { of: (c: string) => string | undefined } }).DisplayNames;
+    return (DN && new DN([dateLocale()], { type: 'region' }).of(cc.toUpperCase())) || cc.toUpperCase();
+  } catch {
+    return cc.toUpperCase();
+  }
 }
 
 /** Two letters to the regional-indicator pair the phone draws as a flag. */
@@ -925,11 +994,12 @@ const styles = StyleSheet.create({
   headAction: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.ink },
   footnote: { fontFamily: fonts.body, fontSize: 12, lineHeight: 18, color: colors.muted },
   link: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.ink },
+  linkRow: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   card: { borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm },
   cardTitle: { fontFamily: fonts.display, fontSize: 20, color: colors.text },
   cardText: { fontFamily: fonts.body, fontSize: 14, lineHeight: 21, color: colors.text },
   rowGap: { flexDirection: 'row', gap: spacing.sm },
-  chip: { borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 14, backgroundColor: colors.white },
+  chip: { borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 14, backgroundColor: colors.white, minHeight: 44, justifyContent: 'center' },
   chipOn: { backgroundColor: colors.ink },
   chipText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text },
   chipTextOn: { color: colors.cream },
@@ -952,7 +1022,7 @@ const styles = StyleSheet.create({
   epMeta: { fontFamily: fonts.bodyMedium, fontSize: 13 },
   fits: { backgroundColor: colors.white, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 3 },
   fitsText: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.mintDeep },
-  play: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.ink, borderRadius: radius.pill, paddingVertical: 11, paddingHorizontal: 16 },
+  play: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.ink, borderRadius: radius.pill, paddingVertical: 11, paddingHorizontal: 16, minHeight: 48 },
   playText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.cream },
 
   tile: { width: TILE, gap: 6 },
@@ -971,11 +1041,11 @@ const styles = StyleSheet.create({
   epsTitle: { fontFamily: fonts.bodySemi, fontSize: 14, lineHeight: 19, color: colors.text },
   grabber: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(43,39,51,0.2)', marginTop: -8, marginBottom: 4 },
 
-  pill: { borderRadius: radius.pill, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: colors.white },
+  pill: { borderRadius: radius.pill, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: colors.white, minHeight: 44, justifyContent: 'center' },
   pillDark: { backgroundColor: colors.ink },
   pillText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text },
   pillTextDark: { color: colors.cream },
-  kitRow: { paddingVertical: spacing.sm, alignItems: 'center' },
+  kitRow: { paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center', minHeight: 48 },
   kitText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.muted },
   offer: { backgroundColor: colors.white, borderRadius: radius.md, padding: 14, gap: 3 },
   paid: { fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 1.4, textTransform: 'uppercase', color: colors.peachDeep },

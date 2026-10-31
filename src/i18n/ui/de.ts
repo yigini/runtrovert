@@ -175,6 +175,11 @@ export const de: Strings = {
     xOfDaylightLeftWhen: (m) => `Noch ${m} Tageslicht, als du fertig warst.`,
   },
   deepStats: {
+    steadySpoken: (pace, from) => `Mit ${pace}, ab ${from}, die ganze Strecke innerhalb von 3 Prozent.`,
+    driftSpoken: (first, second) => `Pace pro Herzschlag, erste Hälfte gegen zweite: ${first}, dann ${second}. Unter 5 Prozent ist stabil.`,
+    zonesSpoken: (max) => `Anteile am höchsten Puls, den deine Uhr diesem Handy gegeben hat, ${max}. Ein Richtwert, kein medizinischer Wert.`,
+    less: 'Weniger',
+    more: 'Mehr',
     showMeEverything: 'Zeig mir alles',
     showLess: 'Weniger zeigen',
     showMeEverythingHint: 'Öffnet die tiefen Zahlen. Sie bleiben offen, bis du sie schließt.',
@@ -438,6 +443,7 @@ export const de: Strings = {
     hidesTheSkyDetails: 'Blendet die Wetterdetails aus',
   },
   listen: {
+    opensTheShow: 'Öffnet die Sendung und ihre neuesten Folgen',
     backToYourRun: 'Zurück zu deinem Lauf',
     stillRecording: 'Dein Lauf wird noch aufgezeichnet',
     adverts: 'Diese Sendungen haben ihre eigene Werbung. Runtrovert hat keine nervige, aufdringliche Werbung und sieht nie, was du hörst. Öffnet sich eine Sendung, sehen deine Podcast-App und der Host der Sendung eine normale Verbindung, samt IP-Adresse, wie bei jedem Download.',
@@ -1143,6 +1149,7 @@ export const de: Strings = {
     ifOneEverAnnoysYou: 'Wenn dich je eine nervt, ist das ein Fehler. In den Einstellungen gibt es den Schalter.',
   },
   a11y: {
+    bpm: (n) => `${n} Schläge pro Minute`,
     distance: (n, km) => `${n} ${km ? 'Kilometer' : 'Meilen'}`,
     hours: (n) => `${n} ${n === 1 ? 'Stunde' : 'Stunden'}`,
     minutes: (n) => `${n} ${n === 1 ? 'Minute' : 'Minuten'}`,
