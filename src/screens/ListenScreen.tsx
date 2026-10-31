@@ -22,7 +22,9 @@ import { BackButton } from '../components/BackButton';
 import { Button } from '../components/Button';
 import { MusicStrip } from '../components/MusicStrip';
 import { listRuns } from '../db';
-import { appByKey, canControl, installedApps, installedPackages, type MusicApp } from '../music';
+import { appByKey, canControl, installedApps, installedPackages, openMusicApp, type MusicApp } from '../music';
+import { playlistTarget, type Mood, type MoodKey } from '../playlistLogic';
+import { MOODS } from '../playlists';
 import { dayKey } from '../presets';
 import { useSettings } from '../settings';
 import { coverFetchable, coverFor, fetchShowCover, phoneLocale, refreshShelf, storedShelf } from '../shelf';
@@ -78,7 +80,14 @@ const GROUP_TINT: Record<Group, Tint> = {
 };
 const LOCAL_TINT: Tint = { bg: colors.peach, fg: colors.peachDeep };
 
-type Picking = { kind: 'music' } | { kind: 'podcast'; then: Show | null; ep?: Episode | null };
+const MOOD_TINT: Record<MoodKey, Tint> = {
+  easy: { bg: colors.mint, fg: colors.mintDeep },
+  long: { bg: colors.sky, fg: colors.skyDeep },
+  tempo: { bg: colors.butter, fg: colors.butterDeep },
+  fast: { bg: colors.peach, fg: colors.peachDeep },
+};
+
+type Picking = { kind: 'music'; then?: Mood } | { kind: 'podcast'; then: Show | null; ep?: Episode | null };
 
 /** runLive: opened from a run in progress, so Back returns to it and the top says it's still recording. */
 export function ListenScreen({ onBack, runLive = false }: { onBack?: () => void; runLive?: boolean }) {
@@ -214,6 +223,11 @@ export function ListenScreen({ onBack, runLive = false }: { onBack?: () => void;
         <Text style={styles.soundHint}>{ui().listen.voiceCuesLowerYourMusic}</Text>
       </View>
 
+      <MusicMoods
+        appKey={settings.musicApp}
+        onOpen={(mood) => (settings.musicApp ? openMood(mood, settings.musicApp) : setPicking({ kind: 'music', then: mood }))}
+      />
+
       {settings.listenDownload === 'ask' ? (
         <View style={[styles.card, { backgroundColor: colors.butter }]}>
           <Text style={styles.cardTitle} accessibilityRole="header">{ui().listen.getTodaySEpisodesAnd}</Text>
@@ -313,8 +327,10 @@ export function ListenScreen({ onBack, runLive = false }: { onBack?: () => void;
         podcastApp={settings.podcastApp}
         onClose={() => setPicking(null)}
         onMusic={(key) => {
+          const mood = picking?.kind === 'music' ? picking.then : undefined;
           update({ musicApp: key });
           setPicking(null);
+          if (mood) openMood(mood, key);
         }}
         onPodcast={(app) => {
           const show = picking?.kind === 'podcast' ? picking.then : null;
@@ -349,6 +365,79 @@ async function openShowIn(show: Show, app: PodcastApp, ep?: Episode | null) {
     if (ok) return;
   }
   shareFeed(show);
+}
+
+/** Opens a running playlist in the music app: the exact one, else a search there, else just the app. */
+async function openMood(mood: Mood, app: string | null) {
+  const target = playlistTarget(mood, app);
+  if (target && (await Linking.openURL(target.url).then(() => true, () => false))) return;
+  await openMusicApp(app);
+}
+
+function moodName(key: MoodKey): { title: string; hint: string } {
+  const l = ui().listen;
+  switch (key) {
+    case 'easy':
+      return { title: l.moodEasy, hint: l.moodEasyHint };
+    case 'long':
+      return { title: l.moodLong, hint: l.moodLongHint };
+    case 'tempo':
+      return { title: l.moodTempo, hint: l.moodTempoHint };
+    case 'fast':
+      return { title: l.moodFast, hint: l.moodFastHint };
+  }
+}
+
+/** "Open in Spotify", "Search in Tidal", or "Choose your music app" before one is picked. */
+function moodLabel(mood: Mood, appKey: string | null): string {
+  const app = appByKey(appKey);
+  if (!app) return ui().listen.chooseYourMusicApp;
+  const t = playlistTarget(mood, app.key);
+  return t?.kind === 'search' ? ui().listen.searchInX(app.name) : ui().listen.openInX(app.name);
+}
+
+/**
+ * Four running playlists, by mood, that open straight in the runner's music app.
+ * They ship with the app (content/playlists.json), so showing them fetches nothing.
+ */
+function MusicMoods({ appKey, onOpen }: { appKey: string | null; onOpen: (mood: Mood) => void }) {
+  if (!MOODS.length) return null;
+  return (
+    <View style={{ gap: spacing.sm }}>
+      <SectionHead title={ui().listen.musicForYourRun} hint={ui().listen.musicForYourRunHint} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: spacing.md }} style={styles.bleed}>
+        {MOODS.map((m) => {
+          const tint = MOOD_TINT[m.key] ?? MOOD_TINT.easy;
+          const { title, hint } = moodName(m.key);
+          const target = playlistTarget(m, appKey);
+          const label = moodLabel(m, appKey);
+          return (
+            <Pressable
+              key={m.key}
+              onPress={() => onOpen(m)}
+              accessibilityRole="button"
+              accessibilityLabel={[title, target?.kind === 'playlist' ? target.title : null, hint].filter(Boolean).join('. ')}
+              accessibilityHint={label}
+              style={({ pressed }) => [styles.moodTile, { backgroundColor: tint.bg }, pressed && { opacity: 0.85 }]}
+            >
+              <NoteGlyph color={tint.fg} />
+              <View style={{ gap: 4, flex: 1 }}>
+                <Text style={styles.moodTitle} numberOfLines={2}>{title}</Text>
+                <Text style={[styles.moodHint, { color: tint.fg }]} numberOfLines={3}>{hint}</Text>
+              </View>
+              <View style={styles.moodFoot}>
+                {target?.kind === 'playlist' ? (
+                  <Text style={[styles.moodPlaylist, { color: tint.fg }]} numberOfLines={1}>{target.title}</Text>
+                ) : null}
+                <Text style={styles.moodOpen} numberOfLines={1}>{label} ↗</Text>
+              </View>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+      <Text style={styles.hint}>{ui().listen.playlistsBelong}</Text>
+    </View>
+  );
 }
 
 function shareFeed(show: Show) {
@@ -1037,6 +1126,12 @@ const styles = StyleSheet.create({
   playText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.cream },
 
   tile: { width: TILE, gap: 6 },
+  moodTile: { width: 168, minHeight: 200, borderRadius: radius.lg, padding: 14, gap: 10 },
+  moodTitle: { fontFamily: fonts.display, fontSize: 19, lineHeight: 24, color: colors.text },
+  moodHint: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18 },
+  moodFoot: { gap: 2 },
+  moodPlaylist: { fontFamily: fonts.bodySemi, fontSize: 12, letterSpacing: 0.4 },
+  moodOpen: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.ink },
   tileName: { fontFamily: fonts.bodySemi, fontSize: 14, lineHeight: 18, color: colors.text },
   tileBy: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginTop: -4 },
   art: { alignItems: 'center', justifyContent: 'center' },

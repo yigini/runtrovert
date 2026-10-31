@@ -1,0 +1,45 @@
+{
+  "_about": "Running playlists in Listen, by mood. Each id was checked against the service's public page on 31 Oct 2026 (npm run check:playlists). Ships inside the app. Editorial playlists first; a service without one here gets a search.",
+  "moods": [
+    {
+      "key": "easy",
+      "search": "easy running music",
+      "links": {
+        "spotify": { "id": "37i9dQZF1DWZq91oLsHZvy", "title": "Indie Running" },
+        "ytmusic": { "id": "RDCLAK5uy_nVuUr5N4xRc2E2btLSMnOwmSwrB5Dkhes", "title": "Classic Rock Run" },
+        "apple": { "id": "pl.6763f5b24da04814b8c4e5667af7c335", "slug": "jogging", "title": "Jogging" },
+        "deezer": { "id": "8958596262", "title": "Run & Breathe" }
+      }
+    },
+    {
+      "key": "long",
+      "search": "long run music",
+      "links": {
+        "spotify": { "id": "0UFQxGiMJtm0v71eQrgyTX", "title": "Long Run" },
+        "ytmusic": { "id": "RDCLAK5uy_mzjlwoE7o230P6pFaamCx1II0XckFiuQo", "title": "Running Rock" },
+        "apple": { "id": "pl.6b57af24459743da88e4e92d6c883018", "slug": "long-run", "title": "Long Run" },
+        "deezer": { "id": "9160865322", "title": "Rock Running" }
+      }
+    },
+    {
+      "key": "tempo",
+      "search": "running hits",
+      "links": {
+        "spotify": { "id": "37i9dQZF1DX35oM5SPECmN", "title": "Run Wild" },
+        "ytmusic": { "id": "RDCLAK5uy_lX24L_CGP46xH6pM4FgXpX4yNr3jX9xpU", "title": "Cardio Hip Hop" },
+        "apple": { "id": "pl.6db5f7b47286460e9928d09d9ac0be69", "slug": "top-hits-run", "title": "Top Hits Run" },
+        "deezer": { "id": "1358731495", "title": "Running Hits" }
+      }
+    },
+    {
+      "key": "fast",
+      "search": "drum and bass running",
+      "links": {
+        "spotify": { "id": "37i9dQZF1DX8jnAPF7Iiqp", "title": "Run 'N' Bass" },
+        "ytmusic": { "id": "RDCLAK5uy_mjFIQx6np0uEk0EFQnkGFxqR3OMxReYv0", "title": "Hip-Hop Energy" },
+        "apple": { "id": "pl.5a4bf230c2e849ffa65605c6e8067bea", "slug": "runners-high", "title": "Runner's High" },
+        "deezer": { "id": "10153476122", "title": "Run'n'Bass" }
+      }
+    }
+  ]
+}

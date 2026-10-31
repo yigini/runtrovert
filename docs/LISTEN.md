@@ -113,3 +113,16 @@ What every sponsor agrees to:
 
 - Apple: "Data Not Collected" is unaffected. No tracking, no ad SDK.
 - Google Play: Play counts sponsored content shown in a list as ads. When the first paid offer goes live, answer "Contains ads" with yes, and say in the store listing that it is one shelf the runner opens themselves, with no tracking.
+
+## Music for your run
+
+Four running playlists by mood (easy, long, tempo, fast) sit under "Your sound". They are in
+`content/playlists.json` and ship inside the app, so showing them fetches nothing. A tap opens
+the exact playlist in the runner's music app (Spotify, YouTube Music, Apple Music, Deezer); in
+Amazon Music, Tidal and SoundCloud it opens a search for the mood instead, and the button says
+"Search in …". Before a music app is chosen, the tap asks for one first and remembers it.
+
+Editorial playlists come first; one is a Nike Run Club playlist on Spotify. Before a release, run
+`npm run check:playlists`: it checks every id against the service's public page (Spotify oEmbed,
+Deezer's public API, the playlist's web page) and fails on any that are gone or renamed. Replace
+those in the JSON; `npm run test:playlists` checks the file's shape.
