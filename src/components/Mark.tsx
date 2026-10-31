@@ -3,15 +3,14 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { colors } from '../theme';
 
 /**
- * The Runtrovert mark: a thick ring opened at one end, one dot inside.
- * A route with you alone on it. Same geometry as the app icon.
+ * The Runtrovert mark: one hand-drawn loop whose finish runs just past its start.
+ * A run that comes home. Same path as the app icon (scripts/make-icons.mjs).
  */
 export function Mark({ size = 48, ground = colors.cream, ink = colors.ink, tile = true }: { size?: number; ground?: string; ink?: string; tile?: boolean }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 240 240">
       {tile && <Rect width="240" height="240" rx="54" fill={ground} />}
-      <Path d="M185.7 102.4 A 68 68 0 1 1 137.6 54.3" stroke={ink} strokeWidth="32" strokeLinecap="round" fill="none" />
-      <Circle cx="120" cy="120" r="24" fill={ink} />
+      <Path d="M104 176 C 56 160, 40 100, 76 66 C 112 32, 184 40, 198 96 C 210 148, 180 196, 136 200" stroke={ink} strokeWidth="28" strokeLinecap="round" fill="none" />
     </Svg>
   );
 }
