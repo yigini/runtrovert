@@ -17,7 +17,7 @@ import { RouteMap } from '../components/RouteMap';
 import { StoriesCard, storyPins, useRouteStories } from '../components/StoriesCard';
 import { SavePlaceSheet } from '../components/SavePlaceSheet';
 import { suggestName } from '../places';
-import { createPlace, dismissLoop, finishPlace, logRun, saveSig, type FinishPlace, type PlaceDraft } from '../placeStore';
+import { createPlace, dismissLoop, finishPlace, logRun, saveSig, type FinishPlace, type Place, type PlaceDraft } from '../placeStore';
 import { RunStatsView } from '../components/RunStats';
 import { UnlockNudge } from '../components/UnlockNudge';
 import { YouLine } from '../components/YouLine';
@@ -421,7 +421,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     if (!found) return;
     await saveSig(runId, found.sig);
     if (found.offer.kind === 'place') await logRun(found.offer.placeId, runId);
-    else if (found.offer.kind === 'offer' && placeDraft && found.sig) await createPlace(placeDraft, found.sig, runId, found.offer.earlier);
+    else if (placeDraft && found.sig) await createPlace(placeDraft, found.sig, runId, found.earlier);
   }
 
   function placeNotNow() {
@@ -479,9 +479,15 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     veil.setValue(1);
   }
 
+  /** "Run this again" from the home screen's place: the same as from the place itself. */
+  function runPlace(p: Place) {
+    setGhostRun({ placeId: p.id, name: p.name, path: p.sig.pts.map(([latitude, longitude]) => ({ latitude, longitude })) });
+    void onStart();
+  }
+
   // ---- Idle ------------------------------------------------------------------
   if (phase === 'idle') {
-    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} onCommute={onCommute} onRunFree={onRunFree} planToday={session} planNext={requested ? null : planNext} plan={requested ? null : planShown} welcomeBack={!requested} onOpenPlan={onOpenPlan} onPlanChanged={onPlanChanged} onBrowseListen={onBrowseListen} />;
+    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} onCommute={onCommute} onRunFree={onRunFree} planToday={session} planNext={requested ? null : planNext} plan={requested ? null : planShown} welcomeBack={!requested} onOpenPlan={onOpenPlan} onPlanChanged={onPlanChanged} onBrowseListen={onBrowseListen} onRunPlace={runPlace} />;
   }
 
   // ---- Countdown -------------------------------------------------------------

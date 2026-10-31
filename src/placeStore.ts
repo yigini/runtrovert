@@ -1,5 +1,5 @@
 import { getDb, getPoints, listRuns, loadValue, saveValue } from './db';
-import { placeOffer, routeSignature, SIG_V, thin, type PlaceOffer, type RoutePt, type RouteSig, type VisitRun } from './places';
+import { earlierOnLoop, findPlace, HOME_HIDE_MS, homePlace, latestNote, placeOffer, routeSignature, SIG_V, thin, type PlaceOffer, type PlacedVisit, type RoutePt, type RouteSig, type VisitRun } from './places';
 import type { Quiet } from './types';
 
 // Your places on this phone: the places table, each place's dated log, and a
@@ -28,6 +28,7 @@ export interface PlaceDraft {
 }
 
 const DISMISSED_KEY = 'placeDismissed';
+const HOME_HIDDEN_KEY = 'placeHomeHidden';
 /** Older runs than this many are not looked at for the third-run offer. */
 const LOOK_BACK = 250;
 
@@ -178,20 +179,94 @@ export interface FinishPlace {
   sig: RouteSig | null;
   offer: PlaceOffer;
   place: Place | null;
+  /** Earlier runs on the same loop, so a place kept from any run starts with its history. */
+  earlier: number[];
 }
 
 /** What the finish screen says about where you ran: a known place, the third-run offer, or nothing. */
 export async function finishPlace(runId: number | null, points: RoutePt[]): Promise<FinishPlace> {
   const sig = routeSignature(points);
-  if (!sig) return { sig, offer: { kind: 'none' }, place: null };
+  if (!sig) return { sig, offer: { kind: 'none' }, place: null, earlier: [] };
   const [places, past, dismissed] = await Promise.all([listPlaces(), pastSigs(runId), loadValue<RouteSig[]>(DISMISSED_KEY)]);
   const offer = placeOffer(sig, past, places, dismissed ?? []);
   const place = offer.kind === 'place' ? (places.find((p) => p.id === offer.placeId) ?? null) : null;
-  return { sig, offer, place };
+  const earlier = offer.kind === 'offer' ? offer.earlier : offer.kind === 'none' ? earlierOnLoop(sig, past) : [];
+  return { sig, offer, place, earlier };
 }
 
 /** "Not now": this loop is never offered again. */
 export async function dismissLoop(sig: RouteSig): Promise<void> {
   const list = (await loadValue<RouteSig[]>(DISMISSED_KEY).catch(() => null)) ?? [];
   await saveValue(DISMISSED_KEY, [...list.slice(-49), thin(sig)]);
+}
+
+// ---- Any run can become a place ---------------------------------------------------
+
+export interface RunPlaceChoice {
+  sig: RouteSig;
+  /** A place this run's loop already is, though the run isn't in its log yet. */
+  match: Place | null;
+}
+
+/**
+ * For a kept run that isn't in a place's log: its loop, and the place it
+ * already matches, if one does. Null when there's no route to keep (too short,
+ * or no GPS).
+ */
+export async function runPlaceChoice(runId: number): Promise<RunPlaceChoice | null> {
+  const db = await getDb();
+  const row = (await db.getFirstAsync('SELECT v, sig FROM route_sigs WHERE run_id = ?', runId)) as { v: number; sig: string | null } | null;
+  let sig = row && row.v === SIG_V ? parseSig(row.sig) : undefined;
+  if (sig === undefined) {
+    sig = routeSignature(await getPoints(runId));
+    await saveSig(runId, sig);
+  }
+  if (!sig) return null;
+  const places = await listPlaces();
+  const id = findPlace(sig, places);
+  return { sig, match: id != null ? (places.find((p) => p.id === id) ?? null) : null };
+}
+
+/** "Save as a place" from a run's own page. Earlier runs on the loop come into its log too. */
+export async function placeFromRun(runId: number, draft: PlaceDraft, sig: RouteSig): Promise<number> {
+  const earlier = earlierOnLoop(sig, await pastSigs(runId));
+  return createPlace(draft, sig, runId, earlier);
+}
+
+// ---- One place on the home screen ---------------------------------------------------
+
+export interface HomePlace {
+  place: Place;
+  /** The runner's own latest note there, if they've written one. */
+  note: { at: number; note: string } | null;
+}
+
+export async function homePlaceCard(now = Date.now()): Promise<HomePlace | null> {
+  const db = await getDb();
+  const [places, rows, hidden] = await Promise.all([
+    listPlaces(),
+    db.getAllAsync('SELECT place_id, at, busy, note FROM place_visits') as Promise<any[]>,
+    loadValue<Record<number, number>>(HOME_HIDDEN_KEY).catch(() => null),
+  ]);
+  if (!places.length) return null;
+  const visits: PlacedVisit[] = rows.map((r) => ({ placeId: r.place_id, at: r.at, busy: r.busy, note: r.note }));
+  const id = homePlace(
+    places.map((p) => p.id),
+    visits,
+    now,
+    hidden ?? {},
+  );
+  const place = id != null ? places.find((p) => p.id === id) : null;
+  if (!place) return null;
+  const last = latestNote(visits.filter((v) => v.placeId === id));
+  return { place, note: last ? { at: last.at, note: last.note!.trim() } : null };
+}
+
+/** "Hide": this place stays off the home screen for a week. */
+export async function hideHomePlace(placeId: number, now = Date.now()): Promise<void> {
+  const cur = (await loadValue<Record<number, number>>(HOME_HIDDEN_KEY).catch(() => null)) ?? {};
+  const keep: Record<number, number> = {};
+  for (const [k, until] of Object.entries(cur)) if (until > now) keep[Number(k)] = until;
+  keep[placeId] = now + HOME_HIDE_MS;
+  await saveValue(HOME_HIDDEN_KEY, keep);
 }
