@@ -28,6 +28,7 @@ import { TrainScreen } from './src/screens/TrainScreen';
 import { UnlockHost } from './src/screens/UnlockScreen';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import { EverythingScreen } from './src/screens/EverythingScreen';
+import { CreditsScreen } from './src/screens/CreditsScreen';
 import { FEWER_ACTION, fewer, fewerMessage, notificationStatus, notifyAfterRun, requestNotificationPermission, rescheduleReminders } from './src/notify';
 import { SettingsProvider, useSettings } from './src/settings';
 import { startBilling } from './src/billing';
@@ -46,7 +47,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 type Tab = 'run' | 'runs' | 'train';
 /** Opened over any tab: Settings from the gear, every Listen shelf from the sheet beside Start. */
-type Sub = 'settings' | 'listen' | 'everything' | null;
+type Sub = 'settings' | 'listen' | 'everything' | 'credits' | null;
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({ DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold, Fraunces_300Light, Fraunces_400Regular_Italic, Fraunces_600SemiBold });
@@ -286,6 +287,7 @@ function Shell() {
               runLive={liveRun}
               onBack={() => setSub(null)}
               onOpenListen={() => setSub('listen')}
+              onOpenCredits={() => setSub('credits')}
               onOpenEverything={() => {
                 setEverythingFrom('settings');
                 setSub('everything');
@@ -293,6 +295,7 @@ function Shell() {
             />
           )}
           {sub === 'everything' && <EverythingScreen onBack={() => setSub(everythingFrom)} onChanged={() => setRefreshKey((k) => k + 1)} />}
+          {sub === 'credits' && <CreditsScreen onBack={() => setSub('settings')} />}
           {sub === 'listen' && <ListenScreen runLive={liveRun} onBack={() => setSub(null)} />}
           {sub == null && tab === 'train' && (
             <TrainScreen

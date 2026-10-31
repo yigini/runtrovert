@@ -24,7 +24,7 @@ const HOW_OFTEN: Array<{ key: NotifyPerWeek; label: string; hint: string }> = li
 
 const CUES: Array<{ key: CueMode; label: string; hint: string }> = live(() => (['silent', 'haptic', 'voice'] as const).map((key) => ({ key, ...ui().settings.cue[key] })));
 
-export function SettingsScreen({ onOpenListen, onOpenEverything, onBack, runLive }: { onOpenListen: () => void; onOpenEverything: () => void; onBack?: () => void; runLive?: boolean }) {
+export function SettingsScreen({ onOpenListen, onOpenEverything, onOpenCredits, onBack, runLive }: { onOpenListen: () => void; onOpenEverything: () => void; onOpenCredits: () => void; onBack?: () => void; runLive?: boolean }) {
   const { settings, update } = useSettings();
   const [presets, setPresets] = useState(false);
   const preset = settings.runPreset ? presetInfo(settings.runPreset) : null;
@@ -258,6 +258,17 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onBack, runLive
         <Text style={styles.privacy}>{ui().settings.runtrovertHasNoServerYour}</Text>
         <Text style={styles.privacy}>{ui().stories.privacyLine}</Text>
         <MoneyNote />
+      </Section>
+
+      <Section title={ui().credits.about} bg={colors.white} fg={colors.muted}>
+        <Pressable onPress={onOpenCredits} accessibilityRole="button" accessibilityHint={ui().credits.rowHint} style={({ pressed }) => [styles.option, pressed && { opacity: 0.85 }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.optionLabel}>{ui().credits.title}</Text>
+            <Text style={styles.optionHint}>{ui().credits.rowHint}</Text>
+          </View>
+          <Text style={[styles.chev, { color: colors.muted }]} importantForAccessibility="no">›</Text>
+        </Pressable>
+        <Text style={styles.privacy}>{ui().credits.madeBy}</Text>
       </Section>
       <PresetSheet open={presets} value={settings.runPreset ?? 'just'} onPick={(p) => update({ runPreset: p })} onClose={() => setPresets(false)} />
     </ScrollView>
