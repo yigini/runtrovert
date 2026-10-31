@@ -321,3 +321,71 @@ export function quietPatterns(visits: Visit[], max = 3): PatternLine[] {
   kept.sort((a, b) => b.of - a.of || b.count / b.of - a.count / a.of || Number(b.quiet) - Number(a.quiet));
   return kept.slice(0, max).map(({ text, count, of }) => ({ text, count, of }));
 }
+
+// ---- One place for today (home screen) --------------------------------------------
+
+export interface PlacedVisit extends Visit {
+  placeId: number;
+}
+
+/** How long "Hide" keeps a place off the home screen. */
+export const HOME_HIDE_MS = 7 * 24 * 60 * 60 * 1000;
+
+function sameDay(a: number, b: number): boolean {
+  const x = new Date(a);
+  const y = new Date(b);
+  return x.getFullYear() === y.getFullYear() && x.getMonth() === y.getMonth() && x.getDate() === y.getDate();
+}
+
+/**
+ * The one place to show on the home screen now, if any: the place you've run
+ * most often at this time of day, counting this weekday double. One earlier
+ * run on this weekday at this time is enough, or two at this time on any
+ * day. Not a place you've already run today, and not one you hid
+ * (`hidden`: place id → hidden until, epoch ms). A single place from your own
+ * runs, never a prediction about it.
+ */
+export function homePlace(placeIds: number[], visits: PlacedVisit[], now: number, hidden: Record<number, number> = {}): number | null {
+  const ids = new Set(placeIds);
+  const part = dayPart(now);
+  const day = new Date(now).getDay();
+  const score = new Map<number, { s: number; last: number }>();
+  const ranToday = new Set<number>();
+  for (const v of visits) {
+    if (!ids.has(v.placeId) || v.at > now) continue;
+    if (sameDay(v.at, now)) {
+      ranToday.add(v.placeId);
+      continue;
+    }
+    if (dayPart(v.at) !== part) continue;
+    const cur = score.get(v.placeId) ?? { s: 0, last: 0 };
+    cur.s += new Date(v.at).getDay() === day ? 2 : 1;
+    cur.last = Math.max(cur.last, v.at);
+    score.set(v.placeId, cur);
+  }
+  let best: { id: number; s: number; last: number } | null = null;
+  for (const [id, { s, last }] of score) {
+    if (s < 2 || ranToday.has(id) || (hidden[id] ?? 0) > now) continue;
+    if (!best || s > best.s || (s === best.s && last > best.last)) best = { id, s, last };
+  }
+  return best?.id ?? null;
+}
+
+/** The runner's own latest words about a place: the newest visit with a note. */
+export function latestNote<V extends Visit>(visits: V[]): V | null {
+  let best: V | null = null;
+  for (const v of visits) if (v.note && v.note.trim() && (!best || v.at > best.at)) best = v;
+  return best;
+}
+
+/** The dated log grouped by month, newest first, so seasons show without a chart. */
+export function byMonth<V extends Visit>(visits: V[]): Array<{ year: number; month: number; visits: V[] }> {
+  const out: Array<{ year: number; month: number; visits: V[] }> = [];
+  for (const v of [...visits].sort((a, b) => b.at - a.at)) {
+    const d = new Date(v.at);
+    const last = out[out.length - 1];
+    if (last && last.year === d.getFullYear() && last.month === d.getMonth()) last.visits.push(v);
+    else out.push({ year: d.getFullYear(), month: d.getMonth(), visits: [v] });
+  }
+  return out;
+}

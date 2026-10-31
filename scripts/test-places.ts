@@ -1,7 +1,7 @@
 // npm run test:places — Your places: telling one loop from another on the
 // phone, the third-run offer, and the dated notes that become patterns.
 import assert from 'node:assert/strict';
-import { BUSY_LABEL, MIN_ROUTE_M, offerLine, placeOffer, placeSummary, quietPatterns, routeSignature, sameLoop, similarity, STEP_M, thin, type RoutePt, type RouteSig, type Visit } from '../src/places.ts';
+import { BUSY_LABEL, byMonth, HOME_HIDE_MS, homePlace, latestNote, MIN_ROUTE_M, offerLine, placeOffer, placeSummary, quietPatterns, routeSignature, sameLoop, similarity, STEP_M, thin, type PlacedVisit, type RoutePt, type RouteSig, type Visit } from '../src/places.ts';
 
 const LAT = 52.37;
 const LON = 4.89;
@@ -171,6 +171,36 @@ const park = sig(circle(800, { seed: 1 }));
   assert.equal(m[0].of, 6);
   console.log('✓ patterns: counts and dates, never a score or a promise');
   for (const l of lines) console.log(`   ${l.text}`);
+}
+
+// ---- One place on the home screen, and the runner's own words ----
+{
+  const t = (y: number, mo: number, d: number, h: number) => new Date(y, mo, d, h, 15).getTime();
+  // Saturday 31 Oct 2026, 9:15: a weekend morning.
+  const now = t(2026, 9, 31, 9);
+  const v = (placeId: number, at: number, note: string | null = null): PlacedVisit => ({ placeId, at, busy: null, note });
+  // Place 1: last Saturday morning, once. Place 2: two weekday mornings. Place 3: evenings only.
+  const visits = [v(1, t(2026, 9, 24, 9), 'Leaves everywhere'), v(2, t(2026, 9, 27, 8)), v(2, t(2026, 9, 28, 10)), v(3, t(2026, 9, 24, 19)), v(3, t(2026, 9, 17, 19))];
+  assert.equal(homePlace([1, 2, 3], [visits[0]], now), 1, 'one run here on this weekday at this time is enough');
+  assert.equal(homePlace([2], visits, now), 2, 'or two at this time on any day');
+  assert.equal(homePlace([3], visits, now), null, 'evenings are not this morning');
+  assert.equal(homePlace([2], visits.slice(1, 2), now), null, 'one weekday morning is not enough for a Saturday');
+  // Most often wins; this weekday counts double, so place 1 (2 pts) ties place 2 (2 pts) and the newer run wins.
+  assert.equal(homePlace([1, 2, 3], visits, now), 2);
+  assert.equal(homePlace([1, 2, 3], [...visits, v(1, t(2026, 9, 17, 9))], now), 1, 'two Saturday mornings beat two weekday mornings');
+  // Already run today, or hidden: not shown.
+  assert.equal(homePlace([1], [visits[0], v(1, t(2026, 9, 31, 7))], now), null, 'already run today');
+  assert.equal(homePlace([1], [visits[0]], now, { 1: now + HOME_HIDE_MS }), null, 'hidden for a week');
+  assert.equal(homePlace([1], [visits[0]], now, { 1: now - 1 }), 1, 'back after the week');
+  assert.equal(homePlace([], visits, now), null, 'a forgotten place never shows');
+  // The runner's latest note, not the app's words.
+  assert.equal(latestNote([...visits, v(2, t(2026, 9, 29, 8), '  ')])?.note, 'Leaves everywhere');
+  assert.equal(latestNote([v(1, 1)]), null);
+  // The log in months, newest first.
+  const months = byMonth([v(1, t(2026, 8, 3, 9)), v(1, t(2026, 9, 24, 9)), v(1, t(2026, 9, 2, 9))]);
+  assert.deepEqual(months.map((m) => [m.month, m.visits.length]), [[9, 2], [8, 1]]);
+  assert.ok(months[0].visits[0].at > months[0].visits[1].at);
+  console.log('✓ home place: one place from your own runs, hideable; latest note is yours; log by month');
 }
 
 console.log('places: all good');
