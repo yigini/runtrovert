@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  AppState,
   Image,
   Linking,
   Modal,
@@ -22,7 +23,7 @@ import { BackButton } from '../components/BackButton';
 import { Button } from '../components/Button';
 import { MusicStrip } from '../components/MusicStrip';
 import { listRuns } from '../db';
-import { appByKey, canControl, installedApps, installedPackages, openMusicApp, type MusicApp } from '../music';
+import { appByKey, askNowPlaying, canControl, canShowNowPlaying, installedApps, installedPackages, nowPlayingAllowed, openMusicApp, type MusicApp } from '../music';
 import { playlistTarget, type Mood, type MoodKey } from '../playlistLogic';
 import { MOODS } from '../playlists';
 import { dayKey } from '../presets';
@@ -228,6 +229,7 @@ export function ListenScreen({ onBack, runLive = false }: { onBack?: () => void;
           />
         </View>
         {settings.musicStrip ? <MusicStrip appKey={settings.musicApp} /> : null}
+        {settings.musicStrip && canShowNowPlaying ? <ShowTheSong /> : null}
         <Text style={styles.soundHint}>{ui().listen.voiceCuesLowerYourMusic}</Text>
       </View>
 
@@ -373,6 +375,45 @@ async function openShowIn(show: Show, app: PodcastApp, ep?: Episode | null) {
     if (ok) return;
   }
   shareFeed(show);
+}
+
+/**
+ * The opt-in for the song's name on the music bar (Android only). The switch is
+ * Android's own notification access; we just send the runner there and read the
+ * answer again when they come back.
+ */
+function ShowTheSong() {
+  const [allowed, setAllowed] = useState(() => nowPlayingAllowed());
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => st === 'active' && setAllowed(nowPlayingAllowed()));
+    return () => sub.remove();
+  }, []);
+  if (allowed) {
+    return (
+      <View style={styles.stripHead}>
+        <Text style={[styles.soundHint, { flex: 1 }]}>{ui().listen.showingWhatSPlaying}</Text>
+        <Pressable onPress={() => askNowPlaying()} accessibilityRole="button" hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}>
+          <Text style={styles.soundLink}>{ui().listen.androidSettings}</Text>
+        </Pressable>
+      </View>
+    );
+  }
+  return (
+    <View style={styles.stripHead}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={styles.soundTitle}>{ui().listen.showTheSong}</Text>
+        <Text style={styles.soundHint}>{ui().listen.showTheSongHint}</Text>
+      </View>
+      <Pressable
+        onPress={() => askNowPlaying()}
+        accessibilityRole="button"
+        accessibilityHint={ui().listen.androidSettings}
+        style={({ pressed }) => [styles.soundPill, pressed && { opacity: 0.8 }]}
+      >
+        <Text style={styles.soundPillText}>{ui().listen.turnOn}</Text>
+      </Pressable>
+    </View>
+  );
 }
 
 /** Opens a running playlist in the music app: the exact one, else a search there, else just the app. */
@@ -1135,6 +1176,9 @@ const styles = StyleSheet.create({
   playText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.cream },
 
   tile: { width: TILE, gap: 6 },
+  soundLink: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.lilac, textDecorationLine: 'underline' },
+  soundPill: { minHeight: 44, paddingHorizontal: 16, borderRadius: radius.pill, backgroundColor: colors.lilac, alignItems: 'center', justifyContent: 'center' },
+  soundPillText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.ink },
   moodTile: { width: 168, minHeight: 200, borderRadius: radius.lg, padding: 14, gap: 10 },
   moodTitle: { fontFamily: fonts.display, fontSize: 19, lineHeight: 24, color: colors.text },
   moodHint: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18 },

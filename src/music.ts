@@ -18,6 +18,20 @@ interface Native {
   installed?(ids: string[]): string[];
   open?(id: string | null): boolean;
   duck(on: boolean): boolean;
+  nowPlayingAllowed?(): boolean;
+  askNowPlaying?(): boolean;
+  nowPlaying?(): NowPlaying | null;
+}
+
+/** What the music app is playing. Android only, and only with notification access on. */
+export interface NowPlaying {
+  title: string;
+  artist: string | null;
+  /** Android package of the app playing it. */
+  app: string;
+  playing: boolean;
+  /** A small copy of the cover in the app's cache (file://), or null. */
+  art: string | null;
 }
 
 // Missing in Expo Go and on web; everything below degrades to "open the app".
@@ -101,6 +115,49 @@ export async function openMusicApp(key: string | null): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/** Whether the phone can show what's playing at all (Android with our native module). */
+export const canShowNowPlaying = Platform.OS === 'android' && typeof native?.nowPlaying === 'function';
+
+/** Whether the runner has turned on notification access for Runtrovert. */
+export function nowPlayingAllowed(): boolean {
+  try {
+    return native?.nowPlayingAllowed?.() ?? false;
+  } catch {
+    return false;
+  }
+}
+
+/** Opens Android's notification access screen, on Runtrovert's row where the phone allows it. */
+export function askNowPlaying(): boolean {
+  try {
+    return native?.askNowPlaying?.() ?? false;
+  } catch {
+    return false;
+  }
+}
+
+/** Title, artist and cover of what is playing, or null. Never leaves the phone. */
+export function nowPlaying(): NowPlaying | null {
+  try {
+    const n = native?.nowPlaying?.();
+    return n && typeof n.title === 'string' && n.title ? n : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Opens the app that is playing (an Android package), else the chosen music app. */
+export async function openPlaying(pkg: string | null, key: string | null): Promise<boolean> {
+  if (pkg && Platform.OS === 'android') {
+    try {
+      if (native?.open?.(pkg)) return true;
+    } catch {
+      // fall through
+    }
+  }
+  return openMusicApp(key);
 }
 
 export function isPlaying(): boolean {
