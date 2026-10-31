@@ -17,7 +17,7 @@
   <link rel="preload" href="fonts/DMSans_400Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" as="image" href="media/wide-sunset-beach.jpg" media="(min-aspect-ratio: 1/1)">
   <link rel="preload" as="image" href="media/bg-sunset-beach.jpg" media="(max-aspect-ratio: 999/1000)">
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -47,7 +47,8 @@
     <p class="what"><strong>Runtrovert is a running app for people who'd rather run alone.</strong> No feed, no followers, no account. Your runs stay on your phone.</p>
     <p class="ticker" id="ticker">New 5 km best. Nobody saw. That was the plan.</p>
     <div class="foot">
-      <div class="stores">
+      <a class="trydemo" href="#try">Try the interactive demo</a>
+      <div class="stores" aria-label="Android app coming soon. iPhone later.">
         <div class="store">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3.5v17l9-8.5z" fill="#c9e7d6"/><path d="M5 3.5l11.5 6.4L14 12.5z" fill="#c5dcf0"/><path d="M5 20.5l11.5-6.4L14 11.5z" fill="#f7c9b6"/><path d="M16.5 9.9L20 12l-3.5 2.1-2.5-2.1z" fill="#f5e3a8"/></svg>
           <span><small>Soon on</small><strong>Google Play</strong></span><span class="tagsoon">Soon</span>
@@ -74,7 +75,7 @@
   </div>
 </section>
 
-<section class="ch left" data-name="Every number, or none">
+<section class="ch left" data-name="Every number, or none" id="try">
   <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-track-day.jpg"><img src="media/bg-night-track.jpg" alt="" loading="lazy" decoding="async"></picture>
   <video data-loop data-wide="media/wide-track-day.mp4" data-tall="media/bg-night-track.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in demo-wrap">
@@ -136,7 +137,7 @@
   <div class="in">
     <span class="num"><b>04</b> Your places</span>
     <h2>It remembers the loops <em>you love.</em></h2>
-    <p class="say">Keep any run as a place, from the very first one, with Save as a place on its finish screen. Run the same loop three times and Runtrovert offers by itself. Name it, tag it, note how busy it was. <strong>"Run this again" puts your old line on the map to follow.</strong> Over the months, it learns when it's usually quiet there, only from your own notes. <a class="lock" href="#price">Part of Everything, once</a></p>
+    <p class="say">Keep any run as a place, from the very first one, with Save as a place on its finish screen. Run the same loop three times and Runtrovert offers by itself. Name it, tag it, note how busy it was. <strong>"Run this again" puts your old line on the map to follow.</strong> Over the months, it learns when it's usually quiet there, only from your own notes. Saving places is free; <a class="lock" href="#price">the patterns are part of Everything, once</a></p>
     <div class="place" aria-label="Example of a saved place">
       <p class="t">Park loop</p>
       <p class="m">4.8 km · 9 runs · last on Sunday</p>
@@ -175,10 +176,10 @@
     <ul class="three">
       <li><span class="k">Plain map turns it off</span><b>Map tiles</b><span>OpenFreeMap sees which area is on screen.</span></li>
       <li><span class="k">Weather switch</span><b>The forecast</b><span>Open-Meteo gets a location rounded to about 1 km.</span></li>
-      <li><span class="k">Only if you say yes</span><b>The Listen list</b><span>One file, the same for everyone.</span></li>
+      <li><span class="k">Only if you say yes</span><b>The Listen list</b><span>Podcasts and playlists picked for running, opened in your own app. One file, the same for everyone; sponsored picks are marked.</span></li>
     </ul>
     <p class="also"><span class="k">Off until you switch it on</span><b>Things you passed.</b> After a run, Wikipedia, OpenStreetMap and Wikidata are asked what's in the squares of about 1 km the run went through. They see those squares, which outline roughly where you ran, never the line itself.</p>
-    <p class="say fine">Each of these services sees your IP address, like any website. No account, no analytics, no push server. The full detail is in the <a href="privacy.html">privacy policy</a>.</p>
+    <p class="say fine">Each of these services sees your IP address, like any website. No account, no analytics, no push server. If your phone's backups are on, Android keeps a copy of the app's data in your own Google account, not with us. The full detail is in the <a href="privacy.html">privacy policy</a>.</p>
   </div>
 </section>
 
@@ -232,7 +233,7 @@
         <span><small>Later on the</small><strong>App Store</strong></span><span class="tagsoon">Later</span>
       </div>
     </div>
-    <a class="again" href="#main">Run this again <span aria-hidden="true">↑</span></a>
+    <a class="again" href="#main">Back to top <span aria-hidden="true">↑</span></a>
   </div>
 </section>
 

@@ -55,7 +55,7 @@ setUnlockState({ previewLocks: false });
 check(planWeekOpen(plan, 8) && openWeeks(plan).weeks.length === 8, 'unlocked: every week');
 
 // Copy: the plain price line and the Train line.
-check(priceLine() === '€4.99, once. It becomes €6.99 when full training plans arrive.', `price line: ${priceLine()}`);
+check(priceLine() === '€4.99, once. Launch price; €6.99 later.', `price line: ${priceLine()}`);
 check(trainLine(8).startsWith('Week 1 is yours to try. Weeks 2 to 8 come with Everything, once'), trainLine(8));
 check(trainLine(null).includes('The weeks after'), trainLine(null));
 for (const t of [priceLine(), trainLine(8)]) check(!/[—!]/.test(t), `no em dashes or exclamation marks: ${t}`);
