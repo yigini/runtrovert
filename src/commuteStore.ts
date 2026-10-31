@@ -134,7 +134,9 @@ export async function commuteNoteList(settings: Settings, now: number): Promise<
     const k = Math.floor(n.at / DAY_MS);
     const titles = n.dir === 'toWork' ? ui().commute.morningTitles : ui().commute.homeTitles;
     const lines = n.dir === 'toWork' ? ui().commute.morningLines : ui().commute.homeLines;
-    return { at: n.at, dir: n.dir, title: titles[k % titles.length], body: lines[k % lines.length](formatDistance(estimate(n.dir, c, past).distanceM, settings.unitsKm)) };
+    // Fewer words: always the first, plainest line.
+    const i = settings.fewerWords ? 0 : k;
+    return { at: n.at, dir: n.dir, title: titles[i % titles.length], body: lines[i % lines.length](formatDistance(estimate(n.dir, c, past).distanceM, settings.unitsKm)) };
   });
 }
 

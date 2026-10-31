@@ -141,7 +141,7 @@ function Shell() {
     if (ready && settings.onboarded) {
       rescheduleReminders(settings).catch(() => {});
     }
-  }, [ready, settings.onboarded, settings.notifyPerWeek, settings.notifyHour, settings.notifyMinute, settings.notifyAuto, settings.weather, settings.language, planKey]);
+  }, [ready, settings.onboarded, settings.notifyPerWeek, settings.notifyHour, settings.notifyMinute, settings.notifyAuto, settings.weather, settings.language, settings.fewerWords, planKey]);
 
   const settingsRef = useRef(settings);
   settingsRef.current = settings;

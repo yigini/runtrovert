@@ -101,6 +101,9 @@ export async function turnOnNotifications(): Promise<boolean> {
 
 // ---- Picking lines ---------------------------------------------------------
 
+/** With "Fewer words" every note is simply from the app. */
+const PLAIN_TITLE = 'Runtrovert';
+
 function pick<T>(arr: T[], rnd: () => number): T {
   return arr[Math.floor(rnd() * arr.length)];
 }
@@ -129,7 +132,29 @@ function hhmm(ms: number): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-function bodyFor(r: PlannedReminder, seen: Set<string>, rnd: () => number): { id: string | null; text: string } {
+/** "Fewer words": the plain fact for each kind of note. */
+function plainBodyFor(r: PlannedReminder, rnd: () => number): string {
+  const p = voice().reminders.plain;
+  const hour = new Date(r.at).getHours();
+  switch (r.kind) {
+    case 'rhythm':
+      return p.rhythm.replace(/\{day\}/g, weekdayName(r.at));
+    case 'window':
+      return p.window.replace('{time}', hhmm(r.dryFrom ?? r.at));
+    case 'last':
+    case 'afternoon':
+    case 'weekend':
+    case 'weather':
+    case 'quiet':
+    case 'gap':
+      return p[r.kind];
+    default:
+      return hour < 10 ? p.morning : hour >= 17 ? p.evening : pick(p.nudge, rnd);
+  }
+}
+
+function bodyFor(r: PlannedReminder, seen: Set<string>, rnd: () => number, plain = false): { id: string | null; text: string } {
+  if (plain) return { id: null, text: plainBodyFor(r, rnd) };
   const hour = new Date(r.at).getHours();
   switch (r.kind) {
     case 'rhythm':
@@ -221,11 +246,11 @@ export async function rescheduleReminders(settingsIn?: Settings): Promise<void> 
       continue;
     }
     const r = f.reminder;
-    const line = bodyFor(r, seen, rnd);
+    const line = bodyFor(r, seen, rnd, settings.fewerWords);
     if (line.id) seen.add(line.id);
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: pick(voice().reminders.titles, rnd),
+        title: settings.fewerWords ? PLAIN_TITLE : pick(voice().reminders.titles, rnd),
         body: line.text,
         sound: false,
         categoryIdentifier: r.kind === 'last' ? undefined : CATEGORY,
@@ -262,10 +287,12 @@ export async function notifyAfterRun(settings: Settings, runId: number, moodAfte
   await ensureChannel();
   const rnd = seeded(Date.now());
   const reflect = !moodAfterSet;
+  const v = voice().reminders;
+  const plain = settings.fewerWords;
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: pick(reflect ? voice().reminders.reflectTitles : voice().reminders.afterRunTitles, rnd),
-      body: pick(reflect ? voice().reminders.reflectLines : voice().reminders.afterRunLines, rnd),
+      title: plain ? (reflect ? v.plain.reflectTitle : v.plain.afterRunTitle) : pick(reflect ? v.reflectTitles : v.afterRunTitles, rnd),
+      body: plain ? (reflect ? v.plain.reflect : v.plain.afterRun) : pick(reflect ? v.reflectLines : v.afterRunLines, rnd),
       sound: false,
       data: { kind: 'after-run', runId },
     },
@@ -274,23 +301,27 @@ export async function notifyAfterRun(settings: Settings, runId: number, moodAfte
 }
 
 /** Settings: send one line right now, so you can see how they look (and that they arrive). */
-export async function sendLineNow(): Promise<boolean> {
+export async function sendLineNow(plain = false): Promise<boolean> {
   if (!(await requestNotificationPermission())) return false;
   await ensureChannel();
   await ensureCategory();
   const rnd = seeded(Date.now());
   await Notifications.scheduleNotificationAsync({
-    content: { title: pick(voice().reminders.titles, rnd), body: previewLine(), sound: false, categoryIdentifier: CATEGORY, data: { kind: 'preview' } },
+    content: { title: plain ? PLAIN_TITLE : pick(voice().reminders.titles, rnd), body: previewLine(plain), sound: false, categoryIdentifier: CATEGORY, data: { kind: 'preview' } },
     trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 5, channelId: CHANNEL },
   });
   return true;
 }
 
 /** For the Settings screen: a random line without scheduling anything. */
-export function previewLine(): string {
+export function previewLine(plain = false): string {
   const rnd = seeded(Date.now());
   const v = voice().reminders;
   const tuesday = weekdayName(new Date(2026, 9, 27).getTime());
+  if (plain) {
+    const p = v.plain;
+    return pick([...p.nudge, p.morning, p.evening, p.quiet, p.afternoon, p.weekend, p.rhythm.replace(/\{day\}/g, tuesday), p.window.replace('{time}', '11:00')], rnd);
+  }
   const pools = [v.moods.nudge, v.moods.quiet, v.moods.weather, v.moods.morning, v.moods.evening, v.afternoon, v.weekend, v.rhythm.map((l) => l.replace(/\{day\}/g, tuesday)), v.window.map((l) => l.replace('{time}', '11:00'))];
   const pool = pick(pools, rnd);
   return pick(pool, rnd);

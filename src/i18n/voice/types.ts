@@ -131,6 +131,28 @@ export interface ReminderVoice {
   afternoon: string[];
   /** Weekend notes. */
   weekend: string[];
+  /** "Fewer words": the plain fact for each kind of note, no joke. */
+  plain: PlainReminders;
+}
+
+export interface PlainReminders {
+  nudge: string[];
+  morning: string;
+  evening: string;
+  quiet: string;
+  gap: string;
+  weather: string;
+  /** {day} is the weekday. */
+  rhythm: string;
+  /** {time} is the first dry hour. */
+  window: string;
+  afternoon: string;
+  weekend: string;
+  last: string;
+  afterRunTitle: string;
+  afterRun: string;
+  reflectTitle: string;
+  reflect: string;
 }
 
 export interface TipVoice {
