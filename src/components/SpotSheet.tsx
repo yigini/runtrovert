@@ -55,8 +55,11 @@ export function SpotSheet({ open, title, initial, onSave, onClose }: { open: boo
 
   return (
     <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel={ui().commute.cancel} accessibilityRole="button">
-        <Pressable style={styles.sheet} onPress={() => {}} accessible={false}>
+      {/* The scrim sits behind the sheet, not around it: a Pressable around the map
+          takes the touch as a press and the map never gets to pan. */}
+      <View style={styles.scrim}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel={ui().commute.cancel} accessibilityRole="button" />
+        <View style={styles.sheet}>
           <View style={styles.grabber} />
           <Text style={styles.h2} accessibilityRole="header">{title}</Text>
           <Text style={styles.small}>{plain ? ui().commute.plainHint : ui().commute.sheetHint}</Text>
@@ -100,8 +103,8 @@ export function SpotSheet({ open, title, initial, onSave, onClose }: { open: boo
           <Pressable onPress={onClose} accessibilityRole="button" style={styles.cancel} hitSlop={8}>
             <Text style={styles.cancelText}>{ui().commute.cancel}</Text>
           </Pressable>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }
