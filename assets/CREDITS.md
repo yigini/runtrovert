@@ -36,6 +36,8 @@ free for commercial use, no attribution required). Raw clips are not in the repo
 | bg-glass-river | 8834377 |
 | bg-night-park | 3126162 |
 | bg-hood-path | 12752370 |
+| bg-sunny-park | 7218851 |
+| bg-river-bridge | 5033913 |
 
 The same list lives in `src/footage.ts` (`PEXELS`).
 
