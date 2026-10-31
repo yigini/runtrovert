@@ -2,9 +2,9 @@
  * Sensor fusion helpers.
  *
  * Barometer → elevation gain. GPS altitude wanders ±10 m; pressure doesn't.
- * We convert pressure to relative altitude with the barometric formula, smooth
- * it, and count only climbs above a threshold. On iOS the OS hands us
- * relativeAltitude directly.
+ * We convert pressure to relative altitude with the barometric formula and
+ * hand it to ClimbCounter (climb.ts: smoothing, threshold, jump guard). On
+ * iOS the OS hands us relativeAltitude directly.
  *
  * Pedometer → distance during GPS dropouts (tunnels, dense trees, underpass).
  * While GPS is healthy we calibrate stride length = gpsDistance / steps.
@@ -15,18 +15,15 @@
  */
 import { Barometer, Pedometer } from 'expo-sensors';
 import { Platform } from 'react-native';
+import { BARO_RULE, ClimbCounter, GPS_RULE } from './climb';
 import { GapFill } from './gapFill';
-
-const ELEV_THRESHOLD_M = 2.0;
-const ELEV_SMOOTH = 0.25; // EMA factor on altitude
 
 export class ElevationTracker {
   private sub: { remove: () => void } | null = null;
   private available = false;
-  private baroAlt: number | null = null; // smoothed relative altitude
-  private ref: number | null = null; // reference for threshold counting
-  private gpsRef: number | null = null;
-  gainM = 0;
+  private baro = new ClimbCounter(BARO_RULE);
+  private gps = new ClimbCounter(GPS_RULE);
+  private restored = 0; // climb carried over from before a restart
 
   async start() {
     this.stop(); // never two listeners
@@ -36,8 +33,7 @@ export class ElevationTracker {
       Barometer.setUpdateInterval(1000);
       this.sub = Barometer.addListener((m) => {
         const alt = m.relativeAltitude != null ? m.relativeAltitude : pressureToAltitude(m.pressure);
-        this.baroAlt = this.baroAlt == null ? alt : this.baroAlt + ELEV_SMOOTH * (alt - this.baroAlt);
-        this.step(this.baroAlt);
+        this.baro.push(alt, Date.now());
       });
     } catch {
       this.available = false;
@@ -45,24 +41,18 @@ export class ElevationTracker {
   }
 
   /** GPS altitude fallback, used only when no barometer. */
-  pushGpsAltitude(alt: number | null) {
+  pushGpsAltitude(alt: number | null, ts: number) {
     if (this.available || alt == null || !isFinite(alt)) return;
-    this.gpsRef = this.gpsRef == null ? alt : this.gpsRef + ELEV_SMOOTH * (alt - this.gpsRef);
-    this.step(this.gpsRef, 2.5);
+    this.gps.push(alt, ts);
   }
 
-  private step(alt: number, threshold = ELEV_THRESHOLD_M) {
-    if (this.ref == null) {
-      this.ref = alt;
-      return;
-    }
-    const diff = alt - this.ref;
-    if (diff >= threshold) {
-      this.gainM += diff;
-      this.ref = alt;
-    } else if (diff <= -threshold) {
-      this.ref = alt;
-    }
+  get gainM(): number {
+    return this.restored + this.baro.gainM + this.gps.gainM;
+  }
+
+  /** Recovery: the climb so far, from the snapshot. */
+  set gainM(m: number) {
+    this.restored = m - this.baro.gainM - this.gps.gainM;
   }
 
   stop() {
@@ -71,10 +61,9 @@ export class ElevationTracker {
   }
 
   reset() {
-    this.gainM = 0;
-    this.baroAlt = null;
-    this.ref = null;
-    this.gpsRef = null;
+    this.baro.reset();
+    this.gps.reset();
+    this.restored = 0;
   }
 
   get source(): 'barometer' | 'gps' {

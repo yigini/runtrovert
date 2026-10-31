@@ -14,6 +14,7 @@ import { getEngine } from './gps/engine';
 import { GpsFilter, type FilteredFix, type RawFix } from './gps/kalman';
 import { clearSnapshot, loadSnapshot, saveSnapshot, type RunSnapshot } from './gps/recovery';
 import { replayFixes } from './gps/replay';
+import { autoPauseDue, idleToRemove } from './gps/moving';
 import { ElevationTracker, StepFusion } from './gps/sensors';
 import { rememberPlace } from './place';
 import { GPS_PROFILES, profileFor, readPower, type GpsProfileName } from './power';
@@ -25,8 +26,7 @@ import { DEFAULT_SETTINGS, type LatLon, type Mood, type Quiet, type Settings, ty
 
 export { LOCATION_TASK } from './gps/engine';
 
-// Auto-pause: no real movement for this long → pause. Movement again → resume.
-const AUTO_PAUSE_AFTER_MS = 6000;
+// Auto-pause: fixes showing no real movement for 6 s → pause (gps/moving.ts). Movement again → resume.
 const MOVING_SPEED_MPS = 0.9; // ~3.2 km/h; slower than a walk
 const SNAPSHOT_EVERY_MS = 5000;
 const MAX_PATH_POINTS = 20000; // ~5.5 h at 1 Hz before we thin the live path
@@ -303,12 +303,11 @@ function onFixes(raws: RawFix[]) {
     }
 
     if (state.status === 'autopaused') {
-      if (moved) {
-        state.status = 'running';
-        openSegment();
-        cueAutoResume();
-      }
-      continue;
+      if (!moved) continue;
+      state.status = 'running';
+      openSegment();
+      cueAutoResume();
+      // Fall through: the step that showed you moving again is real distance.
     }
 
     // After a step-filled gap the first fix only adds what the steps didn't cover.
@@ -319,7 +318,7 @@ function onFixes(raws: RawFix[]) {
       pushPath({ latitude: fix.lat, longitude: fix.lon });
       pendingPoints.push({ ts: fix.ts, lat: fix.lat, lon: fix.lon, alt: fix.alt, acc: fix.acc });
     }
-    elevation.pushGpsAltitude(fix.alt);
+    elevation.pushGpsAltitude(fix.alt, fix.ts);
   }
 
   void maybeCloseKmSplit().then(() => persist());
@@ -347,10 +346,12 @@ async function tick() {
       lastMovementTs = now;
       await maybeCloseKmSplit();
     }
-    if (settings.autoPause && lastMovementTs && now - lastMovementTs > AUTO_PAUSE_AFTER_MS) {
+    if (settings.autoPause && autoPauseDue(now, lastFixTs, lastMovementTs)) {
+      const segStart = segmentStartedAt ?? now;
       state.status = 'autopaused';
       state.speedMps = 0;
       closeSegment();
+      accumulatedS -= idleToRemove(now, lastMovementTs, segStart, accumulatedS, Math.max(kmMarkDuration, lapMarkDuration));
       cueAutoPause();
     }
   }
@@ -644,7 +645,7 @@ async function recoverRunInner(): Promise<boolean> {
   lastPowerCheckAt = Date.now();
   await beginRunNotes(settings.runNotes);
   await attachSensors();
-  for (const alt of replay?.alts ?? []) elevation.pushGpsAltitude(alt); // no-op with a barometer
+  for (const a of replay?.alts ?? []) elevation.pushGpsAltitude(a.alt, a.ts); // no-op with a barometer
   if (!(await getEngine().isRunning())) await startEngine();
   if (replay?.points.length) await maybeCloseKmSplit(true);
   await persist(true);

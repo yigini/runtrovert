@@ -18,7 +18,7 @@ export interface ReplayResult {
   /** Last fix that showed the runner moving: time counts up to here, not to the relaunch. */
   lastMovingTs: number | null;
   /** GPS altitudes in order, for the climb when there is no barometer. */
-  alts: number[];
+  alts: Array<{ alt: number; ts: number }>;
 }
 
 export function replayFixes(last: { lat: number; lon: number; ts: number; acc: number | null } | null, fixes: RawFix[]): ReplayResult {
@@ -30,7 +30,7 @@ export function replayFixes(last: { lat: number; lon: number; ts: number; acc: n
   for (const raw of sorted) {
     const fix = filter.push(raw);
     if (!fix) continue;
-    if (fix.alt != null) out.alts.push(fix.alt);
+    if (fix.alt != null) out.alts.push({ alt: fix.alt, ts: fix.ts });
     if (fix.stepM > 0) {
       out.distanceM += fix.stepM;
       out.points.push({ ts: fix.ts, lat: fix.lat, lon: fix.lon, alt: fix.alt, acc: fix.acc });
