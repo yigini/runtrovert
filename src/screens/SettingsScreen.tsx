@@ -190,6 +190,12 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onBack, runLive
         </Row>
       </Section>
 
+      <Section title={ui().settings.motion} bg={colors.lilac} fg={colors.lilacDeep}>
+        <Row label={ui().settings.stillBackgrounds} hint={ui().settings.stillBackgroundsHint}>
+          <Switch value={settings.stillBackground} onValueChange={(v) => update({ stillBackground: v })} trackColor={{ true: colors.ink }} />
+        </Row>
+      </Section>
+
       <CommuteSettings />
 
       <Section title={ui().stories.section} bg={colors.butter} fg={colors.butterDeep}>

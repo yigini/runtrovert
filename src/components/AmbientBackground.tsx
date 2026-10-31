@@ -2,6 +2,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import React, { useEffect } from 'react';
 import { AppState, Image, StyleSheet, View } from 'react-native';
 import type { Footage } from '../footage';
+import { useStillFootage } from '../motion';
 import { colors } from '../theme';
 
 // Styles: graded real-footage loops (src/footage.ts, assets/CREDITS.md,
@@ -45,11 +46,13 @@ const SOURCES: Record<BgStyle, { video: number; poster: number }> = {
 
 /**
  * A muted loop behind a screen. Never touches other apps' audio, pauses when
- * the app is backgrounded, and with `still` shows only the poster (battery
- * saver). The poster is painted underneath so there's no flash while the
+ * the app is backgrounded, and shows only the poster when the runner asked for
+ * still backgrounds, the phone is set to reduce motion, or battery saver is on
+ * (or when `still` is passed). The poster is painted underneath so there's no flash while the
  * decoder spins up. Fully local: nothing is fetched.
  */
-export function AmbientBackground({ children, dim = 0, style = DEFAULT_STYLE, still = false }: { children?: React.ReactNode; dim?: number; style?: BgStyle; still?: boolean }) {
+export function AmbientBackground({ children, dim = 0, style = DEFAULT_STYLE, still: forceStill = false }: { children?: React.ReactNode; dim?: number; style?: BgStyle; still?: boolean }) {
+  const still = useStillFootage() || forceStill;
   const { video: VIDEO, poster: POSTER } = SOURCES[style];
   const player = useVideoPlayer(VIDEO, (p) => {
     p.loop = true;
