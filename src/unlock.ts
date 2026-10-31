@@ -6,6 +6,7 @@
 // Pure module, no React Native imports, so `npm run test:unlock` can check it
 // under plain Node. Saving the state and the React hook live in unlockState.ts.
 
+import { AWAY_QUIET_DAYS } from './reminderPlan';
 import type { Plan } from './training/types';
 import { ui } from './i18n/ui';
 
@@ -76,6 +77,30 @@ export function isUnlocked(): boolean {
 /** Whether the finish screen may show its one line about the unlock, after this run is saved. */
 export function shouldNudge(savedRuns: number, s: UnlockState = state, unlocked = isUnlocked()): boolean {
   return !unlocked && s.nudge === 'unseen' && savedRuns >= NUDGE_AFTER_RUNS;
+}
+
+/** What the finish screen knows about how the run went. All optional: most runners answer nothing. */
+export interface FinishMood {
+  moodBefore?: number | null; // energy before, 1 drained … 5 recharged
+  moodAfter?: number | null; // energy now
+  pain?: 'none' | 'niggle' | 'pain' | null; // only asked on a plan
+  feel?: number | null; // talk test, 1 could sing … 5 no words left
+  daysSinceLastRun?: number | null; // null on the very first run
+}
+
+/**
+ * Whether this finish is a calm one, the only kind that may carry the line
+ * about the unlock. Not after a drained start or finish, any pain, a run that
+ * left no words, or the first run back after a break (the same ten days at
+ * which reminders go quiet). The line then waits for the next calm finish.
+ */
+export function calmFinish(f: FinishMood): boolean {
+  if (f.moodBefore != null && f.moodBefore <= 2) return false;
+  if (f.moodAfter != null && f.moodAfter <= 2) return false;
+  if (f.pain === 'niggle' || f.pain === 'pain') return false;
+  if (f.feel != null && f.feel >= 4) return false;
+  if (f.daysSinceLastRun != null && f.daysSinceLastRun >= AWAY_QUIET_DAYS) return false;
+  return true;
 }
 
 // ---- Training plans: week 1 is free ---------------------------------------------
