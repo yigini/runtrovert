@@ -1,3 +1,4 @@
+import { heartAt, heartSummary, type HeartSample } from '../heart';
 import type { ImportedRun, ParseResult, TrackPoint } from './types';
 
 // FIT in and out, on the phone. FIT is the binary format Garmin, Coros,
@@ -314,6 +315,9 @@ class Bytes {
     this.buf = next;
     this.view = new DataView(next.buffer);
   }
+  uint8(v: number) {
+    this.u8(v);
+  }
   u8(v: number) {
     this.room(1);
     this.view.setUint8(this.length, v);
@@ -339,8 +343,9 @@ class Bytes {
   }
 }
 
-type Kind = 'u8' | 'u16' | 'u32' | 'i32';
-const BASE: Record<Kind, [number, number]> = { u8: [1, 0x00], u16: [2, 0x84], u32: [4, 0x86], i32: [4, 0x85] };
+type Kind = 'u8' | 'uint8' | 'u16' | 'u32' | 'i32';
+// u8 is FIT's enum; uint8 a plain number (heart rate).
+const BASE: Record<Kind, [number, number]> = { u8: [1, 0x00], uint8: [1, 0x02], u16: [2, 0x84], u32: [4, 0x86], i32: [4, 0x85] };
 
 export interface FitExportRun {
   startedAt: number;
@@ -349,13 +354,14 @@ export interface FitExportRun {
   durationS: number; // moving time
   elevationGainM: number;
   points: Array<{ ts: number; lat: number; lon: number; alt: number | null }>;
+  heart?: HeartSample[]; // sorted; from a watch or strap
 }
 
 const toFit = (msTs: number) => Math.max(0, Math.round(msTs / 1000) - FIT_EPOCH_S);
 
 /**
  * One run as a FIT activity file: file_id, timer start, a record per point
- * (position, height, distance so far), timer stop, one lap, one session and
+ * (position, height, distance so far, heart rate if there is any), timer stop, one lap, one session and
  * the activity. Garmin Connect, Strava, Runalyze and intervals.icu read it.
  */
 export function writeFit(run: FitExportRun): Uint8Array {
@@ -398,6 +404,8 @@ export function writeFit(run: FitExportRun): Uint8Array {
     [0, 'u8', 0],
     [1, 'u8', 0],
   ]);
+  const withHeart = !!run.heart?.length;
+  const hs = withHeart ? heartSummary(run.heart!) : null;
   let cum = 0;
   let prev: { lat: number; lon: number } | null = null;
   for (const p of run.points) {
@@ -409,6 +417,7 @@ export function writeFit(run: FitExportRun): Uint8Array {
       [1, 'i32', Math.round(p.lon / SEMI)],
       [78, 'u32', p.alt != null && Number.isFinite(p.alt) ? Math.round((p.alt + 500) * 5) : 0xffffffff],
       [5, 'u32', Math.round(cum * 100)],
+      ...(withHeart ? [[3, 'uint8', heartAt(run.heart!, p.ts) ?? 0xff] as [number, Kind, number]] : []),
     ]);
   }
   msg(1, MSG.event, [
@@ -435,6 +444,7 @@ export function writeFit(run: FitExportRun): Uint8Array {
     [8, 'u32', timerMs],
     [9, 'u32', dist],
     [22, 'u16', ascent],
+    ...(hs ? ([[16, 'uint8', hs.avg], [17, 'uint8', hs.max]] as Array<[number, Kind, number]>) : []),
     [5, 'u8', 1],
     [6, 'u8', 0],
     [0, 'u8', 8],

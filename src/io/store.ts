@@ -1,6 +1,7 @@
 import { File, FileMode, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { addImportedRun, getPoints, getRun, listRuns, runSpans } from '../db';
+import { addImportedRun, getHeartRate, getPoints, getRun, listRuns, runSpans } from '../db';
+import { cleanHeart, type HeartSample } from '../heart';
 import { isUnlocked } from '../unlock';
 import { parseFit, writeFit } from './fit';
 import { parseGpx, writeGpx } from './gpx';
@@ -77,6 +78,12 @@ function fresh(name: string): File {
   return f;
 }
 
+/** The run's heart rate from a watch or strap, cleaned; undefined when there is none. */
+async function heartFor(runId: number, startedAt: number, endedAt: number | null): Promise<HeartSample[] | undefined> {
+  const h = cleanHeart(await getHeartRate(runId).catch(() => []), startedAt, endedAt);
+  return h.length ? h : undefined;
+}
+
 /** One run as GPX, through the share sheet. Free, always. */
 export async function shareRunGpx(runId: number): Promise<void> {
   const run = await getRun(runId);
@@ -84,7 +91,8 @@ export async function shareRunGpx(runId: number): Promise<void> {
   const points = await getPoints(runId);
   if (!points.length) throw new Error(ui().store.thisRunHasNoRoute);
   const file = fresh(runFileName(run.startedAt, 'gpx'));
-  await file.write(writeGpx({ startedAt: run.startedAt, points }));
+  const heart = await heartFor(run.id, run.startedAt, run.endedAt);
+  await file.write(writeGpx({ startedAt: run.startedAt, points, heart }));
   await share(file, 'application/gpx+xml', 'com.topografix.gpx', ui().store.saveTheRunAsGpx);
 }
 
@@ -117,10 +125,11 @@ export async function shareAllRuns(format: 'gpx' | 'fit', onProgress?: (done: nu
       let name = runFileName(r.startedAt, format);
       for (let n = 2; used.has(name); n++) name = runFileName(r.startedAt, format).replace(`-run.${format}`, `-run-${n}.${format}`);
       used.add(name);
+      const heart = await heartFor(r.id, r.startedAt, r.endedAt);
       const data =
         format === 'gpx'
-          ? writeGpx({ startedAt: r.startedAt, points })
-          : writeFit({ startedAt: r.startedAt, endedAt: r.endedAt ?? r.startedAt + r.durationS * 1000, distanceM: r.distanceM, durationS: r.durationS, elevationGainM: r.elevationGainM, points });
+          ? writeGpx({ startedAt: r.startedAt, points, heart })
+          : writeFit({ startedAt: r.startedAt, endedAt: r.endedAt ?? r.startedAt + r.durationS * 1000, distanceM: r.distanceM, durationS: r.durationS, elevationGainM: r.elevationGainM, points, heart });
       await zip.add(name, data, r.startedAt);
       files++;
     }

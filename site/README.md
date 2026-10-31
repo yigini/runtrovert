@@ -21,9 +21,12 @@ The server pulls main every 10 minutes, so a merge is a deploy.
 
 ## Changing the CSS or JS
 
-Bump the `?v=` number on `style.css` and `site.js` in both HTML files whenever either
+Bump the `?v=` number on `style.css` and `site.js` in all the HTML files whenever either
 changes. nginx lets browsers keep both for 7 days, so without a new number visitors
 keep the old file for up to a week.
+
+The same goes for the logo: `mark.svg`, `favicon.png` and `apple-touch-icon.png` are kept
+for 30 days, so a new logo needs a new `?v=` on every reference in all the HTML files.
 
 ## Footage
 

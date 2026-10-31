@@ -1,3 +1,4 @@
+import { heartAt, type HeartSample } from '../heart';
 import type { ImportedRun, ParseResult, TrackPoint } from './types';
 
 // GPX in and out, on the phone. No DOM in React Native, so this reads the few
@@ -99,20 +100,22 @@ export interface ExportRun {
   startedAt: number;
   name?: string;
   points: Array<{ ts: number; lat: number; lon: number; alt: number | null }>;
+  heart?: HeartSample[]; // sorted; from a watch or strap
 }
 
 const iso = (ms: number) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z');
 
 /**
- * One run as GPX 1.1. Only the route, heights and times go in: notes, energy
- * and busyness stay on the phone. Readable by Strava, Garmin Connect,
+ * One run as GPX 1.1. Only the route, heights, times and heart rate (in the
+ * Garmin TrackPointExtension every app reads) go in: notes, energy and
+ * busyness stay on the phone. Readable by Strava, Garmin Connect,
  * Komoot, Runalyze and every mapping app.
  */
 export function writeGpx(run: ExportRun): string {
   const name = run.name ?? `Run, ${new Date(run.startedAt).toISOString().slice(0, 10)}`;
   const lines = [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    '<gpx version="1.1" creator="Runtrovert" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">',
+    '<gpx version="1.1" creator="Runtrovert" xmlns="http://www.topografix.com/GPX/1/1" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">',
     `  <metadata><time>${iso(run.startedAt)}</time></metadata>`,
     '  <trk>',
     `    <name>${encode(name)}</name>`,
@@ -121,7 +124,9 @@ export function writeGpx(run: ExportRun): string {
   ];
   for (const p of run.points) {
     const ele = p.alt != null && Number.isFinite(p.alt) ? `<ele>${p.alt.toFixed(1)}</ele>` : '';
-    lines.push(`      <trkpt lat="${p.lat.toFixed(7)}" lon="${p.lon.toFixed(7)}">${ele}<time>${iso(p.ts)}</time></trkpt>`);
+    const bpm = run.heart ? heartAt(run.heart, p.ts) : null;
+    const hr = bpm != null ? `<extensions><gpxtpx:TrackPointExtension><gpxtpx:hr>${bpm}</gpxtpx:hr></gpxtpx:TrackPointExtension></extensions>` : '';
+    lines.push(`      <trkpt lat="${p.lat.toFixed(7)}" lon="${p.lon.toFixed(7)}">${ele}<time>${iso(p.ts)}</time>${hr}</trkpt>`);
   }
   lines.push('    </trkseg>', '  </trk>', '</gpx>', '');
   return lines.join('\n');

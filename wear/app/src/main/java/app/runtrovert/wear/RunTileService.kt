@@ -51,7 +51,12 @@ class RunTileService : TileService() {
       .setOnClick(
         ActionBuilders.LaunchAction.Builder()
           .setAndroidActivity(
-            ActionBuilders.AndroidActivity.Builder().setPackageName(packageName).setClassName(MainActivity::class.java.name).build(),
+            ActionBuilders.AndroidActivity.Builder()
+              .setPackageName(packageName)
+              .setClassName(MainActivity::class.java.name)
+              // With no run on, the tap starts one (the phone's countdown still gives a moment to change your mind).
+              .addKeyToExtraMapping(MainActivity.START, ActionBuilders.booleanExtra(live?.active != true))
+              .build(),
           )
           .build(),
       )
@@ -83,6 +88,7 @@ class RunTileService : TileService() {
 
     fun refresh(ctx: Context) {
       runCatching { getUpdater(ctx).requestUpdate(RunTileService::class.java) }
+      RunComplicationService.refresh(ctx)
     }
   }
 }

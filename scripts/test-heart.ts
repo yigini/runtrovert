@@ -1,6 +1,6 @@
 // npm run test:heart — heart rate from a watch, and the phone <-> watch messages.
 import assert from 'node:assert/strict';
-import { cleanHeart, heartSummary } from '../src/heart.ts';
+import { cleanHeart, heartAt, heartSummary, keepReading, STRAP_WINS_MS } from '../src/heart.ts';
 import { liveJson, OPEN_FOR_MS, parseCommand, parseHeart, parseHello, shouldSend, splitJson } from '../src/wearProtocol.ts';
 
 const t0 = Date.UTC(2026, 9, 30, 7, 0, 0);
@@ -68,3 +68,23 @@ const t0 = Date.UTC(2026, 9, 30, 7, 0, 0);
 }
 
 console.log('heart ok');
+
+// Two sources: a strap that spoke lately wins; the watch fills in when it hasn't.
+{
+  assert.equal(keepReading('strap', t0, t0), true);
+  assert.equal(keepReading('watch', t0, 0), true, 'no strap: the watch counts');
+  assert.equal(keepReading('watch', t0 + 5_000, t0), false, 'strap just spoke: the watch is dropped');
+  assert.equal(keepReading('watch', t0 + STRAP_WINS_MS + 1, t0), true, 'strap gone quiet: the watch takes over');
+}
+
+// Heart rate onto route points, for the GPX and FIT exports.
+{
+  const s = [{ ts: t0, bpm: 120 }, { ts: t0 + 5_000, bpm: 130 }, { ts: t0 + 60_000, bpm: 150 }];
+  assert.equal(heartAt(s, t0 + 2_000), 120);
+  assert.equal(heartAt(s, t0 + 4_000), 130);
+  assert.equal(heartAt(s, t0 + 30_000), null, 'nothing within 10 s');
+  assert.equal(heartAt(s, t0 + 70_000), 150);
+  assert.equal(heartAt([], t0), null);
+}
+console.log('heart: two sources, export ok');
+

@@ -45,3 +45,28 @@ export function heartSummary(samples: HeartSample[]): HeartSummary | null {
   if (time < 60_000) return null;
   return { avg: Math.round(weighted / time), max, samples: samples.length };
 }
+
+export type HeartFrom = 'watch' | 'strap';
+
+/** A strap that spoke this recently wins over the Wear OS watch: chest straps read truer, and two sources would zigzag. */
+export const STRAP_WINS_MS = 15_000;
+
+/** Whether a reading from `from` is kept, given when the strap last gave one (0: never). */
+export function keepReading(from: HeartFrom, now: number, strapAt: number): boolean {
+  return from === 'strap' || now - strapAt > STRAP_WINS_MS;
+}
+
+/** The reading nearest `ts`, if one is within 10 s (for writing heart rate onto route points). Samples sorted by ts. */
+export function heartAt(samples: HeartSample[], ts: number): number | null {
+  if (!samples.length) return null;
+  let lo = 0;
+  let hi = samples.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (samples[mid].ts < ts) lo = mid + 1;
+    else hi = mid;
+  }
+  let best = samples[lo];
+  if (lo > 0 && Math.abs(samples[lo - 1].ts - ts) < Math.abs(best.ts - ts)) best = samples[lo - 1];
+  return Math.abs(best.ts - ts) <= 10_000 ? best.bpm : null;
+}

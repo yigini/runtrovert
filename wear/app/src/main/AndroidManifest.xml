@@ -57,5 +57,20 @@
       </intent-filter>
       <meta-data android:name="androidx.wear.tiles.PREVIEW" android:resource="@drawable/ic_mark" />
     </service>
+
+    <!-- The complication: "Run" with the mark on any watch face; the run's time while it's on. -->
+    <service
+        android:name=".RunComplicationService"
+        android:exported="true"
+        android:icon="@drawable/ic_mark"
+        android:label="@string/app_name"
+        android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+      <intent-filter>
+        <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+      </intent-filter>
+      <meta-data android:name="android.support.wearable.complications.SUPPORTED_TYPES" android:value="SHORT_TEXT,MONOCHROMATIC_IMAGE" />
+      <!-- 0: no periodic updates. It is refreshed when the run's state changes. -->
+      <meta-data android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS" android:value="0" />
+    </service>
   </application>
 </manifest>

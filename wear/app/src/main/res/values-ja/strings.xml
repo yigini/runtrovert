@@ -32,6 +32,8 @@
   <string name="mi">mi</string>
   <string name="kmN">%1$s km</string>
   <string name="mileN">%1$s マイル</string>
+  <string name="complicationRun">ラン</string>
+  <string name="complicationHint">ランを始める</string>
   <string name="time">タイム</string>
   <string name="distance">距離</string>
   <string name="pace">ペース</string>
