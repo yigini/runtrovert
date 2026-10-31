@@ -1,5 +1,7 @@
 import type { ImageSourcePropType } from 'react-native';
 import { loadValue, saveValue } from './db';
+import { fetchCover, keptCover, pruneCovers } from './coverCache';
+import { coverUrl } from './coverLogic';
 import { BUNDLED_ART } from './shelfArt';
 import { isShelf, type Shelf, type Show } from './shelfLogic';
 import bundled from './shelfBundled.json';
@@ -9,19 +11,43 @@ import bundled from './shelfBundled.json';
 // file is built every morning by .github/workflows/shelf.yml and holds every country,
 // so the request carries no location, no id and no cookie. Covers that didn't
 // ship are fetched one per show as it comes on screen, which does tell GitHub
-// which shows were scrolled past (the Privacy text says so). Nothing is fetched
-// until the tab is opened.
+// which shows were scrolled past (the Privacy text says so), and then kept on the
+// phone (src/coverCache.ts) so each one is asked for only once. Nothing is
+// fetched until the tab is opened.
 
 export const SHELF_URL = 'https://raw.githubusercontent.com/yigini/runtrovert/shelf/shelf.json';
 
 // Covers live beside the list. Hand-picked ones also ship inside the app.
 export const ART_URL = 'https://raw.githubusercontent.com/yigini/runtrovert/shelf/art/';
 
-/** A show's cover: the shipped one, else the published one when downloads are on, else none. */
-export function coverFor(show: Show, online: boolean): ImageSourcePropType | null {
+/**
+ * A show's cover: the shipped one, else the one kept on the phone, else null.
+ * When null and coverFetchable() says yes, fetchShowCover gets it once.
+ */
+export function coverFor(show: Show): ImageSourcePropType | null {
   const local = BUNDLED_ART[show.id];
   if (local) return local;
-  return online && show.art ? { uri: `${ART_URL}${show.id}.jpg` } : null;
+  const kept = keptCover(show.id);
+  return kept ? { uri: kept } : null;
+}
+
+/** Whether a missing cover may be fetched: downloads are on and the list says one is published. */
+export function coverFetchable(show: Show, online: boolean): boolean {
+  return online && !!show.art && !BUNDLED_ART[show.id];
+}
+
+/** Fetch a show's published cover once and keep it. Resolves to an image source, or null. */
+export async function fetchShowCover(show: Show): Promise<ImageSourcePropType | null> {
+  const uri = await fetchCover(show.id, coverUrl(ART_URL, show.id));
+  return uri ? { uri } : null;
+}
+
+/** Drop kept covers of shows that are on no shelf of this list. */
+export function pruneShelfCovers(shelf: Shelf): void {
+  const ids = new Set<number>();
+  for (const s of shelf.curated) ids.add(s.id);
+  for (const list of Object.values(shelf.regions)) for (const s of list) ids.add(s.id);
+  pruneCovers(ids);
 }
 
 const KEY = 'shelf';
@@ -54,6 +80,7 @@ export async function refreshShelf(force = false): Promise<{ shelf: Shelf; fetch
     if (!isShelf(shelf)) return current;
     const stored = { shelf, fetchedAt: Date.now() };
     await saveValue(KEY, stored).catch(() => {});
+    pruneShelfCovers(shelf);
     return stored;
   } catch {
     return current;
