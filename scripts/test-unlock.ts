@@ -1,5 +1,5 @@
 import type { Plan } from '../src/training/types';
-import { NUDGE_AFTER_RUNS, priceLine, UNLOCKED_BUILD, isUnlocked, openWeeks, planSessionOpen, planWeekOpen, setUnlockState, shouldNudge, subscribeUnlock, trainLine, unlockState } from '../src/unlock';
+import { NUDGE_AFTER_RUNS, calmFinish, priceLine, UNLOCKED_BUILD, isUnlocked, openWeeks, planSessionOpen, planWeekOpen, setUnlockState, shouldNudge, subscribeUnlock, trainLine, unlockState } from '../src/unlock';
 
 // Checks the one gate. Run: npm run test:unlock
 let fails = 0;
@@ -30,6 +30,17 @@ check(shouldNudge(40), 'on the first finish after ten, for someone who already h
 check(!shouldNudge(10, { ...unlockState(), nudge: 'shown' }), 'never twice');
 check(!shouldNudge(10, { ...unlockState(), nudge: 'dismissed' }), 'not now means never');
 check(!shouldNudge(10, unlockState(), true), 'never when unlocked');
+
+// The line only on a calm finish: not after a hard, sore or drained run, or the first run back.
+check(calmFinish({}), 'nothing answered is a calm finish');
+check(calmFinish({ moodBefore: 3, moodAfter: 4, pain: 'none', feel: 3, daysSinceLastRun: 2 }), 'an ordinary run is calm');
+check(!calmFinish({ moodAfter: 2 }), 'not when drained after');
+check(!calmFinish({ moodBefore: 1 }), 'not after a drained start');
+check(!calmFinish({ pain: 'niggle' }), 'not after a niggle');
+check(!calmFinish({ pain: 'pain' }), 'not after pain');
+check(!calmFinish({ feel: 4 }), 'not after a hard session');
+check(!calmFinish({ daysSinceLastRun: 12 }), 'not on the first run back after a break');
+check(calmFinish({ daysSinceLastRun: null }), 'the very first run is not a return');
 
 // Plans: week 1 is free, the rest comes with the unlock.
 const week = (index: number) => ({ index, start: index * 7, kind: 'build', targetKm: 10, sessions: [{ id: `w${index}d1` }, { id: `w${index}d3` }] });

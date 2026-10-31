@@ -20,6 +20,8 @@ import { suggestName } from '../places';
 import { createPlace, dismissLoop, finishPlace, logRun, saveSig, type FinishPlace, type Place, type PlaceDraft } from '../placeStore';
 import { RunStatsView } from '../components/RunStats';
 import { UnlockNudge } from '../components/UnlockNudge';
+import { HowWasIt } from '../components/HowWasIt';
+import { useReduceMotion } from '../motion';
 import { YouLine } from '../components/YouLine';
 import { useBack } from '../back';
 import { cueCountdown, setRunSilent } from '../cues';
@@ -109,6 +111,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   const [ghostRun, setGhostRun] = useState<Ghost | null>(null);
   const stories = useRouteStories(phase === 'finish' ? finishPoints : NO_POINTS);
   const veil = useRef(new Animated.Value(1)).current;
+  const reduceMotion = useReduceMotion();
   // Heights of the words and the numbers laid over the finish map, so the route is framed between them.
   const [finishPad, setFinishPad] = useState({ top: 140, bottom: 170 });
   // At large text sizes the words and numbers over the map grow; the map grows with them.
@@ -342,7 +345,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     Haptics.selectionAsync();
     const next = !mapFront;
     setMapFront(next);
-    Animated.timing(veil, { toValue: next ? 0 : 1, duration: 260, useNativeDriver: true }).start();
+    Animated.timing(veil, { toValue: next ? 0 : 1, duration: reduceMotion ? 0 : 260, useNativeDriver: true }).start();
   }
 
   function onPauseResume() {
@@ -494,7 +497,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   // Feet on the ground behind the numbers, under an ink veil so the count stays cream.
   if (phase === 'countdown') {
     return (
-      <AmbientBackground style={countFootage} still={settings.batteryMode === 'saver'}>
+      <AmbientBackground style={countFootage}>
         <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(43,39,51,0.55)' }]} />
         <View style={[styles.center, { flex: 1, padding: spacing.md }]}>
           <Text style={styles.countdown}>{count}</Text>
@@ -508,6 +511,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   if (phase === 'finish' && final) {
     const partialKm = final.currentKm.distanceM > 20 ? { index: final.splits.length + 1, ...final.currentKm } : null;
     const mapH = Math.max(Math.round(Dimensions.get('window').height * 0.62), finishPad.top + finishCardH + 160);
+    const askFeel = hasPlan && (!!guided || (!!session && sessionOpen && session.kind !== 'rest'));
     const you = live ? youVsYou(compare({ ...live.run, moodBefore, moodAfter }, live.history), km) : null;
     return (
       <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
@@ -549,14 +553,23 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         </View>
         <View style={{ padding: spacing.md, paddingTop: spacing.lg, gap: spacing.lg }}>
           {you && <YouLine title={you.title} detail={you.detail} />}
-          <PlaceFinishCard found={found} draft={placeDraft} onOffer={() => setPlaceSheet(true)} onNotNow={placeNotNow} />
-          <StoriesCard stories={stories} moodBefore={moodBefore} />
-          <UnlockNudge />
-          <MoodPicker title={ui().run.andYourEnergyNow} value={moodAfter} onChange={setMoodAfter} />
-          <QuietPicker value={quiet} onChange={setQuiet} />
-          <TextInput style={styles.note} placeholder={ui().run.aNoteIfYouWant} placeholderTextColor={colors.inkMuted} value={note} onChangeText={setNote} multiline />
-          {hasPlan && (!!guided || (!!session && sessionOpen && session.kind !== 'rest')) && <FeelPicker value={feel} onChange={setFeel} />}
+          {/* Calm order: keep it and go first. On a plan the pain question sits
+              just above, so it is seen before leaving. Everything else is optional
+              and comes after: one folded reflection, the details, then the extras. */}
           {hasPlan && <PainPicker value={pain} onChange={setPain} />}
+          <View style={{ gap: spacing.sm }}>
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              <Button title={ui().run.discard} variant="danger" onPress={onDiscard} style={{ flex: 0, paddingHorizontal: 22 }} />
+              <Button title={ui().run.keepIt} onPress={() => onSave()} style={{ flex: 1 }} />
+            </View>
+            <Button title={ui().run.keepItAndShareWith} variant="secondary" onPress={() => onSave(true)} />
+          </View>
+          <HowWasIt plan={askFeel} answered={[askFeel && feel != null, moodAfter != null, quiet != null, note.trim().length > 0].filter(Boolean).length}>
+            {askFeel && <FeelPicker value={feel} onChange={setFeel} />}
+            <MoodPicker title={ui().run.andYourEnergyNow} value={moodAfter} onChange={setMoodAfter} />
+            <QuietPicker value={quiet} onChange={setQuiet} />
+            <TextInput style={styles.note} placeholder={ui().run.aNoteIfYouWant} placeholderTextColor={colors.inkMuted} value={note} onChangeText={setNote} multiline />
+          </HowWasIt>
           <RunStatsView
             run={{ startedAt: final.startedAt ?? Date.now(), endedAt: finishPoints.length ? finishPoints[finishPoints.length - 1].ts : null, distanceM: final.distanceM, durationS: final.durationS, elevationGainM: final.elevationGainM, quiet, moodBefore, moodAfter }}
             points={finishPoints}
@@ -567,11 +580,9 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
             hero={false}
             heart={finishHeart}
           />
-          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-            <Button title={ui().run.discard} variant="danger" onPress={onDiscard} style={{ flex: 0, paddingHorizontal: 22 }} />
-            <Button title={ui().run.keepIt} onPress={() => onSave()} style={{ flex: 1 }} />
-          </View>
-          <Button title={ui().run.keepItAndShareWith} variant="secondary" onPress={() => onSave(true)} style={{ marginTop: -spacing.sm }} />
+          <StoriesCard stories={stories} moodBefore={moodBefore} />
+          <UnlockNudge moodBefore={moodBefore} moodAfter={moodAfter} pain={pain} feel={feel} />
+          <PlaceFinishCard found={found} draft={placeDraft} onOffer={() => setPlaceSheet(true)} onNotNow={placeNotNow} />
         </View>
         <SavePlaceSheet
           open={placeSheet}

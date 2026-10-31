@@ -99,6 +99,7 @@ export interface Settings {
   stories: boolean; // Things you passed: after a run, ask Wikipedia and OpenStreetMap about the ~1 km squares it went through
   storiesDark: boolean; // include places whose story is about killings, disasters or attacks
   storiesOffered: boolean; // the one finish-screen offer has been shown
+  stillBackground: boolean; // footage stays a still picture (also on by itself with the phone's reduce motion)
   onboarded: boolean;
 }
 
@@ -138,5 +139,6 @@ export const DEFAULT_SETTINGS: Settings = {
   stories: false,
   storiesDark: false,
   storiesOffered: false,
+  stillBackground: false,
   onboarded: false,
 };
