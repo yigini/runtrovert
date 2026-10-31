@@ -373,7 +373,7 @@ function footer(runs: Run[], now: number): string {
     return s.getMonth() === d.getMonth() && s.getFullYear() === d.getFullYear();
   }).length;
   const deltas = runs.filter((r) => r.moodBefore != null && r.moodAfter != null).map((r) => (r.moodAfter as number) - (r.moodBefore as number));
-  const parts = [ui().home.runAloneNotLonely];
+  const parts = [ui().home.yourRunYourSpace];
   if (month) parts.push(ui().home.runsInMonth(month, monthName(now)));
   if (deltas.length) {
     const avg = deltas.reduce((a, b) => a + b, 0) / deltas.length;

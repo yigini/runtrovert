@@ -45,6 +45,11 @@ for (const { code } of LANGS) {
   assert.ok(r.window.length >= 3 && r.window.every((l) => l.includes('{time}')), `${code}: window lines need {time}`);
   for (const k of ['last', 'reflectTitles', 'reflectLines', 'afterRunTitles', 'afterRunLines', 'titles'] as const) assert.ok(r[k].length >= 2, `${code}: ${k}`);
 
+  // Fewer words: every plain line there, with its slot where it needs one.
+  for (const k of Object.keys(en.reminders.plain) as Array<keyof typeof en.reminders.plain>) assert.ok(r.plain[k] && r.plain[k].length > 0, `${code}: plain ${k} missing`);
+  assert.ok(r.plain.rhythm.includes('{day}'), `${code}: plain rhythm needs {day}`);
+  assert.ok(r.plain.window.includes('{time}'), `${code}: plain window needs {time}`);
+
   // Headlines are set big, two lines; keep each line about as short as English's longest.
   const limit = code === 'ja' ? 16 : 30;
   for (const sky of Object.keys(en.sky.headline) as Array<keyof typeof en.sky.headline>)
