@@ -69,7 +69,7 @@ export const es: Strings = {
     savedWithThisRunWhen: 'Se guarda con esta salida cuando pulsas Guardarla. Solo en este teléfono.',
     nameItNoteHowBusy: 'Ponle nombre, anota cuánta gente había. Solo en este teléfono.',
     notNowThisLoopWon: 'Ahora no. No volveremos a ofrecer este circuito.',
-    notNow: 'Ahora no',
+    notNow: 'No volver a ofrecer esta vuelta',
     saveAsAPlace: 'Guardar esta ruta como lugar',
     saveAsAPlaceHint: 'Ponle nombre y queda en Tus lugares. Solo en este teléfono.',
   },
@@ -83,6 +83,7 @@ export const es: Strings = {
     howBusyYouFoundIt: (n, list) => `Cuánta gente encontraste, últimas ${n} salidas: ${list}`,
     runXAgain: (name) => `Volver a correr ${name}`,
     runThisAgain: 'Volver a correr aquí',
+    couldntOpenYourPlaces: 'Ahora mismo no se pudieron abrir tus lugares.',
   },
   planReminders: {
     noReminders: 'Sin recordatorios para el plan. ',
@@ -386,6 +387,7 @@ export const es: Strings = {
     patterns: 'Patrones',
     opensThisRun: 'Abre esta salida',
     energy: (delta) => ` · energía ${delta > 0 ? '+' : ''}${delta}`,
+    couldntOpenYourRuns: 'Ahora mismo no se pudieron abrir tus salidas.',
   },
   home: {
     next: (day, title) => `Siguiente: ${day}, ${title}`,
@@ -530,6 +532,7 @@ export const es: Strings = {
     localShowsFrom: 'Programas locales de',
     chosenHereKeptHereThe: 'Elegido aquí, guardado aquí. La descarga es la misma para todo el mundo.',
     thePhoneSRegion: 'La región del teléfono',
+    couldntUpdate: 'No se pudo actualizar. Se muestra tu lista guardada.',
   },
   place: {
     since: (date) => `desde el ${date}`,
@@ -553,6 +556,8 @@ export const es: Strings = {
     runThisAgain: 'Volver a correr aquí',
     lastRunX: (when) => `Última salida ${when}`,
     yourLastNote: 'Tu última nota aquí',
+    couldntSaveTheChange: 'No se pudo guardar el cambio',
+    couldntForgetIt: 'No se pudo olvidar este lugar',
   },
   runDetail: {
     broughtIn: (from, on) => `Importada desde ${from} el ${on}.`,
@@ -574,6 +579,11 @@ export const es: Strings = {
     saveAsAPlace: 'Guardar como lugar',
     addToX: (name) => `Añadir a ${name}`,
     addToXHint: 'Añade esta salida al registro de ese lugar',
+    energyAfter: 'Energía después de la salida',
+    clearEnergy: 'Borrar',
+    clearEnergyHint: 'Quita la respuesta de energía de esta salida',
+    aNoteIfYouWant: 'Una nota, si quieres',
+    couldntSaveThat: 'No se pudo guardar',
   },
   run: {
     listenHint: 'Elige música o un pódcast. Tu carrera sigue grabándose.',
@@ -685,6 +695,9 @@ export const es: Strings = {
     thatSOneQuietlyLogged: 'Una más.\nAnotada en silencio.',
     doneGoBeUnavailable: 'Hecho.\nAhora, a estar ilocalizable.',
     legsDidTheTalking: 'Las piernas hablaron.',
+    saving: 'Guardando…',
+    couldntSaveTheRun: 'No se pudo guardar la salida',
+    theRunIsStillHere: 'La salida, tus respuestas y tu nota siguen aquí. Vuelve a intentarlo en un momento.',
   },
   settings: {
     language: 'Idioma',
@@ -1103,6 +1116,7 @@ export const es: Strings = {
     noWayToShareFrom: 'No se puede compartir desde aquí',
     theCalendarFileIsAt: (uri) => `El archivo de calendario está en ${uri}.`,
     couldNotMakeTheCalendar: 'No se ha podido crear el archivo de calendario',
+    couldntOpenYourPlan: 'Ahora mismo no se pudo abrir tu plan.',
   },
   unlock: {
     name: 'Todo, una vez',
@@ -1480,6 +1494,8 @@ export const es: Strings = {
     days: dias,
     runs: salidas,
     mood: { 1: 'Agotado', 2: 'Bajo', 3: 'Normal', 4: 'Bien', 5: 'Recargado' },
+    tryAgain: 'Volver a intentar',
+    tryAgainInAMoment: 'Vuelve a intentarlo en un momento. No se ha cambiado nada.',
   },
   painPicker: {
     title: '¿Algo duele?',

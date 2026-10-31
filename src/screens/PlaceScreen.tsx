@@ -72,7 +72,13 @@ export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeI
         text: ui().place.forget,
         style: 'destructive',
         onPress: async () => {
-          await deletePlace(placeId).catch(() => {});
+          // Only leave once it is really gone.
+          try {
+            await deletePlace(placeId);
+          } catch {
+            Alert.alert(ui().place.couldntForgetIt, ui().common.tryAgainInAMoment);
+            return;
+          }
           setEditing(false);
           onChanged();
           onBack();
@@ -127,11 +133,12 @@ export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeI
             const label = `${when.toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric', month: 'short' })} ${when.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' })}`;
             return (
               <View key={v.id} style={styles.log} accessible accessibilityLabel={[label, v.busy ? BUSY_LABEL[v.busy] : ui().place.noRating, v.note].filter(Boolean).join('. ')}>
-                <Text style={styles.logWhen}>{label}</Text>
-                <Text style={styles.logBusy}>{v.busy ? BUSY_LABEL[v.busy] : '–'}</Text>
-                <Text style={styles.logNote} numberOfLines={2}>
-                  {v.note ?? ''}
-                </Text>
+                {/* Date and busyness on one line, the note under them at full width and never cut short. */}
+                <View style={styles.logHead}>
+                  <Text style={styles.logWhen}>{label}</Text>
+                  <Text style={styles.logBusy}>{v.busy ? BUSY_LABEL[v.busy] : '–'}</Text>
+                </View>
+                {v.note ? <Text style={styles.logNote}>{v.note}</Text> : null}
               </View>
             );
           })}
@@ -166,7 +173,13 @@ export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeI
         onClose={() => setEditing(false)}
         onDelete={forget}
         onSave={async (d) => {
-          await updatePlace(placeId, d).catch(() => {});
+          // The sheet stays open with what was typed until the change is really saved.
+          try {
+            await updatePlace(placeId, d);
+          } catch {
+            Alert.alert(ui().place.couldntSaveTheChange, ui().common.tryAgainInAMoment);
+            return;
+          }
           setPlace({ ...place, ...d });
           setEditing(false);
           onChanged();
@@ -189,10 +202,11 @@ const styles = StyleSheet.create({
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: -spacing.xs },
   tag: { fontFamily: fonts.body, fontSize: 13, color: colors.mintDeep, backgroundColor: colors.mintSoft, borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 5, overflow: 'hidden' },
   facts: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.text },
-  log: { flexDirection: 'row', gap: 8, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#e4dccf' },
-  logWhen: { width: 118, fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.text },
-  logBusy: { width: 104, fontFamily: fonts.bodySemi, fontSize: 13, lineHeight: 18, color: colors.text },
-  logNote: { flex: 1, fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.muted },
+  log: { gap: 4, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#e4dccf' },
+  logHead: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 2 },
+  logWhen: { flexShrink: 1, fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.text },
+  logBusy: { fontFamily: fonts.bodySemi, fontSize: 13, lineHeight: 18, color: colors.text },
+  logNote: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.muted },
   lastNote: { gap: 4, backgroundColor: colors.butter, borderRadius: radius.lg, padding: spacing.md },
   lastNoteText: { fontFamily: fonts.body, fontSize: 16, lineHeight: 23, color: colors.text },
   month: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.muted, paddingTop: spacing.sm, paddingBottom: 2 },

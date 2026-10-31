@@ -70,7 +70,7 @@ export const pt: Strings = {
     savedWithThisRunWhen: 'Salvo com esta corrida quando você toca em Guardar. Só neste celular.',
     nameItNoteHowBusy: 'Dê um nome, anote o movimento. Só neste celular.',
     notNowThisLoopWon: 'Agora não. Este circuito não vai ser oferecido de novo.',
-    notNow: 'Agora não',
+    notNow: 'Não oferecer mais este percurso',
     saveAsAPlace: 'Salvar este percurso como lugar',
     saveAsAPlaceHint: 'Dê um nome e ele fica em Seus lugares. Só neste celular.',
   },
@@ -84,6 +84,7 @@ export const pt: Strings = {
     howBusyYouFoundIt: (n, list) => `O movimento que você encontrou, últimas ${n} corridas: ${list}`,
     runXAgain: (name) => `Correr ${name} de novo`,
     runThisAgain: 'Correr aqui de novo',
+    couldntOpenYourPlaces: 'Não deu para abrir seus lugares agora.',
   },
   planReminders: {
     noReminders: 'Sem lembretes para o plano. ',
@@ -387,6 +388,7 @@ export const pt: Strings = {
     patterns: 'Padrões',
     opensThisRun: 'Abre esta corrida',
     energy: (delta) => ` · energia ${delta > 0 ? '+' : ''}${delta}`,
+    couldntOpenYourRuns: 'Não deu para abrir suas corridas agora.',
   },
   home: {
     next: (day, title) => `Próximo: ${day}, ${title}`,
@@ -531,6 +533,7 @@ export const pt: Strings = {
     localShowsFrom: 'Programas locais de',
     chosenHereKeptHereThe: 'Escolhido aqui, guardado aqui. O download é o mesmo para todo mundo.',
     thePhoneSRegion: 'A região do celular',
+    couldntUpdate: 'Não deu para atualizar. Mostrando sua lista salva.',
   },
   place: {
     since: (date) => `desde ${date}`,
@@ -554,6 +557,8 @@ export const pt: Strings = {
     runThisAgain: 'Correr aqui de novo',
     lastRunX: (when) => `Última corrida ${when}`,
     yourLastNote: 'Sua última nota aqui',
+    couldntSaveTheChange: 'Não deu para salvar a mudança',
+    couldntForgetIt: 'Não deu para esquecer este lugar',
   },
   runDetail: {
     broughtIn: (from, on) => `Importada de ${from} em ${on}.`,
@@ -575,6 +580,11 @@ export const pt: Strings = {
     saveAsAPlace: 'Salvar como lugar',
     addToX: (name) => `Adicionar a ${name}`,
     addToXHint: 'Coloca esta corrida no registro desse lugar',
+    energyAfter: 'Energia depois da corrida',
+    clearEnergy: 'Limpar',
+    clearEnergyHint: 'Remove a resposta de energia desta corrida',
+    aNoteIfYouWant: 'Uma nota, se quiser',
+    couldntSaveThat: 'Não deu para salvar',
   },
   run: {
     listenHint: 'Escolhe música ou um podcast. A tua corrida continua a ser gravada.',
@@ -686,6 +696,9 @@ export const pt: Strings = {
     thatSOneQuietlyLogged: 'Mais uma.\nAnotada em silêncio.',
     doneGoBeUnavailable: 'Pronto.\nAgora vá ficar indisponível.',
     legsDidTheTalking: 'As pernas falaram por você.',
+    saving: 'Salvando…',
+    couldntSaveTheRun: 'Não deu para salvar a corrida',
+    theRunIsStillHere: 'A corrida, suas respostas e sua nota continuam aqui. Tente de novo daqui a pouco.',
   },
   settings: {
     language: 'Idioma',
@@ -1104,6 +1117,7 @@ export const pt: Strings = {
     noWayToShareFrom: 'Não dá para compartilhar daqui',
     theCalendarFileIsAt: (uri) => `O arquivo da agenda está em ${uri}.`,
     couldNotMakeTheCalendar: 'Não deu para criar o arquivo da agenda',
+    couldntOpenYourPlan: 'Não deu para abrir seu plano agora.',
   },
   unlock: {
     name: 'Tudo, uma vez',
@@ -1481,6 +1495,8 @@ export const pt: Strings = {
     days: dias,
     runs: corridas,
     mood: { 1: 'Esgotado', 2: 'Baixo', 3: 'Ok', 4: 'Bem', 5: 'Recarregado' },
+    tryAgain: 'Tentar de novo',
+    tryAgainInAMoment: 'Tente de novo daqui a pouco. Nada foi alterado.',
   },
   painPicker: {
     title: 'Alguma dor?',

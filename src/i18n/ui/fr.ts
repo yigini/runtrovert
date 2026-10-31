@@ -71,7 +71,7 @@ export const fr: Strings = {
     savedWithThisRunWhen: 'Enregistré avec cette sortie quand tu appuies sur Garder. Seulement sur ce téléphone.',
     nameItNoteHowBusy: 'Donne-lui un nom, note l’affluence. Seulement sur ce téléphone.',
     notNowThisLoopWon: 'Pas maintenant. Cette boucle ne sera plus proposée.',
-    notNow: 'Pas maintenant',
+    notNow: 'Ne plus proposer cette boucle',
     saveAsAPlace: 'Garder ce parcours comme lieu',
     saveAsAPlaceHint: 'Donne-lui un nom, il rejoint Tes lieux. Seulement sur ce téléphone.',
   },
@@ -85,6 +85,7 @@ export const fr: Strings = {
     howBusyYouFoundIt: (n, list) => `L’affluence notée, ${n} dernières sorties : ${list}`,
     runXAgain: (name) => `Refaire ${name}`,
     runThisAgain: 'Refaire ce parcours',
+    couldntOpenYourPlaces: 'Impossible d’ouvrir tes lieux pour l’instant.',
   },
   planReminders: {
     noReminders: 'Pas de rappels pour le plan. ',
@@ -388,6 +389,7 @@ export const fr: Strings = {
     patterns: 'Tendances',
     opensThisRun: 'Ouvre cette sortie',
     energy: (delta) => ` · énergie ${delta > 0 ? '+' : ''}${delta}`,
+    couldntOpenYourRuns: 'Impossible d’ouvrir tes sorties pour l’instant.',
   },
   home: {
     next: (day, title) => `Ensuite : ${day}, ${title}`,
@@ -532,6 +534,7 @@ export const fr: Strings = {
     localShowsFrom: 'Émissions locales de',
     chosenHereKeptHereThe: 'Choisi ici, gardé ici. Le téléchargement est le même pour tout le monde.',
     thePhoneSRegion: 'La région du téléphone',
+    couldntUpdate: 'Mise à jour impossible. Voici ta liste enregistrée.',
   },
   place: {
     since: (date) => `depuis le ${date}`,
@@ -555,6 +558,8 @@ export const fr: Strings = {
     runThisAgain: 'Refaire ce parcours',
     lastRunX: (when) => `Dernière sortie ${when}`,
     yourLastNote: 'Ta dernière note ici',
+    couldntSaveTheChange: 'Impossible d’enregistrer la modification',
+    couldntForgetIt: 'Impossible d’oublier ce lieu',
   },
   runDetail: {
     broughtIn: (from, on) => `Importée depuis ${from} le ${on}.`,
@@ -576,6 +581,11 @@ export const fr: Strings = {
     saveAsAPlace: 'Garder comme lieu',
     addToX: (name) => `Ajouter à ${name}`,
     addToXHint: 'Ajoute cette sortie au journal de ce lieu',
+    energyAfter: 'Énergie après la sortie',
+    clearEnergy: 'Effacer',
+    clearEnergyHint: 'Retire la réponse d’énergie de cette sortie',
+    aNoteIfYouWant: 'Une note, si tu veux',
+    couldntSaveThat: 'Impossible d’enregistrer',
   },
   run: {
     listenHint: 'Choisir de la musique ou un podcast. Ta course continue d\'être enregistrée.',
@@ -687,6 +697,9 @@ export const fr: Strings = {
     thatSOneQuietlyLogged: 'Une de plus.\nNotée en silence.',
     doneGoBeUnavailable: 'Fini.\nVa être injoignable.',
     legsDidTheTalking: 'Les jambes ont parlé.',
+    saving: 'Enregistrement…',
+    couldntSaveTheRun: 'Impossible d’enregistrer la sortie',
+    theRunIsStillHere: 'La sortie, tes réponses et ta note sont toujours là. Réessaie dans un instant.',
   },
   settings: {
     language: 'Langue',
@@ -1105,6 +1118,7 @@ export const fr: Strings = {
     noWayToShareFrom: 'Impossible de partager d’ici',
     theCalendarFileIsAt: (uri) => `Le fichier d’agenda est ici : ${uri}.`,
     couldNotMakeTheCalendar: 'Impossible de créer le fichier d’agenda',
+    couldntOpenYourPlan: 'Impossible d’ouvrir ton plan pour l’instant.',
   },
   unlock: {
     name: 'Tout, une fois',
@@ -1481,6 +1495,8 @@ export const fr: Strings = {
     days: jours,
     runs: sorties,
     mood: { 1: 'Vidé', 2: 'Bas', 3: 'Correct', 4: 'Bien', 5: 'Rechargé' },
+    tryAgain: 'Réessayer',
+    tryAgainInAMoment: 'Réessaie dans un instant. Rien n’a été modifié.',
   },
   painPicker: {
     title: 'Quelque chose fait mal ?',

@@ -110,6 +110,8 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   const [placeDraft, setPlaceDraft] = useState<PlaceDraft | null>(null);
   const [placeSheet, setPlaceSheet] = useState(false);
   const [ghostRun, setGhostRun] = useState<Ghost | null>(null);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const stories = useRouteStories(phase === 'finish' ? finishPoints : NO_POINTS);
   const veil = useRef(new Animated.Value(1)).current;
   const reduceMotion = useReduceMotion();
@@ -406,9 +408,22 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   }
 
   async function onSave(share = false) {
+    // One tap keeps one run: a second tap while saving does nothing.
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
     const startedAt = final?.startedAt ?? Date.now();
     const durationS = final?.durationS ?? 0;
-    const id = await stopRun({ moodAfter, quiet, note: note.trim() || null });
+    let id: number | null;
+    try {
+      id = await stopRun({ moodAfter, quiet, note: note.trim() || null });
+    } catch {
+      // Nothing is lost: the run, the answers and the note stay on this screen for another try.
+      savingRef.current = false;
+      setSaving(false);
+      Alert.alert(ui().run.couldntSaveTheRun, ui().run.theRunIsStillHere);
+      return;
+    }
     // With Fewer words the line wasn't shown, so a once-only one stays for later.
     if (id != null && surprise?.once && !settings.fewerWords) {
       const seen = (await loadValue<string[]>(SEEN_KEY).catch(() => null)) ?? [];
@@ -418,6 +433,8 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     if (id != null) await keepPlace(id).catch(() => {});
     const extra: RunExtra = { pain, sessionId: guided?.session.id ?? null, feel, steps: guided ? takeWorkoutSteps(final?.distanceM ?? 0, durationS) : null };
     reset();
+    savingRef.current = false;
+    setSaving(false);
     if (id != null) onSaved(id, share, extra);
   }
 
@@ -561,10 +578,10 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
           {hasPlan && <PainPicker value={pain} onChange={setPain} />}
           <View style={{ gap: spacing.sm }}>
             <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-              <Button title={ui().run.discard} variant="danger" onPress={onDiscard} style={{ flex: 0, paddingHorizontal: 22 }} />
-              <Button title={ui().run.keepIt} onPress={() => onSave()} style={{ flex: 1 }} />
+              <Button title={ui().run.discard} variant="danger" onPress={onDiscard} disabled={saving} style={{ flex: 0, paddingHorizontal: 22 }} />
+              <Button title={saving ? ui().run.saving : ui().run.keepIt} onPress={() => onSave()} disabled={saving} style={{ flex: 1 }} />
             </View>
-            <Button title={ui().run.keepItAndShareWith} variant="secondary" onPress={() => onSave(true)} />
+            <Button title={ui().run.keepItAndShareWith} variant="secondary" onPress={() => onSave(true)} disabled={saving} />
           </View>
           <HowWasIt plan={askFeel} answered={[askFeel && feel != null, moodAfter != null, quiet != null, note.trim().length > 0].filter(Boolean).length}>
             {askFeel && <FeelPicker value={feel} onChange={setFeel} />}

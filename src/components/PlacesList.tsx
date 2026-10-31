@@ -5,6 +5,7 @@ import { BUSY_LABEL, tagLabel } from '../places';
 import { listPlaces, recentVisits, type Place, type PlaceVisit } from '../placeStore';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import type { Quiet } from '../types';
+import { LoadFailed } from './LoadFailed';
 import { RouteShape } from './RouteShape';
 import { ui } from '../i18n/ui';
 import { dateLocale } from '../i18n/lang';
@@ -15,6 +16,9 @@ const BAR: Record<Quiet, number> = { empty: 6, some: 12, crowded: 20 };
 export function PlacesList({ km, refreshKey, header, onOpen, onRunAgain }: { km: boolean; refreshKey: number; header: React.ReactElement; onOpen: (id: number) => void; onRunAgain: (p: Place) => void }) {
   const [places, setPlaces] = useState<Place[] | null>(null);
   const [recent, setRecent] = useState<Map<number, PlaceVisit[]>>(new Map());
+  // A failed read keeps what was shown and never claims there are no places.
+  const [failed, setFailed] = useState(false);
+  const [tries, setTries] = useState(0);
   useEffect(() => {
     let alive = true;
     Promise.all([listPlaces(), recentVisits()])
@@ -22,12 +26,13 @@ export function PlacesList({ km, refreshKey, header, onOpen, onRunAgain }: { km:
         if (!alive) return;
         setPlaces(p);
         setRecent(r);
+        setFailed(false);
       })
-      .catch(() => alive && setPlaces([]));
+      .catch(() => alive && setFailed(true));
     return () => {
       alive = false;
     };
-  }, [refreshKey]);
+  }, [refreshKey, tries]);
 
   return (
     <FlatList
@@ -40,7 +45,9 @@ export function PlacesList({ km, refreshKey, header, onOpen, onRunAgain }: { km:
         </View>
       }
       ListEmptyComponent={
-        places ? (
+        !places && failed ? (
+          <LoadFailed text={ui().placesList.couldntOpenYourPlaces} onRetry={() => setTries((n) => n + 1)} />
+        ) : places ? (
           <View style={styles.empty}>
             <Text style={type.h2}>{ui().placesList.noPlacesYet}</Text>
             <Text style={[type.body, { color: colors.muted, textAlign: 'center' }]}>{ui().placesList.runTheSameLoopA}</Text>
