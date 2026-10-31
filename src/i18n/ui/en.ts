@@ -442,6 +442,7 @@ export const en = {
     backToYourRun: 'Back to your run',
     stillRecording: 'Your run is still recording',
     adverts: 'These shows carry their own adverts. Runtrovert has no annoying, intrusive ads and never sees what you play. When a show opens, your podcast app and the show\'s host see a normal connection, IP address included, like any download.',
+    coversBelong: 'Covers belong to their shows and are here only to point you to them; each one is fetched once and kept on this phone.',
     theOneThisVersionShipped: ', the one this version shipped with',
     xMinutes: (f: string | number) => `, ${f} minutes`,
     nearYouX: (flag: string | number) => `Near you ${flag}`,

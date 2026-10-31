@@ -442,6 +442,7 @@ export const pt: Strings = {
     backToYourRun: 'Voltar à tua corrida',
     stillRecording: 'A tua corrida continua a ser gravada',
     adverts: 'Esses programas têm os próprios anúncios. O Runtrovert não tem anúncios chatos ou invasivos e nunca vê o que você ouve. Quando um programa abre, seu app de podcasts e quem hospeda o programa veem uma conexão normal, endereço IP incluído, como em qualquer download.',
+    coversBelong: 'As capas pertencem aos seus programas e só estão aqui para te levar até eles. Cada uma é baixada uma vez e fica guardada neste telefone.',
     theOneThisVersionShipped: ', a que veio com esta versão',
     xMinutes: (n) => `, ${n} minutos`,
     nearYouX: (flag) => `Perto de você ${flag}`,

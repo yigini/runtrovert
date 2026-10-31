@@ -442,6 +442,7 @@ export const tr: Strings = {
     backToYourRun: 'Koşuna dön',
     stillRecording: 'Koşun hâlâ kaydediliyor',
     adverts: 'Bu programların kendi reklamları var. Runtrovert’ta can sıkıcı, rahatsız edici reklam yok ve ne dinlediğini asla görmez. Bir program açıldığında podcast uygulaman ve programın sunucusu normal bir bağlantı görür, IP adresi dahil, her indirmede olduğu gibi.',
+    coversBelong: 'Kapak görselleri ait oldukları programlarındır ve yalnızca seni onlara yönlendirmek için burada. Her biri bir kez indirilir ve bu telefonda saklanır.',
     theOneThisVersionShipped: ', bu sürümle gelen liste',
     xMinutes: (n) => `, ${n} dakika`,
     nearYouX: (flag) => `Yakınında ${flag}`,

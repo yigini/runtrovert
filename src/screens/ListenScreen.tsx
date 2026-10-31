@@ -23,7 +23,7 @@ import { listRuns } from '../db';
 import { appByKey, canControl, installedApps, installedPackages, type MusicApp } from '../music';
 import { dayKey } from '../presets';
 import { useSettings } from '../settings';
-import { coverFor, phoneLocale, refreshShelf, storedShelf } from '../shelf';
+import { coverFetchable, coverFor, fetchShowCover, phoneLocale, refreshShelf, storedShelf } from '../shelf';
 import {
   GROUPS,
   OFFER_TOPICS,
@@ -276,7 +276,7 @@ export function ListenScreen({ onBack, runLive = false }: { onBack?: () => void;
 
       <Text style={styles.footnote}>
         {shelf ? ui().listen.listFromXX(shelf.builtAt.slice(0, 10), fetchedAt ? '' : ui().listen.theOneThisVersionShipped) : ''}
-        {ui().listen.adverts}
+        {ui().listen.adverts} {ui().listen.coversBelong}
       </Text>
 
       {offers.length ? (
@@ -754,7 +754,18 @@ const TILE = 132;
 /** The show's cover, or its initials on the section's pastel when there's no cover. */
 function Cover({ show, size, tint, online, onTint }: { show: Show; size: number; tint: Tint; online: boolean; onTint?: boolean }) {
   const [failed, setFailed] = useState(false);
-  const src: ImageSourcePropType | null = failed ? null : coverFor(show, online);
+  const [fetched, setFetched] = useState<{ id: number; src: ImageSourcePropType } | null>(null);
+  const kept = coverFor(show);
+  // Not on the phone yet: fetch it once, keep it, and fall back to initials meanwhile or offline.
+  useEffect(() => {
+    if (kept || !coverFetchable(show, online)) return;
+    let live = true;
+    fetchShowCover(show).then((s) => live && s && setFetched({ id: show.id, src: s }));
+    return () => {
+      live = false;
+    };
+  }, [show.id, online, !!kept]);
+  const src: ImageSourcePropType | null = failed ? null : kept ?? (fetched?.id === show.id ? fetched.src : null);
   const r = Math.round(size * 0.16);
   if (src) {
     return <Image source={src} onError={() => setFailed(true)} style={{ width: size, height: size, borderRadius: r, backgroundColor: colors.white }} accessibilityIgnoresInvertColors />;

@@ -1,5 +1,6 @@
 {
-  "_about": "Hand-picked shows for the Listen shelf. Edit freely: add an Apple Podcasts id, a group, a one-line why. noFeed: true links the show without reading its feed (for publishers whose terms want a licence, like the BBC). scripts/build-shelf.mjs fills in the feed, the latest episodes and the episode count every day. Groups: quiet, stories, learn, start.",
+  "_about": "Hand-picked shows for the Listen shelf. Edit freely: add an Apple Podcasts id, a group, a one-line why. noFeed: true links the show without reading its feed (for publishers whose terms want a licence, like the BBC). scripts/build-shelf.mjs fills in the feed, the latest episodes and the episode count every day. Groups: quiet, stories, learn, start. noArt: Apple ids whose covers are never fetched or published (a show that asked us to stop), so they show initials.",
+  "noArt": [],
   "shows": [
     { "id": 1083410032, "groups": ["quiet"], "since": 2016, "why": "Two comedians chatting while they actually run. Company that never needs a reply." },
     { "id": 350035346, "groups": ["quiet"], "since": 2010, "why": "Calm and kind. Deena Kastor and Martin Yelling on the mind as much as the miles." },
