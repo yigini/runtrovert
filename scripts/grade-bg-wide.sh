@@ -24,6 +24,8 @@ trail-bridge|5677457-uhd_3840_2160_24fps.mp4|2|0.5|0.5
 leafy-lane|13947025-hd_1920_1080_30fps.mp4|2|0.5|0.5
 lake-side|4065467-uhd_3840_2160_30fps.mp4|0|0.5|0.5|7
 glass-river|8834377-uhd_4096_2160_25fps.mp4|0|0.5|0.5
+sunny-park|7218851-uhd_2160_3840_24fps.mp4|0|0.5|0.5
+river-bridge|5033913-uhd_3840_2160_30fps.mp4|3|0.5|0.5
 '
 
 FADE=1.2

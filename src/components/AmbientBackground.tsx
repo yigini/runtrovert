@@ -39,6 +39,8 @@ const SOURCES: Record<BgStyle, { video: number; poster: number }> = {
   'glass-river': { video: require('../../assets/bg-glass-river.mp4'), poster: require('../../assets/bg-glass-river.jpg') },
   'night-park': { video: require('../../assets/bg-night-park.mp4'), poster: require('../../assets/bg-night-park.jpg') },
   'hood-path': { video: require('../../assets/bg-hood-path.mp4'), poster: require('../../assets/bg-hood-path.jpg') },
+  'sunny-park': { video: require('../../assets/bg-sunny-park.mp4'), poster: require('../../assets/bg-sunny-park.jpg') },
+  'river-bridge': { video: require('../../assets/bg-river-bridge.mp4'), poster: require('../../assets/bg-river-bridge.jpg') },
   painterly: { video: require('../../assets/bg-painterly.mp4'), poster: require('../../assets/bg-painterly.jpg') },
   flat: { video: require('../../assets/bg-flat.mp4'), poster: require('../../assets/bg-flat.jpg') },
   abstract: { video: require('../../assets/bg-abstract.mp4'), poster: require('../../assets/bg-abstract.jpg') },
