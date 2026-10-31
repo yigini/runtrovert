@@ -106,7 +106,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
   return (
     // The footage follows the same reading as the headline; a still frame in battery saver.
     <AmbientBackground style={homeFootage(weather, now)}>
-      <Fade from="top" height="62%" strength={0.9} />
+      <Fade from="top" height="50%" strength={0.82} />
       <Fade from="bottom" height="42%" strength={0.92} />
       {/* Words scroll when there are many of them; the start button never moves. */}
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.screen} showsVerticalScrollIndicator={false}>
