@@ -16,4 +16,10 @@ services:
       - /var/cache/nginx
       - /var/run
     mem_limit: 64m
+    # Errors only (access_log is off); keep the container's own log small.
+    logging:
+      driver: json-file
+      options:
+        max-size: "1m"
+        max-file: "2"
     cpus: 0.25
