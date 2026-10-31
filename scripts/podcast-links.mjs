@@ -12,6 +12,8 @@
 // after RETRY_DAYS, so the daily YouTube quota (10,000 units, 100 per search) holds.
 
 const RETRY_DAYS = 14;
+// Bump when YouTube matching changes, so every miss is searched again once.
+const YT_MATCHER = 2;
 const YT_SEARCHES_PER_RUN = 60;
 
 /** Lowercase, no accents, no punctuation, no leading "the", no trailing "podcast"/"show". */
@@ -123,11 +125,20 @@ async function youtubeShow(name) {
   ytSearches++;
   const found = await youtube(`search?part=snippet&type=playlist&maxResults=10&q=${encodeURIComponent(name)}`);
   if (!found) return undefined;
-  const ids = (found.items ?? []).filter((i) => sameShow(i.snippet?.title, name)).map((i) => i.id?.playlistId).filter(Boolean);
+  // The playlist named after the show, or any playlist on a channel named after it
+  // (many shows call their podcast playlist "Full episodes"). Name matches first.
+  const items = found.items ?? [];
+  const ids = [
+    ...items.filter((i) => sameShow(i.snippet?.title, name)),
+    ...items.filter((i) => !sameShow(i.snippet?.title, name) && sameShow(i.snippet?.channelTitle, name)),
+  ]
+    .map((i) => i.id?.playlistId)
+    .filter(Boolean);
   if (!ids.length) return null;
   const lists = await youtube(`playlists?part=status&id=${ids.join(',')}`);
   // Only a playlist YouTube itself treats as a podcast; any other playlist could be a fan's.
-  return (lists?.items ?? []).find((p) => p.status?.podcastStatus === 'enabled')?.id ?? null;
+  const podcasts = new Set((lists?.items ?? []).filter((p) => p.status?.podcastStatus === 'enabled').map((p) => p.id));
+  return ids.find((id) => podcasts.has(id)) ?? null;
 }
 
 async function youtubeEpisodes(playlistId) {
@@ -137,25 +148,43 @@ async function youtubeEpisodes(playlistId) {
 
 // ---- Putting it together -------------------------------------------------------------
 
-/** Yesterday's matches, by Apple id, so most shows need no search today. */
+/**
+ * Yesterday's matches, by Apple id, so most shows need no search today. Episode ids
+ * ride along under `episodes` (title → ids), so a build without keys, like the copy
+ * shipped inside the app, still opens the exact episode.
+ */
 export function rememberLinks(previous) {
   const known = new Map();
   if (!previous) return known;
   for (const s of [...(previous.curated ?? []), ...Object.values(previous.regions ?? {}).flat()]) {
-    if (s?.links) known.set(s.id, s.links);
+    if (!s?.links) continue;
+    const episodes = {};
+    for (const e of s.latest ?? []) if (e.yt || e.spotify) episodes[e.title] = { yt: e.yt, spotify: e.spotify };
+    known.set(s.id, { ...s.links, episodes });
   }
   return known;
 }
 
 const due = (checked, today) => !checked || Date.parse(today) - Date.parse(checked) >= RETRY_DAYS * 86400000;
 
+/** Episode ids found yesterday, for episodes still in today's list. */
+export function carryEpisodes(latest, episodes) {
+  for (const ep of latest) {
+    const was = episodes?.[ep.title];
+    if (!was) continue;
+    if (was.yt && !ep.yt) ep.yt = was.yt;
+    if (was.spotify && !ep.spotify) ep.spotify = was.spotify;
+  }
+}
+
 /**
  * Adds `links` ({ spotify, yt, checked }) to each show and service ids to its latest
  * episodes. `market` is the storefront the show was found in. Never throws.
  */
 export async function linkShow(show, market, known, today) {
-  const prev = known.get(show.id) ?? {};
+  const { episodes, ...prev } = known.get(show.id) ?? {};
   const links = { ...prev };
+  carryEpisodes(show.latest, episodes);
   try {
     if (process.env.SPOTIFY_CLIENT_ID) {
       if (!links.spotify && due(prev.spotifyChecked, today)) {
@@ -165,11 +194,12 @@ export async function linkShow(show, market, known, today) {
       if (links.spotify) tagEpisodes(show.latest, await spotifyEpisodes(links.spotify, market), 'spotify');
     }
     if (process.env.YOUTUBE_API_KEY) {
-      if (!links.yt && due(prev.ytChecked, today)) {
+      if (!links.yt && (prev.ytv !== YT_MATCHER || due(prev.ytChecked, today))) {
         const yt = await youtubeShow(show.name);
         if (yt !== undefined) {
           links.yt = yt ?? undefined;
           links.ytChecked = today;
+          links.ytv = YT_MATCHER;
         }
       }
       if (links.yt) tagEpisodes(show.latest, await youtubeEpisodes(links.yt), 'yt');

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { checkOffer, cleanUrl, parseFeedHead, speaks } from './build-shelf.mjs';
-import { matchEpisode, norm, rememberLinks, sameShow, tagEpisodes } from './podcast-links.mjs';
+import { carryEpisodes, matchEpisode, norm, rememberLinks, sameShow, tagEpisodes } from './podcast-links.mjs';
 import { filterOffers, fitsRun, freshEpisodes, whenLabel, localShows, offersFor, parseLocale, openTarget, pickCountry, showLink, usualRunMin, type Shelf, type Show } from '../src/shelfLogic.ts';
 
 // Rules for the Listen tab and Kit & offers. Run: npm run test:shelf
@@ -91,7 +91,12 @@ const tagged = [{ title: 'Sam Tomlinson', date: '2026-10-26', min: 46 } as any, 
 tagEpisodes(tagged, cands, 'spotify');
 assert.equal(tagged[0].spotify, 'b');
 assert.equal(tagged[1].spotify, undefined);
-assert.deepEqual([...rememberLinks({ curated: [{ id: 1, links: { yt: 'PL1' } }], regions: { tr: [{ id: 2 }] } }).entries()], [[1, { yt: 'PL1' }]]);
+const remembered = rememberLinks({ curated: [{ id: 1, links: { yt: 'PL1' }, latest: [{ title: 'Ep 1', yt: 'V1' }, { title: 'Ep 0' }] }], regions: { tr: [{ id: 2 }] } });
+assert.deepEqual([...remembered.entries()], [[1, { yt: 'PL1', episodes: { 'Ep 1': { yt: 'V1', spotify: undefined } } }]]);
+const carried = [{ title: 'Ep 2', date: 'd', min: 1 } as any, { title: 'Ep 1', date: 'd', min: 1 } as any];
+carryEpisodes(carried, remembered.get(1).episodes);
+assert.equal(carried[1].yt, 'V1', "yesterday's episode id carries over without a key");
+assert.equal(carried[0].yt, undefined);
 
 // Where "Open" goes: episode, then show, then an honest search
 const linked = { id: 5, name: 'Running Commentary', feed: 'x', links: { spotify: 'S1', yt: 'PL9' } };
