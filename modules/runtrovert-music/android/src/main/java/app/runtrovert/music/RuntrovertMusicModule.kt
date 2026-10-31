@@ -95,6 +95,16 @@ class RuntrovertMusicModule : Module() {
       true
     }
 
+    // False in the side-loaded test APK, which is built without the listener.
+    Constant("hasNowPlaying") {
+      try {
+        context.packageManager.getServiceInfo(listener, 0)
+        true
+      } catch (e: Exception) {
+        false
+      }
+    }
+
     Function("nowPlayingAllowed") { allowed() }
 
     // Android's own screen for notification access, on Runtrovert's row where the phone allows it.

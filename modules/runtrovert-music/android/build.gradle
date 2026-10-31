@@ -6,8 +6,18 @@ plugins {
 group = 'app.runtrovert'
 version = '0.1.0'
 
+// -Pruntrovert.nowPlaying=false leaves the now-playing listener (notification access)
+// out, for the test APK people install from a file: Play Protect blocks such apps.
+// The store build and the "full" test APK keep it.
+def nowPlaying = (project.findProperty('runtrovert.nowPlaying') ?: 'true').toString() != 'false'
+
 android {
   namespace "app.runtrovert.music"
+  sourceSets {
+    main {
+      manifest.srcFile(nowPlaying ? 'src/main/AndroidManifest.xml' : 'src/lite/AndroidManifest.xml')
+    }
+  }
   defaultConfig {
     versionCode 1
     versionName '0.1.0'

@@ -18,6 +18,7 @@ interface Native {
   installed?(ids: string[]): string[];
   open?(id: string | null): boolean;
   duck(on: boolean): boolean;
+  hasNowPlaying?: boolean;
   nowPlayingAllowed?(): boolean;
   askNowPlaying?(): boolean;
   nowPlaying?(): NowPlaying | null;
@@ -117,8 +118,11 @@ export async function openMusicApp(key: string | null): Promise<boolean> {
   }
 }
 
-/** Whether the phone can show what's playing at all (Android with our native module). */
-export const canShowNowPlaying = Platform.OS === 'android' && typeof native?.nowPlaying === 'function';
+/**
+ * Whether this build can show what's playing at all: Android, our native module, and the
+ * listener service present (the side-loaded test APK is built without it).
+ */
+export const canShowNowPlaying = Platform.OS === 'android' && typeof native?.nowPlaying === 'function' && native?.hasNowPlaying !== false;
 
 /** Whether the runner has turned on notification access for Runtrovert. */
 export function nowPlayingAllowed(): boolean {

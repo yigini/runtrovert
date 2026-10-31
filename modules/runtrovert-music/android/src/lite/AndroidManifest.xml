@@ -1,0 +1,22 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- The side-loaded test APK ("runtrovert-apk"): the same as main/ without the
+       now-playing listener, which Play Protect blocks in apps installed from a file.
+       Keep the <queries> list in step with main/AndroidManifest.xml. -->
+  <!-- Android 11+ hides other apps unless we name them. Only used to show which
+       music and podcast apps are installed and to open the one you picked. -->
+  <queries>
+    <package android:name="com.spotify.music" />
+    <package android:name="com.google.android.apps.youtube.music" />
+    <package android:name="com.apple.android.music" />
+    <package android:name="com.amazon.mp3" />
+    <package android:name="deezer.android.app" />
+    <package android:name="com.aspiro.tidal" />
+    <package android:name="com.soundcloud.android" />
+    <package android:name="au.com.shiftyjelly.pocketcasts" />
+    <package android:name="de.danoeh.antennapod" />
+    <intent>
+      <action android:name="android.intent.action.MAIN" />
+      <category android:name="android.intent.category.APP_MUSIC" />
+    </intent>
+  </queries>
+</manifest>

@@ -76,10 +76,14 @@ jobs:
       # Phone-only test build: ARM code only (no x86/x86_64, which only emulators and a few
       # Chromebooks use), native libraries compressed inside the file, unused resources removed.
       # The store gets the App Bundle from the "bundle" job below, not this file.
-      - name: Build release APK (test-signed)
+      # Two phone APKs. runtrovert-apk installs from the downloaded file: it leaves out the
+      # now-playing listener (notification access), which Play Protect blocks in side-loaded
+      # apps, and the app then hides that option. runtrovert-apk-full keeps it, for adb.
+      - name: Build release APK (test-signed, installs from the file)
         working-directory: android
         run: >-
           ./gradlew assembleRelease --no-daemon
+          -Pruntrovert.nowPlaying=false
           -PreactNativeArchitectures=armeabi-v7a,arm64-v8a
           -Pexpo.useLegacyPackaging=true
           -Pandroid.enableShrinkResourcesInReleaseBuilds=true
@@ -88,10 +92,29 @@ jobs:
       - name: Rename
         run: cp android/app/build/outputs/apk/release/app-release.apk runtrovert-${{ github.run_number }}.apk
 
+      - name: Build release APK (test-signed, full, for adb)
+        working-directory: android
+        run: >-
+          ./gradlew assembleRelease --no-daemon
+          -Pruntrovert.nowPlaying=true
+          -PreactNativeArchitectures=armeabi-v7a,arm64-v8a
+          -Pexpo.useLegacyPackaging=true
+          -Pandroid.enableShrinkResourcesInReleaseBuilds=true
+          "-Pandroid.injected.signing.store.file=$KS" "-Pandroid.injected.signing.store.password=$KS_PASS" "-Pandroid.injected.signing.key.alias=$KS_ALIAS" "-Pandroid.injected.signing.key.password=$KS_PASS"
+
+      - name: Rename full
+        run: cp android/app/build/outputs/apk/release/app-release.apk runtrovert-${{ github.run_number }}-full.apk
+
       - uses: actions/upload-artifact@v4
         with:
           name: runtrovert-apk
-          path: runtrovert-*.apk
+          path: runtrovert-${{ github.run_number }}.apk
+          retention-days: 30
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runtrovert-apk-full
+          path: runtrovert-${{ github.run_number }}-full.apk
           retention-days: 30
 
   # Android App Bundle (.aab) for Google Play. Play cuts it into per-phone pieces (one CPU
