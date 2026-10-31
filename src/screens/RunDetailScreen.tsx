@@ -11,7 +11,9 @@ import { YouLine } from '../components/YouLine';
 import { deleteRun, getHeartRate, getPoints, getRun, getRunSource, getSplits, highestHeartRate, setMoodAfter, type RunSource } from '../db';
 import { cleanHeart, heartSummary, type HeartSample, type HeartSummary } from '../heart';
 import { shareRunGpx } from '../io/store';
-import { placeForRun, type Place } from '../placeStore';
+import { SavePlaceSheet } from '../components/SavePlaceSheet';
+import { suggestName } from '../places';
+import { getPlace, logRun, placeForRun, placeFromRun, runPlaceChoice, type Place, type PlaceDraft, type RunPlaceChoice } from '../placeStore';
 import { forgetRun } from '../training/store';
 import { compare, youVsYou, type RunFacts } from '../progress';
 import type { RunWeather } from '../shareLines';
@@ -47,6 +49,9 @@ export function RunDetailScreen({
   const [source, setSource] = useState<RunSource | null>(null);
   const [saving, setSaving] = useState(false);
   const [place, setPlace] = useState<Place | null>(null);
+  // Not in a place yet: its loop, so any run can become one ("Save as a place").
+  const [choice, setChoice] = useState<RunPlaceChoice | null>(null);
+  const [placeSheet, setPlaceSheet] = useState(false);
   const [heart, setHeart] = useState<HeartSummary | null>(null);
   const [beats, setBeats] = useState<HeartSample[]>([]);
   const [maxHr, setMaxHr] = useState<number | null>(null);
@@ -66,7 +71,9 @@ export function RunDetailScreen({
       setPoints(pts.map((p) => ({ ts: p.ts, lat: p.lat, lon: p.lon, alt: p.alt })));
       setSplits(await getSplits(runId));
       setSource(await getRunSource(runId).catch(() => null));
-      setPlace(await placeForRun(runId).catch(() => null));
+      const inPlace = await placeForRun(runId).catch(() => null);
+      setPlace(inPlace);
+      if (!inPlace) setChoice(await runPlaceChoice(runId).catch(() => null));
       const you = await loadYou().catch(() => null);
       if (you) {
         setFacts(you.facts);
@@ -107,6 +114,29 @@ export function RunDetailScreen({
     }
   }
 
+  async function keepAsPlace(d: PlaceDraft) {
+    if (!choice) return;
+    setPlaceSheet(false);
+    try {
+      const id = await placeFromRun(runId, d, choice.sig);
+      setPlace(await getPlace(id));
+      setChoice(null);
+    } catch {
+      // nothing kept; the link stays
+    }
+  }
+
+  async function addToMatch() {
+    if (!choice?.match) return;
+    try {
+      await logRun(choice.match.id, runId);
+      setPlace(choice.match);
+      setChoice(null);
+    } catch {
+      // nothing changed
+    }
+  }
+
   function onDelete() {
     Alert.alert(ui().runDetail.deleteRun, ui().runDetail.thisCannotBeUndone, [
       { text: ui().runDetail.keep, style: 'cancel' },
@@ -142,6 +172,16 @@ export function RunDetailScreen({
         >
           <Text style={styles.placeText}>{place.name} ›</Text>
         </Pressable>
+      ) : !place && choice ? (
+        <Pressable
+          onPress={choice.match ? () => void addToMatch() : () => setPlaceSheet(true)}
+          accessibilityRole="button"
+          accessibilityHint={choice.match ? ui().runDetail.addToXHint : undefined}
+          hitSlop={8}
+          style={({ pressed }) => [styles.placeLink, pressed && { opacity: 0.85 }]}
+        >
+          <Text style={styles.placeLinkText}>{choice.match ? ui().runDetail.addToX(choice.match.name) : ui().runDetail.saveAsAPlace}</Text>
+        </Pressable>
       ) : null}
       <RouteMap path={path} height={260} />
       {line && <YouLine title={line.title.replace('\n', ' ')} detail={line.detail} />}
@@ -161,6 +201,9 @@ export function RunDetailScreen({
       {cmp && <Button title={ui().runDetail.shareWithSomeone} variant="secondary" onPress={() => setSharing(true)} style={{ marginTop: spacing.sm }} />}
       {path.length > 1 ? <Button title={saving ? ui().runDetail.saving : ui().runDetail.saveAsGpx} variant="secondary" onPress={onSaveGpx} disabled={saving} /> : null}
       <Button title={ui().runDetail.deleteRun2} variant="danger" onPress={onDelete} style={{ marginTop: spacing.lg }} />
+      {choice && !choice.match ? (
+        <SavePlaceSheet open={placeSheet} sig={choice.sig} initial={{ name: suggestName(run.startedAt), tags: [] }} onSave={(d) => void keepAsPlace(d)} onClose={() => setPlaceSheet(false)} />
+      ) : null}
       {cmp && <ShareSheet visible={sharing} onClose={() => setSharing(false)} run={run} path={path} cmp={cmp} weather={weather} km={km} />}
     </ScrollView>
   );
@@ -171,6 +214,8 @@ const styles = StyleSheet.create({
   source: { ...type.small, marginTop: -spacing.sm },
   date: { fontFamily: fonts.display, fontSize: 22, lineHeight: 26, color: colors.text },
   place: { alignSelf: 'flex-start', minHeight: 36, justifyContent: 'center', backgroundColor: colors.mint, borderRadius: radius.pill, paddingHorizontal: 14 },
+  placeLink: { alignSelf: 'flex-start', minHeight: 36, justifyContent: 'center' },
+  placeLinkText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.mintDeep, textDecorationLine: 'underline' },
   placeText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.mintDeep },
   note: { fontFamily: fonts.body, color: colors.text, fontSize: 15, lineHeight: 22, backgroundColor: colors.butter, borderRadius: radius.lg, padding: spacing.md },
 });

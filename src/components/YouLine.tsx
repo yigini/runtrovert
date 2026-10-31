@@ -7,7 +7,7 @@ export function YouLine({ title, detail }: { title: string; detail: string }) {
   return (
     <View style={styles.box}>
       <Text style={styles.title}>{title}</Text>
-      <Text style={styles.detail}>{detail}</Text>
+      {!!detail && <Text style={styles.detail}>{detail}</Text>}
     </View>
   );
 }

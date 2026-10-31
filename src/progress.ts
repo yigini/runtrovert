@@ -363,12 +363,14 @@ export function formatClock(s: number): string {
  * then a comeback, a longest run, a big recharge, then the baseline. Returns
  * null when nothing stands out, which is most runs, and that's fine.
  */
-export function youVsYou(c: Comparison, km = true): { title: string; detail: string } | null {
+export function youVsYou(c: Comparison, km = true, plain = false): { title: string; detail: string } | null {
   const y = voice().you;
-  const line = (l: { title: string; detail: string }) => ({ title: finish(l.title), detail: finish(l.detail) });
+  // "Fewer words": the headline's first line, the fact, and no aside.
+  const line = (l: { title: string; detail: string }, keepDetail = false) =>
+    plain ? { title: finish(l.title.split('\n')[0]), detail: keepDetail ? finish(l.detail) : '' } : { title: finish(l.title), detail: finish(l.detail) };
   if (c.best) {
     if (c.best.marginS == null) return line(y.bestFirst(c.best.key, formatClock(c.best.seconds)));
-    return line(y.best(c.best.key, formatClock(c.best.seconds), c.best.marginS, c.best.previousAt ? monthName(c.best.previousAt) : null));
+    return line(y.best(c.best.key, formatClock(c.best.seconds), c.best.marginS, c.best.previousAt ? monthName(c.best.previousAt) : null), true);
   }
   if (c.gapDays != null && c.gapDays >= 14) return line(y.welcomeBack(c.gapDays));
   if (c.recentBest) return line(y.recentBest(c.recentBest.key, formatClock(c.recentBest.seconds)));

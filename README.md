@@ -1,6 +1,6 @@
 # Runtrovert
 
-*Run alone. Not lonely.*
+*Your run. Your space.*
 
 A running tracker for introverts. No feed, no followers, no account, no subscription.
 Everything stays on the phone.

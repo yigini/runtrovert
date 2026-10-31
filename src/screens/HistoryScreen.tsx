@@ -102,10 +102,12 @@ export function HistoryScreen({
         accessible
         accessibilityLabel={ui().history.monthSoFarSpoken(thisMonth, month.runs, spokenDistance(month.distanceM, km), spokenDuration(month.durationS))}
       >
-        <Text style={[type.eyebrow, styles.monthTitle]}>{ui().history.monthSoFar(thisMonth)}</Text>
-        <Stat value={String(month.runs)} label={ui().history.runsLabel(month.runs)} />
-        <Stat value={month.runs ? formatDistanceNumber(month.distanceM, km) : '0'} label={distanceUnit(km)} />
-        <Stat value={hoursMinutes(month.durationS)} label={ui().history.running} />
+        <Text style={type.eyebrow}>{ui().history.monthSoFar(thisMonth)}</Text>
+        <View style={styles.monthRow}>
+          <Stat value={String(month.runs)} label={ui().history.runsLabel(month.runs)} />
+          <Stat value={month.runs ? formatDistanceNumber(month.distanceM, km) : '0'} label={distanceUnit(km)} />
+          <Stat value={hoursMinutes(month.durationS)} label={ui().history.running} />
+        </View>
       </View>
       <YouSection km={km} refreshKey={refreshKey} />
     </View>
@@ -260,9 +262,11 @@ const styles = StyleSheet.create({
   segOn: { backgroundColor: colors.white },
   segText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.muted },
   segTextOn: { color: colors.text },
-  month: { flexDirection: 'row', flexWrap: 'wrap', backgroundColor: colors.white, borderRadius: radius.lg, paddingVertical: 16, paddingHorizontal: 18, rowGap: 8 },
-  monthTitle: { width: '100%' },
-  stat: { flex: 1 },
+  // Title above, stats in their own row: flex: 1 children inside a wrapping row
+  // collapsed to nothing on Android and left a tall empty card.
+  month: { backgroundColor: colors.white, borderRadius: radius.lg, paddingVertical: 16, paddingHorizontal: 18, gap: 8 },
+  monthRow: { flexDirection: 'row', gap: spacing.sm },
+  stat: { flex: 1, minWidth: 0 },
   statValue: { fontFamily: fonts.display, fontSize: 24, lineHeight: 28, color: colors.text, fontVariant: ['tabular-nums'] },
   statLabel: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
   groupTitle: { marginTop: spacing.md, marginBottom: spacing.sm },

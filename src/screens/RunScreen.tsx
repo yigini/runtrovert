@@ -17,9 +17,11 @@ import { RouteMap } from '../components/RouteMap';
 import { StoriesCard, storyPins, useRouteStories } from '../components/StoriesCard';
 import { SavePlaceSheet } from '../components/SavePlaceSheet';
 import { suggestName } from '../places';
-import { createPlace, dismissLoop, finishPlace, logRun, saveSig, type FinishPlace, type PlaceDraft } from '../placeStore';
+import { createPlace, dismissLoop, finishPlace, logRun, saveSig, type FinishPlace, type Place, type PlaceDraft } from '../placeStore';
 import { RunStatsView } from '../components/RunStats';
 import { UnlockNudge } from '../components/UnlockNudge';
+import { HowWasIt } from '../components/HowWasIt';
+import { useReduceMotion } from '../motion';
 import { YouLine } from '../components/YouLine';
 import { useBack } from '../back';
 import { cueCountdown, setRunSilent } from '../cues';
@@ -49,6 +51,7 @@ import type { Offer } from '../commute';
 import { lastCommuteRoute, loadCommute } from '../commuteStore';
 import { liveFacts, recordRunFacts } from '../you';
 import { ui } from '../i18n/ui';
+import { voice } from '../i18n/voice';
 
 type Phase = 'idle' | 'countdown' | 'active' | 'finish';
 
@@ -109,6 +112,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   const [ghostRun, setGhostRun] = useState<Ghost | null>(null);
   const stories = useRouteStories(phase === 'finish' ? finishPoints : NO_POINTS);
   const veil = useRef(new Animated.Value(1)).current;
+  const reduceMotion = useReduceMotion();
   // Heights of the words and the numbers laid over the finish map, so the route is framed between them.
   const [finishPad, setFinishPad] = useState({ top: 140, bottom: 170 });
   // At large text sizes the words and numbers over the map grow; the map grows with them.
@@ -342,7 +346,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     Haptics.selectionAsync();
     const next = !mapFront;
     setMapFront(next);
-    Animated.timing(veil, { toValue: next ? 0 : 1, duration: 260, useNativeDriver: true }).start();
+    Animated.timing(veil, { toValue: next ? 0 : 1, duration: reduceMotion ? 0 : 260, useNativeDriver: true }).start();
   }
 
   function onPauseResume() {
@@ -405,7 +409,8 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     const startedAt = final?.startedAt ?? Date.now();
     const durationS = final?.durationS ?? 0;
     const id = await stopRun({ moodAfter, quiet, note: note.trim() || null });
-    if (id != null && surprise?.once) {
+    // With Fewer words the line wasn't shown, so a once-only one stays for later.
+    if (id != null && surprise?.once && !settings.fewerWords) {
       const seen = (await loadValue<string[]>(SEEN_KEY).catch(() => null)) ?? [];
       saveValue(SEEN_KEY, [...seen, surprise.id]).catch(() => {});
     }
@@ -421,7 +426,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     if (!found) return;
     await saveSig(runId, found.sig);
     if (found.offer.kind === 'place') await logRun(found.offer.placeId, runId);
-    else if (found.offer.kind === 'offer' && placeDraft && found.sig) await createPlace(placeDraft, found.sig, runId, found.offer.earlier);
+    else if (placeDraft && found.sig) await createPlace(placeDraft, found.sig, runId, found.earlier);
   }
 
   function placeNotNow() {
@@ -479,16 +484,22 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     veil.setValue(1);
   }
 
+  /** "Run this again" from the home screen's place: the same as from the place itself. */
+  function runPlace(p: Place) {
+    setGhostRun({ placeId: p.id, name: p.name, path: p.sig.pts.map(([latitude, longitude]) => ({ latitude, longitude })) });
+    void onStart();
+  }
+
   // ---- Idle ------------------------------------------------------------------
   if (phase === 'idle') {
-    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} onCommute={onCommute} onRunFree={onRunFree} planToday={session} planNext={requested ? null : planNext} plan={requested ? null : planShown} welcomeBack={!requested} onOpenPlan={onOpenPlan} onPlanChanged={onPlanChanged} onBrowseListen={onBrowseListen} />;
+    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} onCommute={onCommute} onRunFree={onRunFree} planToday={session} planNext={requested ? null : planNext} plan={requested ? null : planShown} welcomeBack={!requested} onOpenPlan={onOpenPlan} onPlanChanged={onPlanChanged} onBrowseListen={onBrowseListen} onRunPlace={runPlace} />;
   }
 
   // ---- Countdown -------------------------------------------------------------
   // Feet on the ground behind the numbers, under an ink veil so the count stays cream.
   if (phase === 'countdown') {
     return (
-      <AmbientBackground style={countFootage} still={settings.batteryMode === 'saver'}>
+      <AmbientBackground style={countFootage}>
         <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(43,39,51,0.55)' }]} />
         <View style={[styles.center, { flex: 1, padding: spacing.md }]}>
           <Text style={styles.countdown}>{count}</Text>
@@ -502,7 +513,8 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   if (phase === 'finish' && final) {
     const partialKm = final.currentKm.distanceM > 20 ? { index: final.splits.length + 1, ...final.currentKm } : null;
     const mapH = Math.max(Math.round(Dimensions.get('window').height * 0.62), finishPad.top + finishCardH + 160);
-    const you = live ? youVsYou(compare({ ...live.run, moodBefore, moodAfter }, live.history), km) : null;
+    const askFeel = hasPlan && (!!guided || (!!session && sessionOpen && session.kind !== 'rest'));
+    const you = live ? youVsYou(compare({ ...live.run, moodBefore, moodAfter }, live.history), km, settings.fewerWords) : null;
     return (
       <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
         {/* The run, framed: your route fills the space between the words and the numbers. */}
@@ -522,7 +534,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
                 <Text style={styles.resumeText}>{ui().run.resumeRun2}</Text>
               </Pressable>
             </View>
-            <Text style={styles.finishTitle} maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>{surprise?.line ?? finishLine()}</Text>
+            <Text style={styles.finishTitle} maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>{settings.fewerWords ? ui().run.plainFinish(voice().distance(final.distanceM, km), voice().minutes(final.durationS)) : surprise?.line ?? finishLine()}</Text>
           </View>
           <View
             style={styles.finishCard}
@@ -543,14 +555,23 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         </View>
         <View style={{ padding: spacing.md, paddingTop: spacing.lg, gap: spacing.lg }}>
           {you && <YouLine title={you.title} detail={you.detail} />}
-          <PlaceFinishCard found={found} draft={placeDraft} onOffer={() => setPlaceSheet(true)} onNotNow={placeNotNow} />
-          <StoriesCard stories={stories} moodBefore={moodBefore} />
-          <UnlockNudge />
-          <MoodPicker title={ui().run.andYourEnergyNow} value={moodAfter} onChange={setMoodAfter} />
-          <QuietPicker value={quiet} onChange={setQuiet} />
-          <TextInput style={styles.note} placeholder={ui().run.aNoteIfYouWant} placeholderTextColor={colors.inkMuted} value={note} onChangeText={setNote} multiline />
-          {hasPlan && (!!guided || (!!session && sessionOpen && session.kind !== 'rest')) && <FeelPicker value={feel} onChange={setFeel} />}
+          {/* Calm order: keep it and go first. On a plan the pain question sits
+              just above, so it is seen before leaving. Everything else is optional
+              and comes after: one folded reflection, the details, then the extras. */}
           {hasPlan && <PainPicker value={pain} onChange={setPain} />}
+          <View style={{ gap: spacing.sm }}>
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              <Button title={ui().run.discard} variant="danger" onPress={onDiscard} style={{ flex: 0, paddingHorizontal: 22 }} />
+              <Button title={ui().run.keepIt} onPress={() => onSave()} style={{ flex: 1 }} />
+            </View>
+            <Button title={ui().run.keepItAndShareWith} variant="secondary" onPress={() => onSave(true)} />
+          </View>
+          <HowWasIt plan={askFeel} answered={[askFeel && feel != null, moodAfter != null, quiet != null, note.trim().length > 0].filter(Boolean).length}>
+            {askFeel && <FeelPicker value={feel} onChange={setFeel} />}
+            <MoodPicker title={ui().run.andYourEnergyNow} value={moodAfter} onChange={setMoodAfter} />
+            <QuietPicker value={quiet} onChange={setQuiet} />
+            <TextInput style={styles.note} placeholder={ui().run.aNoteIfYouWant} placeholderTextColor={colors.inkMuted} value={note} onChangeText={setNote} multiline />
+          </HowWasIt>
           <RunStatsView
             run={{ startedAt: final.startedAt ?? Date.now(), endedAt: finishPoints.length ? finishPoints[finishPoints.length - 1].ts : null, distanceM: final.distanceM, durationS: final.durationS, elevationGainM: final.elevationGainM, quiet, moodBefore, moodAfter }}
             points={finishPoints}
@@ -561,11 +582,9 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
             hero={false}
             heart={finishHeart}
           />
-          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-            <Button title={ui().run.discard} variant="danger" onPress={onDiscard} style={{ flex: 0, paddingHorizontal: 22 }} />
-            <Button title={ui().run.keepIt} onPress={() => onSave()} style={{ flex: 1 }} />
-          </View>
-          <Button title={ui().run.keepItAndShareWith} variant="secondary" onPress={() => onSave(true)} style={{ marginTop: -spacing.sm }} />
+          <StoriesCard stories={stories} moodBefore={moodBefore} />
+          <UnlockNudge moodBefore={moodBefore} moodAfter={moodAfter} pain={pain} feel={feel} />
+          <PlaceFinishCard found={found} draft={placeDraft} onOffer={() => setPlaceSheet(true)} onNotNow={placeNotNow} />
         </View>
         <SavePlaceSheet
           open={placeSheet}

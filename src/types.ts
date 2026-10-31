@@ -77,6 +77,7 @@ export interface Settings {
   notifyCadence: number; // 2 once older weekly settings moved to daily
   seenNews: string; // id of the last "What's new" line dismissed
   afterRunNote: boolean; // a quiet "run saved" notification
+  fewerWords: boolean; // reminders, the after-run note and the finish line keep to the plain fact
   weather: boolean; // fetch the local forecast for the home screen (Open-Meteo, coarse location)
   runNotes: boolean; // live stats on the lock screen and a note per km (watches mirror these)
   watch: boolean; // the Wear OS app: live run on the wrist, its buttons, its heart rate into the run
@@ -99,6 +100,7 @@ export interface Settings {
   stories: boolean; // Things you passed: after a run, ask Wikipedia and OpenStreetMap about the ~1 km squares it went through
   storiesDark: boolean; // include places whose story is about killings, disasters or attacks
   storiesOffered: boolean; // the one finish-screen offer has been shown
+  stillBackground: boolean; // footage stays a still picture (also on by itself with the phone's reduce motion)
   onboarded: boolean;
 }
 
@@ -116,6 +118,7 @@ export const DEFAULT_SETTINGS: Settings = {
   notifyCadence: 2,
   seenNews: '',
   afterRunNote: true,
+  fewerWords: false,
   weather: true,
   runNotes: true,
   watch: true,
@@ -138,5 +141,6 @@ export const DEFAULT_SETTINGS: Settings = {
   stories: false,
   storiesDark: false,
   storiesOffered: false,
+  stillBackground: false,
   onboarded: false,
 };
