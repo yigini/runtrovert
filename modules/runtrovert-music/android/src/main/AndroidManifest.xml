@@ -16,4 +16,19 @@
       <category android:name="android.intent.category.APP_MUSIC" />
     </intent>
   </queries>
+
+  <application>
+    <!-- Only so the music bar can show the song's title, artist and cover. Does nothing
+         until the runner turns on notification access for Runtrovert; reads no
+         notifications (see NowPlayingListener.kt). -->
+    <service
+      android:name="app.runtrovert.music.NowPlayingListener"
+      android:label="Runtrovert: show what's playing"
+      android:exported="true"
+      android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+      <intent-filter>
+        <action android:name="android.service.notification.NotificationListenerService" />
+      </intent-filter>
+    </service>
+  </application>
 </manifest>

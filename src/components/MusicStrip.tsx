@@ -1,27 +1,41 @@
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useState } from 'react';
-import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
-import { appByKey, canControl, isPlaying, openMusicApp, press } from '../music';
+import { appByKey, canControl, canShowNowPlaying, isPlaying, nowPlaying, nowPlayingAllowed, openPlaying, press, type NowPlaying } from '../music';
 import { colors, fonts, radius } from '../theme';
 import { ui } from '../i18n/ui';
 
 /**
  * One quiet row on the run screen: your music app on the left, and on Android
- * previous / play-pause / next for whatever is playing. Nothing is read from
- * the music app; the play glyph only knows whether some audio is playing.
+ * previous / play-pause / next for whatever is playing. If the runner turned on
+ * notification access (Listen offers it), the left side shows the song's title,
+ * artist and cover; otherwise nothing is read from the music app and the play
+ * glyph only knows whether some audio is playing.
  */
 export function MusicStrip({ appKey }: { appKey: string | null }) {
   const app = appByKey(appKey);
   const [playing, setPlaying] = useState(() => isPlaying());
+  const [song, setSong] = useState<NowPlaying | null>(null);
 
   useEffect(() => {
     if (!canControl) return;
     let timer: ReturnType<typeof setInterval> | null = null;
+    let reading = false;
+    const tick = () => {
+      setPlaying(isPlaying());
+      if (reading) {
+        const n = nowPlaying();
+        setSong((was) => (was?.title === n?.title && was?.artist === n?.artist && was?.art === n?.art && was?.playing === n?.playing ? was : n));
+      }
+    };
     const start = () => {
       if (timer) return;
-      setPlaying(isPlaying());
-      timer = setInterval(() => setPlaying(isPlaying()), 1500);
+      // Checked again each time the app comes back, e.g. from Android's settings.
+      reading = canShowNowPlaying && nowPlayingAllowed();
+      if (!reading) setSong(null);
+      tick();
+      timer = setInterval(tick, 1500);
     };
     const stop = () => {
       if (timer) clearInterval(timer);
@@ -45,16 +59,37 @@ export function MusicStrip({ appKey }: { appKey: string | null }) {
   const name = app?.name ?? ui().musicStrip.music;
   return (
     <View style={styles.row}>
-      <Pressable
-        onPress={() => openMusicApp(appKey)}
-        accessibilityRole="button"
-        accessibilityLabel={ui().musicStrip.openX(name)}
-        style={({ pressed }) => [styles.app, !canControl && { flex: 1 }, pressed && { opacity: 0.8 }]}
-      >
-        <NoteGlyph />
-        <Text style={styles.appText} numberOfLines={1}>{canControl ? name : ui().musicStrip.openX(name)}</Text>
-        <ArrowGlyph />
-      </Pressable>
+      {song ? (
+        <Pressable
+          onPress={() => openPlaying(song.app, appKey)}
+          accessibilityRole="button"
+          accessibilityLabel={ui().musicStrip.nowPlayingX(song.title, song.artist ?? '')}
+          style={({ pressed }) => [styles.app, styles.song, pressed && { opacity: 0.8 }]}
+        >
+          {song.art ? (
+            <Image source={{ uri: song.art }} style={styles.cover} accessible={false} importantForAccessibility="no" />
+          ) : (
+            <View style={[styles.cover, styles.coverBlank]}>
+              <NoteGlyph />
+            </View>
+          )}
+          <View style={{ flexShrink: 1, flex: 1 }}>
+            <Text style={styles.appText} numberOfLines={1}>{song.title}</Text>
+            {song.artist ? <Text style={styles.artist} numberOfLines={1}>{song.artist}</Text> : null}
+          </View>
+        </Pressable>
+      ) : (
+        <Pressable
+          onPress={() => openPlaying(null, appKey)}
+          accessibilityRole="button"
+          accessibilityLabel={ui().musicStrip.openX(name)}
+          style={({ pressed }) => [styles.app, !canControl && { flex: 1 }, pressed && { opacity: 0.8 }]}
+        >
+          <NoteGlyph />
+          <Text style={styles.appText} numberOfLines={1}>{canControl ? name : ui().musicStrip.openX(name)}</Text>
+          <ArrowGlyph />
+        </Pressable>
+      )}
       {canControl && (
         <View style={styles.buttons}>
           <Btn label={ui().musicStrip.previousTrack} onPress={() => onPress('previous')}>
@@ -137,6 +172,10 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(43,39,51,0.78)', borderRadius: radius.pill, padding: 6 },
   app: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.pill, backgroundColor: 'rgba(246,241,234,0.08)' },
   appText: { flexShrink: 1, fontFamily: fonts.bodySemi, fontSize: 14, color: colors.cream },
+  song: { paddingLeft: 6, paddingVertical: 4 },
+  cover: { width: 36, height: 36, borderRadius: 8 },
+  coverBlank: { alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(246,241,234,0.08)' },
+  artist: { fontFamily: fonts.body, fontSize: 12, color: colors.onInkMuted },
   buttons: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   btn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   btnMain: { backgroundColor: 'rgba(217,208,240,0.22)' },
