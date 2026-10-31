@@ -19,6 +19,8 @@ import { rememberPlace } from './place';
 import { GPS_PROFILES, profileFor, readPower, type GpsProfileName } from './power';
 import { beginRunNotes, batteryNote, endRunNotes, splitNote, updateLiveNote } from './runNotify';
 import { setWearEnabled, wearLive, wearSplit } from './wear';
+import { heartRun } from './heartIn';
+import { strapRun } from './strap';
 import { DEFAULT_SETTINGS, type LatLon, type Mood, type Quiet, type Settings, type Split } from './types';
 
 export { LOCATION_TASK } from './gps/engine';
@@ -148,7 +150,10 @@ function snapshot(): TrackingState {
 
 function emit() {
   if (state.status !== 'idle') updateLiveNote({ status: state.status, distanceM: state.distanceM, durationS: liveDuration(), unitsKm: settings.unitsKm });
-  wearLive({ status: state.halted ? 'halted' : state.status, runId: state.runId, distanceM: state.distanceM, durationS: liveDuration(), unitsKm: settings.unitsKm });
+  const runStatus = state.halted ? 'halted' : state.status;
+  heartRun(state.runId, runStatus);
+  strapRun(runStatus);
+  wearLive({ status: runStatus, runId: state.runId, distanceM: state.distanceM, durationS: liveDuration(), unitsKm: settings.unitsKm });
   // With the screen off or the app in the back, nobody is looking: skip the
   // snapshot (it copies the whole path) and the re-render it would cause.
   if (AppState.currentState !== 'active') return;

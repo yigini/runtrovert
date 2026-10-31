@@ -113,6 +113,18 @@ check(fb.segments.flat().every((p, i) => near(p.lat, pts[i].lat, 1e-6) && near(p
 const noAlt = parseFit(writeFit({ startedAt: START, endedAt: START + 600000, distanceM: 2000, durationS: 600, elevationGainM: 0, points: pts.slice(0, 200).map((p) => ({ ...p, alt: null })) }));
 check(noAlt.runs[0].segments.flat().every((p) => p.alt == null), 'no height stays no height');
 
+// Heart rate from a watch or strap rides along: GPX TrackPointExtension, FIT record field 3 and session avg/max.
+const heart = pts.map((p, i) => ({ ts: p.ts, bpm: 140 + (i % 10) }));
+const gpxHr = writeGpx({ startedAt: sr.startedAt, points: pts, heart });
+check((gpxHr.match(/<gpxtpx:hr>\d+<\/gpxtpx:hr>/g) ?? []).length === pts.length, 'GPX: a heart rate on every point');
+check(parseGpx(gpxHr).runs[0].segments[0].length === pts.length, 'GPX with heart rate still reads back');
+check(!writeGpx({ startedAt: sr.startedAt, points: pts, heart: [] }).includes('gpxtpx:hr'), 'GPX: no heart rate, no extension');
+const fitHr = writeFit({ startedAt: sr.startedAt, endedAt: sr.endedAt, distanceM: sr.distanceM, durationS: sr.durationS, elevationGainM: sr.elevationGainM, points: pts, heart });
+check(fitCrc(fitHr) === 0, 'FIT with heart rate: CRC');
+check(fitHr.length === fitOut.length + pts.length + 3 + 2 + 6, 'FIT: one byte per record, two on the session, three field definitions');
+const fitHrBack = parseFit(fitHr);
+check(fitHrBack.runs.length === 1 && fitHrBack.runs[0].segments.flat().length === pts.length, 'FIT with heart rate still reads back');
+
 // A treadmill run: totals, no track. Kept, since it's still a run.
 const treadmill: ImportedRun = { segments: [], startedAt: START, endedAt: START + 1800000, distanceM: 5000, movingS: 1750, elevationGainM: null, sport: 'running', name: null, externalId: null };
 const tr = one(shapeRun(treadmill));

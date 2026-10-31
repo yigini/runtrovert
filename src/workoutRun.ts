@@ -7,7 +7,7 @@ import { setProgressHook, type TrackingStatus } from './tracking';
 import { loadHeart, loadPlan, planSpec } from './training/store';
 import { newNudge, nudgeable, shouldNudge, stepRange, type HeartSetup, type NudgeState } from './training/zones';
 import type { Goal } from './training/catalogue';
-import { setHeartListener } from './wear';
+import { setHeartListener } from './heartIn';
 import { ui } from './i18n/ui';
 import type { Session, StepDone } from './training/types';
 import { advance, createWorkout, finishWorkout, stepCue, type WorkoutState, type WorkoutView } from './training/workout';

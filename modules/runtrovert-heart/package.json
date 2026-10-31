@@ -1,0 +1,10 @@
+{
+  "name": "runtrovert-heart",
+  "version": "0.1.0",
+  "description": "Heart rate from any Bluetooth strap or watch that broadcasts the standard Heart Rate service. Phone to sensor only, no network.",
+  "license": "MIT",
+  "author": "Runtrovert",
+  "homepage": "https://github.com/yigini/runtrovert",
+  "main": "index.ts",
+  "private": true
+}

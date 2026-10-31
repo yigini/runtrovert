@@ -32,6 +32,8 @@
   <string name="mi">mil</string>
   <string name="kmN">%1$s. km</string>
   <string name="mileN">%1$s. mil</string>
+  <string name="complicationRun">Koş</string>
+  <string name="complicationHint">Koşu başlat</string>
   <string name="time">Süre</string>
   <string name="distance">Mesafe</string>
   <string name="pace">Tempo</string>
