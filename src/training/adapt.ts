@@ -243,7 +243,7 @@ export function applyEnergy(plan: Plan, date: number, mood: number, choice: Ener
   if (fatigue !== 'ok' && week) {
     const next = p.weeks.find((w) => w.start === addDays(week.start, 7));
     if (next && next.kind !== 'race' && next.kind !== 'light') {
-      lighten(next, paces, ui().adapt.lighterWeekThreeLowEnergy);
+      lighten(next, paces, ui().adapt.lighterWeekThreeLowEnergy, specOf(p).longShare);
       // The weeks after it carry on from the volume before it, so nothing jumps.
       const r = relayout(p, addDays(next.start, 7), ui().adapt.afterALighterWeekThe, date);
       return { plan: r, moved, fatigue };
@@ -265,13 +265,21 @@ function relayout(p: Plan, firstDay: number, reason: string, today: number, star
 }
 
 /** A fifth less of everything, nothing hard. Rounded down so the cut is a real one. */
-function lighten(week: Week, paces: PaceSet, note: string) {
+function lighten(week: Week, paces: PaceSet, note: string, longShare = 1) {
   week.kind = 'light';
   for (const s of week.sessions) {
     if (s.kind === 'strength' || s.done || s.skipped || s.kind === 'race') continue;
     if (s.hard) Object.assign(s, toSession(T.easyRun(Math.max(15, Math.floor((s.minutes * 0.7) / 5) * 5)), s.id, s.date, paces), { note });
     else if (s.kind === 'long') Object.assign(s, toSession(T.longRun(Math.max(Math.floor(s.km * 0.7 * 10) / 10, 2), 0, '', 'none'), s.id, s.date, paces), { note });
     else Object.assign(s, toSession(T.easyRun(Math.max(15, Math.floor((s.minutes * 0.7) / 5) * 5)), s.id, s.date, paces), { note });
+  }
+  retotal(week);
+  // Easy runs have a 15-minute floor, so a lighter week can leave the long run too big a share of it (rule 5).
+  const long = week.sessions.find((s) => s.kind === 'long' && !s.done && !s.skipped);
+  if (long && longShare < 1 && long.km > longShare * week.targetKm) {
+    const others = week.targetKm - long.km;
+    const km = Math.max(Math.floor(((longShare / (1 - longShare)) * others) * 10) / 10, 2);
+    Object.assign(long, toSession(T.longRun(km, 0, '', 'none'), long.id, long.date, paces), { note });
   }
   retotal(week);
 }
@@ -312,7 +320,7 @@ export function applyFeel(plan: Plan, date: number, sessionId: string, feel: Fee
   if (toughs >= 2 && week && week.kind !== 'light') {
     const following = p.weeks.find((w) => w.start === addDays(week.start, 7));
     if (following && following.kind !== 'race' && following.kind !== 'light' && following.kind !== 'taper') {
-      lighten(following, paces, ui().adapt.lighterWeekTwoHardFeels);
+      lighten(following, paces, ui().adapt.lighterWeekTwoHardFeels, specOf(p).longShare);
       return { plan: relayout(p, addDays(following.start, 7), ui().adapt.afterALighterWeekThe, date), eased, lighter: true };
     }
   }
@@ -345,9 +353,8 @@ export function applyPain(plan: Plan, date: number, level: PainLevel, runner?: R
   if (resumed.ok) p = resumed.plan;
   return {
     plan: p,
-    advice: again
-      ? ui().adapt.thatIsTheSecondTime
-      : ui().adapt.twoDaysOffThenEasy,
+    // Red flags first-time too: a stress fracture or a torn tendon should not wait for a second report.
+    advice: `${again ? ui().adapt.thatIsTheSecondTime : ui().adapt.twoDaysOffThenEasy} ${ui().adapt.painRedFlags}`,
     physio: again,
   };
 }

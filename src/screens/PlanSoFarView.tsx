@@ -218,11 +218,13 @@ function HeartBlock({ spec }: { spec: PlanSpec }) {
           <Text style={styles.hint}>
             {ui().zones.from[h.source]} {show(h)}
           </Text>
+          <Text style={styles.hint}>{ui().zones.medicine}</Text>
           <Button title={ui().zones.change} variant="secondary" onPress={edit} />
         </>
       ) : (
         <>
           <Text style={styles.hint}>{ui().zones.none}</Text>
+          <Text style={styles.hint}>{ui().zones.medicine}</Text>
           <Button title={ui().zones.set} variant="secondary" onPress={edit} />
         </>
       ))}
