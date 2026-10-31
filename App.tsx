@@ -84,6 +84,8 @@ function Shell() {
   const [shareOpen, setShareOpen] = useState(false); // open the share card on arrival ("Keep it and share")
   const [refreshKey, setRefreshKey] = useState(0);
   const [liveRun, setLiveRun] = useState(false);
+  const [countingDown, setCountingDown] = useState(false);
+  const wasLive = useRef(false);
   const [finishing, setFinishing] = useState(false);
   // A session opened from the Train tab, waiting on the Run tab's start button.
   const [sessionRequest, setSessionRequest] = useState<Session | null>(null);
@@ -91,7 +93,15 @@ function Shell() {
   useEffect(
     () =>
       subscribe((t) => {
-        setLiveRun(t.status !== 'idle');
+        const live = t.status !== 'idle';
+        // A run that starts (or comes back after the app was closed) is always shown:
+        // the tab bar is gone during a run, so another tab would be a dead end.
+        if (live && !wasLive.current) {
+          setSub((s) => (s === 'listen' ? s : null));
+          setTab('run');
+        }
+        wasLive.current = live;
+        setLiveRun(live);
         setFinishing(t.halted);
       }),
     [],
@@ -276,6 +286,7 @@ function Shell() {
               onInk={setRunInk}
               ghost={ghost}
               onGhostTaken={() => setGhost(null)}
+              onCountdown={setCountingDown}
               onWatchStart={() => {
                 setSub(null);
                 setTab('run');
@@ -357,7 +368,7 @@ function Shell() {
             />
           )}
         </View>
-        {!liveRun && sub == null && (
+        {!liveRun && !countingDown && sub == null && (
           <View style={styles.tabs} accessibilityRole="tablist">
             <TabButton label={ui().app.run} active={tab === 'run'} onPress={() => go('run')} />
             <TabButton

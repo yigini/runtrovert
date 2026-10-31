@@ -1,5 +1,5 @@
 import { heartAt, heartSummary, type HeartSample } from '../heart';
-import type { ImportedRun, ParseResult, TrackPoint } from './types';
+import { plausibleBpm, type ImportedRun, type ParseResult, type TrackPoint } from './types';
 
 // FIT in and out, on the phone. FIT is the binary format Garmin, Coros,
 // Suunto, Wahoo and Polar watches write. Only the messages a run needs are
@@ -110,6 +110,7 @@ interface RawSession {
 
 interface Raw {
   records: Array<TrackPoint & { dist: number | null }>;
+  heart: Array<{ ts: number; bpm: number }>;
   timer: Array<{ ts: number; start: boolean }>;
   sessions: RawSession[];
   fileType: number | null;
@@ -121,7 +122,7 @@ const ms = (fitS: number) => (fitS + FIT_EPOCH_S) * 1000;
 
 function readMessages(bytes: Uint8Array): Raw | null {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  const raw: Raw = { records: [], timer: [], sessions: [], fileType: null, serial: null, created: null };
+  const raw: Raw = { records: [], heart: [], timer: [], sessions: [], fileType: null, serial: null, created: null };
   let offset = 0;
   let any = false;
   // A file can hold several FIT files back to back (chained); read them all.
@@ -200,6 +201,9 @@ function take(raw: Raw, global: number, f: Fields, ts: number | null) {
     case MSG.record: {
       const la = f.get(0);
       const lo = f.get(1);
+      // Field 3 is heart rate; kept even on records without a position (treadmill, tunnels).
+      const hr = f.get(3);
+      if (ts != null && hr != null && plausibleBpm(hr)) raw.heart.push({ ts: ms(ts), bpm: hr });
       if (ts == null || la == null || lo == null) return;
       const enh = f.get(78);
       const alt = enh != null ? enh / 5 - 500 : f.get(2) != null ? (f.get(2) as number) / 5 - 500 : null;
@@ -279,6 +283,7 @@ export function parseFit(bytes: Uint8Array): ParseResult {
     const lo = s.start ?? -Infinity;
     const hi = s.end ?? Infinity;
     const mine = records.filter((r) => r.ts >= lo && r.ts <= hi);
+    const heart = raw.heart.filter((h) => h.ts >= lo && h.ts <= hi).sort((a, b) => a.ts - b.ts);
     const segments = segment(mine, raw.timer);
     if (!segments.length && (s.distanceM == null || s.timerS == null || s.start == null)) {
       out.skipped.push('too-short');
@@ -295,6 +300,7 @@ export function parseFit(bytes: Uint8Array): ParseResult {
       sport: s.sport != null ? SPORT_NAMES[s.sport] ?? String(s.sport) : null,
       name: null,
       externalId: raw.serial != null && raw.created != null ? `fit:${raw.serial}:${raw.created}:${i}` : null,
+      heart,
     });
   });
   return out;

@@ -263,6 +263,11 @@ export const en = {
   },
   shareSheet: {
     earlyMorning: 'early morning',
+    morning: 'morning',
+    midday: 'midday',
+    afternoon: 'afternoon',
+    evening: 'evening',
+    night: 'night',
     best: 'Best',
     distance: 'Distance',
     time: 'Time',
@@ -302,7 +307,7 @@ export const en = {
     moneyAfter: '. No subscription, no data sold, no annoying or intrusive ads. The sponsor shelf in Listen is labelled, and it can\'t see you.',
     itSYoursThankYou: 'It\'s yours. Thank you.',
     unlockedInThisTestBuild: 'Unlocked in this test build.',
-    plansMonthsOfTrendsBackup: (UNLOCK_PRICE: string | number) => `Plans, months of trends, backup. ${UNLOCK_PRICE}, one time.`,
+    plansMonthsOfTrendsBackup: (UNLOCK_PRICE: string | number) => `Plans, months of trends, export of all your runs. ${UNLOCK_PRICE}, one time.`,
     howThisAppMakesMoney: 'How this app makes money',
   },
   youSection: {
@@ -593,6 +598,7 @@ export const en = {
     clearEnergyHint: 'Removes the energy answer for this run',
     aNoteIfYouWant: 'A note, if you want',
     couldntSaveThat: 'Couldn’t save that',
+    runGone: 'This run isn’t here any more. It may have been discarded.',
   },
   run: {
     listenHint: 'Pick music or a podcast. Your run keeps recording.',
@@ -682,6 +688,8 @@ export const en = {
     numbers: 'Numbers',
     map: 'Map',
     lap: 'Lap',
+    lapsDone: (n: number) => (n === 1 ? '1 lap' : `${n} laps`),
+    followMe: 'Follow me',
     stopTheRun: 'Stop the run?',
     stop: 'Stop',
     holdToStop: 'Hold to stop',
@@ -716,6 +724,7 @@ export const en = {
     phoneLanguage: (name: string) => `Phone’s language (${name})`,
     languageHint: 'Everything in the app, reminders included. Your notes, and a plan already started, keep their words.',
     languageAfterRun: 'You can change it after this run.',
+    unitsAfterRun: 'You can change units after this run.',
     battery: {
       auto: { label: 'Auto', hint: 'Full GPS until the battery drops to 25% or the phone is in low-power mode, then eases off.' },
       best: { label: 'Best accuracy', hint: 'A fix every second. Most precise splits, most battery.' },
@@ -826,6 +835,7 @@ export const en = {
     whereHome: 'Where is home?',
     whereWork: 'Where is work?',
     sheetHint: 'Move the map until the pin sits on the spot. It doesn’t need to be the door: anywhere within a few hundred metres works.',
+    noMapYet: 'The map opens near your last run. Before your first, use where you are now.',
     useHere: 'Use where I am now',
     locating: 'Finding you…',
     noLocation: 'Location is off for Runtrovert, so use the map instead.',
@@ -1359,7 +1369,6 @@ export const en = {
     aRecentRunOfX: (longestKm: string | number, r: string | number) => `a recent run of ${longestKm} km (you: ${r})`,
     xRunsAWeekYou: (runsPerWeek: string | number, r: string | number) => `${runsPerWeek} runs a week (you: ${r})`,
     thisPlanExpectsX: (short: string | number) => `This plan expects ${short}.`,
-    xFinish: (goal: string | number) => `${goal}-finish`,
   },
   comeback: {
     easeBackIn: 'Ease back in',

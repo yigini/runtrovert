@@ -26,6 +26,13 @@ export interface ImportedRun {
   name: string | null;
   /** Something stable that names this activity wherever it is seen again (FIT serial + time, a Health Connect id). */
   externalId: string | null;
+  /** Heart rate from the file (GPX extensions, FIT records), sorted by time. Absent or empty when it has none. */
+  heart?: Array<{ ts: number; bpm: number }>;
+}
+
+/** A believable heart rate. Anything else (0, the 255 "no reading" marker) is dropped. */
+export function plausibleBpm(bpm: number): boolean {
+  return Number.isFinite(bpm) && bpm >= 30 && bpm <= 240;
 }
 
 /** Why a file, or one activity in it, was not brought in. */
