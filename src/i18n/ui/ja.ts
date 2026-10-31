@@ -429,6 +429,11 @@ export const ja: Strings = {
     xDaysSinceTheLast: (days) => `前回から${days}日。罪悪感はいりません。扉があるだけです。`,
     yourRunYourSpace: 'あなたのラン。あなたの場所。',
     energyAfter: (avg) => `ラン後のエネルギー ${avg}`,
+    runKindX: (name) => `今日のラン：${name}`,
+    change: '変更',
+    changesHowThisRunLooks: 'このランの表示を変えます',
+    showsTheSkyDetails: 'いちばん良い時間帯、服装、明るさを表示します',
+    hidesTheSkyDetails: '空の詳細を閉じます',
   },
   listen: {
     backToYourRun: 'ランに戻る',

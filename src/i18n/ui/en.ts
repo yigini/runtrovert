@@ -432,6 +432,11 @@ export const en = {
     xDaysSinceTheLast: (days: string | number) => `${days} days since the last one. No guilt, just a door.`,
     yourRunYourSpace: 'Your run. Your space.',
     energyAfter: (avg: string) => `energy ${avg} after`,
+    runKindX: (name: string) => `Today’s run: ${name}`,
+    change: 'Change',
+    changesHowThisRunLooks: 'Changes how this run looks',
+    showsTheSkyDetails: 'Shows the best window, what to wear and the light',
+    hidesTheSkyDetails: 'Hides the sky details',
   },
   listen: {
     backToYourRun: 'Back to your run',

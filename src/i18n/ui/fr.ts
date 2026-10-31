@@ -433,6 +433,11 @@ export const fr: Strings = {
     xDaysSinceTheLast: (days) => `${days} jours depuis la dernière. Pas de culpabilité, juste une porte.`,
     yourRunYourSpace: 'Ta course. Ton espace.',
     energyAfter: (avg) => `énergie ${avg} après`,
+    runKindX: (name) => `Course du jour : ${name}`,
+    change: 'Changer',
+    changesHowThisRunLooks: 'Change ce que cette course affiche',
+    showsTheSkyDetails: 'Montre le meilleur créneau, quoi porter et la lumière',
+    hidesTheSkyDetails: 'Masque les détails du ciel',
   },
   listen: {
     backToYourRun: 'Retour à ta course',

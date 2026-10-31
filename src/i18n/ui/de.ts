@@ -431,6 +431,11 @@ export const de: Strings = {
     xDaysSinceTheLast: (days) => `${days} Tage seit dem letzten. Kein schlechtes Gewissen, nur eine Tür.`,
     yourRunYourSpace: 'Dein Lauf. Dein Raum.',
     energyAfter: (avg) => `Energie ${avg} danach`,
+    runKindX: (name) => `Heutiger Lauf: ${name}`,
+    change: 'Ändern',
+    changesHowThisRunLooks: 'Ändert, wie dieser Lauf aussieht',
+    showsTheSkyDetails: 'Zeigt das beste Zeitfenster, die passende Kleidung und das Licht',
+    hidesTheSkyDetails: 'Blendet die Wetterdetails aus',
   },
   listen: {
     backToYourRun: 'Zurück zu deinem Lauf',

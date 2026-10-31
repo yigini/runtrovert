@@ -432,6 +432,11 @@ export const pt: Strings = {
     xDaysSinceTheLast: (days) => `${days} dias desde a última. Sem culpa, só uma porta.`,
     yourRunYourSpace: 'Sua corrida. Seu espaço.',
     energyAfter: (avg) => `energia ${avg} depois`,
+    runKindX: (name) => `Corrida de hoje: ${name}`,
+    change: 'Mudar',
+    changesHowThisRunLooks: 'Muda como esta corrida aparece',
+    showsTheSkyDetails: 'Mostra a melhor janela, o que vestir e a luz',
+    hidesTheSkyDetails: 'Oculta os detalhes do céu',
   },
   listen: {
     backToYourRun: 'Voltar à tua corrida',

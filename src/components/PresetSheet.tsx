@@ -9,7 +9,15 @@ import { ui } from '../i18n/ui';
  * "What kind of run today?" The three presets side by side, with what each
  * brings on screen, in your ears and in numbers. Picking one remembers it.
  */
-export function PresetSheet({ open, value, onPick, onClose }: { open: boolean; value: RunPreset; onPick: (p: RunPreset) => void; onClose: () => void }) {
+/** Another way to run today, offered under the three when it lost the Run tab's one suggestion (run to work on a plan day). */
+export interface SheetExtra {
+  title: string;
+  text: string;
+  hint: string;
+  onPress: () => void;
+}
+
+export function PresetSheet({ open, value, onPick, onClose, extra }: { open: boolean; value: RunPreset; onPick: (p: RunPreset) => void; onClose: () => void; extra?: SheetExtra }) {
   return (
     <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel={ui().presetSheet.close} accessibilityRole="button">
@@ -41,6 +49,17 @@ export function PresetSheet({ open, value, onPick, onClose }: { open: boolean; v
                 );
               })}
             </View>
+            {extra ? (
+              <Pressable onPress={extra.onPress} accessibilityRole="button" accessibilityHint={extra.hint} style={({ pressed }) => [styles.opt, styles.extra, pressed && { opacity: 0.9 }]}>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={styles.name}>{extra.title}</Text>
+                  <Text style={styles.dv}>{extra.text}</Text>
+                </View>
+                <Text style={styles.arrow} accessibilityElementsHidden importantForAccessibility="no">
+                  ›
+                </Text>
+              </Pressable>
+            ) : null}
             <Text style={styles.small}>{ui().presetSheet.allThreeAreFreeMy}</Text>
             <Button title={ui().presetSheet.done} onPress={onClose} style={{ marginTop: spacing.xs }} />
           </ScrollView>
@@ -67,6 +86,8 @@ const styles = StyleSheet.create({
   small: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.muted },
   opt: { gap: 6, paddingVertical: 16, paddingHorizontal: 18, borderRadius: radius.lg, backgroundColor: colors.white },
   optOn: { backgroundColor: colors.lilac },
+  extra: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  arrow: { fontFamily: fonts.body, fontSize: 22, color: colors.muted },
   optTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, marginBottom: 2 },
   name: { fontFamily: fonts.display, fontSize: 20, color: colors.text, flexShrink: 1 },
   last: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: colors.lilacDeep },
