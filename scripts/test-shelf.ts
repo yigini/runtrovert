@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { checkOffer, cleanUrl, parseFeedHead, speaks } from './build-shelf.mjs';
 import { carryEpisodes, matchEpisode, norm, rememberLinks, sameShow, tagEpisodes } from './podcast-links.mjs';
+import { coverFileName, coverQueue, coverUrl } from '../src/coverLogic.ts';
 import { filterOffers, fitsRun, freshEpisodes, whenLabel, localShows, offersFor, parseLocale, openTarget, pickCountry, showLink, usualRunMin, type Shelf, type Show } from '../src/shelfLogic.ts';
 
 // Rules for the Listen tab and Kit & offers. Run: npm run test:shelf
@@ -109,5 +110,36 @@ assert.deepEqual(openTarget('spotify', linked, { title: 't', date: 'd', min: nul
 assert.equal(openTarget('youtube', { id: 5, name: 'A B', feed: 'x' })?.kind, 'search');
 assert.equal(openTarget('pocketcasts', linked, ep1)?.kind, 'show');
 assert.equal(openTarget('share', linked, ep1), null);
+
+// Covers: one bare file per show, fetched once even when asked for twice, three at a time
+assert.equal(coverFileName(1083410032), '1083410032.jpg');
+assert.equal(coverUrl('https://raw.githubusercontent.com/yigini/runtrovert/shelf/art/', 42), 'https://raw.githubusercontent.com/yigini/runtrovert/shelf/art/42.jpg');
+assert.ok(!coverUrl('https://h/art/', 42).includes('?'));
+{
+  const q = coverQueue(3);
+  let calls = 0;
+  let peak = 0;
+  let now = 0;
+  const job = (v: string) => async () => {
+    calls++;
+    now++;
+    peak = Math.max(peak, now);
+    await new Promise((r) => setTimeout(r, 5));
+    now--;
+    return v;
+  };
+  const a = q('a', job('A'));
+  const a2 = q('a', job('A2'));
+  assert.equal(a, a2);
+  const rest = ['b', 'c', 'd', 'e', 'f'].map((k) => q(k, job(k)));
+  const failing = q('x', async () => {
+    throw new Error('offline');
+  });
+  const out = await Promise.all([a, a2, ...rest, failing]);
+  assert.deepEqual(out, ['A', 'A', 'b', 'c', 'd', 'e', 'f', null]);
+  assert.equal(calls, 6);
+  assert.ok(peak <= 3, `peak ${peak}`);
+  assert.equal(await q('a', job('again')), 'again'); // a finished key can be asked for again
+}
 
 console.log('shelf: all checks pass');

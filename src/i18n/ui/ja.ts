@@ -439,6 +439,7 @@ export const ja: Strings = {
     backToYourRun: 'ランに戻る',
     stillRecording: 'ランはまだ記録中です',
     adverts: 'これらの番組には番組自身の広告が入ります。Runtrovertにはうっとうしい広告も邪魔な広告もなく、あなたが何を聴いているかも見ません。番組を開くと、ポッドキャストアプリと番組の配信元には、ふつうのダウンロードと同じく、IPアドレスを含む通常の接続が見えます。',
+    coversBelong: 'カバー画像は各番組のもので、番組を見つけやすくするためだけに表示しています。それぞれ一度だけ取得し、このスマホに保存します。',
     theOneThisVersionShipped: '、このバージョンに同梱のもの',
     xMinutes: (n) => `、${n}分`,
     nearYouX: (flag) => `近くで人気 ${flag}`,
