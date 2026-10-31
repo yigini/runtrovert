@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Listen list copied from the shelf branch on the server (deploy/site/update.sh)
+deploy/site/shelf-data/

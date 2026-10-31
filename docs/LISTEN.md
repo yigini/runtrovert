@@ -21,7 +21,10 @@ scripts/build-shelf.mjs
         ▼
 shelf.json + art/<id>.jpg on the `shelf` branch (one force-pushed commit)
         │
-        ▼  https://raw.githubusercontent.com/yigini/runtrovert/shelf/shelf.json
+        ▼  deploy/site/update.sh on the runtrovert.app server copies the branch every 10 minutes
+https://runtrovert.app/shelf/shelf.json and /shelf/art/<id>.jpg
+        │
+        ▼
 the app, only when someone opens Listen, and only if they said yes (Settings → Listen → Daily list)
 ```
 
@@ -29,7 +32,7 @@ the app, only when someone opens Listen, and only if they said yes (Settings →
 - **Near you**: for about 55 countries, the builder takes Apple's Running chart for that country and keeps up to 8 shows that published in the last 60 days, have at least 10 episodes and speak a language of that country. The app picks the country from the phone's region setting, or from Settings, without telling anyone. Some countries have few active local shows; Turkey had one on 29 Oct 2026.
 - `"noFeed": true` on a hand-picked show links to it without reading its feed. The BBC's feeds ask for a licence for commercial use, so the BBC show is linked, not read.
 - **Covers**: the builder takes each show's Apple artwork, shrinks it to a 256 px JPEG with sharp and publishes it as `art/<id>.jpg` beside shelf.json. The phone loads covers from there, never from Apple, and only when the daily download is on. Hand-picked covers also ship in the app (`assets/shelf-art/`, indexed by the generated `src/shelfArt.ts`), so the shelves look right offline. Without a cover a show gets its initials on the section's pastel. A published cover is fetched once per show (plain GET of `art/<id>.jpg`, no query string, at most three at a time) and kept in the app's own folder (`covers/`, src/coverCache.ts, about 11 KB each, ~2 MB for every show), so it shows offline and is never asked for again. Kept covers of shows that leave the list are deleted when a new list arrives. Offline, or with the daily download off, an unkept cover stays as initials.
-- **Cover rights**: covers are the shows' own artwork (taken from their Apple Podcasts listing) and are used only to identify the show and send the runner to it, the same way every podcast app does. This is normal practice, not legal advice. Two things to keep an eye on: we re-host a 256 px copy on our GitHub branch and ship 19 inside the APK, rather than linking to Apple's copy; and we never crop, recolour or put our own text on a cover. If a show asks us to stop, add its Apple id to `noArt` in content/listen.json, rerun the shelf build, and delete its file from assets/shelf-art. The Listen footnote says covers belong to their shows.
+- **Cover rights**: covers are the shows' own artwork (taken from their Apple Podcasts listing) and are used only to identify the show and send the runner to it, the same way every podcast app does. This is normal practice, not legal advice. Two things to keep an eye on: we re-host a 256 px copy on our GitHub branch and runtrovert.app and ship 19 inside the APK, rather than linking to Apple's copy; and we never crop, recolour or put our own text on a cover. If a show asks us to stop, add its Apple id to `noArt` in content/listen.json, rerun the shelf build, and delete its file from assets/shelf-art. The Listen footnote says covers belong to their shows.
 - The app ships with `src/shelfBundled.json`. Refresh it before a release with `npm run shelf` (takes about 10 minutes, Apple throttles bursts). It also refreshes the shipped covers.
 - Run the builder by hand from GitHub: Actions → Listen shelf → Run workflow.
 - GitHub turns off scheduled workflows in a repository with no activity for 60 days. A push, or Run workflow, turns it back on.
