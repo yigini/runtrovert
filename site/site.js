@@ -3,7 +3,8 @@
 // the setting on mid-visit counts), when the browser asks to save data, or when the visitor presses Pause motion.
 (function () {
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
-  var wide = window.matchMedia('(min-aspect-ratio: 1/1)');
+  // 1080p loops only on landscape screens of laptop size; a phone held sideways keeps the light ones.
+  var wide = window.matchMedia('(min-aspect-ratio: 1/1) and (min-width: 1000px)');
   var videos = Array.prototype.slice.call(document.querySelectorAll('video[data-loop]'));
   var chapters = document.querySelectorAll('.ch');
   var root = document.documentElement;
@@ -59,14 +60,31 @@
   } else Array.prototype.forEach.call(chapters, function (c) { c.classList.add('seen'); });
 
   if ('IntersectionObserver' in window) {
+    // A chapter only fetches or plays its loop once it has stayed on or near the screen for a
+    // moment, so a jump down the page (the header link, #price) doesn't start every loop it flies
+    // past. A loop that started loading but never played is dropped again when it leaves.
+    var DWELL = 400;
+    function drop(v) {
+      if (!v.dataset.src || v.classList.contains('on')) return;
+      v.pause();
+      delete v.dataset.src;
+      v.removeAttribute('src');
+      v.load();
+    }
     var near = new IntersectionObserver(function (entries) {
-      entries.forEach(function (e) { if (e.isIntersecting && !calm()) { load(e.target); near.unobserve(e.target); } });
+      entries.forEach(function (e) {
+        var v = e.target;
+        clearTimeout(v._near);
+        if (e.isIntersecting) v._near = setTimeout(function () { if (!calm()) load(v); }, DWELL);
+        else drop(v);
+      });
     }, { rootMargin: '50% 0px' });
     var seen = new IntersectionObserver(function (entries) {
       entries.forEach(function (e) {
-        var i = visible.indexOf(e.target);
-        if (e.isIntersecting) { if (i < 0) visible.push(e.target); play(e.target); }
-        else { if (i >= 0) visible.splice(i, 1); e.target.pause(); }
+        var v = e.target, i = visible.indexOf(v);
+        clearTimeout(v._seen);
+        if (e.isIntersecting) { if (i < 0) visible.push(v); v._seen = setTimeout(function () { if (visible.indexOf(v) >= 0) play(v); }, DWELL); }
+        else { if (i >= 0) visible.splice(i, 1); v.pause(); }
       });
     }, { threshold: 0.1 });
     // The hero's poster paints first; its loop starts once the page has loaded.
@@ -191,8 +209,13 @@
       show(mode);
       if (focus) tab.focus();
     }
+    // On a phone the tabs sit right above the phone; bring the phone fully into view if it isn't.
+    function reveal() {
+      var r = phone.getBoundingClientRect();
+      if (r.top < 72 || r.bottom > window.innerHeight) phone.scrollIntoView({ block: 'nearest', behavior: calm() ? 'auto' : 'smooth' });
+    }
     tabs.forEach(function (t, i) {
-      t.addEventListener('click', function () { pick(t); });
+      t.addEventListener('click', function () { pick(t); reveal(); });
       t.addEventListener('keydown', function (e) {
         var k = e.key, j = k === 'ArrowDown' || k === 'ArrowRight' ? i + 1 : k === 'ArrowUp' || k === 'ArrowLeft' ? i - 1 : null;
         if (j === null) return;
@@ -203,10 +226,11 @@
 
     var fin = phone.querySelector('.fin'), finH = fin.querySelector('.fin-h');
     finH.tabIndex = -1;
-    finish.addEventListener('click', function () { show('finish'); fin.scrollTop = 0; finH.focus(); });
+    finish.addEventListener('click', function () { show('finish'); fin.scrollTop = 0; finH.focus({ preventScroll: true }); });
     document.getElementById('again').addEventListener('click', function () {
       show(mode);
-      tabs.forEach(function (t) { if (t.getAttribute('aria-selected') === 'true') t.focus(); });
+      secs = START;
+      tabs.forEach(function (t) { if (t.getAttribute('aria-selected') === 'true') t.focus({ preventScroll: true }); });
     });
 
     var peek = document.getElementById('peek'), peeked = false;
@@ -221,6 +245,8 @@
       deep.hidden = !open;
       more.setAttribute('aria-expanded', String(open));
       more.textContent = open ? 'Show less' : 'Show me everything';
+      // Inside the phone only: the page itself stays where it is.
+      if (open) fin.scrollTo({ top: deep.offsetTop - 120, behavior: calm() ? 'auto' : 'smooth' });
     });
 
     // Splits per km, in seconds. The last bar is the 0.21 km at the end.
@@ -233,7 +259,7 @@
       if (last) b.className = 'part';
       b.setAttribute('aria-label', label);
       b.setAttribute('aria-pressed', 'false');
-      b.innerHTML = '<i style="--h:' + Math.round(40 + (360 - t) * 1.2) + '%"></i>';
+      b.innerHTML = '<span class="bars"><i style="--h:' + Math.round(40 + (360 - t) * 1.2) + '%"></i></span><em aria-hidden="true">' + (last ? '+' : i + 1) + '</em>';
       b.addEventListener('click', function () {
         Array.prototype.forEach.call(box.children, function (c) { c.setAttribute('aria-pressed', String(c === b)); });
         say.textContent = label;
@@ -241,19 +267,20 @@
       box.appendChild(b);
     });
 
-    // The live screens count on from a run already 18:47 in.
-    var secs = 1127, km = document.getElementById('d-km'), time = document.getElementById('d-time');
+    // The live screens count on from a run already 26:52 in, near the end of the 5.21 km that
+    // Finish shows, and stop there.
+    var START = 1612, END = 1714, secs = START, km = document.getElementById('d-km'), time = document.getElementById('d-time');
     var left = document.getElementById('d-left'), bar = document.getElementById('d-bar'), mini = phone.querySelector('.mini .route');
     function fmt(t) { return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); }
     if ('IntersectionObserver' in window) new IntersectionObserver(function (e) { onScreen = e[0].isIntersecting; }).observe(phone);
     setInterval(function () {
-      if (!onScreen || calm()) return;
+      if (!onScreen || calm() || secs >= END) return;
       secs++;
       var d = secs / 329;
       km.textContent = d.toFixed(2);
       time.textContent = fmt(secs);
       mini.style.setProperty('--drawn', String(Math.max(0, 1 - d / 5.21)));
-      var l = Math.max(0, 161 - (secs - 1127) % 240);
+      var l = Math.max(0, 161 - (secs - START) % 240);
       left.textContent = fmt(l);
       bar.style.setProperty('--done', (100 - l / 240 * 100).toFixed(1) + '%');
       if (peeked) peek.textContent = fmt(secs) + ' so far · tap to hide';

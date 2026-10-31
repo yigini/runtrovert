@@ -17,7 +17,7 @@
   <link rel="preload" href="fonts/DMSans_400Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" as="image" href="media/wide-sunset-beach.jpg" media="(min-aspect-ratio: 1/1)">
   <link rel="preload" as="image" href="media/bg-sunset-beach.jpg" media="(max-aspect-ratio: 999/1000)">
-  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -29,7 +29,7 @@
     <div class="acts">
       <a class="plink" href="privacy.html">Privacy</a>
       <button class="motion" id="motion" type="button" hidden><span class="ic" aria-hidden="true"></span><span class="lbl">Pause motion</span></button>
-      <a class="soon" href="#get"><i></i>Coming soon<span class="far"> to Android</span></a>
+      <span class="soon"><i></i>Coming soon<span class="far"> to Android</span></span>
     </div>
   </div>
 </header>
@@ -45,17 +45,17 @@
     <p class="num"><b>Your run. Your space.</b> Runtrovert · Private running</p>
     <h1>Nobody's<br>watching.<br><em>That's the point.</em></h1>
     <p class="what"><strong>Runtrovert is a running app for people who'd rather run alone.</strong> No feed, no followers, no account. Your runs stay on your phone.</p>
-    <p class="ticker" id="ticker">New 5 km best. Nobody saw. That was the plan.</p>
+    <p class="ticker"><span class="from">From the app</span> <span id="ticker">New 5 km best. Nobody saw. That was the plan.</span></p>
     <div class="foot">
       <a class="trydemo" href="#try">Try the interactive demo</a>
       <div class="stores" aria-label="Android app coming soon. iPhone later.">
         <div class="store">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3.5v17l9-8.5z" fill="#c9e7d6"/><path d="M5 3.5l11.5 6.4L14 12.5z" fill="#c5dcf0"/><path d="M5 20.5l11.5-6.4L14 11.5z" fill="#f7c9b6"/><path d="M16.5 9.9L20 12l-3.5 2.1-2.5-2.1z" fill="#f5e3a8"/></svg>
-          <span><small>Soon on</small><strong>Google Play</strong></span><span class="tagsoon">Soon</span>
+          <span><small>Soon on</small><strong>Google Play</strong></span>
         </div>
         <div class="store later">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="#d9d0f0" stroke-width="1.6"/><path d="M8.5 15.5l4-7m-1 0l4 7M7.5 13h9" stroke="#d9d0f0" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>
-          <span><small>Later on the</small><strong>App Store</strong></span><span class="tagsoon">Later</span>
+          <span><small>Later on the</small><strong>App Store</strong></span>
         </div>
       </div>
       <ul class="nos" aria-label="What it doesn't have">
@@ -65,7 +65,7 @@
   </div>
 </section>
 
-<section class="ch left" data-name="Leave the audience out">
+<section class="ch left" data-name="People">
   <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-sunny-park.jpg"><img src="media/bg-sunny-park.jpg" alt="" loading="lazy" decoding="async"></picture>
   <video data-loop data-wide="media/wide-sunny-park.mp4" data-tall="media/bg-sunny-park.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in">
@@ -75,19 +75,20 @@
   </div>
 </section>
 
-<section class="ch left" data-name="Every number, or none" id="try">
+<section class="ch left" data-name="Today's run" id="try">
   <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-track-day.jpg"><img src="media/bg-night-track.jpg" alt="" loading="lazy" decoding="async"></picture>
   <video data-loop data-wide="media/wide-track-day.mp4" data-tall="media/bg-night-track.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in demo-wrap">
     <div class="demo-text">
       <span class="num"><b>03</b> Today's run</span>
       <h2>Every number. <em>Or none until the end.</em></h2>
+      <p class="say plans"><strong>Follow my plan</strong> uses one of fourteen plans, from a first run to a marathon. Each one builds gradually, with lighter weeks, and gives way when life does. Week 1 of every plan is free.</p>
+      <p class="demo-hint">Try it: pick one, then finish the run.</p>
       <div class="three modes" role="tablist" aria-label="Pick today's run">
         <button type="button" role="tab" id="t-silent" aria-controls="demo" aria-selected="true" data-mode="silent"><span class="k">Silent</span><b>Clear my head</b><span>Nothing on screen. Every number waits for the finish.</span></button>
         <button type="button" role="tab" id="t-live" aria-controls="demo" aria-selected="false" data-mode="live" tabindex="-1"><span class="k">Live</span><b>Just run</b><span>Distance, time, pace and the map, with your usual cues.</span></button>
         <button type="button" role="tab" id="t-plan" aria-controls="demo" aria-selected="false" data-mode="plan" tabindex="-1"><span class="k">Block by block</span><b>Follow my plan</b><span>Today's session, and a voice only when a block changes.</span></button>
       </div>
-      <p class="demo-hint">Try it: pick one, then finish the run.</p>
     </div>
 
     <div class="phone" id="demo" role="tabpanel" aria-labelledby="t-silent" aria-label="Example run in the app">
@@ -99,8 +100,8 @@
       <div class="scr" data-show="live" hidden>
         <p class="rec"><i></i>Recording</p>
         <svg class="mini" viewBox="0 0 200 120" aria-hidden="true"><path class="route" pathLength="1" d="M20 96 C30 60 52 40 82 36 S140 22 162 44 S186 92 150 100 S70 108 46 104 Z"/></svg>
-        <div class="big"><b id="d-km">3.42</b><span>km</span></div>
-        <div class="pair"><p><b id="d-time">18:47</b><span>time</span></p><p><b>5:29</b><span>pace /km</span></p></div>
+        <div class="big"><b id="d-km">4.90</b><span>km</span></div>
+        <div class="pair"><p><b id="d-time">26:52</b><span>time</span></p><p><b>5:29</b><span>pace /km</span></p></div>
       </div>
       <div class="scr" data-show="plan" hidden>
         <p class="rec"><i></i>Block 3 of 6</p>
@@ -147,13 +148,13 @@
   </div>
 </section>
 
-<section class="ch left" data-name="Quiet reminders">
+<section class="ch left" data-name="Reminders">
   <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-glass-river.jpg"><img src="media/bg-glass-river.jpg" alt="" loading="lazy" decoding="async"></picture>
   <video data-loop data-wide="media/wide-glass-river.mp4" data-tall="media/bg-glass-river.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in">
     <span class="num"><b>05</b> Reminders</span>
     <h2>A nudge. <em>Never a guilt trip.</em></h2>
-    <p class="say">One or two short notes a day at most, written on your phone. No streaks, no "you missed a day", no red badges, nothing after 9 pm. <strong>Every one has a "Fewer, please" button</strong>, and "Fewer words" keeps them to the plain fact.</p>
+    <p class="say">One or two short notes a day at most, written on your phone. No streaks, no "you missed a day", no red badges, nothing after 9 pm. <strong>Every one has a "Fewer, please" button</strong>, and "Fewer words" keeps them to the plain fact, no jokes.</p>
     <div class="note" role="group" aria-label="Example reminder">
       <img src="mark.svg?v=2" alt="">
       <div>
@@ -166,7 +167,7 @@
   </div>
 </section>
 
-<section class="ch left" data-name="What leaves your phone">
+<section class="ch left" data-name="Privacy">
   <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-rock-coast.jpg"><img src="media/bg-rock-coast.jpg" alt="" loading="lazy" decoding="async"></picture>
   <video data-loop data-wide="media/wide-rock-coast.mp4" data-tall="media/bg-rock-coast.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in">
@@ -174,7 +175,7 @@
     <h2>Nothing of yours on a server. <em>Here's the whole list.</em></h2>
     <p class="say">Your runs, routes, places and notes are saved on your phone. The app fetches three things, each with a switch, and a fourth only if you ask for it. <strong>The line you ran is never sent.</strong></p>
     <ul class="three">
-      <li><span class="k">Plain map turns it off</span><b>Map tiles</b><span>OpenFreeMap sees which area is on screen.</span></li>
+      <li><span class="k">Plain map turns it off</span><b>Map tiles</b><span>OpenFreeMap sees which area is on screen. With Plain map your route still draws, just without streets.</span></li>
       <li><span class="k">Weather switch</span><b>The forecast</b><span>Open-Meteo gets a location rounded to about 1 km.</span></li>
       <li><span class="k">Only if you say yes</span><b>The Listen list</b><span>Podcasts and playlists picked for running, opened in your own app. One file, the same for everyone; sponsored picks are marked.</span></li>
     </ul>
@@ -183,8 +184,8 @@
   </div>
 </section>
 
-<section class="ch left" data-name="Pay once, or never" id="price">
-  <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-snow-plain.jpg"><img src="media/bg-snow-plain.jpg" alt="" loading="lazy" decoding="async"></picture>
+<section class="ch left" data-name="Price" id="price">
+  <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-snow-plain.jpg"><img src="media/bg-snow-plain.jpg" alt="" decoding="async"></picture>
   <video data-loop data-wide="media/wide-snow-plain.mp4" data-tall="media/bg-snow-plain.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in">
     <span class="num"><b>07</b> Price</span>
@@ -197,14 +198,15 @@
         <ul>
           <li>Recording, every number from every run, your history</li>
           <li>Your places, silent runs, quiet reminders, the map</li>
-          <li>Listen, the Wear OS watch app, heart rate from a strap or watch, week 1 of every plan</li>
+          <li>Listen (running podcasts and playlists, opened in your own app), the Wear OS watch app, heart rate from a strap or watch, week 1 of every plan</li>
+          <li>Bring your history: import runs from GPX or FIT files, from any watch or app</li>
           <li>GPX export of a single run</li>
         </ul>
       </div>
       <div class="tier once">
         <p class="label">Everything, once</p>
         <p class="amount">€4.99</p>
-        <p class="small">One payment, kept by your store account. Launch price; €6.99 later. No subscription, ever.</p>
+        <p class="small">One payment, kept by your Google Play account. Launch price; €6.99 later. No subscription, ever.</p>
         <ul>
           <li>Full training plans, past week 1</li>
           <li>Trends and progress over months</li>
@@ -216,8 +218,8 @@
   </div>
 </section>
 
-<section class="ch end" data-name="Your space" id="get">
-  <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-trail-bridge.jpg"><img src="media/bg-trail-bridge.jpg" alt="" loading="lazy" decoding="async"></picture>
+<section class="ch end" data-name="Soon" id="get">
+  <picture class="poster"><source media="(min-aspect-ratio: 1/1)" srcset="media/wide-trail-bridge.jpg"><img src="media/bg-trail-bridge.jpg" alt="" decoding="async"></picture>
   <video data-loop data-wide="media/wide-trail-bridge.mp4" data-tall="media/bg-trail-bridge.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="in">
     <span class="num"><b>08</b> Soon</span>
@@ -226,11 +228,11 @@
     <div class="stores">
       <div class="store">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3.5v17l9-8.5z" fill="#c9e7d6"/><path d="M5 3.5l11.5 6.4L14 12.5z" fill="#c5dcf0"/><path d="M5 20.5l11.5-6.4L14 11.5z" fill="#f7c9b6"/><path d="M16.5 9.9L20 12l-3.5 2.1-2.5-2.1z" fill="#f5e3a8"/></svg>
-        <span><small>Soon on</small><strong>Google Play</strong></span><span class="tagsoon">Soon</span>
+        <span><small>Soon on</small><strong>Google Play</strong></span>
       </div>
       <div class="store later">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="#d9d0f0" stroke-width="1.6"/><path d="M8.5 15.5l4-7m-1 0l4 7M7.5 13h9" stroke="#d9d0f0" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>
-        <span><small>Later on the</small><strong>App Store</strong></span><span class="tagsoon">Later</span>
+        <span><small>Later on the</small><strong>App Store</strong></span>
       </div>
     </div>
     <a class="again" href="#main">Back to top <span aria-hidden="true">↑</span></a>
@@ -247,6 +249,6 @@
   </div>
 </footer>
 
-<script src="site.js?v=8" defer></script>
+<script src="site.js?v=10" defer></script>
 </body>
 </html>
