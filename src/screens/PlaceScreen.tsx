@@ -7,7 +7,7 @@ import { lastWhen } from '../components/PlacesList';
 import { RouteMap } from '../components/RouteMap';
 import { SavePlaceSheet } from '../components/SavePlaceSheet';
 import { formatDistance, formatPace } from '../geo';
-import { BUSY_LABEL, placeSummary, quietPatterns, tagLabel } from '../places';
+import { BUSY_LABEL, byMonth, latestNote, placeSummary, quietPatterns, tagLabel } from '../places';
 import { deletePlace, getPlace, placeVisits, updatePlace, type Place, type PlaceVisit } from '../placeStore';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type } from '../theme';
@@ -45,6 +45,8 @@ export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeI
 
   const path: LatLon[] = useMemo(() => (place ? place.sig.pts.map(([latitude, longitude]) => ({ latitude, longitude })) : []), [place]);
   const summary = useMemo(() => (place ? placeSummary(visits, place.distanceM) : null), [visits, place]);
+  const lastNote = useMemo(() => latestNote(visits), [visits]);
+  const months = useMemo(() => byMonth(visits), [visits]);
   const patterns = useMemo(() => (unlocked ? quietPatterns(visits) : []), [visits, unlocked]);
 
   if (!place || !summary) {
@@ -103,10 +105,24 @@ export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeI
           {formatDistance(place.distanceM, km)} · {factLine}
         </Text>
 
+        {/* The warmth is the runner's own words, not a line the app made up. */}
+        {lastNote ? (
+          <View style={styles.lastNote} accessible accessibilityLabel={`${ui().place.yourLastNote}, ${new Date(lastNote.at).toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}: ${lastNote.note}`}>
+            <Text style={type.eyebrow}>{ui().place.yourLastNote}</Text>
+            <Text style={styles.lastNoteText}>{lastNote.note!.trim()}</Text>
+            <Text style={type.small}>{new Date(lastNote.at).toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric', month: 'short' })}</Text>
+          </View>
+        ) : null}
+
         <Text style={[type.eyebrow, { marginTop: spacing.sm }]} accessibilityRole="header">{ui().place.yourNotesDated}</Text>
         <View>
           {visits.length === 0 ? <Text style={type.small}>{ui().place.nothingYetEachRunHere}</Text> : null}
-          {visits.map((v) => {
+          {months.map((m) => (
+            <View key={`${m.year}-${m.month}`}>
+              <Text style={styles.month} accessibilityRole="header">
+                {monthLabel(m.year, m.month)}
+              </Text>
+          {m.visits.map((v) => {
             const when = new Date(v.at);
             const label = `${when.toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric', month: 'short' })} ${when.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' })}`;
             return (
@@ -119,6 +135,8 @@ export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeI
               </View>
             );
           })}
+            </View>
+          ))}
         </View>
 
         <LockRow title={ui().place.whenItSUsuallyQuiet} detail={ui().place.readFromMonthsOfYour} />
@@ -158,6 +176,12 @@ export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeI
   );
 }
 
+/** "October 2026", capitalised for languages that write months in lower case. */
+function monthLabel(year: number, month: number): string {
+  const t = new Date(year, month, 1).toLocaleDateString(dateLocale(), { month: 'long', year: 'numeric' });
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
 const styles = StyleSheet.create({
   screen: { padding: spacing.md, paddingTop: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md, backgroundColor: colors.cream, flexGrow: 1 },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -169,6 +193,9 @@ const styles = StyleSheet.create({
   logWhen: { width: 118, fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.text },
   logBusy: { width: 104, fontFamily: fonts.bodySemi, fontSize: 13, lineHeight: 18, color: colors.text },
   logNote: { flex: 1, fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.muted },
+  lastNote: { gap: 4, backgroundColor: colors.butter, borderRadius: radius.lg, padding: spacing.md },
+  lastNoteText: { fontFamily: fonts.body, fontSize: 16, lineHeight: 23, color: colors.text },
+  month: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.muted, paddingTop: spacing.sm, paddingBottom: 2 },
   patterns: { gap: spacing.sm, backgroundColor: colors.lilacSoft, borderRadius: radius.md, padding: spacing.md },
   pattern: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.text },
 });

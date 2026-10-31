@@ -15,6 +15,7 @@ import { TipLine } from '../components/TipLine';
 import { ListenSheet } from './ListenScreen';
 import { roughMinutes, type Offer } from '../commute';
 import { useCommuteOffer } from '../commuteStore';
+import { hideHomePlace, homePlaceCard, type HomePlace, type Place } from '../placeStore';
 import { homeFootage } from '../footage';
 import { formatDistance } from '../geo';
 import { PRESETS, effectivePreset, presetInfo } from '../presets';
@@ -39,7 +40,7 @@ import { dateLocale, decimal, monthName } from '../i18n/lang';
  * Ten days or more since the last run, it says welcome back instead: no plan
  * day, nothing overdue, one free run, and the plan as a separate choice.
  */
-export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, planToday, planNext, plan, onOpenPlan, onPlanChanged, onBrowseListen, welcomeBack = true }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; onCommute?: (o: Offer) => void; onRunFree?: () => void; planToday?: Session | null; planNext?: Session | null; plan?: Plan | null; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; welcomeBack?: boolean }) {
+export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, planToday, planNext, plan, onOpenPlan, onPlanChanged, onBrowseListen, onRunPlace, welcomeBack = true }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; onCommute?: (o: Offer) => void; onRunFree?: () => void; planToday?: Session | null; planNext?: Session | null; plan?: Plan | null; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; onRunPlace?: (p: Place) => void; welcomeBack?: boolean }) {
   const { settings, update } = useSettings();
   const [presetSheet, setPresetSheet] = useState(false);
   const [listen, setListen] = useState(false);
@@ -55,6 +56,18 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
   const [sky, setSky] = useState<WeatherResult | null>(null);
   const [now, setNow] = useState(Date.now());
   const commute = useCommuteOffer(runs, now);
+  // One of your places, the one you usually run at this time. Looked up again each hour and after each run.
+  const [homePlace, setHomePlace] = useState<HomePlace | null>(null);
+  const hour = Math.floor(now / (60 * 60 * 1000));
+  useEffect(() => {
+    let alive = true;
+    homePlaceCard()
+      .then((p) => alive && setHomePlace(p))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [runs.length, hour]);
 
   const refresh = useCallback(
     async (ask = false) => {
@@ -207,6 +220,37 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
               ›
             </Text>
           </Pressable>
+        ) : homePlace && onRunPlace ? (
+          <View style={styles.placeCard}>
+            <Pressable
+              onPress={() => onRunPlace(homePlace.place)}
+              accessibilityRole="button"
+              accessibilityLabel={[ui().placesList.runXAgain(homePlace.place.name), homePlace.note?.note].filter(Boolean).join('. ')}
+              style={({ pressed }) => [styles.placeMain, pressed && { opacity: 0.85 }]}
+            >
+              <Text style={styles.commuteLabel}>{ui().placesList.runThisAgain}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.commuteText} numberOfLines={1}>{homePlace.place.name}</Text>
+                {homePlace.note ? <Text style={styles.placeNote} numberOfLines={1}>{homePlace.note.note}</Text> : null}
+              </View>
+              <Text style={styles.adjustArrow} accessibilityElementsHidden importantForAccessibility="no">
+                ›
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                const id = homePlace.place.id;
+                setHomePlace(null);
+                hideHomePlace(id).catch(() => {});
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={ui().home.hidePlaceX(homePlace.place.name)}
+              hitSlop={8}
+              style={styles.placeHide}
+            >
+              <Text style={styles.placeHideText}>{ui().home.hidePlace}</Text>
+            </Pressable>
+          </View>
         ) : null}
         <View style={styles.todayHead}>
           <Text style={styles.todayLabel} accessibilityRole="header">{ui().home.todaySRun}</Text>
@@ -388,4 +432,9 @@ const styles = StyleSheet.create({
   commuteLabel: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.ink },
   commuteText: { flex: 1, fontFamily: fonts.body, fontSize: 13, color: colors.inkSoft, fontVariant: ['tabular-nums'] },
   adjustArrow: { fontFamily: fonts.body, fontSize: 22, color: colors.inkMuted },
+  placeCard: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 48, paddingLeft: 16, paddingRight: 6, borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.72)' },
+  placeMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 48 },
+  placeNote: { fontFamily: fonts.body, fontSize: 12, color: colors.inkMuted },
+  placeHide: { minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 8 },
+  placeHideText: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.inkMuted, textDecorationLine: 'underline' },
 });
