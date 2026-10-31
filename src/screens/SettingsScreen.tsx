@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, AppState, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
 import { CommuteSettings } from '../components/CommuteSettings';
+import { StrapSettings } from '../components/StrapSettings';
 import { PresetSheet } from '../components/PresetSheet';
 import { appByKey } from '../music';
 import { notificationStatus, previewLine, sendLineNow, turnOnNotifications, type NotifyStatus } from '../notify';
@@ -102,6 +103,8 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onOpenCredits, 
           <Segmented value={settings.unitsKm ? 'km' : 'mi'} options={['km', 'mi']} onChange={(v) => update({ unitsKm: v === 'km' })} />
         </Row>
       </Section>
+
+      {Platform.OS === 'android' && <StrapSettings />}
 
       <Section title={ui().settings.musicPodcasts} bg={colors.lilac} fg={colors.lilacDeep}>
         <Text style={styles.musicNote}>
