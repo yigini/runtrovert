@@ -1,0 +1,17 @@
+# runtrovert.app access and error logs: rotated daily, deleted after 14 days, as privacy.html says.
+# Install: cp deploy/site/logrotate-runtrovert /etc/logrotate.d/runtrovert
+# copytruncate, so Apache never needs a reload for this.
+/var/log/httpd/runtrovert_access.log
+/var/log/httpd/runtrovert_ssl_access.log
+/var/log/httpd/runtrovert_error.log
+/var/log/httpd/runtrovert_ssl_error.log
+{
+    daily
+    rotate 14
+    maxage 14
+    missingok
+    notifempty
+    compress
+    delaycompress
+    copytruncate
+}
