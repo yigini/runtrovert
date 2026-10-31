@@ -432,6 +432,11 @@ export const tr: Strings = {
     xDaysSinceTheLast: (days) => `Sonuncusundan beri ${days} gün. Suçluluk yok, sadece bir kapı.`,
     runAloneNotLonely: 'Tek başına koş. Yalnız değil.',
     energyAfter: (avg) => `sonrasında enerji ${avg}`,
+    runKindX: (name) => `Bugünkü koşu: ${name}`,
+    change: 'Değiştir',
+    changesHowThisRunLooks: 'Bu koşunun nasıl görüneceğini değiştirir',
+    showsTheSkyDetails: 'En uygun saati, ne giyileceğini ve ışığı gösterir',
+    hidesTheSkyDetails: 'Hava ayrıntılarını gizler',
   },
   listen: {
     backToYourRun: 'Koşuna dön',

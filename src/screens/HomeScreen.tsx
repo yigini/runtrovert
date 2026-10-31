@@ -18,7 +18,7 @@ import { useCommuteOffer } from '../commuteStore';
 import { hideHomePlace, homePlaceCard, type HomePlace, type Place } from '../placeStore';
 import { homeFootage } from '../footage';
 import { formatDistance } from '../geo';
-import { PRESETS, effectivePreset, presetInfo } from '../presets';
+import { effectivePreset, presetInfo } from '../presets';
 import { clock, formatTemp, headline, suggestions } from '../sky';
 import { useSettings } from '../settings';
 import { seasonalLine } from '../surprises';
@@ -30,12 +30,13 @@ import type { Mood, Run } from '../types';
 import { NEWS } from '../whatsNew';
 import { cachedWeather, getWeather, type Weather, type WeatherResult } from '../weather';
 import { ui } from '../i18n/ui';
-import { dateLocale, decimal, monthName } from '../i18n/lang';
+import { dateLocale } from '../i18n/lang';
 
 /**
- * The first thing you see. Footage, the sky in a sentence, three plain
- * suggestions, then today's run: how much comes with you, Start, and Listen
- * beside it. No cards: the words sit on the picture.
+ * The first thing you see, and one obvious thing to do. Footage, the sky in
+ * one line (tap for the best window, what to wear and the light), the
+ * headline, then a single suggestion, energy, and Start with Listen beside
+ * it. Start names the run; "Change" under it opens the three kinds.
  *
  * Ten days or more since the last run, it says welcome back instead: no plan
  * day, nothing overdue, one free run, and the plan as a separate choice.
@@ -45,8 +46,10 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
   const [presetSheet, setPresetSheet] = useState(false);
   const [listen, setListen] = useState(false);
   const [adjust, setAdjust] = useState(false);
-  // "Other ways to run" brings back the usual chips for today.
+  // "Other ways to run" brings back the usual Run tab for today.
   const [others, setOthers] = useState(false);
+  // The sky is one line; a tap opens Best window, Wear and Light under it.
+  const [skyOpen, setSkyOpen] = useState(false);
   const lastRunAt = runs.length ? Math.max(...runs.map((r) => r.startedAt)) : null;
   const sessionToday = !!planToday && !planToday.done && !planToday.skipped;
   const preset = effectivePreset(settings.runPreset, sessionToday);
@@ -111,7 +114,17 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
           <SettingsGear onPhoto />
         </View>
 
-        {weather ? <SkyRow w={weather} metric={metric} /> : null}
+        {weather ? <SkyRow w={weather} metric={metric} now={now} open={skyOpen} onToggle={() => setSkyOpen((o) => !o)} /> : null}
+        {weather && skyOpen ? (
+          <View style={styles.list}>
+            {suggestions(weather, metric, now).map((s) => (
+              <View key={s.label} style={styles.item}>
+                <Text style={styles.itemLabel}>{s.label}</Text>
+                <Text style={styles.itemText}>{s.text}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
         {back ? (
           <>
             <Text style={styles.awayLine}>{ui().home.xDaysSinceYourLast(away)}</Text>
@@ -128,34 +141,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
             <Text style={styles.sub}>{seasonalLine(now) ?? subline(runs, now)}</Text>
           </>
         )}
-        {/* The plan's day, tappable through to the Train tab, with whether a reminder will come. Not after a break. */}
-        {back ? null : planToday ? (
-          <Pressable onPress={onOpenPlan} disabled={!onOpenPlan} style={styles.plan} accessibilityRole="button" accessibilityHint={ui().home.opensYourPlan}>
-            <Text style={styles.planLabel}>{planToday.done ? ui().home.todaySSessionDone : planToday.skipped ? ui().home.todaySSessionSetAside : ui().home.todayFromYourPlan}  ›</Text>
-            <Text style={styles.planText}>{planToday.title}</Text>
-            <Text style={styles.planHint}>{planToday.summary}</Text>
-            <PlanReminderLine />
-          </Pressable>
-        ) : planNext ? (
-          <Pressable onPress={onOpenPlan} disabled={!onOpenPlan} style={styles.plan} accessibilityRole="button" accessibilityHint={ui().home.opensYourPlan}>
-            <Text style={styles.planLabel}>{ui().home.restDayFromYourPlan}</Text>
-            <Text style={styles.planText}>
-              {ui().home.next(WEEKDAY_LONG[weekdayOf(planNext.date)], planNext.title.charAt(0).toLowerCase() + planNext.title.slice(1))}
-            </Text>
-            <PlanReminderLine />
-          </Pressable>
-        ) : null}
-
-        {back ? null : weather ? (
-          <View style={styles.list}>
-            {suggestions(weather, metric, now).map((s) => (
-              <View key={s.label} style={styles.item}>
-                <Text style={styles.itemLabel}>{s.label}</Text>
-                <Text style={styles.itemText}>{s.text}</Text>
-              </View>
-            ))}
-          </View>
-        ) : sky?.kind === 'no-permission' ? (
+        {weather ? null : sky?.kind === 'no-permission' ? (
           <Pressable onPress={() => refresh(true)} style={styles.ask} accessibilityRole="button">
             <Text style={styles.askText}>{ui().home.showTheLocalSky}</Text>
             <Text style={styles.askHint}>{ui().home.usesARoughLocationAbout}</Text>
@@ -166,15 +152,6 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
 
         <View style={{ flex: 1 }} />
 
-        {/* One quiet line at a time: what's new until it's dismissed, then the daily tip. */}
-        {settings.seenNews !== NEWS.id ? (
-          <Pressable onPress={() => update({ seenNews: NEWS.id })} style={styles.news} accessibilityRole="button" accessibilityHint={ui().home.dismissesThisLine}>
-            <Text style={styles.newsText}>{NEWS.text}</Text>
-            <Text style={styles.newsDismiss}>{ui().home.gotIt}</Text>
-          </Pressable>
-        ) : (
-          <TipLine runs={runs} weather={weather} dark={evening} waiting={sky === null} />
-        )}
       </ScrollView>
 
       {back && !others ? (
@@ -204,8 +181,11 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
         </View>
       ) : (
       <View style={styles.dock}>
-        {/* Run to work, Run home: one quiet line on a weekday, only once home and work are set. */}
-        {commute && onCommute ? (
+        {/* One suggestion at a time, the most useful one for now: the plan's session, a run to work or home,
+            the place you usually run at this hour, the plan's next day, then what's new or the daily tip. */}
+        {sessionToday && planToday ? (
+          <PlanCard label={ui().home.todayFromYourPlan} title={planToday.title} hint={planToday.summary} onPress={onOpenPlan} />
+        ) : commute && onCommute ? (
           <Pressable
             onPress={() => onCommute(commute)}
             accessibilityRole="button"
@@ -251,33 +231,22 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
               <Text style={styles.placeHideText}>{ui().home.hidePlace}</Text>
             </Pressable>
           </View>
-        ) : null}
-        <View style={styles.todayHead}>
-          <Text style={styles.todayLabel} accessibilityRole="header">{ui().home.todaySRun}</Text>
-          <Pressable onPress={() => setPresetSheet(true)} accessibilityRole="button" hitSlop={10}>
-            <Text style={styles.todayLink}>{ui().home.whatEachOneShows}</Text>
+        ) : planToday ? (
+          <PlanCard label={planToday.done ? ui().home.todaySSessionDone : ui().home.todaySSessionSetAside} title={planToday.title} onPress={onOpenPlan} />
+        ) : planNext ? (
+          <PlanCard
+            label={ui().home.restDayFromYourPlan.replace(/\s*›\s*$/, '')}
+            title={ui().home.next(WEEKDAY_LONG[weekdayOf(planNext.date)], planNext.title.charAt(0).toLowerCase() + planNext.title.slice(1))}
+            onPress={onOpenPlan}
+          />
+        ) : settings.seenNews !== NEWS.id ? (
+          <Pressable onPress={() => update({ seenNews: NEWS.id })} style={styles.news} accessibilityRole="button" accessibilityHint={ui().home.dismissesThisLine}>
+            <Text style={styles.newsText}>{NEWS.text}</Text>
+            <Text style={styles.newsDismiss}>{ui().home.gotIt}</Text>
           </Pressable>
-        </View>
-        <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel={ui().home.todaySRun}>
-          {PRESETS.map((p) => {
-            const on = p.key === picked;
-            return (
-              <Pressable
-                key={p.key}
-                onPress={() => update({ runPreset: p.key })}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: on }}
-                accessibilityLabel={p.name}
-                style={({ pressed }) => [styles.chip, on && styles.chipOn, pressed && { opacity: 0.85 }]}
-              >
-                <Text style={[styles.chipText, on && styles.chipTextOn]} numberOfLines={1}>
-                  {p.chip}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-        <Text style={styles.todayLine}>{presetLine(picked, preset, sessionToday, settings.runPreset != null)}</Text>
+        ) : (
+          <TipLine runs={runs} weather={weather} dark={evening} waiting={sky === null} />
+        )}
         <MoodPicker inline title={ui().home.energyRightNow} value={mood} onChange={onMood} />
         <View style={styles.startRow}>
           <Button title={preset === 'plan' ? ui().home.startTodaySSession : ui().home.start} onPress={onStart} style={{ minHeight: 62, flex: 1 }} />
@@ -285,7 +254,12 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
             <HeadphonesGlyph />
           </Pressable>
         </View>
-        <Text style={styles.footer}>{footer(runs, now)}</Text>
+        {/* The run's kind lives in the Start button now; this opens the choice. Remembered, so most days nobody taps it. */}
+        <Pressable onPress={() => setPresetSheet(true)} accessibilityRole="button" accessibilityLabel={ui().home.runKindX(presetInfo(preset).name)} accessibilityHint={ui().home.changesHowThisRunLooks} hitSlop={10} style={{ alignSelf: 'center' }}>
+          <Text style={styles.kindLine}>
+            {presetInfo(preset).name} · <Text style={styles.kindLink}>{ui().home.change}</Text>
+          </Text>
+        </Pressable>
       </View>
       )}
       {plan && back ? (
@@ -301,7 +275,26 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
           }}
         />
       ) : null}
-      <PresetSheet open={presetSheet} value={picked} onPick={(p) => update({ runPreset: p })} onClose={() => setPresetSheet(false)} />
+      <PresetSheet
+        open={presetSheet}
+        value={picked}
+        onPick={(p) => update({ runPreset: p })}
+        onClose={() => setPresetSheet(false)}
+        // Run to work waits here on a day the plan's session took the one suggestion.
+        extra={
+          sessionToday && commute && onCommute
+            ? {
+                title: commute.dir === 'toWork' ? ui().commute.runToWork : ui().commute.runHome,
+                text: ui().commute.about(formatDistance(commute.distanceM, metric), roughMinutes(commute.durationS)),
+                hint: commute.dir === 'toWork' ? ui().commute.toWorkHint : ui().commute.homeHint,
+                onPress: () => {
+                  setPresetSheet(false);
+                  onCommute(commute);
+                },
+              }
+            : undefined
+        }
+      />
       <ListenSheet
         open={listen}
         onClose={() => setListen(false)}
@@ -314,12 +307,6 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
   );
 }
 
-/** The line under the chips: what the pick brings, and that it's remembered. */
-function presetLine(picked: ReturnType<typeof effectivePreset>, preset: ReturnType<typeof effectivePreset>, sessionToday: boolean, remembered: boolean): string {
-  if (picked === 'plan' && !sessionToday) return ui().home.nothingOnThePlanToday;
-  return `${presetInfo(preset).line}${remembered ? ui().home.sameAsLastTime : ''}`;
-}
-
 function HeadphonesGlyph() {
   return (
     <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={colors.lilacDeep} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
@@ -329,17 +316,37 @@ function HeadphonesGlyph() {
   );
 }
 
-function SkyRow({ w, metric }: { w: Weather; metric: boolean }) {
-  const feels = Math.round(w.feelsC) !== Math.round(w.tempC) ? ui().home.feelsX(formatTemp(w.feelsC, metric)) : '';
+/** The sky in one line: temperature, then the best window. A tap opens the three suggestions. */
+function SkyRow({ w, metric, now, open, onToggle }: { w: Weather; metric: boolean; now: number; open: boolean; onToggle: () => void }) {
+  const first = suggestions(w, metric, now)[0];
   return (
-    <View style={styles.skyRow}>
+    <Pressable onPress={onToggle} accessibilityRole="button" accessibilityState={{ expanded: open }} accessibilityHint={open ? ui().home.hidesTheSkyDetails : ui().home.showsTheSkyDetails} hitSlop={6} style={styles.skyRow}>
       <SkyGlyph sky={w.sky} isDay={w.isDay} size={26} />
-      <Text style={styles.skyText}>
+      <Text style={[styles.skyText, { flex: 1 }]} numberOfLines={1}>
         {formatTemp(w.tempC, metric)}
-        {feels} · {ui().home.wind(metric ? `${Math.round(w.windKmh)} km/h` : `${Math.round(w.windKmh / 1.609)} mph`)}
+        {first ? ` · ${first.text}` : ` · ${ui().home.wind(metric ? `${Math.round(w.windKmh)} km/h` : `${Math.round(w.windKmh / 1.609)} mph`)}`}
       </Text>
-      <Text style={styles.skyText}>  {clock(w.fetchedAt)}</Text>
-    </View>
+      <Text style={styles.skyMore} accessibilityElementsHidden importantForAccessibility="no">
+        {open ? '‹' : '›'}
+      </Text>
+    </Pressable>
+  );
+}
+
+/** The plan's day in the suggestion slot, through to the Train tab, with whether a reminder will come. */
+function PlanCard({ label, title, hint, onPress }: { label: string; title: string; hint?: string; onPress?: () => void }) {
+  return (
+    <Pressable onPress={onPress} disabled={!onPress} accessibilityRole="button" accessibilityHint={ui().home.opensYourPlan} style={({ pressed }) => [styles.planCard, pressed && { opacity: 0.9 }]}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={styles.planLabel}>{label}</Text>
+        <Text style={styles.planText}>{title}</Text>
+        {hint ? <Text style={styles.planHint}>{hint}</Text> : null}
+        <PlanReminderLine />
+      </View>
+      <Text style={styles.adjustArrow} accessibilityElementsHidden importantForAccessibility="no">
+        ›
+      </Text>
+    </Pressable>
   );
 }
 
@@ -364,22 +371,6 @@ function subline(runs: Run[], now: number): string {
   if (days === 1) return ui().home.youRanYesterdayEasyIs;
   if (days < 7) return ui().home.lastRunXLegsRemember(new Date(runs[0].startedAt).toLocaleDateString(dateLocale(), { weekday: 'long' }));
   return ui().home.xDaysSinceTheLast(days);
-}
-
-function footer(runs: Run[], now: number): string {
-  const d = new Date(now);
-  const month = runs.filter((r) => {
-    const s = new Date(r.startedAt);
-    return s.getMonth() === d.getMonth() && s.getFullYear() === d.getFullYear();
-  }).length;
-  const deltas = runs.filter((r) => r.moodBefore != null && r.moodAfter != null).map((r) => (r.moodAfter as number) - (r.moodBefore as number));
-  const parts = [ui().home.runAloneNotLonely];
-  if (month) parts.push(ui().home.runsInMonth(month, monthName(now)));
-  if (deltas.length) {
-    const avg = deltas.reduce((a, b) => a + b, 0) / deltas.length;
-    parts.push(ui().home.energyAfter(`${avg >= 0 ? '+' : ''}${decimal(avg.toFixed(1))}`));
-  }
-  return parts.join('  ·  ');
 }
 
 function startOfDay(ms: number): number {
@@ -407,19 +398,14 @@ const styles = StyleSheet.create({
   news: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm, paddingLeft: 14, borderLeftWidth: 2, borderLeftColor: colors.ink },
   newsText: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 19, color: colors.ink },
   newsDismiss: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.inkSoft, textDecorationLine: 'underline' },
-  footer: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1, color: colors.inkSoft, textAlign: 'center' },
-  todayHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: spacing.sm },
-  todayLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 2.5, textTransform: 'uppercase', color: colors.inkSoft },
+  kindLine: { fontFamily: fonts.body, fontSize: 13, color: colors.inkSoft },
+  kindLink: { fontFamily: fonts.bodySemi, color: colors.ink, textDecorationLine: 'underline' },
+  skyMore: { fontFamily: fonts.body, fontSize: 18, color: colors.inkMuted },
+  planCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 12, paddingHorizontal: 16, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.8)' },
   todayLink: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.ink, textDecorationLine: 'underline' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  chip: { minHeight: 44, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
-  chipOn: { backgroundColor: colors.lilac },
-  chipText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.ink },
-  chipTextOn: { fontFamily: fonts.bodySemi, color: colors.lilacDeep },
   todayLine: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.inkSoft },
   startRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 2 },
   listen: { width: 62, height: 62, borderRadius: 31, backgroundColor: colors.lilac, alignItems: 'center', justifyContent: 'center' },
-  plan: { gap: 2, paddingLeft: 14, borderLeftWidth: 2, borderLeftColor: colors.butterDeep },
   planLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: colors.butterDeep },
   planText: { fontFamily: fonts.bodyMedium, fontSize: 16, lineHeight: 21, color: colors.ink },
   planHint: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.inkSoft },

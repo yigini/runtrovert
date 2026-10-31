@@ -431,6 +431,11 @@ export const es: Strings = {
     xDaysSinceTheLast: (days) => `${days} días desde la última. Sin culpa, solo una puerta.`,
     runAloneNotLonely: 'Corre a solas. No en soledad.',
     energyAfter: (avg) => `energía ${avg} después`,
+    runKindX: (name) => `Carrera de hoy: ${name}`,
+    change: 'Cambiar',
+    changesHowThisRunLooks: 'Cambia cómo se ve esta carrera',
+    showsTheSkyDetails: 'Muestra la mejor franja, qué ponerte y la luz',
+    hidesTheSkyDetails: 'Oculta los detalles del cielo',
   },
   listen: {
     backToYourRun: 'Volver a tu carrera',
