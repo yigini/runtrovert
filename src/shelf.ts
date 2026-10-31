@@ -8,17 +8,18 @@ import bundled from './shelfBundled.json';
 
 // The Listen list. The app ships with a copy (src/shelfBundled.json) and, if the
 // runner says yes, swaps it for the newest one when they open the Listen tab. That
-// file is built every morning by .github/workflows/shelf.yml and holds every country,
-// so the request carries no location, no id and no cookie. Covers that didn't
-// ship are fetched one per show as it comes on screen, which does tell GitHub
-// which shows were scrolled past (the Privacy text says so), and then kept on the
+// file is built every morning by .github/workflows/shelf.yml (on GitHub), copied to
+// runtrovert.app by deploy/site/update.sh, and holds every country, so the request
+// carries no location, no id and no cookie. Phones only ever ask runtrovert.app.
+// Covers that didn't ship are fetched one per show as it comes on screen, which does
+// tell runtrovert.app which shows were scrolled past (the Privacy text says so), and then kept on the
 // phone (src/coverCache.ts) so each one is asked for only once. Nothing is
 // fetched until the tab is opened.
 
-export const SHELF_URL = 'https://raw.githubusercontent.com/yigini/runtrovert/shelf/shelf.json';
+export const SHELF_URL = 'https://runtrovert.app/shelf/shelf.json';
 
 // Covers live beside the list. Hand-picked ones also ship inside the app.
-export const ART_URL = 'https://raw.githubusercontent.com/yigini/runtrovert/shelf/art/';
+export const ART_URL = 'https://runtrovert.app/shelf/art/';
 
 /**
  * A show's cover: the shipped one, else the one kept on the phone, else null.

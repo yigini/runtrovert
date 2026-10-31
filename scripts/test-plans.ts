@@ -90,6 +90,12 @@ for (const spec of PLANS) {
               }
               generated++;
               const v = validatePlan({ weeks: res.weeks, setup, runner: { ...runner, longestKm30: res.assumedLongestKm }, paces: null }, spec);
+              // Coach review (31 Oct 2026): at most two quality days a week. Race effort inside the
+              // long run counts as one, next to threshold, intervals and midweek race-pace runs.
+              for (const w of res.weeks) {
+                const q = w.sessions.filter((s) => s.hard || s.kind === 'racepace' || (s.kind === 'long' && s.steps.some((st) => st.effort === 'race' || st.effort === 'steady'))).length;
+                if (q > 2 && (spec.goal === 'half' || spec.goal === 'marathon')) v.push({ rule: 6, week: w.index, message: `${q} quality days in one week` });
+              }
               if (v.length) {
                 specFails++;
                 fail(`${spec.id} ${days}d [${runDays}] ${label} race@${raceWeeks} ${start === thursday ? 'Thu start' : 'Mon start'} extra=${extra}: ${v.length} violation(s)`);

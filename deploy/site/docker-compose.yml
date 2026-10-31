@@ -11,6 +11,8 @@ services:
     volumes:
       - ../../site:/usr/share/nginx/html:ro
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # The Listen list and covers, copied from the shelf branch by update.sh.
+      - ./shelf-data:/usr/share/nginx/shelf:ro
     read_only: true
     tmpfs:
       - /var/cache/nginx

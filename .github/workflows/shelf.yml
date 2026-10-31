@@ -2,7 +2,8 @@ name: Listen shelf
 
 # Every morning: rebuild shelf.json (hand-picked shows, each country's running podcasts,
 # sponsor offers) plus small cover images, and publish them on the `shelf` branch. The app downloads it from
-# https://raw.githubusercontent.com/yigini/runtrovert/shelf/shelf.json. No server.
+# https://runtrovert.app/shelf/shelf.json (deploy/site/update.sh copies the branch there
+# every 10 minutes), so phones never talk to GitHub.
 # Also runs when content/ changes on main, so an edit shows up within minutes.
 
 on:

@@ -273,7 +273,12 @@ function buildWeekSessions(c: WeekCtx): Session[] {
   if (c.kind === 'taper') longKm = Math.min(longKm, c.prevLong * (c.taperIndex === 0 ? 0.8 : 0.65));
   if (c.kind === 'light' && c.prevLong > 0) longKm = Math.min(longKm, c.prevLong * LIGHT_FACTOR);
   longKm = Math.max(r1(longKm), 2);
-  const hasRacePace = (spec.tier === 'improve' || spec.tier === 'race') && spec.goal !== '5k' && c.buildPos >= 0.5 && c.kind !== 'light' && c.kind !== 'taper';
+  // Race-tier half and marathon plans already run threshold and intervals in the week. Race effort
+  // inside the long run is a third hard day, so it comes every other week, in the weeks that would
+  // have held the midweek race-pace run (which then stays easy). Two quality days a week, not three.
+  const alternating = spec.tier === 'race' && (spec.goal === 'half' || spec.goal === 'marathon');
+  const mpWeek = !alternating || Math.max(c.index - 3, 0) % 2 === 1;
+  const hasRacePace = (spec.tier === 'improve' || spec.tier === 'race') && spec.goal !== '5k' && c.buildPos >= 0.5 && c.kind !== 'light' && c.kind !== 'taper' && mpWeek;
   const rpShare = spec.qualityDays >= 2 ? 0.25 : 0.2 + 0.15 * c.buildPos;
   const rpKm = hasRacePace ? Math.min(Math.round(longKm * rpShare), Math.floor(longKm * 0.4), spec.goal === 'marathon' ? 12 : spec.goal === 'half' ? 7 : 3) : 0;
   const raceLabel = spec.goal === 'marathon' ? ui().generate.marathonEffortShortSentences : spec.goal === 'half' ? ui().generate.halfMarathonEffortAFew : ui().generate.steadyShortSentences;
@@ -282,7 +287,8 @@ function buildWeekSessions(c: WeekCtx): Session[] {
 
   // ---- Quality ----
   const qualityN = c.gentle || c.kind === 'light' ? 0 : c.kind === 'taper' ? Math.min(spec.qualityDays, 1) : spec.qualityDays;
-  const qDays = pickQualityDays(runDays, longDay, qualityN);
+  // In an alternating week with race effort in the long run, the midweek race-pace slot stays easy.
+  const qDays = pickQualityDays(runDays, longDay, qualityN).filter((_, slot) => !(alternating && hasRacePace && qualityKind(spec, c, slot) === 'racepace'));
   const budget = c.target; // km the week is built on; work limits are shares of it
   const scale = c.kind === 'taper' ? 0.6 : 0.6 + 0.4 * c.buildPos;
   const qualitySessions: Session[] = [];

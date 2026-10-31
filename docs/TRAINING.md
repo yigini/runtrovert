@@ -99,4 +99,18 @@ scripts/test-plans.ts       npm run test:plans; `npm run test:plans -- half-impr
 scripts/test-rebuilds.ts    npm run test:rebuilds: every plan rebuilt after a break, four ways
 ```
 
+## Coach and physio review (31 October 2026)
+
+A desk review of the plans as a running coach and a sports physio would read them. What changed:
+
+- **Two quality days a week, not three.** Race-tier half and marathon plans used to run threshold, intervals and a long run with race effort in the same week for six or seven weeks. Race effort in the long run now comes every other build week, in the weeks that would have held the midweek race-pace run (that day stays easy). `npm run test:plans` fails any half or marathon week with more than two quality days.
+- **Lighter weeks keep the long-run share.** `lighten` (low energy, tough answers) caps the long run at the plan's share of the lighter week; the 15-minute floor on easy runs could leave it over rule 5.
+- **Warning signs** on the health check and the rules page: chest pain or pressure, feeling faint, a racing or uneven heartbeat, breathlessness far beyond the effort. Stop and get help, on any run.
+- **Pain red flags** in the first pain answer, not only the second: pain at rest or at night, a sore spot on a bone, swelling, limping. See someone before running again.
+- **Heart-rate medicine**: the heart-rate block says ranges do not fit on medicine such as beta blockers; go by feel and ask a doctor.
+- **Back after a fever, chest infection or COVID**: the Ill page says which symptoms on the way back mean stop and see a doctor.
+- **Strength wording**: the evidence is across many sports; runner-only studies are fewer.
+
+The longer review, with what is left for a human coach to judge, lives with the project notes.
+
 A plan is not medical advice. The health check and the pain line are there to send people to someone who can look at them.
