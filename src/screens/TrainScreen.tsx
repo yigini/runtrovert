@@ -478,6 +478,7 @@ function HealthView({ onBack, onStart }: { onBack: () => void; onStart: () => vo
           <Text style={styles.body}>{ui().train.aYesUpThereIs}</Text>
         </View>
       )}
+      <Text style={styles.hint}>{ui().train.warningSigns}</Text>
       <Button title={anyYes ? ui().train.aDoctorHasClearedMe : ui().train.startThePlan} disabled={!complete} onPress={onStart} />
       {complete && anyYes && <Button title={ui().train.notNow} variant="secondary" onPress={onBack} />}
     </ScrollView>
@@ -967,6 +968,7 @@ function IllView({ onBack, onConfirm }: { onBack: () => void; onConfirm: (days: 
       <Text style={styles.lede}>{ui().train.noRunningWithAFever}</Text>
       <Stepper label={ui().train.illForAbout} value={days} onChange={setDays} min={1} max={28} step={1} format={(v) => ui().common.days(v)} />
       <Text style={styles.hint}>{ui().train.aGuessIsFineIf}</Text>
+      <Text style={styles.hint}>{ui().train.afterFever}</Text>
       <Button title={ui().train.restThenEasy(days)} onPress={() => onConfirm(days)} />
     </ScrollView>
   );
@@ -991,6 +993,7 @@ function RulesView({ onBack }: { onBack: () => void }) {
           </View>
         </View>
       ))}
+      <Text style={styles.foot}>{ui().train.warningSigns}</Text>
       <Text style={styles.foot}>{ui().train.aPlanIsNotMedical}</Text>
     </ScrollView>
   );
