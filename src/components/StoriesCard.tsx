@@ -87,7 +87,8 @@ function Found({ stories }: { stories: RouteStories }) {
 
 /**
  * One quiet offer, ever: on the third finish screen or later, not after a
- * drained start or a long break. Marked as shown the moment it appears.
+ * drained start or a long break. Spent only once the runner answers it, so
+ * an offer scrolled past unseen comes back on a later finish screen.
  */
 function StoriesOffer({ moodBefore }: { moodBefore: Mood | null }) {
   const { settings, update } = useSettings();
@@ -103,7 +104,6 @@ function StoriesOffer({ moodBefore }: { moodBefore: Mood | null }) {
         const back = runs.length > 0 && Date.now() - last > WELCOME_BACK_MS;
         if (!alive || runs.length + 1 < OFFER_FROM_RUN || back) return;
         setShow(true);
-        update({ storiesOffered: true });
       })
       .catch(() => {});
     return () => {
@@ -116,10 +116,17 @@ function StoriesOffer({ moodBefore }: { moodBefore: Mood | null }) {
     <View style={styles.offer}>
       <Text style={styles.text}>{t.curiousWhatYouRanPast}</Text>
       <View style={styles.offerRow}>
-        <Pressable onPress={() => update({ stories: true })} accessibilityRole="button" hitSlop={6} style={({ pressed }) => [styles.yes, pressed && { opacity: 0.85 }]}>
+        <Pressable onPress={() => update({ stories: true, storiesOffered: true })} accessibilityRole="button" hitSlop={6} style={({ pressed }) => [styles.yes, pressed && { opacity: 0.85 }]}>
           <Text style={styles.yesText}>{t.showMe}</Text>
         </Pressable>
-        <Pressable onPress={() => setShow(false)} accessibilityRole="button" hitSlop={8}>
+        <Pressable
+          onPress={() => {
+            setShow(false);
+            update({ storiesOffered: true });
+          }}
+          accessibilityRole="button"
+          hitSlop={8}
+        >
           <Text style={styles.notNow}>{t.notNow}</Text>
         </Pressable>
       </View>

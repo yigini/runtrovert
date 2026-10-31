@@ -43,6 +43,8 @@ export function RouteMap({
   ghost,
   goal,
   pins,
+  hold = false,
+  onUserMove,
 }: {
   path: LatLon[];
   here?: LatLon | null;
@@ -66,6 +68,10 @@ export function RouteMap({
   goal?: LatLon | null;
   /** Small dots for Things you passed, on the finish map. */
   pins?: Array<{ lat: number; lon: number }>;
+  /** The runner has moved the map: leave the camera where they put it. */
+  hold?: boolean;
+  /** Called when a finger (not the follow camera) moves the map. */
+  onUserMove?: () => void;
 }) {
   const { settings, ready, update } = useSettings();
   const plain = offline || settings.plainMap || !settings.mapNoticeSeen;
@@ -110,8 +116,9 @@ export function RouteMap({
     () => (bounds && size ? fitBounds(bounds, size.w, size.h, pad) : null),
     [bounds, size?.w, size?.h, pad.top, pad.right, pad.bottom, pad.left],
   );
-  const view =
-    follow && head
+  const view = hold
+    ? null
+    : follow && head
       ? { center: [head.longitude, head.latitude] as [number, number], zoom: 16, padding: focusPadding, duration: 600, easing: 'ease' as const }
       : fit
         ? { center: fit.center, zoom: fit.zoom, duration: 0 }
@@ -142,6 +149,7 @@ export function RouteMap({
         touchRotate={false}
         touchPitch={false}
         preferredFramesPerSecond={fps}
+        onRegionWillChange={onUserMove ? (e) => e.nativeEvent.userInteraction && onUserMove() : undefined}
       >
         {view ? <Camera initialViewState={initial} {...view} /> : <Camera initialViewState={initial} />}
         {ghostLine && (
@@ -209,7 +217,7 @@ export function RouteMap({
 // One question, once per app run at most, for people who never saw the welcome
 // line about maps. Until they answer, the map stays plain.
 let asked = false;
-function askAboutTiles(update: (patch: { plainMap?: boolean; mapNoticeSeen?: boolean }) => void) {
+export function askAboutTiles(update: (patch: { plainMap?: boolean; mapNoticeSeen?: boolean }) => void) {
   if (asked) return;
   asked = true;
   Alert.alert(

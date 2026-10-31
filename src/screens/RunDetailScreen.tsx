@@ -40,6 +40,8 @@ export function RunDetailScreen({
 }) {
   const km = useSettings().settings.unitsKm;
   const [run, setRun] = useState<Run | null>(null);
+  // Gone: discarded or deleted since, e.g. opened from an old after-run note.
+  const [missing, setMissing] = useState(false);
   const [noteDraft, setNoteDraft] = useState<string | null>(null);
   // Leaving the screen mid-edit still keeps what was typed.
   const pendingNote = useRef<{ before: string | null; text: string | null }>({ before: null, text: null });
@@ -71,6 +73,7 @@ export function RunDetailScreen({
     (async () => {
       const r = await getRun(runId);
       setRun(r);
+      setMissing(!r);
       if (r) {
         const clean = cleanHeart(await getHeartRate(runId).catch(() => []), r.startedAt, r.endedAt);
         setHeart(heartSummary(clean));
@@ -103,7 +106,17 @@ export function RunDetailScreen({
     return mine && facts ? compare(mine, facts) : null;
   }, [facts, runId]);
 
-  if (!run) return <View style={styles.screen} />;
+  if (!run)
+    return (
+      <View style={styles.screen}>
+        {missing && (
+          <>
+            <BackButton label={ui().runDetail.yourRuns} onPress={onBack} />
+            <Text style={styles.gone}>{ui().runDetail.runGone}</Text>
+          </>
+        )}
+      </View>
+    );
   const line = cmp ? youVsYou(cmp, km) : null;
 
   const d = new Date(run.startedAt);
@@ -268,6 +281,7 @@ const styles = StyleSheet.create({
   placeLink: { alignSelf: 'flex-start', minHeight: 36, justifyContent: 'center' },
   placeLinkText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.mintDeep, textDecorationLine: 'underline' },
   placeText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.mintDeep },
+  gone: { fontFamily: fonts.body, fontSize: 16, lineHeight: 23, color: colors.text, marginTop: spacing.md },
   clear: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.muted, textDecorationLine: 'underline' },
   note: { fontFamily: fonts.body, color: colors.text, fontSize: 15, lineHeight: 22, backgroundColor: colors.butter, borderRadius: radius.lg, padding: spacing.md },
 });

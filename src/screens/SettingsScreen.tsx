@@ -99,8 +99,9 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onOpenCredits, 
             <Switch value={settings.watch} onValueChange={(v) => update({ watch: v })} trackColor={{ true: colors.ink }} />
           </Row>
         )}
-        <Row label={ui().settings.units}>
-          <Segmented value={settings.unitsKm ? 'km' : 'mi'} options={['km', 'mi']} onChange={(v) => update({ unitsKm: v === 'km' })} />
+        {/* Switching mid-run would mix kilometre and mile splits in one run. */}
+        <Row label={ui().settings.units} hint={runLive ? ui().settings.unitsAfterRun : undefined}>
+          <Segmented value={settings.unitsKm ? 'km' : 'mi'} options={['km', 'mi']} disabled={!!runLive} onChange={(v) => update({ unitsKm: v === 'km' })} />
         </Row>
       </Section>
 
@@ -334,14 +335,14 @@ function Row({ label, hint, stack, children }: { label: string; hint?: string; s
 }
 
 // options are the stored values; labels, when given, are what the person reads.
-function Segmented({ value, options, labels, onChange, accessibilityLabel, accessibilityHint }: { value: string; options: string[]; labels?: Record<string, string>; onChange: (v: string) => void; accessibilityLabel?: string; accessibilityHint?: string }) {
+function Segmented({ value, options, labels, onChange, accessibilityLabel, accessibilityHint, disabled = false }: { value: string; options: string[]; labels?: Record<string, string>; onChange: (v: string) => void; accessibilityLabel?: string; accessibilityHint?: string; disabled?: boolean }) {
   return (
     <View style={[styles.seg, { flexWrap: 'wrap' }]} accessibilityRole="radiogroup" accessibilityLabel={accessibilityLabel} accessibilityHint={accessibilityHint}>
       {options.map((o) => {
         const on = o === value;
         const label = labels?.[o] ?? o;
         return (
-          <Pressable key={o} onPress={() => onChange(o)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={accessibilityLabel ? `${accessibilityLabel}: ${label}` : label} style={[styles.segItem, on && styles.segItemOn]}>
+          <Pressable key={o} onPress={() => onChange(o)} disabled={disabled} accessibilityRole="radio" accessibilityState={{ checked: on, disabled }} accessibilityLabel={accessibilityLabel ? `${accessibilityLabel}: ${label}` : label} style={[styles.segItem, on && styles.segItemOn, disabled && { opacity: 0.5 }]}>
             <Text style={[styles.segText, on && styles.segTextOn]}>{label}</Text>
           </Pressable>
         );

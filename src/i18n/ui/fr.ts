@@ -266,6 +266,11 @@ export const fr: Strings = {
   },
   shareSheet: {
     earlyMorning: 'tôt le matin',
+    morning: 'le matin',
+    midday: 'à midi',
+    afternoon: 'l’après-midi',
+    evening: 'le soir',
+    night: 'la nuit',
     best: 'Record',
     distance: 'Distance',
     time: 'Temps',
@@ -303,7 +308,7 @@ export const fr: Strings = {
     moneyAfter: '. Pas d’abonnement, pas de données vendues, pas de pubs agaçantes ou intrusives. L’étagère des sponsors dans Écouter est signalée, et elle ne peut pas te voir.',
     itSYoursThankYou: 'C’est à toi. Merci.',
     unlockedInThisTestBuild: 'Débloqué dans cette version de test.',
-    plansMonthsOfTrendsBackup: (price) => `Plans, tendances sur des mois, sauvegarde. ${price}, une seule fois.`,
+    plansMonthsOfTrendsBackup: (price) => `Plans, tendances sur des mois, export de toutes tes sorties. ${price}, une seule fois.`,
     howThisAppMakesMoney: 'Comment cette appli gagne de l’argent',
   },
   youSection: {
@@ -597,6 +602,7 @@ export const fr: Strings = {
     clearEnergyHint: 'Retire la réponse d’énergie de cette sortie',
     aNoteIfYouWant: 'Une note, si tu veux',
     couldntSaveThat: 'Impossible d’enregistrer',
+    runGone: 'Cette sortie n’est plus là. Elle a peut-être été supprimée.',
   },
   run: {
     listenHint: 'Choisir de la musique ou un podcast. Ta course continue d\'être enregistrée.',
@@ -685,6 +691,8 @@ export const fr: Strings = {
     numbers: 'Chiffres',
     map: 'Carte',
     lap: 'Tour',
+    lapsDone: (n) => (n === 1 ? '1 tour' : `${n} tours`),
+    followMe: 'Me suivre',
     stopTheRun: 'Arrêter la sortie ?',
     stop: 'Stop',
     holdToStop: 'Maintenir pour arrêter',
@@ -719,6 +727,7 @@ export const fr: Strings = {
     phoneLanguage: (name) => `Langue du téléphone (${name})`,
     languageHint: 'Tout dans l’appli, rappels compris. Tes notes, et un plan déjà commencé, gardent leurs mots.',
     languageAfterRun: 'Tu pourras la changer après cette sortie.',
+    unitsAfterRun: 'Tu pourras changer les unités après cette sortie.',
     battery: {
       auto: { label: 'Auto', hint: 'GPS complet jusqu’à ce que la batterie passe sous 25 % ou que le téléphone soit en économie d’énergie, puis plus léger.' },
       best: { label: 'Précision maximale', hint: 'Une position par seconde. Les temps intermédiaires les plus précis, le plus de batterie.' },
@@ -829,6 +838,7 @@ export const fr: Strings = {
     whereHome: 'Où est la maison ?',
     whereWork: 'Où est le travail ?',
     sheetHint: 'Déplace la carte jusqu’à ce que l’épingle soit sur l’endroit. Pas besoin de viser la porte : à quelques centaines de mètres près, ça suffit.',
+    noMapYet: 'La carte s’ouvre près de ta dernière sortie. Avant la première, utilise l’endroit où tu es.',
     useHere: 'Là où je suis',
     locating: 'Recherche de ta position…',
     noLocation: 'La localisation est coupée pour Runtrovert, utilise plutôt la carte.',
@@ -1362,7 +1372,6 @@ export const fr: Strings = {
     aRecentRunOfX: (km, you) => `une sortie récente de ${km} km (toi : ${you})`,
     xRunsAWeekYou: (n, you) => `${n} sorties par semaine (toi : ${you})`,
     thisPlanExpectsX: (short) => `Ce plan suppose ${short}.`,
-    xFinish: (goal) => `${goal} Finir`,
   },
   comeback: {
     easeBackIn: 'Reprendre en douceur',

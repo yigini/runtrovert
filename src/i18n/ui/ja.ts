@@ -262,6 +262,11 @@ export const ja: Strings = {
   },
   shareSheet: {
     earlyMorning: '早朝',
+    morning: '朝',
+    midday: '昼',
+    afternoon: '午後',
+    evening: '夕方',
+    night: '夜',
     best: 'ベスト',
     distance: '距離',
     time: 'タイム',
@@ -299,7 +304,7 @@ export const ja: Strings = {
     moneyAfter: '。サブスクリプションなし、データの販売なし、うっとうしい広告や邪魔な広告もなし。「聴く」のスポンサー棚には表示がついていて、棚からあなたは見えません。',
     itSYoursThankYou: 'あなたのものです。ありがとうございます。',
     unlockedInThisTestBuild: 'このテスト版ではロック解除済みです。',
-    plansMonthsOfTrendsBackup: (price) => `プラン、何か月分もの傾向、バックアップ。${price}、一度だけ。`,
+    plansMonthsOfTrendsBackup: (price) => `プラン、何か月分もの傾向、全ランの書き出し。${price}、一度だけ。`,
     howThisAppMakesMoney: 'このアプリの収益について',
   },
   youSection: {
@@ -593,6 +598,7 @@ export const ja: Strings = {
     clearEnergyHint: 'このランのエネルギーの回答を消します',
     aNoteIfYouWant: 'メモ（任意）',
     couldntSaveThat: '保存できませんでした',
+    runGone: 'このランはもうありません。破棄された可能性があります。',
   },
   run: {
     listenHint: '音楽かポッドキャストを選べます。ランの記録は続きます。',
@@ -681,6 +687,8 @@ export const ja: Strings = {
     numbers: '数字',
     map: '地図',
     lap: 'ラップ',
+    lapsDone: (n) => `${n}ラップ`,
+    followMe: '現在地に戻る',
     stopTheRun: 'ランを止めますか？',
     stop: 'ストップ',
     holdToStop: '長押しで停止',
@@ -715,6 +723,7 @@ export const ja: Strings = {
     phoneLanguage: (name) => `端末の言語（${name}）`,
     languageHint: 'リマインダーを含め、アプリのすべてに適用されます。あなたのメモと、すでに始めたプランは元の言葉のままです。',
     languageAfterRun: 'このランのあとで変えられます。',
+    unitsAfterRun: '単位はこのランのあとで変えられます。',
     battery: {
       auto: { label: '自動', hint: 'バッテリーが25%を下回るか省電力モードになるまではフルGPS、その後は控えめに。' },
       best: { label: '最高精度', hint: '毎秒1回測位。スプリットが最も正確になり、バッテリーも最も使います。' },
@@ -825,6 +834,7 @@ export const ja: Strings = {
     whereHome: '自宅はどこ？',
     whereWork: '職場はどこ？',
     sheetHint: 'ピンが場所に来るまで地図を動かしてください。玄関ぴったりでなくても、数百メートル以内なら大丈夫です。',
+    noMapYet: '地図は前回のランの近くで開きます。最初のラン前は、今いる場所を使ってください。',
     useHere: '今いる場所を使う',
     locating: '現在地を探しています…',
     noLocation: 'Runtrovertの位置情報がオフなので、地図を使ってください。',
@@ -1358,7 +1368,6 @@ export const ja: Strings = {
     aRecentRunOfX: (km, you) => `最近${km}kmのラン（あなた：${you}）`,
     xRunsAWeekYou: (n, you) => `週${n}回（あなた：${you}）`,
     thisPlanExpectsX: (short) => `このプランの目安：${short}。`,
-    xFinish: (goal) => `${goal}完走`,
   },
   comeback: {
     easeBackIn: 'ゆっくり戻る',

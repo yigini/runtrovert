@@ -1,6 +1,6 @@
 import { File, FileMode, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { addImportedRun, getHeartRate, getPoints, getRun, listRuns, runSpans } from '../db';
+import { addHeartRate, addImportedRun, getHeartRate, getPoints, getRun, listRuns, runSpans } from '../db';
 import { cleanHeart, type HeartSample } from '../heart';
 import { isUnlocked } from '../unlock';
 import { parseFit, writeFit } from './fit';
@@ -33,7 +33,10 @@ export async function importParsed(parsed: Array<{ result: ParseResult; fileName
         tally.duplicate++;
         continue;
       }
-      await addImportedRun(shaped, shaped.points, shaped.kmSplits, { kind, fileName, externalId: shaped.externalId });
+      const id = await addImportedRun(shaped, shaped.points, shaped.kmSplits, { kind, fileName, externalId: shaped.externalId });
+      // Heart rate from the file, within the run's own times.
+      const beats = (r.heart ?? []).filter((h) => h.ts >= shaped.startedAt && h.ts <= shaped.endedAt).map((h) => [h.ts, h.bpm] as [number, number]);
+      if (beats.length) await addHeartRate(id, beats).catch(() => {});
       known.push(shaped);
       tally.added++;
     }

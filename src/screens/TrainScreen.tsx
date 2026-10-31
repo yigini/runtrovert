@@ -700,7 +700,7 @@ function DayRow({ date, today, session, strength, spec, unitsKm, onPress }: { da
           </Text>
         )}
       </View>
-      <Text style={[styles.dayState, isToday && { color: colors.butter }, s?.done && { color: colors.mintDeep }]}>{state}</Text>
+      <Text style={[styles.dayState, isToday && { color: colors.butter }, s?.done && { color: isToday ? colors.mint : colors.mintDeep }]}>{state}</Text>
     </Pressable>
   );
 }
@@ -1138,7 +1138,7 @@ function doneText(done: NonNullable<Session['done']>, unitsKm: boolean): string 
 
 function fmtDur(s: number, short = false): string {
   const m = Math.round(s / 60);
-  if (short) return s < 60 ? ui().common.sec(Math.round(s)) : s % 60 === 0 ? ui().common.min(m) : ui().train.xMinXS(Math.floor(s / 60), Math.round(s % 60));
+  if (short) return s < 60 ? ui().common.sec(Math.round(s)) : s % 60 === 0 ? ui().common.min(m) : ui().train.xMinXS(Math.floor(Math.round(s) / 60), Math.round(s) % 60);
   const h = Math.floor(m / 60);
   return h ? ui().train.xHXMin(h, String(m % 60).padStart(2, '0')) : ui().common.min(m);
 }

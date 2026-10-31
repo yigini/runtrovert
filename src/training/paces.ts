@@ -74,9 +74,9 @@ export function pacesFromRace(distanceKm: number, timeS: number): Paces {
 
 export function formatSPerKm(s: number, km = true): string {
   const per = km ? s : s * 1.609344;
-  const m = Math.floor(per / 60);
-  const sec = Math.round(per % 60);
-  return `${m}:${String(sec).padStart(2, '0')}`;
+  // Rounded to the whole second first, so 5:59.6 reads 6:00, never 5:60.
+  const t = Math.round(per);
+  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 }
 
 export function formatRaceTime(s: number): string {

@@ -345,7 +345,8 @@ export function ListenScreen({ onBack, runLive = false }: { onBack?: () => void;
         onPodcast={(app) => {
           const show = picking?.kind === 'podcast' ? picking.then : null;
           const ep = picking?.kind === 'podcast' ? picking.ep : null;
-          update({ podcastApp: app });
+          // Picked for one show: open it there and leave the setting ("Ask each time" stays).
+          if (!show) update({ podcastApp: app });
           setPicking(null);
           if (show && app) open(show, app, ep);
         }}
@@ -555,7 +556,8 @@ export function ListenSheet({ open, onClose, onBrowse }: { open: boolean; onClos
           onPodcast={(app) => {
             const show = picking?.kind === 'podcast' ? picking.then : null;
             const ep = picking?.kind === 'podcast' ? picking.ep : null;
-            update({ podcastApp: app });
+            // Picked for one show: open it there and leave the setting ("Ask each time" stays).
+            if (!show) update({ podcastApp: app });
             setPicking(null);
             if (show && app) openShowIn(show, app, ep);
           }}
@@ -794,9 +796,10 @@ function ShowSheet({
   const { settings } = useSettings();
   const show = item?.show;
   return (
-    <SheetModal visible={!!item} onClose={onClose} sheetStyle={[styles.sheet, { backgroundColor: item?.tint.bg ?? colors.cream }]}>
+    <SheetModal visible={!!item} onClose={onClose} sheetStyle={[styles.sheet, { backgroundColor: item?.tint.bg ?? colors.cream, maxHeight: '88%' }]}>
       {show && item ? (
-        <>
+        // Scrolls when the episodes and buttons don't fit (small phones, large text).
+        <ScrollView contentContainerStyle={{ gap: spacing.md }}>
           <View style={styles.grabber} />
           <View style={styles.epTop}>
             <Cover show={show} size={112} tint={item.tint} online={online} onTint />
@@ -849,7 +852,7 @@ function ShowSheet({
               </Text>
             </Pressable>
           ) : null}
-        </>
+        </ScrollView>
       ) : null}
     </SheetModal>
   );
@@ -1065,6 +1068,8 @@ function KitShelf({ offers, onBack }: { offers: Offer[]; onBack: () => void }) {
 }
 
 function CountryChooser({ open, codes, current, onClose, onPick }: { open: boolean; codes: string[]; current: string | null; onClose: () => void; onPick: (cc: string | null) => void }) {
+  // Country names in the runner's language, A to Z, rather than two-letter codes.
+  const named = useMemo(() => codes.map((c) => ({ c, name: countryName(c) })).sort((a, b) => a.name.localeCompare(b.name, dateLocale())), [codes, open]);
   return (
     <SheetModal visible={open} onClose={onClose} fade sheetStyle={[styles.sheet, { maxHeight: '75%' }]}>
       <Text style={styles.cardTitle} accessibilityRole="header">{ui().listen.localShowsFrom}</Text>
@@ -1073,17 +1078,17 @@ function CountryChooser({ open, codes, current, onClose, onPick }: { open: boole
         <Pressable onPress={() => onPick(null)} style={[styles.sheetRow, current == null && styles.sheetRowOn]} accessibilityRole="radio" accessibilityState={{ checked: current == null }}>
           <Text style={[styles.sheetText, current == null && styles.sheetTextOn]}>{ui().listen.thePhoneSRegion}</Text>
         </Pressable>
-        {codes.map((c) => (
+        {named.map(({ c, name }) => (
           <Pressable
             key={c}
             onPress={() => onPick(c)}
             style={[styles.sheetRow, current === c && styles.sheetRowOn]}
             accessibilityRole="radio"
             accessibilityState={{ checked: current === c }}
-            accessibilityLabel={countryName(c)}
+            accessibilityLabel={name}
           >
             <Text style={[styles.sheetText, current === c && styles.sheetTextOn]}>
-              {flag(c)} {c.toUpperCase()}
+              {flag(c)} {name}
             </Text>
           </Pressable>
         ))}

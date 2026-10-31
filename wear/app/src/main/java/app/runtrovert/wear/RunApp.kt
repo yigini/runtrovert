@@ -128,9 +128,10 @@ private fun Running(activity: MainActivity, live: Live, heart: Int?) {
     }
     Spacer(Modifier.height(8.dp))
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-      val word = stringResource(if (live.status == "paused") R.string.resume else R.string.pause)
-      RoundButton(if (live.status == "paused") "▶" else "❚❚", if (live.status == "paused") Mint else Cream, 48, word) {
-        activity.send(if (live.status == "paused") "resume" else "pause")
+      // Auto-paused counts as paused: play resumes it rather than turning it into a manual pause.
+      val word = stringResource(if (paused) R.string.resume else R.string.pause)
+      RoundButton(if (paused) "▶" else "❚❚", if (paused) Mint else Cream, 48, word) {
+        activity.send(if (paused) "resume" else "pause")
       }
       HoldToStop(onStop = { activity.send("stop") }, onConfirm = { confirm = true }, reader = activity.touchExploration)
     }
