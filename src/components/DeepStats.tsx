@@ -4,6 +4,8 @@ import Svg, { Rect } from 'react-native-svg';
 import { distanceUnit, formatDistance, formatDuration, MILE_M } from '../geo';
 import { deepMonths, deepRun, type Bucket, type DeepMonths, type DeepRun, type Group } from '../deepStats';
 import { loadDeepFacts } from '../deepStore';
+import { deepLong, EFFORTS, LENGTHS, type DeepLong, type MonthRange } from '../deepLong';
+import { LightChart, liftText as LiftText, LoopStrip, monthName, MonthRangeChart, RangeBar, StreetsChart, SweetGrid } from './DeepLongCharts';
 import type { HeartSample } from '../heart';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type, themedStyles, themed } from '../theme';
@@ -261,25 +263,26 @@ function Zones({ zones }: { zones: NonNullable<DeepRun['zones']> }) {
 export function DeepMonthsView({ km, refreshKey }: { km: boolean; refreshKey?: number }) {
   const open = useSettings().settings.deepStats;
   const unlocked = useUnlocked();
-  const [deep, setDeep] = useState<DeepMonths | null>(null);
+  const [deep, setDeep] = useState<{ months: DeepMonths; long: DeepLong } | null>(null);
   useEffect(() => {
     if (!open || !unlocked) return;
     let live = true;
     loadDeepFacts()
-      .then(({ facts, places }) => live && setDeep(deepMonths(facts, places)))
+      .then(({ facts, places, long, loops }) => live && setDeep({ months: deepMonths(facts, places), long: deepLong(long, loops) }))
       .catch(() => {});
     return () => {
       live = false;
     };
   }, [open, unlocked, refreshKey]);
   const s = ui().deepStats;
+  const L = ui().deepLong;
   return (
     <View style={{ gap: spacing.md }}>
       <DeepToggle />
       {open && !unlocked ? (
         <>
           <View>
-            {[s.monthWobble, s.heat, s.dayPart, s.recovery, s.places, s.year, s.firstLast(distanceUnit(km))].map((t) => (
+            {[L.groups.change, L.groups.when, L.groups.suits].map((t) => (
               <View key={t} style={styles.locked} accessible accessibilityLabel={ui().patternsView.locked(t)}>
                 <LockGlyph size={16} />
                 <Text style={styles.lockedText}>{t}</Text>
@@ -289,7 +292,7 @@ export function DeepMonthsView({ km, refreshKey }: { km: boolean; refreshKey?: n
           <LockRow title={s.acrossMonthsLocked} />
         </>
       ) : null}
-      {open && unlocked && deep ? <MonthCards deep={deep} km={km} /> : null}
+      {open && unlocked && deep ? <MonthCards deep={deep.months} long={deep.long} km={km} /> : null}
     </View>
   );
 }
@@ -308,9 +311,13 @@ function liftText(lift: number | null | undefined): string | null {
   return ui().deepStats.energy(`${r > 0 ? '+' : r < 0 ? '−' : ''}${decimal(String(Math.abs(r)))}`);
 }
 
-function MonthCards({ deep, km }: { deep: DeepMonths; km: boolean }) {
+// Three folding groups, closed until opened: how you're changing, when and
+// where you run, and what suits you. Each shows only when it has something.
+function MonthCards({ deep, long, km }: { deep: DeepMonths; long: DeepLong; km: boolean }) {
   const s = ui().deepStats;
+  const L = ui().deepLong;
   const unit = distanceUnit(km);
+  const perUnit = (x: number) => decimal(String(Math.round((km ? x : x * (MILE_M / 1000)) * 10) / 10));
   const heatLabel: Record<string, string> = {
     cold: s.under(temp(8, km)),
     mild: s.between(temp(8, km), temp(18, km)),
@@ -319,72 +326,149 @@ function MonthCards({ deep, km }: { deep: DeepMonths; km: boolean }) {
   };
   const windLabel: Record<string, string> = { calm: s.under(windText(20, km)), windy: s.andOver(windText(20, km)) };
   const wobbled = deep.wobble.filter((w) => w.pct != null).length >= 2;
-  const any = wobbled || deep.heat.length || deep.wind.length || deep.dayPart.length || deep.recovery.length || deep.places.length || deep.firstLast || deep.year.days > 0;
-  const month = (t: number) => new Date(t).toLocaleDateString(dateLocale(), { month: 'short' });
+  const month = monthName;
+  const changing = long.durability || long.hills || wobbled || deep.firstLast;
+  const when = deep.year.days > 0 || long.light || long.streets || long.loops.length || deep.places.length;
+  const suits = long.sweet || deep.dayPart.length || deep.recovery.length || deep.heat.length || deep.wind.length;
+  const any = changing || when || suits;
+  const hours = decimal((deep.year.minutes / 60).toFixed(deep.year.minutes >= 600 ? 0 : 1));
+  const firstShown = (ms: MonthRange[]) => ms.find((m) => m.mid != null)!;
   return (
     <View style={{ gap: spacing.sm }}>
       <Text style={styles.eyebrow} accessibilityRole="header">{s.acrossMonths}</Text>
       <Text style={type.small}>{any ? s.acrossMonthsIntro : s.nothingAcrossMonths}</Text>
-      {deep.year.days > 0 ? <Year year={deep.year} /> : null}
-      {deep.firstLast ? (
-        <Card
-          title={s.firstLast(unit)}
-          line={
-            Math.abs(deep.firstLast.pct) < 1.5
-              ? s.firstLastSame
-              : deep.firstLast.pct < 0
-                ? s.firstLastQuicker(pct(deep.firstLast.pct), unit)
-                : s.firstLastSlower(pct(deep.firstLast.pct), unit)
-          }
-          detail={s.firstLastDetail(deep.firstLast.n)}
-        />
+      {changing ? (
+        <Fold id="m-change" title={L.groups.change} headline={long.durability ? L.durabilityHeadline(formatDistance(long.durability.last, km)) : null}>
+          {long.durability ? (
+            <ChartCard
+              title={L.durability}
+              line={L.durabilityLine(month(firstShown(long.durability.months).month), formatDistance(long.durability.first, km), formatDistance(long.durability.last, km))}
+              spoken={[
+                L.durabilityLine(month(firstShown(long.durability.months).month), spokenDistance(long.durability.first, km), spokenDistance(long.durability.last, km)),
+                ...long.durability.months.filter((m) => m.mid != null).map((m) => L.monthSpoken(month(m.month), spokenDistance(m.mid!, km), m.n)),
+              ].join('. ')}
+              detail={L.durabilityDetail}
+            >
+              <MonthRangeChart months={long.durability.months} better="up" />
+            </ChartCard>
+          ) : null}
+          {long.hills ? (
+            <ChartCard
+              title={L.hills}
+              line={L.hillsLine(month(firstShown(long.hills.months).month), perUnit(long.hills.first), perUnit(long.hills.last), unit)}
+              detail={L.hillsDetail}
+            >
+              <MonthRangeChart months={long.hills.months} better="down" />
+            </ChartCard>
+          ) : null}
+          {deep.firstLast ? (
+            <Card
+              title={s.firstLast(unit)}
+              line={
+                Math.abs(deep.firstLast.pct) < 1.5
+                  ? s.firstLastSame
+                  : deep.firstLast.pct < 0
+                    ? s.firstLastQuicker(pct(deep.firstLast.pct), unit)
+                    : s.firstLastSlower(pct(deep.firstLast.pct), unit)
+              }
+              detail={s.firstLastDetail(deep.firstLast.n)}
+            />
+          ) : null}
+          {wobbled ? (
+            <Card title={s.monthWobble} detail={s.monthWobbleDetail}>
+              {deep.wobble.map((w) => (
+                <View key={w.month} style={styles.row} accessible accessibilityLabel={`${month(w.month)}: ${w.pct != null ? `±${pct(w.pct)}%` : '–'}`}>
+                  <Text style={styles.rowLabel}>{month(w.month)}</Text>
+                  <Text style={styles.rowValue}>{w.pct != null ? `±${pct(w.pct)}%` : '–'}</Text>
+                </View>
+              ))}
+            </Card>
+          ) : null}
+        </Fold>
       ) : null}
-      {deep.dayPart.length ? (
-        <Card title={s.dayPart} detail={s.paceNote}>
-          {deep.dayPart.map((g) => (
-            <GroupRow key={g.key} label={s.dayPartName[g.key]} g={g} km={km} extra={[g.distanceM != null ? formatDistance(g.distanceM, km) : null, liftText(g.lift)]} />
+      {when ? (
+        <Fold id="m-when" title={L.groups.when} headline={deep.year.days > 0 ? s.yearDetail(deep.year.days, hours) : null}>
+          {deep.year.days > 0 ? <Year year={deep.year} /> : null}
+          {long.light ? (
+            <ChartCard title={L.light} line={L.lightLine(long.light.inLight, long.light.inDark)} detail={L.lightDetail}>
+              <LightChart light={long.light} />
+            </ChartCard>
+          ) : null}
+          {long.streets && long.streets.best ? (
+            <ChartCard
+              title={L.streets}
+              line={L.streetsLine(month(long.streets.best.month), Math.round(long.streets.best.share * 100))}
+              spoken={[
+                L.streetsLine(month(long.streets.best.month), Math.round(long.streets.best.share * 100)),
+                ...long.streets.months.filter((m) => m.newM + m.knownM > 0).map((m) => L.streetsSpoken(month(m.month), spokenDistance(m.newM, km), spokenDistance(m.knownM, km))),
+              ].join('. ')}
+              detail={L.streetsDetail}
+            >
+              <StreetsChart streets={long.streets} />
+            </ChartCard>
+          ) : null}
+          {long.loops.map((lp) => {
+            const shown = lp.months.filter((m) => m.mid != null);
+            return (
+              <ChartCard key={lp.placeId} title={L.loop(lp.name)} line={L.loopLine(month(shown[0].month), formatDuration(lp.firstSpread), formatDuration(lp.lastSpread))} detail={L.loopDetail}>
+                <LoopStrip loop={lp} />
+              </ChartCard>
+            );
+          })}
+          {deep.places.map((p) => (
+            <RangeCard key={p.placeId} title={`${s.places} · ${p.name}`} km={km} rows={p.quarters.map((q) => ({ key: String(q.q), label: s.quarters[q.q], n: q.n, pace: q.pace, lo: q.lo, hi: q.hi }))} />
           ))}
-        </Card>
+        </Fold>
       ) : null}
-      {deep.recovery.length ? (
-        <Card title={s.recovery} detail={s.paceNote}>
-          {deep.recovery.map((g) => (
-            <GroupRow key={g.key} label={s.recoveryName[g.key]} g={g} km={km} extra={[liftText(g.lift)]} />
-          ))}
-        </Card>
-      ) : null}
-      {deep.heat.length ? (
-        <Card title={s.heat}>
-          {deep.heat.map((g) => (
-            <GroupRow key={g.key} label={heatLabel[g.key]} g={g} km={km} />
-          ))}
-        </Card>
-      ) : null}
-      {deep.wind.length ? (
-        <Card title={s.wind}>
-          {deep.wind.map((g) => (
-            <GroupRow key={g.key} label={windLabel[g.key]} g={g} km={km} />
-          ))}
-        </Card>
-      ) : null}
-      {deep.places.map((p) => (
-        <Card key={p.placeId} title={`${s.places} · ${p.name}`}>
-          {p.quarters.map((q) => (
-            <GroupRow key={q.q} label={s.quarters[q.q]} g={{ key: String(q.q), n: q.n, pace: q.pace }} km={km} />
-          ))}
-        </Card>
-      ))}
-      {wobbled ? (
-        <Card title={s.monthWobble} detail={s.monthWobbleDetail}>
-          {deep.wobble.map((w) => (
-            <View key={w.month} style={styles.row} accessible accessibilityLabel={`${month(w.month)}: ${w.pct != null ? `±${pct(w.pct)}%` : '–'}`}>
-              <Text style={styles.rowLabel}>{month(w.month)}</Text>
-              <Text style={styles.rowValue}>{w.pct != null ? `±${pct(w.pct)}%` : '–'}</Text>
-            </View>
-          ))}
-        </Card>
+      {suits ? (
+        <Fold
+          id="m-suits"
+          title={L.groups.suits}
+          headline={long.sweet?.best ? L.sweetHeadline(L.lengths[long.sweet.best.length], L.efforts[long.sweet.best.effort]) : null}
+        >
+          {long.sweet ? (
+            <ChartCard
+              title={L.sweet}
+              line={long.sweet.best ? L.sweetLine(L.lengthsIn[long.sweet.best.length], L.effortsIn[long.sweet.best.effort], LiftText(long.sweet.best.lift)) : L.sweetNone}
+              spoken={[
+                long.sweet.best ? L.sweetLine(L.lengthsIn[long.sweet.best.length], L.effortsIn[long.sweet.best.effort], LiftText(long.sweet.best.lift)) : L.sweetNone,
+                ...LENGTHS.flatMap((l) =>
+                  EFFORTS.filter((e) => long.sweet!.cells[l][e].lift != null).map((e) => L.sweetCellSpoken(L.lengths[l], L.efforts[e], LiftText(long.sweet!.cells[l][e].lift!), long.sweet!.cells[l][e].n)),
+                ),
+              ].join('. ')}
+              detail={L.sweetDetail(long.sweet.n)}
+            >
+              <SweetGrid sweet={long.sweet} />
+            </ChartCard>
+          ) : null}
+          {deep.dayPart.length ? (
+            <RangeCard title={s.dayPart} detail={s.paceNote} km={km} rows={deep.dayPart.map((g) => ({ ...g, label: s.dayPartName[g.key], extra: [g.distanceM != null ? formatDistance(g.distanceM, km) : null, liftText(g.lift)] }))} />
+          ) : null}
+          {deep.recovery.length ? (
+            <RangeCard title={s.recovery} detail={s.paceNote} km={km} rows={deep.recovery.map((g) => ({ ...g, label: s.recoveryName[g.key], extra: [liftText(g.lift)] }))} />
+          ) : null}
+          {deep.heat.length ? <RangeCard title={s.heat} km={km} rows={deep.heat.map((g) => ({ ...g, label: heatLabel[g.key] }))} /> : null}
+          {deep.wind.length ? <RangeCard title={s.wind} km={km} rows={deep.wind.map((g) => ({ ...g, label: windLabel[g.key] }))} /> : null}
+        </Fold>
       ) : null}
     </View>
+  );
+}
+
+/** Groups as rows with a dot for the middle run and a bar for where most runs fall, on one scale per card (V5). */
+function RangeCard({ title, detail, km, rows }: { title: string; detail?: string; km: boolean; rows: Array<Group & { label: string; extra?: Array<string | null> }> }) {
+  const vals = rows.flatMap((r) => [r.pace, r.lo, r.hi]).filter((v): v is number => v != null);
+  const min = Math.min(...vals) - 3;
+  const max = Math.max(...vals) + 3;
+  return (
+    <Card title={title} detail={detail}>
+      {rows.map((g) => (
+        <View key={g.key}>
+          <GroupRow label={g.label} g={g} km={km} extra={g.extra} />
+          <RangeBar pace={g.pace} lo={g.lo} hi={g.hi} min={min} max={max} />
+        </View>
+      ))}
+    </Card>
   );
 }
 
@@ -392,8 +476,9 @@ function GroupRow({ label, g, km, extra = [] }: { label: string; g: Group; km: b
   const value = [g.pace != null ? `${paceText(g.pace, km)} /${distanceUnit(km)}` : null, ...extra].filter(Boolean).join(' · ');
   const runs = ui().deepStats.runsN(g.n);
   const said = [g.pace != null ? spokenPaceSec(g.pace, km) : null, ...extra].filter(Boolean).join(', ');
+  const spread = g.lo != null && g.hi != null ? ui().deepLong.rangeSpoken(label, said, spokenPaceSec(g.lo, km), spokenPaceSec(g.hi, km), runs) : `${label}, ${runs}: ${said}`;
   return (
-    <View style={{ gap: 2 }} accessible accessibilityLabel={`${label}, ${runs}: ${said}`}>
+    <View style={{ gap: 2 }} accessible accessibilityLabel={spread}>
       <View style={styles.row}>
         <Text style={styles.rowLabel}>{label}</Text>
         <Text style={styles.rowValue}>{value}</Text>
