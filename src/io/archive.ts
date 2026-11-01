@@ -43,6 +43,11 @@ export interface WalkOptions {
   /** Only these keys (the second pass, after the preview). */
   only?: Set<string>;
   onProgress?: (done: number, total: number) => void;
+  /**
+   * The first pass, only counting: a run Strava's list already describes is
+   * handed over from the list (as `typed`, no bytes) instead of being opened.
+   */
+  lite?: boolean;
 }
 
 /** gpx, fit or tcx from a file name, looking through a .gz on the end. */
@@ -133,14 +138,9 @@ const num = (s: string | undefined): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
-/**
- * Runs in Strava's list with no file: typed in by hand there. They come in
- * with their date, distance and time, like a run added here by hand. The list
- * has two Distance columns in newer exports, km first and metres later; the
- * metres one wins when it is there.
- */
-export function stravaTypedIn(csv: string): Array<{ key: string; run: ImportedRun }> {
-  const rows = csvRows(csv.replace(/^﻿/, ''));
+/** Each run line of Strava's list as a run of its own: date, distance and time, no route. */
+function stravaLines(csv: string): Array<{ id: string; file: string; run: ImportedRun }> {
+  const rows = csvRows(csv.replace(/^\uFEFF/, ''));
   if (!rows.length) return [];
   const head = rows[0].map((h) => h.trim().toLowerCase());
   const first = (n: string) => head.indexOf(n);
@@ -155,9 +155,9 @@ export function stravaTypedIn(csv: string): Array<{ key: string; run: ImportedRu
   const iDistFirst = first('distance');
   const iDistLast = last('distance');
   if (iId < 0 || iDate < 0 || iFile < 0 || iElapsed < 0 || iDistFirst < 0) return [];
-  const out: Array<{ key: string; run: ImportedRun }> = [];
+  const out: Array<{ id: string; file: string; run: ImportedRun }> = [];
   for (const r of rows.slice(1)) {
-    if (r.length < head.length / 2 || r[iFile]?.trim()) continue;
+    if (r.length < head.length / 2) continue;
     const type = iType >= 0 ? r[iType]?.trim() || null : null;
     if (type == null || !stravaIsRun(type)) continue;
     const startedAt = stravaDate(r[iDate] ?? '');
@@ -169,11 +169,33 @@ export function stravaTypedIn(csv: string): Array<{ key: string; run: ImportedRu
     const id = r[iId]?.trim();
     if (startedAt == null || elapsed == null || !distanceM || !id) continue;
     out.push({
-      key: `strava-typed:${id}`,
+      id,
+      file: (r[iFile]?.trim() ?? '').replace(/\\/g, '/'),
       run: { segments: [], startedAt, endedAt: startedAt + elapsed * 1000, distanceM, movingS: moving && moving > 0 ? moving : elapsed, elevationGainM: null, sport: 'running', name: iName >= 0 ? r[iName]?.trim() || null : null, externalId: `strava:${id}` },
     });
   }
   return out;
+}
+
+/**
+ * Runs in Strava's list with no file: typed in by hand there. They come in
+ * with their date, distance and time, like a run added here by hand. The list
+ * has two Distance columns in newer exports, km first and metres later; the
+ * metres one wins when it is there.
+ */
+export function stravaTypedIn(csv: string): Array<{ key: string; run: ImportedRun }> {
+  return stravaLines(csv)
+    .filter((l) => !l.file)
+    .map((l) => ({ key: `strava-typed:${l.id}`, run: l.run }));
+}
+
+/**
+ * Runs in Strava's list that have a file, by file path: enough (date,
+ * distance, time, id) to count and de-duplicate them without opening a single
+ * file, so the preview of a whole export takes seconds instead of minutes.
+ */
+export function stravaListed(csv: string): Map<string, ImportedRun> {
+  return new Map(stravaLines(csv).filter((l) => l.file).map((l) => [l.file, l.run]));
 }
 
 /** Strava's own word for a run: Run, Trail Run, Virtual Run (the treadmill). */
@@ -192,11 +214,13 @@ export async function walkArchive(src: ByteSource, opts: WalkOptions, onActivity
   const csvEntry = entries.find((e) => /(^|\/)activities\.csv$/i.test(e.name));
   let strava = new Map<string, StravaLine>();
   let typedIn: ReturnType<typeof stravaTypedIn> = [];
+  let listed = new Map<string, ImportedRun>();
   if (csvEntry) {
     try {
       const csv = text(await entryBytes(src, csvEntry));
       strava = readStravaCsv(csv);
       typedIn = stravaTypedIn(csv);
+      if (opts.lite) listed = stravaListed(csv);
     } catch {
       // Without the list every file is opened and judged by what it says.
     }
@@ -233,6 +257,11 @@ export async function walkArchive(src: ByteSource, opts: WalkOptions, onActivity
     const line = strava.get(e.name) ?? null;
     if (line && !stravaIsRun(line.type)) {
       result.notRun++;
+      continue;
+    }
+    const fromList = listed.get(e.name);
+    if (fromList) {
+      await onActivity({ key: e.name, fileName: base(e.name).replace(/\.gz$/i, ''), kind: activityKind(e.name)!, bytes: new Uint8Array(0), sport: 'running', name: fromList.name, externalId: fromList.externalId, origin: result.origin, typed: fromList });
       continue;
     }
     let bytes: Uint8Array;

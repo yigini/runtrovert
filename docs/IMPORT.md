@@ -45,6 +45,8 @@ Bringing runs in is one job for the whole app (`src/io/importJob.ts`), not part 
 
 Speed: runs are saved 25 at a time (or about 60,000 points, whichever comes first), each handful in one transaction, points 150 to a statement (`addImportedRuns` in `db.ts`, `RunSaver` in `src/io/saver.ts`). Before, every point was its own trip to the database. The GPX and TCX readers build each text pattern once instead of once per point.
 
+Staying usable while it works: reading a run is work on the app's own thread (a one-hour GPX takes a few hundred milliseconds on a mid-range phone). Between activities the import pauses for a moment whenever it has been busy for more than about 30 ms, so taps, scrolling and tab switches get through. For a Strava export the first pass (the preview) doesn't open the run files at all: `activities.csv` already has each run's date, distance, time and id (`stravaListed`), which is enough to count and de-duplicate them. Only the second pass opens files, so a 250-run export is read once, not twice. A run that turns out too short or unreadable when opened is counted then.
+
 Stopped half way (the app closed, the battery ran out): what was saved stays, a handful being written is either all in or not at all, and bringing the same files in again adds just the rest. `npm run test:import-resume` checks exactly that.
 
 Duplicates: the same rules as single files (`sameRun` in `shape.ts`: same outside id, more than half the time overlapping, or a start within three minutes at a similar distance), against runs already on the phone **and** within the export itself (Garmin often has the same run as FIT and GPX).
