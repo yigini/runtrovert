@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { addManualRun, getRun, runSpans } from '../db';
+import { shoesForNewRun } from '../shoeStore';
 import { distanceUnit } from '../geo';
 import { checkEntry, defaultMinutes, entryStart, parseDistance, parseDuration, type EntryProblem } from '../runEdit';
 import { onRunSaved } from '../training/store';
@@ -50,6 +51,7 @@ export function AddRunSheet({ open, km, onClose, onAdded }: { open: boolean; km:
       const id = await addManualRun({ startedAt, distanceM, durationS, note: note || null });
       const run = await getRun(id);
       if (run) await onRunSaved(run, null).catch(() => {});
+      await shoesForNewRun(id).catch(() => {});
       syncRunToHealth(id).catch(() => {});
       onAdded(id);
     } catch {

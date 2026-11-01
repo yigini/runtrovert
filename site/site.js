@@ -200,7 +200,8 @@
     var mode = 'silent', onScreen = false;
     function show(name) {
       Array.prototype.forEach.call(screens, function (sc) { sc.hidden = sc.getAttribute('data-show') !== name; });
-      finish.hidden = name === 'finish';
+      if (toast && (name === 'finish' || name === 'silent')) { clearTimeout(toastT); toast.className = 'toast'; }
+      finish.hidden = name === 'finish' || name === 'lock';
     }
     function pick(tab, focus) {
       tabs.forEach(function (t) { var on = t === tab; t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; });
@@ -211,8 +212,11 @@
     }
     // On a phone the tabs sit right above the phone; bring the phone fully into view if it isn't.
     function reveal() {
-      var r = phone.getBoundingClientRect();
-      if (r.top < 72 || r.bottom > window.innerHeight) phone.scrollIntoView({ block: 'nearest', behavior: calm() ? 'auto' : 'smooth' });
+      // Below the fixed header (about 80 px), and fully on screen when it fits.
+      var r = phone.getBoundingClientRect(), dy = 0;
+      if (r.bottom > window.innerHeight) dy = r.bottom - window.innerHeight + 16;
+      if (r.top - dy < 84) dy = r.top - 84;
+      if (Math.abs(dy) > 4) window.scrollBy({ top: dy, behavior: calm() ? 'auto' : 'smooth' });
     }
     tabs.forEach(function (t, i) {
       t.addEventListener('click', function () { pick(t); reveal(); });
@@ -250,10 +254,95 @@
     document.getElementById('again').addEventListener('click', function () {
       show(mode);
       secs = START;
+      paused = false;
+      laps = 1;
+      lkPause.textContent = 'Pause';
+      document.getElementById('lk-state').textContent = 'Recording';
       Array.prototype.forEach.call(feel.children, function (c) { c.setAttribute('aria-pressed', 'false'); });
       feelSay.textContent = 'Optional';
       keep.textContent = 'Save as a place';
       keep.removeAttribute('aria-disabled');
+      tabs.forEach(function (t) { if (t.getAttribute('aria-selected') === 'true') t.focus({ preventScroll: true }); });
+    });
+
+    // "What happens when…": the run aids, acted out on the live screen.
+    var toast = document.getElementById('toast'), toastT, rec = document.getElementById('live-rec').querySelector('span');
+    var dPace = document.getElementById('d-pace'), paused = false, laps = 1, routeT, paceT;
+    function tell(text, kind) {
+      clearTimeout(toastT);
+      toast.className = 'toast on ' + (kind || '');
+      toast.textContent = text;
+      toastT = setTimeout(function () { toast.className = 'toast'; }, 4200);
+    }
+    function buzz(n) {
+      if (calm()) return;
+      phone.classList.remove('buzz', 'buzz2');
+      void phone.offsetWidth;
+      phone.classList.add(n === 2 ? 'buzz2' : 'buzz');
+    }
+    function toLive() {
+      if (mode !== 'live' && mode !== 'plan') tabs.forEach(function (t) { if (t.getAttribute('data-mode') === 'live') pick(t); });
+      else show(mode);
+    }
+    var events = {
+      km: function () {
+        toLive();
+        buzz(1);
+        if (mode === 'plan') tell('Voice: “Next, easy. 3 minutes.”', 'voice');
+        else tell('Voice: “5 kilometres. 5:10 per kilometre. 27:24 total.”', 'voice');
+      },
+      pace: function () {
+        toLive();
+        if (mode === 'plan') { tell('In a plan session the block has its own range, so the voice keeps to the blocks.', 'voice'); return; }
+        clearTimeout(paceT);
+        dPace.textContent = '4:58';
+        dPace.parentNode.classList.add('hot');
+        buzz(1);
+        tell('A long buzz after 20 seconds: “Quicker than your pace range.”', 'warn');
+        paceT = setTimeout(function () { dPace.textContent = '5:29'; dPace.parentNode.classList.remove('hot'); }, 5000);
+      },
+      route: function () {
+        if (mode !== 'live') tabs.forEach(function (t) { if (t.getAttribute('data-mode') === 'live') pick(t); });
+        show('live');
+        clearTimeout(routeT);
+        rec.textContent = 'Off the route · 120 m';
+        rec.parentNode.classList.add('off');
+        buzz(2);
+        tell('Two long buzzes. Following a past run, a place or a route file.', 'warn');
+        routeT = setTimeout(function () {
+          rec.textContent = 'Recording';
+          rec.parentNode.classList.remove('off');
+          buzz(1);
+          tell('One tap: back on the route.', 'voice');
+        }, 4800);
+      },
+      lock: function () {
+        if (mode !== 'live' && mode !== 'plan') toLive();
+        show('lock');
+        finish.hidden = true;
+        clearTimeout(toastT);
+        toast.className = 'toast';
+        lkSaid.textContent = '';
+        lock.querySelector('#lk-pause').focus({ preventScroll: true });
+      }
+    };
+    Array.prototype.forEach.call(document.querySelectorAll('.try [data-ev]'), function (b) {
+      b.addEventListener('click', function () { events[b.getAttribute('data-ev')](); reveal(); });
+    });
+    var lock = phone.querySelector('.lockscr'), lkSaid = document.getElementById('lk-said'), lkPause = document.getElementById('lk-pause');
+    lkPause.addEventListener('click', function () {
+      paused = !paused;
+      lkPause.textContent = paused ? 'Resume' : 'Pause';
+      document.getElementById('lk-state').textContent = paused ? 'Paused' : 'Recording';
+      lkSaid.textContent = paused ? 'Paused, without unlocking the phone.' : 'Recording again.';
+    });
+    document.getElementById('lk-lap').addEventListener('click', function () {
+      laps++;
+      lkSaid.textContent = 'Lap ' + laps + ' started at ' + (secs / 329).toFixed(2) + ' km.';
+      buzz(1);
+    });
+    document.getElementById('unlock').addEventListener('click', function () {
+      show(mode);
       tabs.forEach(function (t) { if (t.getAttribute('aria-selected') === 'true') t.focus({ preventScroll: true }); });
     });
 
@@ -294,21 +383,44 @@
     // The live screens count on from a run already 26:52 in, near the end of the 5.21 km that
     // Finish shows, and stop there.
     var START = 1612, END = 1714, secs = START, km = document.getElementById('d-km'), time = document.getElementById('d-time');
+    var lkKm = document.getElementById('lk-km'), lkTime = document.getElementById('lk-time'), hr = document.getElementById('d-hr');
     var left = document.getElementById('d-left'), bar = document.getElementById('d-bar'), mini = phone.querySelector('.mini .route');
     function fmt(t) { return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); }
     if ('IntersectionObserver' in window) new IntersectionObserver(function (e) { onScreen = e[0].isIntersecting; }).observe(phone);
     setInterval(function () {
-      if (!onScreen || calm() || secs >= END) return;
+      if (!onScreen || calm() || paused || secs >= END) return;
       secs++;
       var d = secs / 329;
       km.textContent = d.toFixed(2);
       time.textContent = fmt(secs);
+      lkKm.textContent = d.toFixed(2) + ' km';
+      lkTime.textContent = fmt(secs);
+      hr.textContent = 150 + Math.round(3 * Math.sin(secs / 7));
       mini.style.setProperty('--drawn', String(Math.max(0, 1 - d / 5.21)));
       var l = Math.max(0, 161 - (secs - START) % 240);
       left.textContent = fmt(l);
       bar.style.setProperty('--done', (100 - l / 240 * 100).toFixed(1) + '%');
       if (peeked) peek.textContent = fmt(secs) + ' so far · tap to hide';
     }, 1000);
+  })();
+
+  // Chapter 3's bests curve: tap a distance to read both lines.
+  var cvx = document.getElementById('cv-x');
+  if (cvx) (function () {
+    var rows = [['1K', '4:12', '4:18'], ['Mile', '4:21', '4:26'], ['5K', '4:39', '4:41'], ['10K', '4:52', '4:58'], ['Half', '5:08', null]];
+    var cvSay = document.getElementById('cv-say');
+    rows.forEach(function (r, i) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = r[0];
+      b.setAttribute('aria-pressed', String(i === 2));
+      b.setAttribute('aria-label', r[0] + ': ' + r[1] + ' /km' + (r[2] ? '; last 90 days ' + r[2] : ''));
+      b.addEventListener('click', function () {
+        Array.prototype.forEach.call(cvx.children, function (c) { c.setAttribute('aria-pressed', String(c === b)); });
+        cvSay.textContent = r[0] + ' at ' + r[1] + ' /km' + (r[2] ? ' · last 90 days ' + r[2] : ' · none in the last 90 days');
+      });
+      cvx.appendChild(b);
+    });
   })();
 
   if (window.console) console.log('%cNo trackers in here. Just this note.', 'font: italic 14px Georgia, serif; color: #c9e7d6');

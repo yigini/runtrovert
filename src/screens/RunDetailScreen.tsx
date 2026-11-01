@@ -8,6 +8,7 @@ import { MoodPicker } from '../components/MoodPicker';
 import { RouteMap } from '../components/RouteMap';
 import { ShareSheet } from '../components/ShareSheet';
 import { RunStatsView } from '../components/RunStats';
+import { BackHomeCard, RunKit } from '../components/RunKit';
 import { YouLine } from '../components/YouLine';
 import { correctRun, deleteRun, getHeartRate, getPoints, getRun, getRunEdit, getRunSource, getSplits, highestHeartRate, loadValue, putBackRun, setMoodAfter, setRunNote, type RunEdit, type RunSource } from '../db';
 import { formatDistance, formatDuration } from '../geo';
@@ -284,6 +285,7 @@ export function RunDetailScreen({
           {ui().runDetail.broughtIn(source.kind === 'health' ? (source.fileName ? `${ui().runDetail.healthConnect} (${source.fileName})` : ui().runDetail.healthConnect) : source.fileName ?? ui().runDetail.aXFile(source.kind.toUpperCase()), new Date(source.importedAt).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' }))}
         </Text>
       ) : null}
+      <BackHomeCard run={run} />
       {place && onOpenPlace ? (
         <Pressable
           onPress={() => onOpenPlace(place.id)}
@@ -377,6 +379,7 @@ export function RunDetailScreen({
       ) : run.note ? (
         <Text style={styles.note}>{run.note}</Text>
       ) : null}
+      {run.endedAt != null ? <RunKit run={run} km={km} /> : null}
       {cmp && <Button title={ui().runDetail.shareWithSomeone} variant="secondary" onPress={() => setSharing(true)} style={{ marginTop: spacing.sm }} />}
       {path.length > 1 && onFollow ? (
         <Button
