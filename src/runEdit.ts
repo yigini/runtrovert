@@ -4,13 +4,16 @@
 
 const MILE_M = 1609.344;
 
-/** "5", "5.2", "5,2", "10 km": metres, or null when it isn't a distance. */
+/** "5", "5.2", "5,2", "10 km", "3 mi": metres, or null when it isn't a distance. A unit typed with the number wins over the app's unit. */
 export function parseDistance(text: string, km: boolean): number | null {
-  const t = text.trim().toLowerCase().replace(/\s*(km|mi|k)$/, '').replace(',', '.');
+  const m = /^(.*?)\s*(km|k|mi|miles?)$/.exec(text.trim().toLowerCase());
+  const typed = m ? (m[2] === 'km' || m[2] === 'k' ? 'km' : 'mi') : null;
+  const t = (m ? m[1] : text.trim().toLowerCase()).replace(',', '.');
   if (!/^\d{1,3}(\.\d{0,3})?$|^\.\d{1,3}$/.test(t)) return null;
   const v = Number(t);
   if (!Number.isFinite(v) || v <= 0) return null;
-  return Math.round(v * (km ? 1000 : MILE_M));
+  const inKm = typed ? typed === 'km' : km;
+  return Math.round(v * (inKm ? 1000 : MILE_M));
 }
 
 /** "45" (minutes), "28:30", "1:02:03", "1h05", "1 h 5": seconds, or null. */
@@ -78,12 +81,18 @@ export function checkCorrection(distanceM: number | null, durationS: number | nu
   return checkEntry({ startedAt: 0, distanceM, durationS }, Number.MAX_SAFE_INTEGER);
 }
 
-/** Local midnight `daysBack` days before `now`, plus minutes after midnight. */
+/**
+ * The chosen clock time on the day `daysBack` days before `now`. Hours and
+ * minutes are set on the calendar day itself, so a clock-change day keeps the
+ * time you picked (adding minutes to midnight would be an hour off). A time
+ * that doesn't exist that day (the skipped hour) lands just after the jump.
+ */
 export function entryStart(now: number, daysBack: number, minutes: number): number {
   const d = new Date(now);
-  d.setHours(0, 0, 0, 0);
+  d.setHours(12, 0, 0, 0); // midday never falls in a clock change, so the day count is safe
   d.setDate(d.getDate() - daysBack);
-  return d.getTime() + minutes * 60_000;
+  d.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
+  return d.getTime();
 }
 
 /** Now, rounded down to a quarter hour, as minutes after midnight. */
