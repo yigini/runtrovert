@@ -2195,6 +2195,7 @@ export const fr: Strings = {
     holds: (runs: number, places: number, notes: number) => `La sauvegarde contient ${runs} ${runs === 1 ? 'sortie' : 'sorties'}, ${places} ${places === 1 ? 'lieu' : 'lieux'} et ${notes} ${notes === 1 ? 'note' : 'notes'}.`,
     couldntMake: 'Impossible de créer la sauvegarde',
     couldntRestore: 'Impossible de restaurer la sauvegarde',
+    incomplete: 'Cette sauvegarde est incomplète, elle ne peut pas être restaurée. Choisis une autre sauvegarde.',
     nothingChanged: 'Rien n’a été modifié sur ce téléphone.',
     notABackup: 'Ce n’est pas un fichier de sauvegarde Runtrovert.',
     newer: 'Cette sauvegarde vient d’une version plus récente de Runtrovert. Mets l’application à jour, puis réessaie.',
