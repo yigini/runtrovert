@@ -92,7 +92,7 @@ export function RunDetailScreen({
       }
       const pts = await getPoints(runId);
       setPath(pts.map((p) => ({ latitude: p.lat, longitude: p.lon })));
-      setPoints(pts.map((p) => ({ ts: p.ts, lat: p.lat, lon: p.lon, alt: p.alt })));
+      setPoints(pts.map((p) => ({ ts: p.ts, lat: p.lat, lon: p.lon, alt: p.alt, acc: p.acc })));
       setSplits(await getSplits(runId));
       setSource(await getRunSource(runId).catch(() => null));
       setIndoor(!!(await loadValue<Record<string, unknown>>(INDOOR_KEY).catch(() => null))?.[String(runId)]);
@@ -294,7 +294,7 @@ export function RunDetailScreen({
       <RouteMap path={path} height={260} />
       {line && <YouLine title={line.title.replace('\n', ' ')} detail={line.detail} />}
       <RunStatsView run={run} points={points} splits={kmSplits} laps={laps} partial={partial} sun={weather} km={km} heart={heart} />
-      <DeepRunView points={points} kmPaces={kmPaces} heart={beats} maxHr={maxHr} km={km} />
+      <DeepRunView points={points} kmPaces={kmPaces} heart={beats} maxHr={maxHr} km={km} climbM={run.elevationGainM} />
       {run.endedAt != null ? (
         fixing ? (
           <View style={styles.fix}>
