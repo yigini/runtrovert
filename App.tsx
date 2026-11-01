@@ -333,6 +333,7 @@ function Shell() {
               onSection={setRunsSection}
               onOpenPlace={setOpenPlace}
               onRunAgain={runAgain}
+              onChanged={() => setRefreshKey((k) => k + 1)}
             />
           )}
           {sub == null && tab === 'runs' && openRun == null && openPlace != null && (
@@ -365,6 +366,7 @@ function Shell() {
                 setOpenRun(null);
                 setOpenPlace(id);
               }}
+              onChanged={() => setRefreshKey((k) => k + 1)}
             />
           )}
         </View>

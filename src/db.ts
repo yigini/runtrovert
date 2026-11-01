@@ -316,6 +316,66 @@ export async function addImportedRun(
   return id;
 }
 
+// ---- Runs typed in or corrected by hand -------------------------------------------
+// A run added by hand has a run_sources row of kind 'manual' and no route. A
+// correction keeps what was recorded under the settings key 'runEdits', so it
+// can always be put back.
+
+export async function addManualRun(run: { startedAt: number; distanceM: number; durationS: number; note: string | null }): Promise<number> {
+  const db = await getDb();
+  let id = 0;
+  await db.withTransactionAsync(async () => {
+    const res = await db.runAsync(
+      'INSERT INTO runs (started_at, ended_at, distance_m, duration_s, elevation_gain_m, note) VALUES (?, ?, ?, ?, 0, ?)',
+      run.startedAt,
+      run.startedAt + run.durationS * 1000,
+      run.distanceM,
+      run.durationS,
+      run.note && run.note.trim() ? run.note.trim() : null,
+    );
+    id = res.lastInsertRowId;
+    await db.runAsync('INSERT INTO run_sources (run_id, kind, file_name, external_id, imported_at) VALUES (?, ?, NULL, NULL, ?)', id, 'manual', Date.now());
+  });
+  return id;
+}
+
+export type RunEdit = { distanceM: number; durationS: number; at: number };
+
+async function loadEdits(): Promise<Record<string, RunEdit>> {
+  return (await loadValue<Record<string, RunEdit>>('runEdits')) ?? {};
+}
+
+/** What was recorded before a correction, or null when the run is as recorded. */
+export async function getRunEdit(runId: number): Promise<RunEdit | null> {
+  return (await loadEdits())[String(runId)] ?? null;
+}
+
+/** New distance and time for a run. The first correction keeps what was recorded. */
+export async function correctRun(runId: number, distanceM: number, durationS: number): Promise<void> {
+  const run = await getRun(runId);
+  if (!run) return;
+  const edits = await loadEdits();
+  if (!edits[String(runId)]) edits[String(runId)] = { distanceM: run.distanceM, durationS: run.durationS, at: Date.now() };
+  const db = await getDb();
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('UPDATE runs SET distance_m = ?, duration_s = ? WHERE id = ?', distanceM, durationS, runId);
+    await db.runAsync('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', 'runEdits', JSON.stringify(edits));
+  });
+}
+
+/** Back to what was recorded. */
+export async function putBackRun(runId: number): Promise<void> {
+  const edits = await loadEdits();
+  const was = edits[String(runId)];
+  if (!was) return;
+  delete edits[String(runId)];
+  const db = await getDb();
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('UPDATE runs SET distance_m = ?, duration_s = ? WHERE id = ?', was.distanceM, was.durationS, runId);
+    await db.runAsync('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', 'runEdits', JSON.stringify(edits));
+  });
+}
+
 /** What "Everything you have" counts: runs recorded here, runs brought in, by where from. */
 export async function storedCounts(): Promise<{ runs: number; brought: Partial<Record<SourceKind, number>> }> {
   const db = await getDb();

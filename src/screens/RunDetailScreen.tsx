@@ -8,7 +8,9 @@ import { RouteMap } from '../components/RouteMap';
 import { ShareSheet } from '../components/ShareSheet';
 import { RunStatsView } from '../components/RunStats';
 import { YouLine } from '../components/YouLine';
-import { deleteRun, getHeartRate, getPoints, getRun, getRunSource, getSplits, highestHeartRate, setMoodAfter, setRunNote, type RunSource } from '../db';
+import { correctRun, deleteRun, getHeartRate, getPoints, getRun, getRunEdit, getRunSource, getSplits, highestHeartRate, putBackRun, setMoodAfter, setRunNote, type RunEdit, type RunSource } from '../db';
+import { formatDistance, formatDuration } from '../geo';
+import { checkCorrection, distanceField, durationField, parseDistance, parseDuration, type EntryProblem } from '../runEdit';
 import { cleanHeart, heartSummary, type HeartSample, type HeartSummary } from '../heart';
 import { shareRunGpx } from '../io/store';
 import { SavePlaceSheet } from '../components/SavePlaceSheet';
@@ -31,12 +33,15 @@ export function RunDetailScreen({
   onDeleted,
   onOpenPlace,
   shareOnOpen,
+  onChanged,
 }: {
   runId: number;
   onBack: () => void;
   onDeleted: () => void;
   onOpenPlace?: (id: number) => void;
   shareOnOpen?: boolean;
+  /** Distance or time was corrected. */
+  onChanged?: () => void;
 }) {
   const km = useSettings().settings.unitsKm;
   const [run, setRun] = useState<Run | null>(null);
@@ -68,6 +73,9 @@ export function RunDetailScreen({
   const [heart, setHeart] = useState<HeartSummary | null>(null);
   const [beats, setBeats] = useState<HeartSample[]>([]);
   const [maxHr, setMaxHr] = useState<number | null>(null);
+  // Correcting distance and time: what was recorded, and the open editor's fields.
+  const [edit, setEdit] = useState<RunEdit | null>(null);
+  const [fixing, setFixing] = useState<{ distance: string; time: string; problem: EntryProblem | null } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -85,6 +93,7 @@ export function RunDetailScreen({
       setPoints(pts.map((p) => ({ ts: p.ts, lat: p.lat, lon: p.lon, alt: p.alt })));
       setSplits(await getSplits(runId));
       setSource(await getRunSource(runId).catch(() => null));
+      setEdit(await getRunEdit(runId).catch(() => null));
       const inPlace = await placeForRun(runId).catch(() => null);
       setPlace(inPlace);
       if (!inPlace) setChoice(await runPlaceChoice(runId).catch(() => null));
@@ -187,6 +196,48 @@ export function RunDetailScreen({
     }
   }
 
+  async function saveFix() {
+    if (!run || !fixing) return;
+    const distanceM = parseDistance(fixing.distance, km);
+    const durationS = parseDuration(fixing.time);
+    const problem = checkCorrection(distanceM, durationS);
+    if (problem || distanceM == null || durationS == null) {
+      setFixing({ ...fixing, problem });
+      return;
+    }
+    try {
+      await correctRun(runId, distanceM, durationS);
+      setEdit(await getRunEdit(runId));
+      setRun({ ...run, distanceM, durationS });
+      setFixing(null);
+      onChanged?.();
+    } catch {
+      Alert.alert(ui().runDetail.couldntSaveThat, ui().common.tryAgainInAMoment);
+    }
+  }
+
+  async function putBack() {
+    if (!run || !edit) return;
+    try {
+      await putBackRun(runId);
+      setRun({ ...run, distanceM: edit.distanceM, durationS: edit.durationS });
+      setEdit(null);
+      setFixing(null);
+      onChanged?.();
+    } catch {
+      Alert.alert(ui().runDetail.couldntSaveThat, ui().common.tryAgainInAMoment);
+    }
+  }
+
+  const fixProblem: Record<EntryProblem, string> = {
+    distance: ui().addRun.problemDistance,
+    duration: ui().addRun.problemDuration,
+    tooFast: ui().addRun.problemTooFast,
+    tooSlow: ui().addRun.problemTooSlow,
+    future: ui().addRun.problemFuture,
+    overlap: ui().addRun.problemOverlap,
+  };
+
   function onDelete() {
     Alert.alert(ui().runDetail.deleteRun, ui().runDetail.thisCannotBeUndone, [
       { text: ui().runDetail.keep, style: 'cancel' },
@@ -206,7 +257,9 @@ export function RunDetailScreen({
     <ScrollView style={styles.screen} contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xl }}>
       <BackButton label={ui().runDetail.yourRuns} onPress={onBack} />
       <Text style={styles.date}>{d.toLocaleString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</Text>
-      {source ? (
+      {source?.kind === 'manual' ? (
+        <Text style={styles.source}>{ui().addRun.addedByHand}</Text>
+      ) : source ? (
         <Text style={styles.source}>
           {ui().runDetail.broughtIn(source.kind === 'health' ? ui().runDetail.healthConnect : source.fileName ?? ui().runDetail.aXFile(source.kind.toUpperCase()), new Date(source.importedAt).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' }))}
         </Text>
@@ -237,6 +290,48 @@ export function RunDetailScreen({
       {line && <YouLine title={line.title.replace('\n', ' ')} detail={line.detail} />}
       <RunStatsView run={run} points={points} splits={kmSplits} laps={laps} partial={partial} sun={weather} km={km} heart={heart} />
       <DeepRunView points={points} kmPaces={kmPaces} heart={beats} maxHr={maxHr} km={km} />
+      {run.endedAt != null ? (
+        fixing ? (
+          <View style={styles.fix}>
+            <Text style={styles.fixTitle} accessibilityRole="header">{ui().addRun.correctTitle}</Text>
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={styles.fixLabel}>{ui().addRun.distanceIn(km ? 'km' : 'mi')}</Text>
+                <TextInput value={fixing.distance} onChangeText={(t) => setFixing({ ...fixing, distance: t, problem: null })} keyboardType="decimal-pad" style={styles.fixInput} accessibilityLabel={ui().addRun.distanceIn(km ? 'km' : 'mi')} />
+              </View>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={styles.fixLabel}>{ui().addRun.time}</Text>
+                <TextInput value={fixing.time} onChangeText={(t) => setFixing({ ...fixing, time: t, problem: null })} keyboardType="numbers-and-punctuation" style={styles.fixInput} accessibilityLabel={ui().addRun.timeHint} />
+              </View>
+            </View>
+            <Text style={type.small}>{ui().addRun.correctHint}</Text>
+            {fixing.problem ? <Text style={styles.fixProblem} accessibilityLiveRegion="polite">{fixProblem[fixing.problem]}</Text> : null}
+            <Button title={ui().addRun.saveCorrection} onPress={() => void saveFix()} />
+            <Pressable onPress={() => setFixing(null)} accessibilityRole="button" hitSlop={8} style={{ alignSelf: 'center' }}>
+              <Text style={styles.clear}>{ui().addRun.cancel}</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <View style={{ gap: 4 }}>
+            {edit ? <Text style={type.small}>{ui().addRun.correctedWas(formatDistance(edit.distanceM, km), formatDuration(edit.durationS))}</Text> : null}
+            <View style={{ flexDirection: 'row', gap: spacing.md, flexWrap: 'wrap' }}>
+              <Pressable
+                onPress={() => setFixing({ distance: distanceField(run.distanceM, km), time: durationField(run.durationS), problem: null })}
+                accessibilityRole="button"
+                hitSlop={8}
+                style={styles.fixLink}
+              >
+                <Text style={styles.fixLinkText}>{ui().addRun.correctLink}</Text>
+              </Pressable>
+              {edit ? (
+                <Pressable onPress={() => void putBack()} accessibilityRole="button" hitSlop={8} style={styles.fixLink}>
+                  <Text style={styles.fixLinkText}>{ui().addRun.putBack}</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          </View>
+        )
+      ) : null}
       {/* The reflection stays editable: energy can be changed or cleared, the note rewritten. */}
       {run.endedAt != null ? (
         <View style={{ gap: spacing.xs }}>
@@ -282,6 +377,13 @@ const styles = StyleSheet.create({
   placeLinkText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.mintDeep, textDecorationLine: 'underline' },
   placeText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.mintDeep },
   gone: { fontFamily: fonts.body, fontSize: 16, lineHeight: 23, color: colors.text, marginTop: spacing.md },
+  fix: { backgroundColor: colors.white, borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm },
+  fixTitle: { fontFamily: fonts.bodySemi, fontSize: 16, color: colors.text },
+  fixLabel: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text },
+  fixInput: { minHeight: 48, borderRadius: 14, paddingHorizontal: 14, backgroundColor: colors.cream, fontFamily: fonts.body, fontSize: 16, color: colors.text },
+  fixProblem: { fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 20, color: colors.peachDeep },
+  fixLink: { minHeight: 36, justifyContent: 'center' },
+  fixLinkText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.muted, textDecorationLine: 'underline' },
   clear: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.muted, textDecorationLine: 'underline' },
   note: { fontFamily: fonts.body, color: colors.text, fontSize: 15, lineHeight: 22, backgroundColor: colors.butter, borderRadius: radius.lg, padding: spacing.md },
 });
