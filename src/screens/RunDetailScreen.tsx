@@ -83,6 +83,9 @@ export function RunDetailScreen({
   // Correcting distance and time: what was recorded, and the open editor's fields.
   const [edit, setEdit] = useState<RunEdit | null>(null);
   const [fixing, setFixing] = useState<{ distance: string; time: string; problem: EntryProblem | null } | null>(null);
+  // Every hook sits above the early return below: a hook after it runs on some renders
+  // and not others, which crashed opening a run ("Rendered more hooks").
+  const keeping = useRef(false);
 
   useEffect(() => {
     (async () => {
@@ -181,7 +184,6 @@ export function RunDetailScreen({
     }
   }
 
-  const keeping = useRef(false);
   async function keepAsPlace(d: PlaceDraft) {
     if (!choice || keeping.current) return; // a second tap while saving makes no second place
     keeping.current = true;
