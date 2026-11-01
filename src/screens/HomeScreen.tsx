@@ -16,7 +16,7 @@ import { ListenSheet } from './ListenScreen';
 import { roughMinutes, type Offer } from '../commute';
 import { useCommuteOffer } from '../commuteStore';
 import { hideHomePlace, homePlaceCard, type HomePlace, type Place } from '../placeStore';
-import { rotateFootage, sceneFor, type Footage } from '../footage';
+import { fitsScene, rotateFootage, sceneFor, type Footage } from '../footage';
 import { formatDistance } from '../geo';
 import { effectivePreset, presetInfo, type RunPreset } from '../presets';
 import { clock, formatTemp, headline, suggestions } from '../sky';
@@ -59,7 +59,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
   const metric = settings.unitsKm;
   const [sky, setSky] = useState<WeatherResult | null>(null);
   const [now, setNow] = useState(Date.now());
-  // Each return to Home (opening the app, coming back to the tab) is a new visit and gets a new loop.
+  // Each real return to Home (opening the app, or back after a minute away) is a new visit and gets a new loop.
   const [visit, setVisit] = useState(0);
   const commute = useCommuteOffer(runs, now);
   // One of your places, the one you usually run at this time. Looked up again each hour and after each run.
@@ -89,10 +89,15 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
 
   useEffect(() => {
     refresh();
+    // A new visit only after the app has really been away for a while. Android reports 'active' after every
+    // system sheet (location, permissions), and counting those made Home swap its loop every few seconds.
+    let awaySince: number | null = null;
     const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'background') awaySince = awaySince ?? Date.now();
       if (s === 'active') {
         refresh();
-        setVisit((v) => v + 1);
+        if (awaySince != null && Date.now() - awaySince >= NEW_VISIT_AFTER_MS) setVisit((v) => v + 1);
+        awaySince = null;
       }
     });
     const tick = setInterval(() => setNow(Date.now()), 60 * 1000);
@@ -104,8 +109,18 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
 
   const weather = sky?.kind === 'ok' ? sky.weather : null;
   const scene = sceneFor(weather, now);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- a new loop per visit or change of sky, not per minute tick
-  const footage = useMemo(() => (lastHome = rotateFootage(scene, lastHome)), [scene, visit]);
+  // One loop per visit. Picked once the first weather reading is in (cached or fresh), so the clip doesn't
+  // switch while the forecast loads; later refreshes and the minute tick leave it alone.
+  const skyReady = sky !== null || !settings.weather;
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately not on scene or now
+  const footage = useMemo(() => {
+    if (!skyReady) return (early = lastHome ?? rotateFootage(scene, null));
+    // Keep the clip already on screen if it suits the sky that just loaded; otherwise one swap, once.
+    const chosen: Footage = early != null && early !== lastHome && fitsScene(early, scene) ? early : rotateFootage(scene, lastHome);
+    lastHome = chosen;
+    early = null;
+    return chosen;
+  }, [visit, skyReady]);
   const back = welcomeBack && isWelcomeBack(lastRunAt, now);
   const away = daysAway(lastRunAt, now) ?? 0;
   const adjusted = settings.comeback && settings.comeback.since === lastRunAt ? settings.comeback.choice : null;
@@ -351,6 +366,10 @@ function HeadphonesGlyph() {
 /** The sky in one line: temperature, then the best window. A tap opens the three suggestions. */
 /** The loop Home showed last, kept across tab switches so the next visit never repeats it. */
 let lastHome: Footage | null = null;
+/** What Home showed while the forecast was still loading on this visit. */
+let early: Footage | null = null;
+/** How long the app must be away before coming back counts as a new visit (and a new loop). */
+const NEW_VISIT_AFTER_MS = 60 * 1000;
 
 function SkyRow({ w, metric, now, open, onToggle }: { w: Weather; metric: boolean; now: number; open: boolean; onToggle: () => void }) {
   const first = suggestions(w, metric, now)[0];
