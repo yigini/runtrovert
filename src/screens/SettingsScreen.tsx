@@ -3,6 +3,8 @@ import { Alert, AppState, Platform, Pressable, ScrollView, Switch, Text, View } 
 import { BackButton } from '../components/BackButton';
 import { CommuteSettings } from '../components/CommuteSettings';
 import { StrapSettings } from '../components/StrapSettings';
+import { HealthSettings } from '../components/HealthSettings';
+import { healthStatus } from '../health';
 import { PresetSheet } from '../components/PresetSheet';
 import { OfflineMaps } from '../components/OfflineMaps';
 import { RoutesSettings } from '../components/RoutesSettings';
@@ -32,7 +34,7 @@ const HOW_OFTEN: Array<{ key: NotifyPerWeek; label: string; hint: string }> = li
 const CUES: Array<{ key: CueMode; label: string; hint: string }> = live(() => (['silent', 'haptic', 'voice'] as const).map((key) => ({ key, ...ui().settings.cue[key] })));
 
 /** The pages behind the main list. Import/export and credits are screens of their own (App.tsx). */
-type Page = 'home' | 'run' | 'voice' | 'alerts' | 'gps' | 'map' | 'routes' | 'watch' | 'music' | 'reminders' | 'commute' | 'extras' | 'language' | 'appearance' | 'privacy';
+type Page = 'home' | 'run' | 'voice' | 'alerts' | 'gps' | 'map' | 'routes' | 'watch' | 'music' | 'reminders' | 'commute' | 'extras' | 'language' | 'appearance' | 'privacy' | 'health';
 
 /** A new palette redraws every screen, Settings included: come back to the page it was picked on. */
 let reopen: Page | null = null;
@@ -91,6 +93,7 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onOpenCredits, 
           {page === 'language' && <LanguagePage locked={!!runLive} onDone={home} />}
           {page === 'appearance' && <AppearancePage runLive={!!runLive} />}
           {page === 'privacy' && <PrivacyPage />}
+          {page === 'health' && <HealthSettings />}
         </>
       )}
     </ScrollView>
@@ -128,6 +131,8 @@ function titleOf(page: Page): string {
       return ui().appearance.title;
     case 'privacy':
       return h.whatLeaves;
+    case 'health':
+      return ui().health.row;
     default:
       return ui().settings.settings;
   }
@@ -185,6 +190,7 @@ function Home({ open, onOpenEverything, onOpenCredits }: { open: (p: Page) => vo
       <Group title={h.groupPrivacy}>
         <NavRow icon="phone" label={h.whatLeaves} value={h.privacyValue(fetchesOn(s))} onPress={() => open('privacy')} />
         <NavRow icon="export" label={ui().settings.everythingYouHave} value={h.importValue} onPress={onOpenEverything} />
+        {healthStatus() !== 'no' ? <NavRow icon="heart" label={ui().health.row} value={s.healthConnect ? ui().health.valueOn : ui().health.valueOff} onPress={() => open('health')} /> : null}
       </Group>
       <Group title={ui().credits.about}>
         <NavRow icon="info" label={ui().credits.title} onPress={onOpenCredits} />
@@ -489,6 +495,11 @@ function PrivacyPage() {
         <Row label={ui().settings.quietReminders} hint={h.remindersHint}>
           <Tag label={h.neverSent} />
         </Row>
+        {healthStatus() !== 'no' ? (
+          <Row label={ui().health.row} hint={ui().health.privacyHint}>
+            <Tag label={h.neverSent} />
+          </Row>
+        ) : null}
       </Group>
       <Group title={h.fetched}>
         <Row label={h.mapStreets} hint={h.mapStreetsHint}>

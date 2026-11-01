@@ -82,6 +82,7 @@ export interface Settings {
   weather: boolean; // fetch the local forecast for the home screen (Open-Meteo, coarse location)
   runNotes: boolean; // live stats on the lock screen and a note per km (watches mirror these)
   watch: boolean; // the Wear OS app: live run on the wrist, its buttons, its heart rate into the run
+  healthConnect: boolean; // Android: each saved run is also written to Health Connect (off until turned on)
   batteryMode: BatteryMode;
   keepScreenOn: boolean; // during a run only
   listenDownload: ListenDownload;
@@ -130,6 +131,7 @@ export const DEFAULT_SETTINGS: Settings = {
   weather: true,
   runNotes: true,
   watch: true,
+  healthConnect: false,
   batteryMode: 'auto',
   keepScreenOn: false,
   listenDownload: 'ask',

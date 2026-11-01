@@ -1,3 +1,4 @@
+import { beforeDeleteForHealth, syncRunToHealth } from '../health';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
@@ -213,6 +214,7 @@ export function RunDetailScreen({
     }
     try {
       await correctRun(runId, distanceM, durationS);
+      syncRunToHealth(runId).catch(() => {});
       setEdit(await getRunEdit(runId));
       setRun({ ...run, distanceM, durationS });
       setFixing(null);
@@ -226,6 +228,7 @@ export function RunDetailScreen({
     if (!run || !edit) return;
     try {
       await putBackRun(runId);
+      syncRunToHealth(runId).catch(() => {});
       setRun({ ...run, distanceM: edit.distanceM, durationS: edit.durationS });
       setEdit(null);
       setFixing(null);
@@ -251,8 +254,10 @@ export function RunDetailScreen({
         text: ui().runDetail.delete,
         style: 'destructive',
         onPress: async () => {
+          const fromHealth = await beforeDeleteForHealth(runId);
           await deleteRun(runId);
           await forgetRun(runId).catch(() => {});
+          fromHealth().catch(() => {});
           onDeleted();
         },
       },
@@ -269,7 +274,7 @@ export function RunDetailScreen({
         <Text style={styles.source}>{ui().runAids.indoorTag}</Text>
       ) : source ? (
         <Text style={styles.source}>
-          {ui().runDetail.broughtIn(source.kind === 'health' ? ui().runDetail.healthConnect : source.fileName ?? ui().runDetail.aXFile(source.kind.toUpperCase()), new Date(source.importedAt).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' }))}
+          {ui().runDetail.broughtIn(source.kind === 'health' ? (source.fileName ? `${ui().runDetail.healthConnect} (${source.fileName})` : ui().runDetail.healthConnect) : source.fileName ?? ui().runDetail.aXFile(source.kind.toUpperCase()), new Date(source.importedAt).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' }))}
         </Text>
       ) : null}
       {place && onOpenPlace ? (

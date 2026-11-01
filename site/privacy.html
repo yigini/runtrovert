@@ -73,6 +73,14 @@
   <p>The Wear OS app talks to the phone over the direct link between your phone and watch (the Wearable Data Layer that Android provides). Nothing goes through a server of ours, because there isn't one. It reads your heart rate from the watch's sensor only while a run is recording, and sends it to the phone to be kept with that run.</p>
   <p>Other watches and chest straps (a Garmin with Broadcast heart rate on, Polar, Coros, Suunto, Wahoo and others) connect straight to the phone over Bluetooth, only during a run and while the strap's settings page is open. The phone reads the standard heart-rate signal and nothing else, and keeps it with the run like the watch app's.</p>
 
+  <h2 id="health-connect">Health Connect</h2>
+  <p>Health Connect is Android's own store for health and fitness data. It lives on your phone, and you decide which apps may read or write which kinds of data. Runtrovert uses it only if you switch it on in Settings, and only for runs:</p>
+  <ul>
+    <li><b>Adding your runs</b> (off until you turn it on): when you save a run, the app writes it to Health Connect as a running session with its start and end time, distance, climb and, if a watch or strap recorded it, heart rate. Not the route, not your notes, energy or anything you told a training plan. Deleting the run in Runtrovert removes it from Health Connect too.</li>
+    <li><b>Bringing runs in</b>: only when you press the button, the app reads running sessions other apps saved in Health Connect (for example Samsung Health, Fitbit or a watch's app), with their distance, climb and heart rate, and keeps them as runs on your phone like any imported file. Nothing is read in the background.</li>
+  </ul>
+  <p>What Runtrovert reads from Health Connect stays on your phone. It is never sent to us or anyone else, never used for advertising, and never sold. It is used only to show you your own runs. The use of information received from Health Connect adheres to the Health Connect Permissions policy, including its Limited Use requirements. Runtrovert is a running app: nothing it shows is medical advice. You can take back its access any time in Health Connect's own settings, or switch it off in Runtrovert.</p>
+
   <h2>Phone backups</h2>
   <p>If backups are on in your phone's settings, Android includes Runtrovert's data in your phone's own backup to your Google account, so a new phone can restore it. That copy is kept by Google under your account, not by us. Delete the app and its data is gone from your phone; a phone backup keeps a copy until it's replaced.</p>
 
@@ -86,6 +94,7 @@
     <li><b>Notifications:</b> reminders, and distance and time on the lock screen during a run.</li>
     <li><b>Notification access</b> (Android, only if you turn it on in Listen): to show the song that's playing on the music bar, with its title, artist and cover. Android warns that this could let the app read notifications. Runtrovert only asks Android what's playing and ignores everything else. The song stays on your phone and is never saved or sent. Turn it off any time in Android's settings.</li>
     <li><b>Nearby devices</b> (Bluetooth), only if you look for a heart-rate strap: to find and connect to it. It is set up so it can't be used to work out where you are.</li>
+    <li><b>Health Connect</b> (only if you switch it on): to add your runs there, and to read runs other apps saved there when you ask. See Health Connect above.</li>
     <li><b>On the watch, body sensors</b> (called heart rate on newer Wear OS): heart rate during a run. If you say no, the watch app still shows the run, without heart rate.</li>
   </ul>
 

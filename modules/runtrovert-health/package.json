@@ -1,0 +1,10 @@
+{
+  "name": "runtrovert-health",
+  "version": "0.1.0",
+  "description": "Runs to and from Health Connect, on the phone only. Opt-in; nothing in the background.",
+  "license": "MIT",
+  "author": "Runtrovert",
+  "homepage": "https://github.com/yigini/runtrovert",
+  "main": "index.ts",
+  "private": true
+}
