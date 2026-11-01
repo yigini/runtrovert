@@ -468,3 +468,19 @@ main:focus { outline: none; }
 /* Apps you can bring runs over from */
 .apps { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; max-width: 640px; list-style: none; padding: 0; }
 .apps li { font-size: 13.5px; color: var(--cream-soft); padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: rgba(20,18,24,0.45); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+
+/* The Me tab, as a small card with made-up numbers */
+.me { margin-top: 28px; background: rgba(246,241,234,0.95); color: var(--ink); border-radius: 26px; padding: 20px; width: min(360px, 100%); box-shadow: 0 30px 60px -20px rgba(0,0,0,0.6); }
+.me .t { font: 600 28px var(--serif); }
+.me .lede { font-size: 13.5px; color: #6b5f86; margin-top: 2px; }
+.me .card { margin-top: 12px; background: #fff; border-radius: 16px; padding: 12px 14px; }
+.me .h { font: 600 12px var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: #6b5f86; }
+.me .n { margin-top: 4px; font-size: 14px; color: #4a3f6b; }
+.me .n b { font: 600 22px var(--serif); color: var(--ink); }
+.me .n i { font-style: normal; color: #b7afc9; margin: 0 2px; }
+.me .m { margin-top: 4px; font-size: 13px; color: #4a3f6b; }
+.me .days { display: flex; gap: 6px; margin-top: 8px; }
+.me .days span { flex: 1; text-align: center; font: 600 11px/26px var(--sans); color: #8a809c; border-radius: 99px; background: rgba(43,39,51,0.06); }
+.me .days span.on { background: var(--ink); color: var(--cream); }
+.me .more { margin-top: 12px; font-size: 12.5px; color: #6b5f86; }
+.me .foot { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(43,39,51,0.12); font: 400 italic 14px var(--serif); color: #4a3f6b; }
