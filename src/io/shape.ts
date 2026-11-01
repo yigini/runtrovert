@@ -112,12 +112,15 @@ export interface KnownRun {
 }
 
 /**
- * Is this the same run as one we already have? The same id, or two runs whose
+ * Is this the same run as one we already have? The same id (and never when two
+ * ids from the same source differ), or two runs whose
  * times overlap by more than half of the shorter one (the phone and a watch
  * both recorded it), or that start within three minutes with a similar distance.
  */
 export function sameRun(a: KnownRun, b: KnownRun): boolean {
   if (a.externalId && b.externalId && a.externalId === b.externalId) return true;
+  // Two different ids from the same place (strava:1 and strava:2) are two runs, even when their times overlap.
+  if (a.externalId && b.externalId && a.externalId.split(':')[0] === b.externalId.split(':')[0]) return false;
   const aEnd = a.endedAt ?? a.startedAt;
   const bEnd = b.endedAt ?? b.startedAt;
   const overlap = Math.min(aEnd, bEnd) - Math.max(a.startedAt, b.startedAt);

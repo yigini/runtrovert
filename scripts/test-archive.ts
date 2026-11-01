@@ -3,7 +3,7 @@ import { deflateRawSync, gzipSync } from 'node:zlib';
 import { activityKind, csvRows, readStravaCsv, stravaDate, stravaIsRun, stravaTypedIn, walkArchive, type Activity } from '../src/io/archive';
 import { parseFit } from '../src/io/fit';
 import { parseGpx, writeGpx } from '../src/io/gpx';
-import { shapeRun } from '../src/io/shape';
+import { sameRun, shapeRun } from '../src/io/shape';
 import { parseTcx } from '../src/io/tcx';
 import { ZipWriter, crc32 } from '../src/io/zip';
 import { entryBytes, gunzip, isZip, listZip, memorySource, streamEntry, text } from '../src/io/unzip';
@@ -187,6 +187,11 @@ check(s2.got.map((a) => a.key).join(',') === 'activities/201.gpx,strava-typed:20
 check(s2.got[1].typed === tr || s2.got[1].typed?.distanceM === 8000, 'the typed run travels with its numbers');
 const only2 = await collect(strava2, new Set(['strava-typed:202']));
 check(only2.got.length === 1 && only2.got[0].typed != null, 'the second pass can ask for a typed run alone');
+
+// Two hand-typed runs the same morning, overlapping times: two Strava ids, two runs.
+const am = Date.UTC(2015, 4, 15, 7, 30);
+check(!sameRun({ startedAt: am, endedAt: am + 3420_000, distanceM: 10300, externalId: 'strava:399423244' }, { startedAt: am + 1_800_000, endedAt: am + 3_351_000, distanceM: 2500, externalId: 'strava:399423210' }), 'different Strava ids are different runs');
+check(sameRun({ startedAt: am, endedAt: am + 3420_000, distanceM: 10300, externalId: 'strava:1' }, { startedAt: am, endedAt: am + 3420_000, distanceM: 10300, externalId: 'fit:9:9:0' }), 'a Strava run and the watch file of it are still one run');
 
 // ---- A Garmin export: zips inside the zip ------------------------------------------------
 const part1 = deflatedZip([
