@@ -138,6 +138,11 @@ export class GapFill {
     this.filledM = 0;
   }
 
+  /** True once enough steps under GPS have set the stride (it's worth keeping for a treadmill run). */
+  get calibrated(): boolean {
+    return this.calibSteps > CALIBRATE_AFTER_STEPS;
+  }
+
   get stride() {
     return this.strideM;
   }

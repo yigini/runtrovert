@@ -12,7 +12,8 @@ watch support:
 - **A note at each km/mile** ("Km 3 · 5:42 /km", "3.00 km in 17:20."), with a
   short double buzz. One note replaces the last.
 - **Android lock screen:** a silent ongoing notification with distance, time and
-  average pace, refreshed every 30 s and on pause/resume.
+  average pace, refreshed every 30 s and on pause/resume, with Pause / Lap
+  (Resume when paused) buttons.
 - **Quiet reminders** and the after-run note reach the wrist the same way.
 
 Wear OS shows bridged phone notifications if the Runtrovert app is allowed in the
@@ -31,9 +32,9 @@ per-km notes, not a live screen.
   Needs a small Swift widget extension added through an Expo config plugin
   (for example `expo-apple-targets` or a hand-written plugin). No push server:
   updates come from the running app.
-- **Android notification actions**: Pause / Resume / Lap buttons on the run
-  notification. Doable with expo-notifications categories; buttons on bridged
-  notifications also show on Wear OS.
+- **Android notification actions**: DONE (see docs/RUN_AIDS.md). Pause and
+  Lap while recording, Resume while paused, on the live run notification,
+  through expo-notifications categories.
 
 ## Step 3: real watch apps (separate native projects)
 

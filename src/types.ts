@@ -1,6 +1,7 @@
 import type { RunPreset } from './presets';
 import type { ComebackChoice } from './training/comeback';
 import { type Lang } from './i18n/lang';
+import { DEFAULT_HEART_ALERT, DEFAULT_PACE_ALERT, DEFAULT_VOICE_SAYS, type HeartAlert, type PaceAlert, type VoiceEvery, type VoiceField } from './runAids';
 
 export type Mood = 1 | 2 | 3 | 4 | 5; // 1 = drained, 5 = recharged
 export type Quiet = 'crowded' | 'some' | 'empty';
@@ -102,6 +103,11 @@ export interface Settings {
   storiesDark: boolean; // include places whose story is about killings, disasters or attacks
   storiesOffered: boolean; // the one finish-screen offer has been shown
   stillBackground: boolean; // footage stays a still picture (also on by itself with the phone's reduce motion)
+  voiceEvery: VoiceEvery; // when the voice speaks (cues on Voice): each km/mile, each half, every 5 or 10 minutes
+  voiceSays: VoiceField[]; // which numbers it says, spoken in a fixed order
+  paceAlert: PaceAlert; // a buzz (and a word with Voice) when the pace drifts out of range; seconds per km
+  heartAlert: HeartAlert; // the same for heart rate, from a watch or strap
+  treadmill: boolean; // the next run is on a treadmill: no GPS, distance from steps
   onboarded: boolean;
 }
 
@@ -144,5 +150,10 @@ export const DEFAULT_SETTINGS: Settings = {
   storiesDark: false,
   storiesOffered: false,
   stillBackground: false,
+  voiceEvery: 'split',
+  voiceSays: DEFAULT_VOICE_SAYS,
+  paceAlert: DEFAULT_PACE_ALERT,
+  heartAlert: DEFAULT_HEART_ALERT,
+  treadmill: false,
   onboarded: false,
 };
