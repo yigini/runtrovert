@@ -6,6 +6,10 @@ import { LockRow } from '../components/LockRow';
 import { storedCounts } from '../db';
 import { importLine } from '../io/shape';
 import { pickAndImport, shareAllRuns } from '../io/store';
+import { currentCounts, pickBackup, restoreBackup, shareBackup, type PickedBackup } from '../io/backupStore';
+import { getState } from '../tracking';
+import { restartApp } from '../restart';
+import { dateLocale } from '../i18n/lang';
 import type { SourceKind } from '../io/types';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import { useUnlocked } from '../unlockState';
@@ -17,7 +21,7 @@ import { live, ui } from '../i18n/ui';
 
 const HAPPENS: string[] = live(() => ui().everything.happens);
 
-const FROM: Record<SourceKind, string> = live(() => ui().everything.from);
+const FROM: Record<Exclude<SourceKind, 'manual'>, string> = live(() => ui().everything.from);
 
 export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; onChanged: () => void }) {
   const unlocked = useUnlocked();
@@ -60,6 +64,68 @@ export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; on
     }
   }
 
+  async function makeBackup() {
+    setBusy(ui().backup.writing);
+    try {
+      const c = await shareBackup();
+      setLine(ui().backup.holds(c.runs, c.places, c.notes));
+    } catch (e) {
+      Alert.alert(ui().backup.couldntMake, String((e as Error)?.message ?? e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function restore() {
+    if (getState().status !== 'idle') {
+      Alert.alert(ui().backup.couldntRestore, ui().backup.notDuringARun);
+      return;
+    }
+    setBusy(ui().backup.reading);
+    let picked: Awaited<ReturnType<typeof pickBackup>>;
+    try {
+      picked = await pickBackup();
+    } catch (e) {
+      setBusy(null);
+      Alert.alert(ui().backup.couldntRestore, String((e as Error)?.message ?? e));
+      return;
+    }
+    setBusy(null);
+    if (!picked) return;
+    if (picked === 'notBackup' || picked === 'newer') {
+      Alert.alert(ui().backup.couldntRestore, picked === 'newer' ? ui().backup.newer : ui().backup.notABackup);
+      return;
+    }
+    const now = await currentCounts().catch(() => null);
+    const day = (ts: number) => new Date(ts).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long', year: 'numeric' });
+    const c = picked.header.counts;
+    const what = [
+      ui().backup.made(day(picked.header.madeAt)),
+      c.runs && c.firstRunAt != null && c.lastRunAt != null ? ui().backup.span(c.runs, day(c.firstRunAt), day(c.lastRunAt)) : ui().backup.noRuns,
+      ui().backup.extras(c.places, c.notes, c.plan),
+      ui().backup.replaces(now?.runs ?? 0),
+    ].join('\n\n');
+    const chosen = picked as PickedBackup;
+    Alert.alert(ui().backup.restoreThis, what, [
+      { text: ui().backup.cancel, style: 'cancel' },
+      { text: ui().backup.replace, style: 'destructive', onPress: () => replaceWith(chosen) },
+    ]);
+  }
+
+  async function replaceWith(picked: PickedBackup) {
+    setBusy(ui().backup.restoring);
+    try {
+      await restoreBackup(picked);
+    } catch (e) {
+      setBusy(null);
+      Alert.alert(ui().backup.couldntRestore, `${ui().backup.nothingChanged}\n\n${String((e as Error)?.message ?? e)}`);
+      return;
+    }
+    setBusy(null);
+    // Every screen starts again from the restored database.
+    Alert.alert(ui().backup.restored, ui().backup.everythingIsBack, [{ text: ui().backup.ok, onPress: restartApp }], { cancelable: false });
+  }
+
   const brought = counts ? Object.entries(counts.brought).filter(([, n]) => n) : [];
   const broughtTotal = brought.reduce((n, [, c]) => n + (c ?? 0), 0);
 
@@ -68,6 +134,14 @@ export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; on
       <BackButton label={ui().everything.settings} onPress={onBack} />
       <Text style={type.h1} accessibilityRole="header">{ui().everything.everythingYouHave}</Text>
       <Text style={type.body}>{ui().everything.yourRunsAreYoursTo}</Text>
+
+      <View style={[styles.card, { backgroundColor: colors.butter }]}>
+        <Text style={type.eyebrow} accessibilityRole="header">{ui().backup.keepACopy}</Text>
+        <Text style={styles.text}>{ui().backup.oneFileWithEverything}</Text>
+        <Button title={ui().backup.makeABackup} onPress={makeBackup} disabled={!!busy} />
+        <Button title={ui().backup.restoreFromAFile} variant="secondary" onPress={restore} disabled={!!busy} />
+        <Text style={styles.small}>{ui().backup.noPassword}</Text>
+      </View>
 
       <View style={[styles.card, { backgroundColor: colors.white }]}>
         <Text style={type.eyebrow}>{ui().everything.onThisPhone}</Text>
@@ -83,7 +157,7 @@ export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; on
         ) : null}
         {brought.map(([kind, n]) => (
           <View key={kind} style={[styles.kv, styles.kvLast]}>
-            <Text style={styles.k}>{ui().everything.broughtInX(FROM[kind as SourceKind])}</Text>
+            <Text style={styles.k}>{kind === 'manual' ? ui().addRun.typedIn : ui().everything.broughtInX(FROM[kind as Exclude<SourceKind, 'manual'>])}</Text>
             <Text style={styles.v}>{n}</Text>
           </View>
         ))}
@@ -137,6 +211,7 @@ const styles = StyleSheet.create({
   k: { fontFamily: fonts.body, fontSize: 15, color: colors.text, flex: 1, paddingRight: spacing.sm },
   v: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.text },
   text: { fontFamily: fonts.body, fontSize: 14, lineHeight: 21, color: colors.text },
+  small: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.text },
   hint: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.mintDeep },
   note: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.butter, borderRadius: radius.md, padding: 14 },
 });

@@ -128,6 +128,11 @@ export function homeFootage(w: Weather | null, now = Date.now()): Footage {
   return pickFootage(sceneFor(w, now), new Date(now).toDateString());
 }
 
+/** Whether a loop belongs to the scene's own pool (so an early pick can stay once the forecast arrives). */
+export function fitsScene(f: Footage, scene: Scene): boolean {
+  return POOLS[scene].includes(f);
+}
+
 /** Close-ups and the odd showpiece: now and then one of these turns up on Home whatever the sky, as a small surprise. */
 export const SURPRISE: Footage[] = ['cobbles', 'blade-stride', 'sunset-water', 'sea-road', 'sun-trees'];
 /** Dark or wild skies keep their own pictures: a sunny close-up under a storm would look wrong. */

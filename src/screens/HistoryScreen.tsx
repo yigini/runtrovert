@@ -18,6 +18,7 @@ import type { Quiet, Run } from '../types';
 import type { CommuteDir } from '../commute';
 import { commuteTags, useCommute } from '../commuteStore';
 import { LoadFailed } from '../components/LoadFailed';
+import { AddRunSheet } from '../components/AddRunSheet';
 import { ui } from '../i18n/ui';
 import { dateLocale, monthName, upperFirst } from '../i18n/lang';
 
@@ -35,6 +36,7 @@ export function HistoryScreen({
   onOpenPlace,
   onRunAgain,
   onBringIn,
+  onChanged,
 }: {
   onOpen: (runId: number) => void;
   refreshKey: number;
@@ -43,6 +45,8 @@ export function HistoryScreen({
   onOpenPlace?: (id: number) => void;
   onRunAgain?: (p: Place) => void;
   onBringIn?: () => void;
+  /** A run was added here by hand. */
+  onChanged?: () => void;
 }) {
   const km = useSettings().settings.unitsKm;
   const [data, setData] = useState<YourRunsData | null>(null);
@@ -53,6 +57,7 @@ export function HistoryScreen({
   // A failed read keeps whatever was shown before, and never pretends there are no runs.
   const [failed, setFailed] = useState(false);
   const [tries, setTries] = useState(0);
+  const [adding, setAdding] = useState(false);
   useEffect(() => {
     load()
       .then(() => setFailed(false))
@@ -116,7 +121,23 @@ export function HistoryScreen({
         </View>
       </View>
       <YouSection km={km} refreshKey={refreshKey} />
+      <Pressable onPress={() => setAdding(true)} accessibilityRole="button" hitSlop={8} style={({ pressed }) => [styles.addRun, pressed && { opacity: 0.8 }]}>
+        <Text style={styles.addRunText}>{ui().addRun.link}</Text>
+      </Pressable>
     </View>
+  );
+  const sheet = (
+    <AddRunSheet
+      open={adding}
+      km={km}
+      onClose={() => setAdding(false)}
+      onAdded={(id) => {
+        setAdding(false);
+        load().catch(() => {});
+        onChanged?.();
+        onOpen(id);
+      }}
+    />
   );
 
   if (!data && failed) {
@@ -140,6 +161,7 @@ export function HistoryScreen({
             </Pressable>
           ) : null}
         </View>
+        {sheet}
       </View>
     );
   }
@@ -165,6 +187,7 @@ export function HistoryScreen({
           return <RunRow run={item} km={km} place={pid != null ? names.get(pid) ?? null : null} commute={dir ? (dir === 'toWork' ? ui().commute.tagToWork : ui().commute.tagHome) : null} onPress={() => onOpen(item.id)} />;
         }}
       />
+      {sheet}
     </View>
   );
 }
@@ -286,6 +309,8 @@ const styles = StyleSheet.create({
   groupTitle: { marginTop: spacing.md, marginBottom: spacing.sm },
   bringIn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.md, marginTop: spacing.sm },
   bringInText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.lilacDeep, textDecorationLine: 'underline', textAlign: 'center' },
+  addRun: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
+  addRunText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.mintDeep, textDecorationLine: 'underline' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: radius.lg, padding: 16 },
   thumb: { width: 48, height: 48, borderRadius: 16, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
