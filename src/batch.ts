@@ -39,3 +39,19 @@ export function singleFlight<T>(fn: () => Promise<T>): () => Promise<T> {
     return inflight;
   };
 }
+
+/**
+ * Like singleFlight, and the last answer is kept until `version()` moves on
+ * (db.ts dataVersion(): any write to the runs). Opening a run, Your runs or the
+ * finish screen again then costs nothing until a run is added, changed or removed.
+ */
+export function keptUntilChanged<T>(version: () => number, fn: () => Promise<T>): () => Promise<T> {
+  let kept: { v: number; value: T } | null = null;
+  const shared = singleFlight(async () => {
+    const v = version();
+    const value = await fn();
+    if (version() === v) kept = { v, value };
+    return value;
+  });
+  return () => (kept && kept.v === version() ? Promise.resolve(kept.value) : shared());
+}

@@ -593,7 +593,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
 
   // ---- Idle ------------------------------------------------------------------
   if (phase === 'idle') {
-    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} onCommute={onCommute} onRunFree={onRunFree} planToday={session} planNext={requested ? null : planNext} plan={requested ? null : planShown} welcomeBack={!requested} onOpenPlan={onOpenPlan} onPlanChanged={onPlanChanged} onBrowseListen={onBrowseListen} onRunPlace={runPlace} route={ghostRun ? { name: ghostRun.name, follow: !!ghostRun.follow } : null} onClearRoute={() => setGhostRun(null)} runPreset={preset} onRunWithoutPlan={requested && sessionOpen ? onRunWithoutPlan : undefined} />;
+    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} onCommute={onCommute} onRunFree={onRunFree} planToday={session} planNext={requested ? null : planNext} plan={requested ? null : planShown} welcomeBack={!requested} onOpenPlan={onOpenPlan} onPlanChanged={onPlanChanged} onBrowseListen={onBrowseListen} onRunPlace={runPlace} route={ghostRun ? { name: ghostRun.name, follow: !!ghostRun.follow } : null} onClearRoute={() => setGhostRun(null)} runPreset={preset} onRunWithoutPlan={requested && sessionOpen ? onRunWithoutPlan : undefined} active={focused} />;
   }
 
   // ---- Countdown -------------------------------------------------------------

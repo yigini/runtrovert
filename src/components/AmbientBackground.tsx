@@ -51,8 +51,8 @@ const SOURCES: Record<BgStyle, { video: number; poster: number }> = {
  * (or when `still` is passed). The poster is painted underneath so there's no flash while the
  * decoder spins up. Fully local: nothing is fetched.
  */
-export function AmbientBackground({ children, dim = 0, style = DEFAULT_STYLE, still: forceStill = false }: { children?: React.ReactNode; dim?: number; style?: BgStyle; still?: boolean }) {
-  const still = useStillFootage() || forceStill;
+export function AmbientBackground({ children, dim = 0, style = DEFAULT_STYLE, still: forceStill = false, paused = false }: { children?: React.ReactNode; dim?: number; style?: BgStyle; still?: boolean; /** Hidden behind another tab or Settings: the decoder rests and only the poster stays. */ paused?: boolean }) {
+  const still = useStillFootage() || forceStill || paused;
   // In the dark palette the footage sits a little lower, like a cinema, so light words on the dusk wash stay easy to read.
   const shade = Math.max(dim, scheme() === 'dark' ? DARK_SHADE : 0);
   const { video: VIDEO, poster: POSTER } = SOURCES[style];

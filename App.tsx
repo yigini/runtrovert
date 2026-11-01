@@ -15,10 +15,10 @@ import * as Notifications from 'expo-notifications';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, BackHandler, Pressable, Text, ToastAndroid, useColorScheme, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { handleBack } from './src/back';
+import { handleBack, ScreenActive } from './src/back';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { OpenSettings } from './src/components/SettingsGear';
-import { closeUnfinishedRuns, getRun } from './src/db';
+import { closeUnfinishedRuns, getRun, touchRuns } from './src/db';
 import { HistoryScreen, type RunsSection } from './src/screens/HistoryScreen';
 import { ListenScreen } from './src/screens/ListenScreen';
 import { RunDetailScreen } from './src/screens/RunDetailScreen';
@@ -48,9 +48,32 @@ import { ui } from './src/i18n/ui';
 import { refreshWidgets } from './src/widget';
 import { goalStore } from './src/extraStores';
 import { lang } from './src/i18n/lang';
+import { warmSigs } from './src/placeStore';
+import { loadYou } from './src/you';
 import { onRunsImported } from './src/io/importJob';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+/**
+ * Work that can wait until the first screen is drawn and settled: the widgets,
+ * re-planning reminders, and working out bests and loops for runs that have
+ * none yet. Doing it all at launch made opening the app feel slow.
+ */
+function later(ms: number, work: () => void): () => void {
+  let idle: number | null = null;
+  const t = setTimeout(() => {
+    // When the JS thread next has nothing to draw, if the phone can tell us; otherwise now.
+    if (typeof requestIdleCallback === 'function') idle = requestIdleCallback(() => work(), { timeout: 3000 });
+    else work();
+  }, ms);
+  return () => {
+    clearTimeout(t);
+    if (idle != null && typeof cancelIdleCallback === 'function') cancelIdleCallback(idle);
+  };
+}
+
+/** The day, so a tab kept open since yesterday is drawn again (today's session, this week). */
+const dayOf = (t = Date.now()) => new Date(t).toDateString();
 
 type Tab = 'run' | 'runs' | 'train';
 /** Opened over any tab: Settings from the gear, every Listen shelf from the sheet beside Start. */
@@ -101,7 +124,15 @@ function Shell() {
   const [shareOpen, setShareOpen] = useState(false); // open the share card on arrival ("Keep it and share")
   const [refreshKey, setRefreshKey] = useState(0);
   // Runs brought in reach every list once, when the import ends, wherever the runner is by then.
-  useEffect(() => onRunsImported(() => setRefreshKey((k) => k + 1)), []);
+  useEffect(
+    () =>
+      onRunsImported(() => {
+        // Runs brought in or restored: every kept list and answer is read again.
+        touchRuns();
+        setRefreshKey((k) => k + 1);
+      }),
+    [],
+  );
   const [liveRun, setLiveRun] = useState(false);
   const [countingDown, setCountingDown] = useState(false);
   const wasLive = useRef(false);
@@ -109,6 +140,14 @@ function Shell() {
   // A session opened from the Train tab, waiting on the Run tab's start button.
   const [sessionRequest, setSessionRequest] = useState<Session | null>(null);
   const [planKey, setPlanKey] = useState(0);
+  // Tabs opened at least once stay mounted; the day they were drawn on.
+  const [visited, setVisited] = useState<{ runs: boolean; train: boolean }>({ runs: false, train: false });
+  const [day, setDay] = useState(dayOf);
+  useEffect(() => {
+    if (tab === 'run') return;
+    setVisited((v) => (v[tab] ? v : { ...v, [tab]: true }));
+    setDay((d) => (d === dayOf() ? d : dayOf()));
+  }, [tab]);
   useEffect(
     () =>
       subscribe((t) => {
@@ -169,8 +208,18 @@ function Shell() {
   // The home-screen widgets get fresh words on open, after any change to the runs, and with the units, language or weekly goal.
   const goal = goalStore.use();
   useEffect(() => {
-    if (ready && settings.onboarded) refreshWidgets().catch(() => {});
+    if (ready && settings.onboarded) return later(1200, () => void refreshWidgets().catch(() => {}));
   }, [ready, settings.onboarded, refreshKey, settings.unitsKm, settings.language, goal]);
+  // Bests and loops for runs that don't have them yet (runs brought in from files), a few at a time,
+  // so the first finish screen or Your runs after an import doesn't do it all at once.
+  useEffect(() => {
+    if (!ready || !settings.onboarded) return;
+    return later(4000, () => {
+      warmSigs()
+        .then(() => loadYou())
+        .catch(() => {});
+    });
+  }, [ready, settings.onboarded, refreshKey]);
   // Runs recorded on the watch alone arrive when phone and watch meet again: tick the plan, refresh the lists.
   useEffect(() => {
     onWatchRuns(async (ids) => {
@@ -178,6 +227,7 @@ function Shell() {
         const run = await getRun(id).catch(() => null);
         if (run) await onRunSaved(run, null).catch(() => {});
       }
+      touchRuns();
       setRefreshKey((k) => k + 1);
       setPlanKey((k) => k + 1);
     });
@@ -187,7 +237,7 @@ function Shell() {
   // Re-plan the next two weeks of reminders on open and whenever their settings change.
   useEffect(() => {
     if (ready && settings.onboarded) {
-      rescheduleReminders(settings).catch(() => {});
+      return later(1500, () => void rescheduleReminders(settings).catch(() => {}));
     }
   }, [ready, settings.onboarded, settings.notifyPerWeek, settings.notifyHour, settings.notifyMinute, settings.notifyAuto, settings.weather, settings.language, settings.fewerWords, planKey]);
 
@@ -357,33 +407,45 @@ function Shell() {
           {sub === 'everything' && <EverythingScreen onBack={() => setSub(everythingFrom)} />}
           {sub === 'credits' && <CreditsScreen onBack={() => setSub('settings')} />}
           {sub === 'listen' && <ListenScreen runLive={liveRun} onBack={() => setSub(null)} />}
-          {sub == null && tab === 'train' && (
-            <TrainScreen
-              refreshKey={planKey + refreshKey}
-              onChanged={() => setPlanKey((k) => k + 1)}
-              onStartSession={(s) => {
-                setSessionRequest(s);
-                setTab('run');
-              }}
-            />
+          {/* Your runs and Train stay mounted once visited (hidden like the Run tab), so coming back is
+              instant and keeps its scroll. A new day draws them again. */}
+          {(visited.train || tab === 'train') && (
+            <View style={[{ flex: 1 }, (sub != null || tab !== 'train') && styles.hidden]}>
+              <ScreenActive.Provider value={sub == null && tab === 'train'}>
+                <TrainScreen
+                  key={day}
+                  refreshKey={planKey + refreshKey}
+                  onChanged={() => setPlanKey((k) => k + 1)}
+                  onStartSession={(s) => {
+                    setSessionRequest(s);
+                    setTab('run');
+                  }}
+                />
+              </ScreenActive.Provider>
+            </View>
           )}
-          {sub == null && tab === 'runs' && openRun == null && openPlace == null && (
-            <HistoryScreen
-              onOpen={(id) => {
-                setShareOpen(false);
-                setOpenRun(id);
-              }}
-              refreshKey={refreshKey}
-              onBringIn={() => {
-                setEverythingFrom(null);
-                setSub('everything');
-              }}
-              section={runsSection}
-              onSection={setRunsSection}
-              onOpenPlace={setOpenPlace}
-              onRunAgain={runAgain}
-              onChanged={() => setRefreshKey((k) => k + 1)}
-            />
+          {(visited.runs || tab === 'runs') && (
+            <View style={[{ flex: 1 }, (sub != null || tab !== 'runs' || openRun != null || openPlace != null) && styles.hidden]}>
+              <ScreenActive.Provider value={sub == null && tab === 'runs' && openRun == null && openPlace == null}>
+                <HistoryScreen
+                  key={day}
+                  onOpen={(id) => {
+                    setShareOpen(false);
+                    setOpenRun(id);
+                  }}
+                  refreshKey={refreshKey}
+                  onBringIn={() => {
+                    setEverythingFrom(null);
+                    setSub('everything');
+                  }}
+                  section={runsSection}
+                  onSection={setRunsSection}
+                  onOpenPlace={setOpenPlace}
+                  onRunAgain={runAgain}
+                  onChanged={() => setRefreshKey((k) => k + 1)}
+                />
+              </ScreenActive.Provider>
+            </View>
           )}
           {sub == null && tab === 'runs' && openRun == null && openPlace != null && (
             <PlaceScreen

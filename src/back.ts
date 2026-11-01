@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { createContext, useContext, useEffect, useRef } from 'react';
 
 /**
  * The phone's back gesture, one place. Screens push a handler while they have
@@ -20,8 +20,15 @@ export function handleBack(): boolean {
   return false;
 }
 
-/** Answer the back gesture with `handler` while `enabled`. Return true when handled. */
-export function useBack(handler: Handler, enabled = true): void {
+/**
+ * False inside a tab that stays mounted but is hidden (App.tsx keeps Your runs
+ * and Train alive between visits). A hidden screen never answers the back gesture.
+ */
+export const ScreenActive = createContext(true);
+
+/** Answer the back gesture with `handler` while `enabled` (and while its screen is on show). Return true when handled. */
+export function useBack(handler: Handler, wanted = true): void {
+  const enabled = useContext(ScreenActive) && wanted;
   const ref = useRef(handler);
   ref.current = handler;
   useEffect(() => {

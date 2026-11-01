@@ -1,5 +1,5 @@
-import { eachWithBreaks, singleFlight } from './batch';
-import { allKmPaces, getPoints, loadDeepSummaries, placeLoops, pointCounts, saveDeepSummary } from './db';
+import { eachWithBreaks, keptUntilChanged } from './batch';
+import { allKmPaces, dataVersion, getPoints, loadDeepSummaries, placeLoops, pointCounts, saveDeepSummary } from './db';
 import type { DeepFact } from './deepStats';
 import type { LongFact } from './deepLong';
 import { RUN_SUMMARY_V, runSummary, type RunSummary } from './deepMore';
@@ -20,7 +20,7 @@ export interface DeepFacts {
 
 const EMPTY: Omit<RunSummary, 'v'> = { heldM: null, upS: null, lat: null, lon: null, cells: [] };
 
-export const loadDeepFacts: () => Promise<DeepFacts> = singleFlight(async () => {
+export const loadDeepFacts: () => Promise<DeepFacts> = keptUntilChanged(dataVersion, async () => {
   const [you, yours, paces, stored, counts, loops] = await Promise.all([loadYou(), loadYourRuns(), allKmPaces(), loadDeepSummaries(), pointCounts(), placeLoops()]);
   const facts: DeepFact[] = you.runs.map((r) => {
     const w = you.weather.get(r.id) ?? null;

@@ -1,5 +1,5 @@
-import { eachWithBreaks, singleFlight } from './batch';
-import { getPoints, listRuns, loadAllFacts, loadValue, saveFacts } from './db';
+import { eachWithBreaks, keptUntilChanged } from './batch';
+import { dataVersion, getPoints, listRuns, loadAllFacts, loadValue, saveFacts, touchRuns } from './db';
 import type { Weather } from './forecast';
 import { bestEfforts, type Efforts, type RunFacts, type TimedPoint } from './progress';
 import type { RunWeather } from './shareLines';
@@ -66,7 +66,7 @@ export interface YouData {
  * imported runs, or after an update). Screens that ask at the same time share
  * one pass, and a long catch-up pauses between runs so scrolling stays smooth.
  */
-export const loadYou: () => Promise<YouData> = singleFlight(async () => {
+export const loadYou: () => Promise<YouData> = keptUntilChanged(dataVersion, async () => {
   const runs = await listRuns();
   const stored = await loadAllFacts();
   const missing = runs.filter((r) => {
@@ -94,6 +94,7 @@ export async function recordRunFacts(runId: number, startedAt: number, durationS
   const pts = await getPoints(runId);
   const weather = await weatherAt(startedAt + (durationS * 1000) / 2);
   await saveFacts(runId, { v: FACTS_V, efforts: bestEfforts(pts), weather });
+  touchRuns(); // the weather is new: the kept answer of loadYou goes
 }
 
 /** The run still on the finish screen, and everything before it to compare with. */

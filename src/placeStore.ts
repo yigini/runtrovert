@@ -1,4 +1,4 @@
-import { getDb, getPoints, listRuns, loadValue, saveValue } from './db';
+import { getDb, getPoints, listRuns, loadValue, saveValue, touchRuns } from './db';
 import { earlierOnLoop, findPlace, HOME_HIDE_MS, homePlace, latestNote, placeOffer, routeSignature, SIG_V, thin, type PlaceOffer, type PlacedVisit, type RoutePt, type RouteSig, type VisitRun } from './places';
 import type { Quiet } from './types';
 
@@ -74,6 +74,7 @@ export async function getPlace(id: number): Promise<Place | null> {
 export async function updatePlace(id: number, patch: PlaceDraft): Promise<void> {
   const db = await getDb();
   await db.runAsync('UPDATE places SET name = ?, tags = ? WHERE id = ?', patch.name, JSON.stringify(patch.tags), id);
+  touchRuns(); // deep stats name places
 }
 
 /** Forget a place and its log. The runs themselves stay. */
@@ -83,6 +84,7 @@ export async function deletePlace(id: number): Promise<void> {
     await db.runAsync('DELETE FROM place_visits WHERE place_id = ?', id);
     await db.runAsync('DELETE FROM places WHERE id = ?', id);
   });
+  touchRuns();
 }
 
 /**
@@ -113,6 +115,7 @@ export async function logRun(placeId: number, runId: number): Promise<void> {
   const seen = await db.getFirstAsync('SELECT id FROM place_visits WHERE place_id = ? AND run_id = ?', placeId, runId);
   if (seen) return;
   await db.runAsync('INSERT INTO place_visits (place_id, run_id, at, busy, note) VALUES (?, ?, ?, ?, ?)', placeId, runId, run.started_at, run.quiet, run.note);
+  touchRuns();
 }
 
 /** The dated log, newest first, with each run's distance and time for the summary. */
@@ -163,16 +166,26 @@ async function pastSigs(exceptRunId: number | null): Promise<Array<{ runId: numb
   const rows = (await db.getAllAsync('SELECT run_id, v, sig FROM route_sigs')) as Array<{ run_id: number; v: number; sig: string | null }>;
   const have = new Map(rows.filter((r) => r.v === SIG_V).map((r) => [r.run_id, parseSig(r.sig)]));
   const out: Array<{ runId: number; sig: RouteSig }> = [];
+  let worked = 0;
   for (const r of runs) {
     let sig = have.get(r.id);
     if (sig === undefined) {
       const pts = await getPoints(r.id);
       sig = routeSignature(pts);
       await saveSig(r.id, sig);
+      // After an import hundreds can be missing: a breath every few, so the screen keeps drawing.
+      if (++worked % 4 === 0) await breath();
     }
     if (sig) out.push({ runId: r.id, sig });
   }
   return out;
+}
+
+const breath = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+/** Work out, ahead of time and a few at a time, the loops of runs that have none yet (runs brought in from files). */
+export async function warmSigs(): Promise<void> {
+  await pastSigs(null);
 }
 
 export interface FinishPlace {

@@ -45,7 +45,7 @@ import { dateLocale } from '../i18n/lang';
  * Ten days or more since the last run, it says welcome back instead: no plan
  * day, nothing overdue, one free run, and the plan as a separate choice.
  */
-export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, planToday, planNext, plan, onOpenPlan, onPlanChanged, onBrowseListen, onRunPlace, welcomeBack = true, runPreset, onRunWithoutPlan, route = null, onClearRoute }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; onCommute?: (o: Offer) => void; onRunFree?: () => void; planToday?: Session | null; planNext?: Session | null; plan?: Plan | null; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; onRunPlace?: (p: Place) => void; welcomeBack?: boolean; runPreset?: RunPreset; onRunWithoutPlan?: () => void; route?: { name: string; follow?: boolean } | null; onClearRoute?: () => void }) {
+export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, planToday, planNext, plan, onOpenPlan, onPlanChanged, onBrowseListen, onRunPlace, welcomeBack = true, runPreset, onRunWithoutPlan, route = null, onClearRoute, active = true }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; onCommute?: (o: Offer) => void; onRunFree?: () => void; planToday?: Session | null; planNext?: Session | null; plan?: Plan | null; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; onRunPlace?: (p: Place) => void; welcomeBack?: boolean; runPreset?: RunPreset; onRunWithoutPlan?: () => void; route?: { name: string; follow?: boolean } | null; onClearRoute?: () => void; /** False while another tab or Settings covers Home. */ active?: boolean }) {
   const { settings, update } = useSettings();
   const [presetSheet, setPresetSheet] = useState(false);
   // Tell someone (off until switched on in Settings) and the weekly goal (likewise): both quiet, both optional.
@@ -136,7 +136,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
 
   return (
     // The footage follows the same reading as the headline; a still frame in battery saver.
-    <AmbientBackground style={footage}>
+    <AmbientBackground style={footage} paused={!active}>
       {/* One even wash, never thin enough for a patch of footage to swallow a line of words. */}
       <Veil />
       {/* Words scroll when there are many of them; the start button never moves. */}
