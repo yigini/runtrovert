@@ -151,6 +151,13 @@ export const night: Palette = light;
 let current: Scheme = 'light';
 const listeners = new Set<(s: Scheme) => void>();
 
+/**
+ * The least of the ground colour that ever sits between footage and words on it (see Veil in
+ * components/Fade.tsx). Chosen so ink and inkSoft text stay at WCAG AA even over pure black footage
+ * by day, or pure white footage by night (after the 30% night shade); scripts/test-theme.ts checks it.
+ */
+export const VEIL_FLOOR: Record<Scheme, number> = { light: 0.7, dark: 0.6 };
+
 export function scheme(): Scheme {
   return current;
 }

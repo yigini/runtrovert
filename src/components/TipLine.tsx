@@ -90,6 +90,6 @@ function startOfDay(ms: number): number {
 
 const styles = themedStyles(() => ({
   wrap: { gap: 3, paddingVertical: 2 },
-  label: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: colors.inkMuted },
+  label: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: colors.inkSoft },
   text: { fontFamily: fonts.displayItalic, fontSize: 15, lineHeight: 21, color: colors.ink },
 }));

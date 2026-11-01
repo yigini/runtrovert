@@ -42,6 +42,7 @@ export const pt: Strings = {
     opensX: (name) => `Abre ${name}`,
   },
   moodPicker: {
+    optional: 'opcional',
     xEnergyXOf5: (label, m) => `${label}, energia ${m} de 5`,
   },
   musicStrip: {

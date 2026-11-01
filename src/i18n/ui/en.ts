@@ -40,6 +40,7 @@ export const en = {
     opensX: (UNLOCK_NAME: string | number) => `Opens ${UNLOCK_NAME}`,
   },
   moodPicker: {
+    optional: 'optional',
     xEnergyXOf5: (LABELS: string | number, m: string | number) => `${LABELS}, energy ${m} of 5`,
   },
   musicStrip: {

@@ -42,6 +42,7 @@ export const tr: Strings = {
     opensX: (name) => `Açar: ${name}`,
   },
   moodPicker: {
+    optional: 'isteğe bağlı',
     xEnergyXOf5: (label, m) => `${label}, enerji 5 üzerinden ${m}`,
   },
   musicStrip: {

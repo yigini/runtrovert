@@ -39,6 +39,7 @@ export const ja: Strings = {
     opensX: (name) => `${name}を開く`,
   },
   moodPicker: {
+    optional: '任意',
     xEnergyXOf5: (label, m) => `${label}、エネルギー 5段階中${m}`,
   },
   musicStrip: {

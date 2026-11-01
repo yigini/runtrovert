@@ -40,7 +40,7 @@ export function MoodPicker({ value, onChange, title, inline }: { value: Mood | n
       <View style={styles.inline}>
         <View style={{ flex: 1 }}>
           <Text style={styles.inlineTitle}>{title}</Text>
-          <Text style={styles.inlineHint}>{value ? LABELS[value] : 'optional'}</Text>
+          <Text style={styles.inlineHint}>{value ? LABELS[value] : ui().moodPicker.optional}</Text>
         </View>
         {faces}
       </View>
@@ -62,6 +62,6 @@ const styles = themedStyles(() => ({
   face: { alignItems: 'center', justifyContent: 'center', opacity: 1 },
   hint: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.muted, textAlign: 'center', minHeight: 16 },
   inline: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  inlineTitle: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text },
-  inlineHint: { fontFamily: fonts.body, fontSize: 12, color: colors.inkSoft, opacity: 0.75 },
+  inlineTitle: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.ink },
+  inlineHint: { fontFamily: fonts.body, fontSize: 12, color: colors.inkSoft },
 }));
