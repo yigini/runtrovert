@@ -424,3 +424,25 @@ main:focus { outline: none; }
 .curve .locked p:last-child { border-bottom: 0; padding-bottom: 0; }
 .curve .lockpill { font: 600 11.5px var(--sans); color: #4a3f6b; background: var(--lilac); border-radius: 999px; padding: 4px 10px; text-decoration: none; white-space: nowrap; }
 .curve .lockpill::before { content: '🔒 '; content: '🔒 ' / ''; font-size: 10px; }
+
+/* The numbers: a chapter with no footage, a faint grid instead */
+.ch.numbers { background: radial-gradient(ellipse at 80% 20%, rgba(140,123,196,0.18), transparent 60%), linear-gradient(rgba(246,241,234,0.035) 1px, transparent 1px) 0 0 / 100% 48px, linear-gradient(90deg, rgba(246,241,234,0.035) 1px, transparent 1px) 0 0 / 48px 100%, var(--night); align-items: center; }
+.ch.numbers::before { display: none; }
+.nerd { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 40px; margin-top: 44px; max-width: 1080px; align-items: start; }
+.nerd .k { font: 500 11px var(--sans); letter-spacing: 0.18em; text-transform: uppercase; color: var(--butter); margin-bottom: 10px; }
+.nerd .k a { color: var(--lilac); }
+.nerd dl { margin: 0; }
+.nerd dl div { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-top: 1px solid var(--line); }
+.nerd dt { color: var(--cream); font-weight: 500; }
+.nerd dd { margin: 0; color: var(--cream-soft); font: 400 italic 16px var(--serif); text-align: right; }
+.nerd .once dt { color: var(--cream-soft); }
+.nerd .curve { margin-top: 0; width: 100%; }
+.curve .t .free { font: 600 11px var(--sans); color: #2f5c47; background: var(--mint); border-radius: 999px; padding: 3px 9px; vertical-align: 4px; margin-left: 6px; }
+.curve .t .lockpill { vertical-align: 4px; margin-left: 6px; }
+.curve.light .dark { fill: rgba(43,39,51,0.1); }
+.curve.light .rise { fill: none; stroke: #8a809c; stroke-width: 1.5; stroke-dasharray: 3 3; }
+.curve.light .runs circle { fill: #b5651d; }
+.curve.light .ax text { font: 500 10px var(--sans); fill: #6b5f86; }
+.curve .key .kd::before { width: 7px; height: 7px; border: 0; border-radius: 50%; background: #b5651d; vertical-align: 1px; }
+.curve .key .ks::before { height: 8px; border: 0; background: rgba(43,39,51,0.15); vertical-align: 0; }
+@media (max-width: 760px) { .nerd { grid-template-columns: 1fr; } .nerd dd { font-size: 15px; } }
