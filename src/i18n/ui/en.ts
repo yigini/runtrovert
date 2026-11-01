@@ -365,6 +365,8 @@ export const en = {
     bringingInXOf: (done: string | number, total: string | number) => `Bringing your runs in… ${done} of ${total}`,
     readingTheFiles: 'Reading the files…',
     readingTheFilesXOf: (done: string | number, total: string | number) => `Reading the files… ${done} of ${total}`,
+    keepsGoing: 'You can leave this page. It keeps going, and Settings shows how far it has got.',
+    runsWaiting: (n: number) => (n === 1 ? '1 run ready to bring in' : `${n} runs ready to bring in`),
     couldnTReadThoseFiles: 'Couldn’t read those files',
     writingYourRuns: 'Writing your runs…',
     writingYourRunsXOf: (done: string | number, total: string | number) => `Writing your runs… ${done} of ${total}`,

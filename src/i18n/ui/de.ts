@@ -364,6 +364,8 @@ export const de: Strings = {
     bringingInXOf: (done: string | number, total: string | number) => `Deine Läufe kommen rein… ${done} von ${total}`,
     readingTheFiles: 'Dateien werden gelesen…',
     readingTheFilesXOf: (done, total) => `Dateien werden gelesen… ${done} von ${total}`,
+    keepsGoing: 'Du kannst diese Seite verlassen. Es läuft weiter, und die Einstellungen zeigen, wie weit es ist.',
+    runsWaiting: (n: number) => (n === 1 ? '1 Lauf bereit zum Übernehmen' : `${n} Läufe bereit zum Übernehmen`),
     couldnTReadThoseFiles: 'Diese Dateien ließen sich nicht lesen',
     writingYourRuns: 'Deine Läufe werden geschrieben…',
     writingYourRunsXOf: (done, total) => `Deine Läufe werden geschrieben… ${done} von ${total}`,

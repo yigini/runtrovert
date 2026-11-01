@@ -366,6 +366,8 @@ export const fr: Strings = {
     bringingInXOf: (done: string | number, total: string | number) => `Import de tes courses… ${done} sur ${total}`,
     readingTheFiles: 'Lecture des fichiers…',
     readingTheFilesXOf: (done, total) => `Lecture des fichiers… ${done} sur ${total}`,
+    keepsGoing: 'Tu peux quitter cette page. Ça continue, et les Réglages montrent où ça en est.',
+    runsWaiting: (n: number) => (n === 1 ? '1 course prête à importer' : `${n} courses prêtes à importer`),
     couldnTReadThoseFiles: 'Impossible de lire ces fichiers',
     writingYourRuns: 'Écriture de tes sorties…',
     writingYourRunsXOf: (done, total) => `Écriture de tes sorties… ${done} sur ${total}`,

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { importRowValue, useImportJob } from '../io/importJob';
 import { Alert, AppState, Platform, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
 import { CommuteSettings } from '../components/CommuteSettings';
@@ -175,6 +176,7 @@ function Home({ open, onOpenEverything, onOpenCredits }: { open: (p: Page) => vo
   const language = s.language ? langName(s.language) : ui().settings.phoneLanguage(langName(langFor(phoneLocale())));
   const strapName = strapSupported() ? (strap.strap?.name ?? null) : null;
   const shoesValue = useShoesValue(s.unitsKm);
+  const importValue = importRowValue(useImportJob()) ?? h.importValue;
   const appearance = s.theme === 'system' ? ui().appearance.followsValue(scheme() === 'dark') : s.theme === 'dark' ? ui().appearance.dark : ui().appearance.light;
 
   return (
@@ -200,7 +202,7 @@ function Home({ open, onOpenEverything, onOpenCredits }: { open: (p: Page) => vo
       </Group>
       <Group title={h.groupPrivacy}>
         <NavRow icon="phone" label={h.whatLeaves} value={h.privacyValue(fetchesOn(s))} onPress={() => open('privacy')} />
-        <NavRow icon="export" label={ui().settings.everythingYouHave} value={h.importValue} onPress={onOpenEverything} />
+        <NavRow icon="export" label={ui().settings.everythingYouHave} value={importValue} onPress={onOpenEverything} />
         {healthStatus() !== 'no' ? <NavRow icon="heart" label={ui().health.row} value={s.healthConnect ? ui().health.valueOn : ui().health.valueOff} onPress={() => open('health')} /> : null}
       </Group>
       <Group title={ui().credits.about}>
