@@ -1,3 +1,4 @@
+import { QuickRow, QuickView } from '../components/QuickWorkout';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -45,7 +46,8 @@ type Page =
   | { kind: 'how'; first: boolean }
   | { kind: 'away' }
   | { kind: 'ill' }
-  | { kind: 'sofar' };
+  | { kind: 'sofar' }
+  | { kind: 'quick'; back: Page };
 
 /** A plan's setup as typed so far, before it is made. */
 type DetailDraft = { days: number; runDays: number[]; longDay: number; raceDate: number; extra: boolean; weekly: number; longest: number; raceKm: number | null; h: string; m: string; sec: string };
@@ -99,6 +101,11 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
 
   const active = plan && (plan.status === 'active' || plan.status === 'paused') ? plan : null;
 
+  if (view.kind === 'quick') {
+    const back = view.back;
+    return <QuickView onBack={() => setView(back)} onStart={(s) => onStartSession(s)} />;
+  }
+
   if (view.kind === 'rules') {
     const back = view.back;
     return <RulesView onBack={() => setView(back ?? (active ? { kind: 'week', index: null } : { kind: 'catalogue' }))} />;
@@ -123,7 +130,7 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
         />
       );
     }
-    return <Catalogue profile={profile} historyN={historyN} lastPlan={plan} onPick={(spec) => setView({ kind: 'detail', spec })} onRules={() => setView({ kind: 'rules' })} />;
+    return <Catalogue profile={profile} historyN={historyN} lastPlan={plan} onPick={(spec) => setView({ kind: 'detail', spec })} onRules={() => setView({ kind: 'rules' })} onQuick={() => setView({ kind: 'quick', back: { kind: 'catalogue' } })} />;
   }
 
   const spec = planSpec(active);
@@ -216,6 +223,7 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
       onRules={() => setView({ kind: 'rules' })}
       onAway={() => setView({ kind: 'away' })}
       onIll={() => setView({ kind: 'ill' })}
+      onQuick={() => setView({ kind: 'quick', back: { kind: 'week', index: null } })}
       onRebuild={async (kind) => {
         const r = rebuild(active, spec, today, profile, kind);
         if (!r.ok) Alert.alert(ui().train.couldNotRebuild, r.message);
@@ -242,7 +250,7 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
 
 // ---- Catalogue ------------------------------------------------------------------
 
-function Catalogue({ profile, historyN, lastPlan, onPick, onRules }: { profile: RunnerProfile; historyN: number; lastPlan: Plan | null; onPick: (spec: PlanSpec) => void; onRules: () => void }) {
+function Catalogue({ profile, historyN, lastPlan, onPick, onRules, onQuick }: { profile: RunnerProfile; historyN: number; lastPlan: Plan | null; onPick: (spec: PlanSpec) => void; onRules: () => void; onQuick: () => void }) {
   const goals: Goal[] = ['none', '5k', '10k', 'half', 'marathon'];
   const [goal, setGoal] = useState<Goal>(lastPlan ? planById(lastPlan.setup.planId)?.goal ?? 'none' : 'none');
   return (
@@ -253,6 +261,7 @@ function Catalogue({ profile, historyN, lastPlan, onPick, onRules }: { profile: 
       </View>
       <Text style={styles.h1}>{ui().train.structureWithoutTheShouting}</Text>
       <Text style={styles.lede}>{ui().train.fourteenPlansFromAFirst}</Text>
+      <QuickRow onPress={onQuick} />
       {lastPlan?.status === 'done' && <Text style={styles.note}>{ui().train.xIsDoneXRuns(lastPlan.name, planProgress(lastPlan).done, fmtKm(planProgress(lastPlan).kmDone, true))}</Text>}
       <View style={styles.chips}>
         {goals.map((g) => (
@@ -547,6 +556,7 @@ function WeekView(props: {
   onPause: () => void;
   onStop: () => void;
   onCalendar: () => void;
+  onQuick: () => void;
 }) {
   const { plan, spec, today, unitsKm, missed } = props;
   const weeks = plan.weeks;
@@ -577,6 +587,7 @@ function WeekView(props: {
       ) : (
         <TodayCard plan={plan} spec={spec} today={today} unitsKm={unitsKm} onOpen={props.onOpen} onStart={props.onStart} />
       )}
+      <QuickRow onPress={props.onQuick} />
       {!isUnlocked() && weeks.length > 1 && <TrainLockLine weeks={spec.tier === 'keep' ? null : weeks[weeks.length - 1].index} />}
       {!paused && behind && (
         <View style={styles.banner}>

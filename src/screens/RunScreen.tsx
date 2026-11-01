@@ -46,6 +46,7 @@ import { planSessionOpen } from '../unlock';
 import { onWatchCommand } from '../wear';
 import type { WatchCommand } from '../wearProtocol';
 import { cachedWeather } from '../weather';
+import { isQuick } from '../training/quick';
 import { beginWorkout, endWorkout, subscribeWorkout, takeWorkoutSteps, type GuidedRun } from '../workoutRun';
 import type { Offer } from '../commute';
 import { lastCommuteRoute, loadCommute } from '../commuteStore';
@@ -257,7 +258,8 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
       return;
     }
     // A low face before a hard or long day: the plan gives way before the run, not after.
-    if (session && sessionOpen && preset === 'plan' && (session.hard || session.kind === 'long') && moodBefore != null && moodBefore <= 2) {
+    // A quick workout isn't the plan's, so there is no plan to give way.
+    if (session && sessionOpen && preset === 'plan' && !isQuick(session) && (session.hard || session.kind === 'long') && moodBefore != null && moodBefore <= 2) {
       Alert.alert(ui().run.lowEnergyAndXIs(session.title), ui().run.easyDaysAreAllowedNothing, [
         { text: ui().run.makeItEasy, onPress: () => giveWay('easy') },
         { text: ui().run.restToday, onPress: () => giveWay('rest') },
