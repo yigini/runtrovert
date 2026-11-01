@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { withYear } from '../when';
-import { FlatList, Pressable, Text, View } from 'react-native';
+import { FlatList, Pressable, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { formatDistance } from '../geo';
 import { BUSY_LABEL, tagLabel } from '../places';
 import { listPlaces, recentVisits, type Place, type PlaceVisit } from '../placeStore';
@@ -14,7 +14,7 @@ import { dateLocale } from '../i18n/lang';
 const BAR: Record<Quiet, number> = { empty: 6, some: 12, crowded: 20 };
 
 /** Your runs › Places: the loops you chose to keep, newest run first. */
-export function PlacesList({ km, refreshKey, header, onOpen, onRunAgain }: { km: boolean; refreshKey: number; header: React.ReactElement; onOpen: (id: number) => void; onRunAgain: (p: Place) => void }) {
+export function PlacesList({ km, refreshKey, header, onScroll, onOpen, onRunAgain }: { km: boolean; refreshKey: number; header: React.ReactElement; onScroll?: (e: NativeSyntheticEvent<NativeScrollEvent>) => void; onOpen: (id: number) => void; onRunAgain: (p: Place) => void }) {
   const [places, setPlaces] = useState<Place[] | null>(null);
   const [recent, setRecent] = useState<Map<number, PlaceVisit[]>>(new Map());
   // A failed read keeps what was shown and never claims there are no places.
@@ -55,8 +55,10 @@ export function PlacesList({ km, refreshKey, header, onOpen, onRunAgain }: { km:
           </View>
         ) : undefined
       }
-      contentContainerStyle={{ gap: spacing.sm + 2, paddingBottom: spacing.xl }}
+      contentContainerStyle={{ gap: spacing.sm + 2, paddingHorizontal: spacing.md, paddingBottom: spacing.xl }}
       showsVerticalScrollIndicator={false}
+      onScroll={onScroll}
+      scrollEventThrottle={32}
       renderItem={({ item }) => <PlaceRow place={item} visits={recent.get(item.id) ?? []} km={km} onOpen={() => onOpen(item.id)} onRunAgain={() => onRunAgain(item)} />}
     />
   );

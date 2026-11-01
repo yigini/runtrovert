@@ -17,6 +17,7 @@ import { Alert, BackHandler, Pressable, Text, ToastAndroid, useColorScheme, View
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { handleBack, ScreenActive } from './src/back';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { FilmReport, type FilmState } from './src/components/FilmHeader';
 import { OpenSettings } from './src/components/SettingsGear';
 import { closeUnfinishedRuns, getRun, touchRuns } from './src/db';
 import { HistoryScreen, type RunsSection } from './src/screens/HistoryScreen';
@@ -145,6 +146,9 @@ function Shell() {
   // Tabs opened at least once stay mounted; the day they were drawn on.
   const [visited, setVisited] = useState<{ runs: boolean; train: boolean; me: boolean }>({ runs: false, train: false, me: false });
   const [meFilm, setMeFilm] = useState(true);
+  // Your runs and Train: whether the view on screen has its film band, and whether it is under the clock.
+  const [runsFilm, setRunsFilm] = useState<FilmState>('none');
+  const [trainFilm, setTrainFilm] = useState<FilmState>('none');
   const [day, setDay] = useState(dayOf);
   useEffect(() => {
     if (tab === 'run') return;
@@ -362,16 +366,19 @@ function Shell() {
   }
 
   const inkMode = liveRun && !finishing && tab === 'run' && sub == null && runInk;
-  // Me's header runs up behind the clock: no top inset there, and light icons while the film is under them.
+  // A film header runs up behind the clock (Me always, Your runs and Train when their view has the band):
+  // no top inset there, and light icons while the film is under them.
   const meTop = tab === 'me' && sub == null;
+  const topFilm: FilmState =
+    sub != null ? 'none' : meTop ? (meFilm ? 'film' : 'ground') : tab === 'train' ? trainFilm : tab === 'runs' && openRun == null && openPlace == null ? runsFilm : 'none';
   const go = (t: Tab) => {
     setSub(null);
     setTab(t);
   };
   return (
     <OpenSettings.Provider value={openSettings}>
-      <SafeAreaView style={[styles.root, inkMode && styles.rootInk]} edges={meTop ? ['left', 'right', 'bottom'] : ['top', 'left', 'right', 'bottom']}>
-        <StatusBar style={inkMode || dark || (meTop && meFilm) ? 'light' : 'dark'} />
+      <SafeAreaView style={[styles.root, inkMode && styles.rootInk]} edges={topFilm !== 'none' ? ['left', 'right', 'bottom'] : ['top', 'left', 'right', 'bottom']}>
+        <StatusBar style={inkMode || dark || topFilm === 'film' ? 'light' : 'dark'} />
         {/* A new language or palette redraws every screen; neither changes during a live run. */}
         <View style={{ flex: 1 }} key={`${lang()}-${scheme()}`}>
           {/* RunScreen stays mounted so a live run survives tab switches. */}
@@ -419,6 +426,7 @@ function Shell() {
           {(visited.train || tab === 'train') && (
             <View style={[{ flex: 1 }, (sub != null || tab !== 'train') && styles.hidden]}>
               <ScreenActive.Provider value={sub == null && tab === 'train'}>
+                <FilmReport.Provider value={setTrainFilm}>
                 <TrainScreen
                   key={day}
                   refreshKey={planKey + refreshKey}
@@ -428,6 +436,7 @@ function Shell() {
                     setTab('run');
                   }}
                 />
+                </FilmReport.Provider>
               </ScreenActive.Provider>
             </View>
           )}
@@ -468,6 +477,7 @@ function Shell() {
           {(visited.runs || tab === 'runs') && (
             <View style={[{ flex: 1 }, (sub != null || tab !== 'runs' || openRun != null || openPlace != null) && styles.hidden]}>
               <ScreenActive.Provider value={sub == null && tab === 'runs' && openRun == null && openPlace == null}>
+                <FilmReport.Provider value={setRunsFilm}>
                 <HistoryScreen
                   key={day}
                   onOpen={(id) => {
@@ -485,6 +495,7 @@ function Shell() {
                   onRunAgain={runAgain}
                   onChanged={() => setRefreshKey((k) => k + 1)}
                 />
+                </FilmReport.Provider>
               </ScreenActive.Provider>
             </View>
           )}

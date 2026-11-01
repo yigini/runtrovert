@@ -65,6 +65,9 @@ assert.ok((ME_NIGHT_FOOTAGE as readonly string[]).includes(meFootage(at(2026, 11
 assert.ok((ME_NIGHT_FOOTAGE as readonly string[]).includes(meFootage(at(2026, 11, 2, 3), true)));
 const days = new Set([0, 1, 2].map((k) => meFootage(at(2026, 11, 3 + k, 12), false)));
 assert.equal(days.size, 3, 'the day set takes turns');
+const tabsToday = new Set([0, 1, 2].map((o) => meFootage(at(2026, 11, 3, 12), false, o)));
+assert.equal(tabsToday.size, 3, 'by day, Me, Your runs and Train each get their own loop');
+assert.ok((ME_NIGHT_FOOTAGE as readonly string[]).includes(meFootage(at(2026, 11, 3, 12), true, 2)), 'an offset never leaves the night set');
 
 // Bests as bars: quickest pace is the full bar, slowest still visible.
 const bars = bestBars([{ key: '5k', m: 5000, seconds: 22 * 60 + 48 }, { key: '10k', m: 10000, seconds: 47 * 60 + 55 }, { key: 'full', m: 42195, seconds: 3 * 3600 + 58 * 60 }]);

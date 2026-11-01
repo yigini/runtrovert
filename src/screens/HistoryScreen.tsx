@@ -1,7 +1,9 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, SectionList, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { spokenDistance, spokenDuration, spokenPace } from '../a11y';
+import { FilmBand, useFilmScroll } from '../components/FilmHeader';
 import { PlacesList } from '../components/PlacesList';
 import { SettingsGear } from '../components/SettingsGear';
 import { distanceUnit, formatDistance, formatDistanceNumber, formatDuration, formatPace } from '../geo';
@@ -10,7 +12,7 @@ import { loadYourRuns, type YourRunsData } from '../patternStore';
 import { BUSY_LABEL } from '../places';
 import type { Place } from '../placeStore';
 import { useSettings } from '../settings';
-import { colors, fonts, radius, spacing, type, themedStyles, themed } from '../theme';
+import { colors, FILM, fonts, radius, spacing, type, themedStyles, themed } from '../theme';
 import type { Quiet, Run } from '../types';
 import type { CommuteDir } from '../commute';
 import { commuteTags, useCommute } from '../commuteStore';
@@ -130,12 +132,31 @@ export function HistoryScreen({
   const open = useCallback((id: number) => openRef.current(id), []);
   const renderItem = useMemo(() => renderRow(open), [open]);
 
+  const month = monthSummary(runs, now);
+  const thisMonth = upperFirst(monthName(now));
+  // The top of Your runs: a short band of film with the title and this month in one line, the cream
+  // sheet's edge, then Runs and Places. The band scrolls away with the list.
+  const insets = useSafeAreaInsets();
+  const [bandH, setBandH] = useState(0);
+  const film = useFilmScroll(bandH, section);
+  const monthLine = [
+    ui().history.monthSoFar(thisMonth),
+    `${month.runs} ${ui().history.runsLabel(month.runs)}`,
+    ...(month.runs ? [`${formatDistanceNumber(month.distanceM, km)} ${distanceUnit(km)}`, hoursMinutes(month.durationS)] : []),
+  ].join(' · ');
   const title = (
     <View style={{ gap: spacing.sm + 4 }}>
-      <View style={styles.topRow}>
-        <Text style={type.h1} accessibilityRole="header">{ui().history.yourRuns}</Text>
-        <SettingsGear />
-      </View>
+      <FilmBand offset={1} onHeight={setBandH}>
+        <View style={styles.topRow}>
+          <Text style={[type.h1, styles.onFilm]} accessibilityRole="header">{ui().history.yourRuns}</Text>
+          <SettingsGear onFilm />
+        </View>
+        {data ? (
+          <Text style={styles.bandLine} accessibilityLabel={ui().history.monthSoFarSpoken(thisMonth, month.runs, spokenDistance(month.distanceM, km), spokenDuration(month.durationS))}>
+            {monthLine}
+          </Text>
+        ) : null}
+      </FilmBand>
       {onSection ? <Sections value={section} onChange={onSection} /> : null}
     </View>
   );
@@ -143,13 +164,12 @@ export function HistoryScreen({
   if (section === 'places') {
     return (
       <View style={styles.screen}>
-        <PlacesList km={km} refreshKey={refreshKey} header={title} onOpen={(id) => onOpenPlace?.(id)} onRunAgain={(p) => onRunAgain?.(p)} />
+        <PlacesList km={km} refreshKey={refreshKey} header={title} onScroll={film.onScroll} onOpen={(id) => onOpenPlace?.(id)} onRunAgain={(p) => onRunAgain?.(p)} />
+        {film.strip}
       </View>
     );
   }
 
-  const month = monthSummary(runs, now);
-  const thisMonth = upperFirst(monthName(now));
   const filterButton = (
     <Pressable
       onPress={() => setFiltering(true)}
@@ -187,18 +207,6 @@ export function HistoryScreen({
     ) : (
     <View style={{ gap: spacing.md, marginBottom: spacing.sm }}>
       {title}
-      <View
-        style={styles.month}
-        accessible
-        accessibilityLabel={ui().history.monthSoFarSpoken(thisMonth, month.runs, spokenDistance(month.distanceM, km), spokenDuration(month.durationS))}
-      >
-        <Text style={type.eyebrow}>{ui().history.monthSoFar(thisMonth)}</Text>
-        <View style={styles.monthRow}>
-          <Stat value={String(month.runs)} label={ui().history.runsLabel(month.runs)} />
-          <Stat value={month.runs ? formatDistanceNumber(month.distanceM, km) : '0'} label={distanceUnit(km)} />
-          <Stat value={hoursMinutes(month.durationS)} label={ui().history.running} />
-        </View>
-      </View>
       {!settings.meMoved && runs.length > 0 ? (
         <View style={styles.moved}>
           <Text style={styles.movedText}>{ui().me.moved}</Text>
@@ -232,7 +240,7 @@ export function HistoryScreen({
 
   if (!data && failed) {
     return (
-      <View style={styles.screen}>
+      <View style={[styles.screen, styles.padded, { paddingTop: insets.top + spacing.lg }]}>
         <LoadFailed text={ui().history.couldntOpenYourRuns} onRetry={() => setTries((n) => n + 1)} />
       </View>
     );
@@ -240,7 +248,7 @@ export function HistoryScreen({
 
   if (data && runs.length === 0) {
     return (
-      <View style={styles.screen}>
+      <View style={[styles.screen, styles.padded]}>
         {header}
         <View style={styles.empty}>
           <Text style={type.h2}>{ui().history.noRunsYet}</Text>
@@ -269,8 +277,10 @@ export function HistoryScreen({
           </Text>
         )}
         ItemSeparatorComponent={Separator}
-        contentContainerStyle={{ paddingBottom: spacing.xl }}
+        contentContainerStyle={{ paddingHorizontal: spacing.md, paddingBottom: spacing.xl }}
         showsVerticalScrollIndicator={false}
+        onScroll={film.onScroll}
+        scrollEventThrottle={32}
         // Hundreds of imported runs: draw a screenful first, then a little at a time.
         initialNumToRender={8}
         maxToRenderPerBatch={8}
@@ -286,6 +296,7 @@ export function HistoryScreen({
           ) : undefined
         }
       />
+      {film.strip}
       <RunFilterSheet
         open={filtering}
         value={filter}
@@ -443,7 +454,10 @@ function shapeFor(id: number): string {
 
 const styles = themedStyles(() => ({
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginRight: -10 },
-  screen: { flex: 1, backgroundColor: colors.cream, padding: spacing.md, paddingTop: spacing.lg },
+  screen: { flex: 1, backgroundColor: colors.cream },
+  padded: { paddingHorizontal: spacing.md },
+  onFilm: { color: FILM.text, textShadowColor: FILM.shadow, textShadowRadius: 8 },
+  bandLine: { fontFamily: fonts.bodyMedium, fontSize: 15, lineHeight: 21, color: FILM.soft, textShadowColor: FILM.shadow, textShadowRadius: 6, fontVariant: ['tabular-nums'] },
   seg: { flexDirection: 'row', backgroundColor: colors.sunk, borderRadius: radius.pill, padding: 4, gap: 4 },
   segItem: { flex: 1, minHeight: 44, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   segOn: { backgroundColor: colors.white },
