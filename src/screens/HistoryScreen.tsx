@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, SectionList, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { spokenDistance, spokenDuration, spokenPace } from '../a11y';
@@ -20,7 +20,7 @@ import { commuteTags, useCommute } from '../commuteStore';
 import { LoadFailed } from '../components/LoadFailed';
 import { AddRunSheet } from '../components/AddRunSheet';
 import { ui } from '../i18n/ui';
-import { dateLocale, monthName, upperFirst } from '../i18n/lang';
+import { dateLocale, lang, monthName, upperFirst } from '../i18n/lang';
 
 const QUIET_BG: Record<Quiet, string> = themed(() => ({ crowded: colors.peach, some: colors.butter, empty: colors.mint }));
 const QUIET_FG: Record<Quiet, string> = themed(() => ({ crowded: colors.peachDeep, some: colors.butterDeep, empty: colors.mintDeep }));
@@ -70,7 +70,23 @@ export function HistoryScreen({
   const now = Date.now();
   const runs = data?.runs ?? [];
   const names = useMemo(() => new Map((data?.places ?? []).map((p) => [p.id, p.name])), [data]);
-  const groups = useMemo(() => groupRuns(runs, now), [runs]);
+  // Every row's words are worked out once per load, not while scrolling.
+  const language = lang();
+  const rows = useMemo(() => {
+    const toWork = ui().commute.tagToWork;
+    const home = ui().commute.tagHome;
+    return runs.map((r) => {
+      const pid = data?.placeOf.get(r.id);
+      const dir = tags.get(r.id);
+      return rowModel(r, km, pid != null ? names.get(pid) ?? null : null, dir ? (dir === 'toWork' ? toWork : home) : null);
+    });
+  }, [runs, km, names, tags, data, language]);
+  const groups = useMemo(() => groupRuns(rows, now), [rows]);
+  // The parent hands a new onOpen each render; rows keep one stable press handler.
+  const openRef = useRef(onOpen);
+  openRef.current = onOpen;
+  const open = useCallback((id: number) => openRef.current(id), []);
+  const renderItem = useMemo(() => renderRow(open), [open]);
   const patterns = useMemo(() => (data ? energyPatterns(patternRuns(data), data.places, now, patternFormat(km)) : null), [data, km]);
 
   const title = (
@@ -170,7 +186,7 @@ export function HistoryScreen({
     <View style={styles.screen}>
       <SectionList
         sections={groups}
-        keyExtractor={(r) => String(r.id)}
+        keyExtractor={rowKey}
         ListHeaderComponent={header}
         stickySectionHeadersEnabled={false}
         renderSectionHeader={({ section: s }) => (
@@ -178,14 +194,16 @@ export function HistoryScreen({
             {s.title}
           </Text>
         )}
-        ItemSeparatorComponent={() => <View style={{ height: spacing.sm + 2 }} />}
+        ItemSeparatorComponent={Separator}
         contentContainerStyle={{ paddingBottom: spacing.xl }}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => {
-          const pid = data?.placeOf.get(item.id);
-          const dir = tags.get(item.id);
-          return <RunRow run={item} km={km} place={pid != null ? names.get(pid) ?? null : null} commute={dir ? (dir === 'toWork' ? ui().commute.tagToWork : ui().commute.tagHome) : null} onPress={() => onOpen(item.id)} />;
-        }}
+        // Hundreds of imported runs: draw a screenful first, then a little at a time.
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        updateCellsBatchingPeriod={60}
+        windowSize={7}
+        removeClippedSubviews
+        renderItem={renderItem}
       />
       {sheet}
     </View>
@@ -228,56 +246,96 @@ function Stat({ value, label }: { value: string; label: string }) {
   );
 }
 
-function RunRow({ run, km, place, commute, onPress }: { run: Run; km: boolean; place: string | null; commute: string | null; onPress: () => void }) {
+function rowKey(r: RowModel): string {
+  return String(r.id);
+}
+
+function Separator() {
+  return <View style={styles.separator} />;
+}
+
+/** Date and time formatters, made once per language: Intl is slow to set up on the phone. */
+let formats: { key: string; day: Intl.DateTimeFormat; time: Intl.DateTimeFormat; long: Intl.DateTimeFormat } | null = null;
+function dateFormats() {
+  const key = dateLocale();
+  if (formats?.key !== key) {
+    formats = {
+      key,
+      day: new Intl.DateTimeFormat(key, { weekday: 'short', day: 'numeric' }),
+      time: new Intl.DateTimeFormat(key, { hour: '2-digit', minute: '2-digit' }),
+      long: new Intl.DateTimeFormat(key, { weekday: 'long', day: 'numeric', month: 'long' }),
+    };
+  }
+  return formats;
+}
+
+/** One row's words, worked out once per load. */
+interface RowModel {
+  id: number;
+  startedAt: number;
+  quiet: Quiet | null;
+  meta: string;
+  main: string;
+  sub: string;
+  label: string;
+}
+
+function rowModel(run: Run, km: boolean, place: string | null, commute: string | null): RowModel {
+  const f = dateFormats();
   const d = new Date(run.startedAt);
-  const date = d.toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric' });
-  const time = d.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' });
+  const time = f.time.format(d);
   const delta = run.moodBefore != null && run.moodAfter != null ? run.moodAfter - run.moodBefore : null;
-  const q = run.quiet;
-  const busy = q ? BUSY_LABEL[q].toLowerCase() : null;
+  const busy = run.quiet ? BUSY_LABEL[run.quiet].toLowerCase() : null;
+  return {
+    id: run.id,
+    startedAt: run.startedAt,
+    quiet: run.quiet,
+    meta: `${f.day.format(d)} · ${time}${commute ? ` · ${commute}` : ''}${place ? ` · ${place}` : busy ? ` · ${busy}` : ''}`,
+    main: `${formatDistance(run.distanceM, km)} · ${formatDuration(run.durationS)}`,
+    sub: `${formatPace(run.distanceM, run.durationS, km)} /${km ? 'km' : 'mi'}${delta != null ? ui().history.energy(delta) : ''}`,
+    label: [
+      `${f.long.format(d)}, ${time}`,
+      place,
+      commute,
+      ui().history.distanceIn(spokenDistance(run.distanceM, km), spokenDuration(run.durationS)),
+      spokenPace(run.distanceM, run.durationS, km),
+      delta != null ? ui().history.energySpoken(delta) : null,
+      busy,
+    ]
+      .filter(Boolean)
+      .join('. '),
+  };
+}
+
+function renderRow(open: (id: number) => void) {
+  return ({ item }: { item: RowModel }) => <RunRow row={item} onOpen={open} />;
+}
+
+const RunRow = memo(function RunRow({ row, onOpen }: { row: RowModel; onOpen: (id: number) => void }) {
+  const q = row.quiet;
   const bg = q ? QUIET_BG[q] : colors.lilac;
   const fg = q ? QUIET_FG[q] : colors.lilacDeep;
-
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => onOpen(row.id)}
       accessibilityRole="button"
       accessibilityHint={ui().history.opensThisRun}
-      accessibilityLabel={[
-        `${d.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}, ${time}`,
-        place,
-        commute,
-        ui().history.distanceIn(spokenDistance(run.distanceM, km), spokenDuration(run.durationS)),
-        spokenPace(run.distanceM, run.durationS, km),
-        delta != null ? ui().history.energySpoken(delta) : null,
-        busy,
-      ]
-        .filter(Boolean)
-        .join('. ')}
+      accessibilityLabel={row.label}
       style={({ pressed }) => [styles.row, { backgroundColor: bg }, pressed && { opacity: 0.85 }]}
     >
       <View style={styles.thumb}>
         <Svg viewBox="0 0 32 32" width={32} height={32}>
-          <Path d={shapeFor(run.id)} stroke={fg} strokeWidth={2.5} fill="none" strokeLinejoin="round" strokeLinecap="round" />
+          <Path d={shapeFor(row.id)} stroke={fg} strokeWidth={2.5} fill="none" strokeLinejoin="round" strokeLinecap="round" />
         </Svg>
       </View>
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={[styles.rowMeta, { color: fg }]}>
-          {date} · {time}
-          {commute ? ` · ${commute}` : ''}
-          {place ? ` · ${place}` : busy ? ` · ${busy}` : ''}
-        </Text>
-        <Text style={styles.rowMain}>
-          {formatDistance(run.distanceM, km)} · {formatDuration(run.durationS)}
-        </Text>
-        <Text style={styles.rowSub}>
-          {formatPace(run.distanceM, run.durationS, km)} /{km ? 'km' : 'mi'}
-          {delta != null ? ui().history.energy(delta) : ''}
-        </Text>
+        <Text style={[styles.rowMeta, { color: fg }]}>{row.meta}</Text>
+        <Text style={styles.rowMain}>{row.main}</Text>
+        <Text style={styles.rowSub}>{row.sub}</Text>
       </View>
     </Pressable>
   );
-}
+});
 
 /** A little abstract route glyph per run so the list isn't a wall of identical cards. */
 function shapeFor(id: number): string {
@@ -306,6 +364,7 @@ const styles = themedStyles(() => ({
   stat: { flex: 1, minWidth: 0 },
   statValue: { fontFamily: fonts.display, fontSize: 24, lineHeight: 28, color: colors.text, fontVariant: ['tabular-nums'] },
   statLabel: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
+  separator: { height: spacing.sm + 2 },
   groupTitle: { marginTop: spacing.md, marginBottom: spacing.sm },
   bringIn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.md, marginTop: spacing.sm },
   bringInText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.lilacDeep, textDecorationLine: 'underline', textAlign: 'center' },

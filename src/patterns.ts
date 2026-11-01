@@ -68,6 +68,8 @@ export function groupRuns<T extends { startedAt: number }>(runs: T[], now = Date
   const year = new Date(now).getFullYear();
   const out: RunGroup<T>[] = [];
   const sorted = [...runs].sort((a, b) => b.startedAt - a.startedAt);
+  // Month names come from Intl, which is slow on the phone: one call per month, not per run.
+  const titles = new Map<string, string>();
   for (const r of sorted) {
     let key: string;
     let title: string;
@@ -79,9 +81,14 @@ export function groupRuns<T extends { startedAt: number }>(runs: T[], now = Date
       title = ui().patterns.lastWeek;
     } else {
       const d = new Date(r.startedAt);
-      const first = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
       key = `m-${d.getFullYear()}-${d.getMonth()}`;
-      title = d.getFullYear() === year ? monthName(first) : `${monthName(first)} ${d.getFullYear()}`;
+      const known = titles.get(key);
+      if (known != null) title = known;
+      else {
+        const first = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+        title = d.getFullYear() === year ? monthName(first) : `${monthName(first)} ${d.getFullYear()}`;
+        titles.set(key, title);
+      }
     }
     const last = out[out.length - 1];
     if (last && last.key === key) last.data.push(r);
