@@ -2015,6 +2015,12 @@ export const ja: Strings = {
     everythingIsBack: 'バックアップの内容がすべてこの端末に戻りました。',
   },
   deepMore: {
+    curveTitle: '距離ごとのベストペース',
+    curveHeadline: (label, pace, unit) => `${label} ${pace} /${unit}`,
+    curveDetail: 'どのランの中からでも見つけた、各距離の一番速い区間。上ほど速いです。',
+    allTime: 'これまで',
+    last90: '直近90日',
+    curveSpoken: (label, all, recent) => (recent ? `${label}: ${all}、直近90日 ${recent}` : `${label}: ${all}`),
     groups: { pace: 'ペース', hills: '坂', stops: '止まった所と曲がり角', heart: '心拍', gps: 'GPS' },
     groupHint: 'このグループを表示または非表示にします。',
     turn: 'ペースが変わった所',

@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import Svg, { Circle, Polyline, Rect } from 'react-native-svg';
+import Svg, { Circle, Path, Polyline, Rect } from 'react-native-svg';
 import { formatDistance, formatDuration, formatElevation } from '../geo';
 import { bests, EFFORTS, formatClock, trends, type Best, type Trends } from '../progress';
 import { colors, fonts, radius, spacing, type, themedStyles } from '../theme';
 import { useUnlocked } from '../unlockState';
 import { loadYou } from '../you';
 import { LockRow } from './LockRow';
+import { Group as Fold, Legend } from './DeepCharts';
+import { spokenPaceSec } from '../a11y';
 import { live, ui } from '../i18n/ui';
 import { decimal } from '../i18n/lang';
 
@@ -106,6 +108,7 @@ export function YouSection({ km, refreshKey }: { km: boolean; refreshKey: number
           );
         })}
       </ScrollView>
+      <BestsCurve all={all} recent={recent} km={km} />
       <View>
         {rows.map((r) => (
           <View key={r.k} style={styles.trend}>
@@ -166,6 +169,67 @@ function Dots({ values, color }: { values: boolean[]; color: string }) {
   );
 }
 
+// ---- Bests as one curve (V3) --------------------------------------------------------
+// Best pace for each distance, all time and the last 90 days, on a log scale of
+// distance. Folded away until opened, so the top of Your runs stays calm.
+
+function BestsCurve({ all, recent, km }: { all: Best[]; recent: Best[]; km: boolean }) {
+  const [w, setW] = useState(0);
+  const pts = EFFORTS.map((e) => {
+    const a = all.find((b) => b.key === e.key);
+    const r = recent.find((b) => b.key === e.key);
+    return a ? { key: e.key, label: e.label, m: e.m, pace: a.value / (e.m / 1000), recent: r ? r.value / (e.m / 1000) : null } : null;
+  }).filter((p): p is NonNullable<typeof p> => p != null);
+  if (pts.length < 3) return null;
+  const m = ui().deepMore;
+  const unit = km ? 'km' : 'mi';
+  const pace = (s: number) => formatClock(km ? s : s * 1.609344);
+  const h = 120;
+  const lx = (d: number) => Math.log(d);
+  const x0 = lx(pts[0].m);
+  const x1 = lx(pts[pts.length - 1].m);
+  const x = (d: number) => 16 + ((lx(d) - x0) / (x1 - x0 || 1)) * (w - 32);
+  const vals = pts.flatMap((p) => [p.pace, p.recent]).filter((v): v is number => v != null);
+  const lo = Math.min(...vals);
+  const hi = Math.max(...vals);
+  const pad = (hi - lo) * 0.12 || 5;
+  const y = (v: number) => 8 + ((v - (lo - pad)) / (hi - lo + 2 * pad)) * (h - 16); // quicker (lower s/km) is higher
+  const line = (vs: Array<[number, number]>) => vs.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  const rec = pts.filter((p) => p.recent != null);
+  const head = pts.find((p) => p.key === '5k') ?? pts[pts.length - 1];
+  const spoken = [m.curveTitle, ...pts.map((p) => m.curveSpoken(p.label, spokenPaceSec(p.pace, km), p.recent != null ? spokenPaceSec(p.recent, km) : null))].join('. ');
+  return (
+    <Fold id="bests-curve" title={m.curveTitle} headline={m.curveHeadline(head.label, pace(head.pace), unit)}>
+      <View accessible accessibilityLabel={spoken} style={{ gap: 6 }}>
+        <View style={{ height: h }} onLayout={(e) => setW(e.nativeEvent.layout.width)} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+          {w > 0 && (
+            <Svg width={w} height={h}>
+              <Path d={line(pts.map((p) => [x(p.m), y(p.pace)]))} stroke={colors.text} strokeWidth={2} fill="none" strokeLinejoin="round" />
+              {rec.length > 1 && <Path d={line(rec.map((p) => [x(p.m), y(p.recent!)]))} stroke={colors.chartQuick} strokeWidth={2} fill="none" strokeLinejoin="round" />}
+              {pts.map((p) => (
+                <Circle key={p.key} cx={x(p.m)} cy={y(p.pace)} r={4} fill={colors.text} stroke={colors.white} strokeWidth={1.5} />
+              ))}
+              {rec.map((p) => (
+                <Circle key={`r-${p.key}`} cx={x(p.m)} cy={y(p.recent!)} r={4} fill={colors.chartQuick} stroke={colors.white} strokeWidth={1.5} />
+              ))}
+            </Svg>
+          )}
+        </View>
+        <View style={{ height: 14 }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+          {w > 0 &&
+            pts.map((p) => (
+              <Text key={p.key} style={[styles.curveTick, { left: x(p.m) - 24 }]}>
+                {p.label}
+              </Text>
+            ))}
+        </View>
+        <Legend items={[{ c: colors.text, t: m.allTime }, { c: colors.chartQuick, t: m.last90 }]} />
+        <Text style={type.small}>{m.curveDetail}</Text>
+      </View>
+    </Fold>
+  );
+}
+
 const styles = themedStyles(() => ({
   best: { backgroundColor: colors.white, borderRadius: radius.md, paddingVertical: 10, paddingHorizontal: 14, minWidth: 96 },
   bestValue: { fontFamily: fonts.display, fontSize: 20, lineHeight: 24, color: colors.text, fontVariant: ['tabular-nums'] },
@@ -173,5 +237,6 @@ const styles = themedStyles(() => ({
   bestLately: { fontFamily: fonts.body, fontSize: 11, color: colors.muted, marginTop: 2 },
   trend: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 10 },
   trendK: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', color: colors.muted },
+  curveTick: { position: 'absolute', width: 48, textAlign: 'center', fontFamily: fonts.body, fontSize: 10, color: colors.muted },
   trendV: { fontFamily: fonts.display, fontSize: 16, lineHeight: 21, color: colors.text },
 }));

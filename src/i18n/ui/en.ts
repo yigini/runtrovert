@@ -2029,6 +2029,12 @@ export const en = {
     everythingIsBack: 'Everything from the backup is on this phone now.',
   },
   deepMore: {
+    curveTitle: 'Your best pace at each distance',
+    curveHeadline: (label: string, pace: string, unit: string) => `${label} at ${pace} /${unit}`,
+    curveDetail: 'Your quickest stretch of each length, found inside any run. Higher is quicker.',
+    allTime: 'All time',
+    last90: 'Last 90 days',
+    curveSpoken: (label: string, all: string, recent: string | null) => (recent ? `${label}: ${all}; last 90 days ${recent}` : `${label}: ${all}`),
     groups: { pace: 'Your pace', hills: 'Hills', stops: 'Stops and corners', heart: 'Heart', gps: 'The GPS' } as Record<string, string>,
     groupHint: 'Shows or hides this group.',
     turn: 'Where it turned',

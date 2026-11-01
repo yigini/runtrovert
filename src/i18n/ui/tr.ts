@@ -2018,6 +2018,12 @@ export const tr: Strings = {
     everythingIsBack: 'Yedekteki her şey artık bu telefonda.',
   },
   deepMore: {
+    curveTitle: 'Her mesafede en iyi tempon',
+    curveHeadline: (label, pace, unit) => `${label}: ${pace} /${unit}`,
+    curveDetail: 'Her uzunluktaki en hızlı bölümün, herhangi bir koşunun içinden bulundu. Yukarısı daha hızlı.',
+    allTime: 'Tüm zamanlar',
+    last90: 'Son 90 gün',
+    curveSpoken: (label, all, recent) => (recent ? `${label}: ${all}; son 90 gün ${recent}` : `${label}: ${all}`),
     groups: { pace: 'Temponun', hills: 'Yokuşlar', stops: 'Duruşlar ve virajlar', heart: 'Kalp', gps: 'GPS' },
     groupHint: 'Bu grubu gösterir ya da gizler.',
     turn: 'Nerede değişti',
