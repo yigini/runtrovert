@@ -90,7 +90,15 @@
         }
       ],
       "expo-sharing",
-      "expo-iap"
+      "expo-iap",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Runtrovert lets you add one photo to a run. It stays on this phone.",
+          "cameraPermission": "Runtrovert lets you take a photo for a run. It stays on this phone, without where it was taken.",
+          "microphonePermission": false
+        }
+      ]
     ]
   }
 }
