@@ -2193,6 +2193,7 @@ export const ja: Strings = {
     holds: (runs: number, places: number, notes: number) => `バックアップの内容：ラン${runs}件、場所${places}件、メモ${notes}件。`,
     couldntMake: 'バックアップを作れませんでした',
     couldntRestore: 'バックアップを復元できませんでした',
+    incomplete: 'このバックアップは不完全なため、復元できません。別のバックアップを選んでください。',
     nothingChanged: 'この端末では何も変更されていません。',
     notABackup: 'Runtrovert のバックアップファイルではありません。',
     newer: '新しいバージョンの Runtrovert で作られたバックアップです。アプリを更新してから、もう一度お試しください。',

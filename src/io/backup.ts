@@ -7,7 +7,10 @@
 // a text codec, and line by line so a long history never has to sit in memory
 // as one string.
 
-export const BACKUP_V = 1;
+// v2 adds a last line, `{"end":true,"rows":[...]}`, with the number of rows
+// written for each table. A file without it, or with other numbers, was cut
+// short somewhere on its way and is never restored.
+export const BACKUP_V = 2;
 
 /** Parents first: restore inserts in this order and deletes in the reverse. */
 export const BACKUP_TABLES = ['runs', 'points', 'splits', 'run_facts', 'run_sources', 'route_sigs', 'heart_rate', 'places', 'place_visits', 'routes', 'settings'] as const;
@@ -87,6 +90,49 @@ export function readHeader(bytes: Uint8Array): HeaderResult {
   return h as BackupHeader;
 }
 
+/** The last line of a v2 file: how many rows each table (by header index) has. */
+export function footer(rowsPerTable: number[]): string {
+  return asciiJson({ end: true, rows: rowsPerTable });
+}
+
+/**
+ * Reads the whole file before anything on the phone is touched, and says
+ * whether it holds everything its header and last line promise. A restore
+ * deletes first, so a file that was cut short must never get that far.
+ */
+export function checkComplete(bytes: Uint8Array, header: BackupHeader): 'ok' | 'incomplete' {
+  // The app always ends a backup with a newline; a file cut mid-line doesn't.
+  if (!bytes.length || bytes[bytes.length - 1] !== 10) return 'incomplete';
+  const seen = header.tables.map(() => 0);
+  let end: { rows: unknown } | null = null;
+  let first = true;
+  try {
+    for (const line of lines(bytes)) {
+      if (first) {
+        first = false;
+        continue;
+      }
+      if (end) return 'incomplete'; // nothing comes after the last line
+      const v = JSON.parse(line);
+      if (v && !Array.isArray(v) && v.end === true) {
+        end = v;
+        continue;
+      }
+      if (!Array.isArray(v) || typeof v[0] !== 'number' || !header.tables[v[0]]) return 'incomplete';
+      seen[v[0]]++;
+    }
+  } catch {
+    return 'incomplete';
+  }
+  const count = (name: string) => header.tables.reduce((n, t, i) => (t.name === name ? n + seen[i] : n), 0);
+  if (count('runs') !== header.counts.runs || count('places') !== header.counts.places) return 'incomplete';
+  if (header.v >= 2) {
+    const want = end?.rows;
+    if (!Array.isArray(want) || want.length !== seen.length || want.some((n, i) => n !== seen[i])) return 'incomplete';
+  } else if (end) return 'incomplete';
+  return 'ok';
+}
+
 /** Every row in the file, after the header. Lines for tables this version doesn't know are passed over. */
 export function* rows(bytes: Uint8Array, header: BackupHeader): Generator<{ table: string; cols: string[]; values: unknown[] }> {
   let first = true;
@@ -96,6 +142,7 @@ export function* rows(bytes: Uint8Array, header: BackupHeader): Generator<{ tabl
       continue;
     }
     const v = JSON.parse(line);
+    if (v && !Array.isArray(v) && v.end === true) continue; // the last line, checked by checkComplete
     if (!Array.isArray(v) || typeof v[0] !== 'number') throw new Error('bad line');
     const t = header.tables[v[0]];
     if (!t) throw new Error('bad table');

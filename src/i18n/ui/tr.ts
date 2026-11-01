@@ -2196,6 +2196,7 @@ export const tr: Strings = {
     holds: (runs: number, places: number, notes: number) => `Yedekte ${runs} koşu, ${places} yer ve ${notes} not var.`,
     couldntMake: 'Yedek oluşturulamadı',
     couldntRestore: 'Yedek geri yüklenemedi',
+    incomplete: 'Bu yedek eksik, bu yüzden geri yüklenemez. Başka bir yedek seç.',
     nothingChanged: 'Bu telefonda hiçbir şey değişmedi.',
     notABackup: 'Bu bir Runtrovert yedek dosyası değil.',
     newer: 'Bu yedek Runtrovert’in daha yeni bir sürümünden. Uygulamayı güncelle, sonra tekrar dene.',

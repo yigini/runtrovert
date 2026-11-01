@@ -120,6 +120,10 @@ export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; on
     }
     setBusy(null);
     if (!picked) return;
+    if (picked === 'incomplete') {
+      Alert.alert(ui().backup.couldntRestore, `${ui().backup.incomplete}\n\n${ui().backup.nothingChanged}`);
+      return;
+    }
     if (picked === 'notBackup' || picked === 'newer') {
       Alert.alert(ui().backup.couldntRestore, picked === 'newer' ? ui().backup.newer : ui().backup.notABackup);
       return;

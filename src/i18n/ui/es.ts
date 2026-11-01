@@ -2196,6 +2196,7 @@ export const es: Strings = {
     holds: (runs: number, places: number, notes: number) => `La copia tiene ${runs} ${runs === 1 ? 'salida' : 'salidas'}, ${places} ${places === 1 ? 'lugar' : 'lugares'} y ${notes} ${notes === 1 ? 'nota' : 'notas'}.`,
     couldntMake: 'No se pudo crear la copia',
     couldntRestore: 'No se pudo restaurar la copia',
+    incomplete: 'Esta copia está incompleta, así que no se puede restaurar. Elige otra copia.',
     nothingChanged: 'No se cambió nada en este móvil.',
     notABackup: 'Eso no es un archivo de copia de Runtrovert.',
     newer: 'Esta copia viene de una versión más nueva de Runtrovert. Actualiza la app y vuelve a intentarlo.',

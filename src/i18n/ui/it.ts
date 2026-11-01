@@ -2197,6 +2197,7 @@ export const it: Strings = {
     holds: (runs: number, places: number, notes: number) => `Il backup contiene ${runs} ${runs === 1 ? 'corsa' : 'corse'}, ${places} ${places === 1 ? 'luogo' : 'luoghi'} e ${notes} ${notes === 1 ? 'nota' : 'note'}.`,
     couldntMake: 'Impossibile creare il backup',
     couldntRestore: 'Impossibile ripristinare il backup',
+    incomplete: 'Questo backup è incompleto, quindi non si può ripristinare. Scegli un altro backup.',
     nothingChanged: 'Su questo telefono non è cambiato nulla.',
     notABackup: 'Questo non è un file di backup di Runtrovert.',
     newer: 'Questo backup viene da una versione più recente di Runtrovert. Aggiorna l’app e riprova.',
