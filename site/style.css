@@ -446,3 +446,21 @@ main:focus { outline: none; }
 .curve .key .kd::before { width: 7px; height: 7px; border: 0; border-radius: 50%; background: #b5651d; vertical-align: 1px; }
 .curve .key .ks::before { height: 8px; border: 0; background: rgba(43,39,51,0.15); vertical-align: 0; }
 @media (max-width: 760px) { .nerd { grid-template-columns: 1fr; } .nerd dd { font-size: 15px; } }
+
+/* Tap targets at least 44 px, and the demo fits a 320 px screen (Pip's emulator audit) */
+.seemore { display: inline-flex; align-items: center; min-height: 44px; }
+.ch .say a.lock { display: inline-block; min-height: 44px; line-height: 1.4; padding-top: 10px; padding-bottom: 10px; }
+.note .b button { min-height: 44px; }
+.nerd .k a { display: inline-block; padding: 15px 0; margin: -15px 0; }
+.skip { min-height: 44px; display: inline-flex; align-items: center; }
+.phone .more, .try button, .phone .ghost, .phone .unlock, .phone .noti button, .phone .feel button, .curve .cv-x button { min-height: 44px; }
+.phone .deep summary { min-height: 44px; align-items: center; padding: 6px 0; }
+@media (max-width: 900px) { .demo-wrap { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 360px) {
+  .modes { width: 100%; }
+  .modes button { flex: 1; min-width: 0; white-space: normal; padding: 6px 4px; line-height: 1.15; }
+  .modes b { font-size: 12.5px; }
+  .phone { width: 100%; max-width: 300px; }
+  .phone .big b { font-size: 60px; }
+  .try button { font-size: 13px; padding: 8px 12px; }
+}
