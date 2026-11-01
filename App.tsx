@@ -50,6 +50,7 @@ import { goalStore } from './src/extraStores';
 import { lang } from './src/i18n/lang';
 import { warmSigs } from './src/placeStore';
 import { loadYou } from './src/you';
+import { onRunsImported } from './src/io/importJob';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -122,6 +123,16 @@ function Shell() {
   const [ghost, setGhost] = useState<Ghost | null>(null);
   const [shareOpen, setShareOpen] = useState(false); // open the share card on arrival ("Keep it and share")
   const [refreshKey, setRefreshKey] = useState(0);
+  // Runs brought in reach every list once, when the import ends, wherever the runner is by then.
+  useEffect(
+    () =>
+      onRunsImported(() => {
+        // Runs brought in or restored: every kept list and answer is read again.
+        touchRuns();
+        setRefreshKey((k) => k + 1);
+      }),
+    [],
+  );
   const [liveRun, setLiveRun] = useState(false);
   const [countingDown, setCountingDown] = useState(false);
   const wasLive = useRef(false);
@@ -393,16 +404,7 @@ function Shell() {
               }}
             />
           )}
-          {sub === 'everything' && (
-            <EverythingScreen
-              onBack={() => setSub(everythingFrom)}
-              onChanged={() => {
-                // Runs brought in or restored: every kept list and answer is read again.
-                touchRuns();
-                setRefreshKey((k) => k + 1);
-              }}
-            />
-          )}
+          {sub === 'everything' && <EverythingScreen onBack={() => setSub(everythingFrom)} />}
           {sub === 'credits' && <CreditsScreen onBack={() => setSub('settings')} />}
           {sub === 'listen' && <ListenScreen runLive={liveRun} onBack={() => setSub(null)} />}
           {/* Your runs and Train stay mounted once visited (hidden like the Run tab), so coming back is

@@ -1,6 +1,7 @@
 import { File, FileMode, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { addHeartRate, addImportedRun, getHeartRate, getPoints, getRun, listRuns, runSpans } from '../db';
+import { addImportedRuns, getHeartRate, getPoints, getRun, listRuns, runSpans } from '../db';
+import { RunSaver, importOne } from './saver';
 import { cleanHeart, type HeartSample } from '../heart';
 import { parseFit, writeFit } from './fit';
 import { parseGpx, writeGpx } from './gpx';
@@ -20,33 +21,12 @@ import { ui } from '../i18n/ui';
 // ImportedRun (externalId = the record id), call importParsed with kind
 // 'health', and de-duplication, history, bests and places work as for files.
 
-/** Brings one file's activities in against `known`, which grows as runs are added. */
-async function importOne(result: ParseResult, fileName: string | null, kind: SourceKind, known: KnownRun[], tally: ImportTally): Promise<void> {
-  tallySkips(result.skipped, tally);
-  for (const r of result.runs) {
-    const shaped = shapeRun(r);
-    if (typeof shaped === 'string') {
-      tallySkips([shaped], tally);
-      continue;
-    }
-    if (known.some((k) => sameRun(k, shaped))) {
-      tally.duplicate++;
-      continue;
-    }
-    const id = await addImportedRun(shaped, shaped.points, shaped.kmSplits, { kind, fileName, externalId: shaped.externalId });
-    // Heart rate from the file, within the run's own times.
-    const beats = (r.heart ?? []).filter((h) => h.ts >= shaped.startedAt && h.ts <= shaped.endedAt).map((h) => [h.ts, h.bpm] as [number, number]);
-    if (beats.length) await addHeartRate(id, beats).catch(() => {});
-    known.push(shaped);
-    tally.added++;
-    tally.ids?.push(id);
-  }
-}
-
 /** Bring parsed activities in, leaving out any we already have. New runs show up everywhere on the next load. */
 export async function importParsed(parsed: Array<{ result: ParseResult; fileName: string | null }>, kind: SourceKind, tally: ImportTally = { ...EMPTY_TALLY }): Promise<ImportTally> {
   const known: KnownRun[] = await runSpans();
-  for (const { result, fileName } of parsed) await importOne(result, fileName, kind, known, tally);
+  const saver = new RunSaver(tally, addImportedRuns);
+  for (const { result, fileName } of parsed) await importOne(result, fileName, kind, known, tally, saver);
+  await saver.flush();
   return tally;
 }
 
@@ -221,7 +201,9 @@ export async function commitImport(files: File[], preview: ImportPreview, onProg
   const known: KnownRun[] = await runSpans();
   // What stays out was counted in the first pass; this one only adds.
   const now: ImportTally = { ...EMPTY_TALLY };
-  await eachActivity(files, preview.keep, onProgress, { ...EMPTY_TALLY }, (_i, a) => importOne(parseActivity(a), a.typed ? null : a.fileName, a.typed ? 'manual' : (a.origin ?? a.kind), known, now));
+  const saver = new RunSaver(now, addImportedRuns);
+  await eachActivity(files, preview.keep, onProgress, { ...EMPTY_TALLY }, (_i, a) => importOne(parseActivity(a), a.typed ? null : a.fileName, a.typed ? 'manual' : (a.origin ?? a.kind), known, now, saver));
+  await saver.flush();
   return { ...preview.out, added: now.added, duplicate: preview.out.duplicate + now.duplicate };
 }
 

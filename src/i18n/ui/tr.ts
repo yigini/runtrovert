@@ -365,6 +365,8 @@ export const tr: Strings = {
     bringingInXOf: (done: string | number, total: string | number) => `Koşuların alınıyor… ${done} / ${total}`,
     readingTheFiles: 'Dosyalar okunuyor…',
     readingTheFilesXOf: (done, total) => `Dosyalar okunuyor… ${done} / ${total}`,
+    keepsGoing: 'Bu sayfadan çıkabilirsin. İçe aktarma sürer, Ayarlar ne kadarının bittiğini gösterir.',
+    runsWaiting: (n: number) => (`İçe aktarılmaya hazır ${n} koşu`),
     couldnTReadThoseFiles: 'Bu dosyalar okunamadı',
     writingYourRuns: 'Koşuların yazılıyor…',
     writingYourRunsXOf: (done, total) => `Koşuların yazılıyor… ${done} / ${total}`,
