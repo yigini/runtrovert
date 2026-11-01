@@ -141,9 +141,9 @@
     : h < 7 ? 'Up early. The streets are still yours.' : null;
   if (hour && ticker) ticker.textContent = hour;
   var shares = [
-    'New 5 km best. Nobody saw. That was the plan.',
-    'Run number one. Nobody watched, which helped.',
-    'Longest run yet. Didn’t need anyone to clap.',
+    'New 5 km best. Saved on your phone, for you.',
+    'Run number one. The hard part was the door.',
+    'Longest run yet. Legs did the talking.',
     'Slowest run this month. Best mood after.',
     'Ran between storms. The sky held off. Mostly.'
   ];
@@ -153,8 +153,8 @@
   var nudge = document.getElementById('nudge');
   var nudges = rotate(nudge, [
     'The pavement has no opinions about your pace.',
-    'Out there, nobody needs anything from you.',
-    'A run is a meeting with one attendee. Attendance is great.',
+    'Out there, the only agenda is yours.',
+    'Half an hour outside counts. So does a fast 5K.',
     'Shoes: by the door. Route: where you left it. The rest is up to you.',
     'A group run of one: you set the pace and the route.'
   ], 3800);
@@ -176,7 +176,7 @@
   });
 
   var whisper = document.getElementById('whisper'), idle, told = 0;
-  var whispers = ['Nobody’s rushing you.', 'Still here? Same. Take your time.'];
+  var whispers = ['No rush. The page isn’t going anywhere.', 'Still here? Same. Take your time.'];
   function rest() {
     clearTimeout(idle);
     if (told < whispers.length) idle = setTimeout(function () {
@@ -311,5 +311,5 @@
     }, 1000);
   })();
 
-  if (window.console) console.log('%cNo trackers in here. Just this note, and nobody will know you read it.', 'font: italic 14px Georgia, serif; color: #c9e7d6');
+  if (window.console) console.log('%cNo trackers in here. Just this note.', 'font: italic 14px Georgia, serif; color: #c9e7d6');
 })();
