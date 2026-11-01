@@ -37,4 +37,12 @@
   <string name="time">Tiempo</string>
   <string name="distance">Distancia</string>
   <string name="pace">Ritmo</string>
+  <string name="recordHere">Grabar en este reloj</string>
+  <string name="recordHereHint">Con el GPS del reloj. La carrera pasa al teléfono cuando vuelvan a estar juntos.</string>
+  <string name="needLocation">Grabar en el reloj necesita la ubicación</string>
+  <string name="needLocationHint">Permítela en los ajustes del reloj, o lleva el teléfono.</string>
+  <string name="soloFailed">Este reloj no pudo iniciar su GPS</string>
+  <string name="soloSaved">Guardada en el reloj</string>
+  <string name="soloSavedHint">Pasará al teléfono la próxima vez que estén juntos, con Runtrovert abierto allí.</string>
+  <string name="soloWaiting">Esperando al teléfono: %1$s</string>
 </resources>

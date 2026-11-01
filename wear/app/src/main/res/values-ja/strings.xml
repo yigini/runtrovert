@@ -37,4 +37,12 @@
   <string name="time">タイム</string>
   <string name="distance">距離</string>
   <string name="pace">ペース</string>
+  <string name="recordHere">このウォッチで記録</string>
+  <string name="recordHereHint">ウォッチの GPS を使います。次にスマホとつながったときにランが移ります。</string>
+  <string name="needLocation">ウォッチで記録するには位置情報が必要です</string>
+  <string name="needLocationHint">ウォッチの設定で許可するか、スマホを持って出てください。</string>
+  <string name="soloFailed">このウォッチは GPS を開始できませんでした</string>
+  <string name="soloSaved">ウォッチに保存しました</string>
+  <string name="soloSavedHint">次にスマホとつながり、Runtrovert を開いたときに移ります。</string>
+  <string name="soloWaiting">スマホ待ち：%1$s</string>
 </resources>

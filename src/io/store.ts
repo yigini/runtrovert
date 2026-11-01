@@ -39,6 +39,7 @@ async function importOne(result: ParseResult, fileName: string | null, kind: Sou
     if (beats.length) await addHeartRate(id, beats).catch(() => {});
     known.push(shaped);
     tally.added++;
+    tally.ids?.push(id);
   }
 }
 

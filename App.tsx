@@ -39,6 +39,7 @@ import { colors, fonts, night, onScheme, radius, scheme, setScheme, spacing, the
 import { dayName } from './src/training/adapt';
 import type { Place } from './src/placeStore';
 import { onRunSaved } from './src/training/store';
+import { onWatchRuns } from './src/wear';
 import { syncRunToHealth } from './src/health';
 import type { Session } from './src/training/types';
 import { loadUnlock } from './src/unlockState';
@@ -158,6 +159,19 @@ function Shell() {
         if (!restored) return closeUnfinishedRuns();
       })
       .catch(() => {});
+  }, []);
+
+  // Runs recorded on the watch alone arrive when phone and watch meet again: tick the plan, refresh the lists.
+  useEffect(() => {
+    onWatchRuns(async (ids) => {
+      for (const id of ids) {
+        const run = await getRun(id).catch(() => null);
+        if (run) await onRunSaved(run, null).catch(() => {});
+      }
+      setRefreshKey((k) => k + 1);
+      setPlanKey((k) => k + 1);
+    });
+    return () => onWatchRuns(null);
   }, []);
 
   // Re-plan the next two weeks of reminders on open and whenever their settings change.

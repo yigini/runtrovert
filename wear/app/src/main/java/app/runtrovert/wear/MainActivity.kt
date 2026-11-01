@@ -18,7 +18,7 @@ import kotlinx.coroutines.guava.await
 import kotlinx.coroutines.launch
 
 /** What the watch is doing on its own side, between the phone's updates. */
-enum class Local { None, Asking, Starting, OpeningPhone, NoPhone }
+enum class Local { None, Asking, Starting, OpeningPhone, NoPhone, NeedLocation }
 
 class MainActivity : ComponentActivity() {
   val local = MutableStateFlow(Local.None)
@@ -27,6 +27,11 @@ class MainActivity : ComponentActivity() {
   private val askHeart = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
     prefs().edit().putBoolean(ASKED, true).apply()
     lifecycleScope.launch { start() }
+  }
+
+  // Recording here: location (and heart rate, steps for distance) first.
+  private val askSolo = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+    if (SoloService.hasLocation(this)) beginSolo() else local.value = Local.NeedLocation
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,13 +49,14 @@ class MainActivity : ComponentActivity() {
   private fun startFromIntent(intent: Intent?) {
     if (intent?.getBooleanExtra(START, false) != true) return
     intent.removeExtra(START) // not again on rotation or a return to the app
-    if (PhoneLink.live.value?.active == true || local.value != Local.None) return
+    if (PhoneLink.live.value?.active == true || SoloRun.active || local.value != Local.None) return
     onStartTapped()
   }
 
   override fun onResume() {
     super.onResume()
     PhoneLink.appVisible = true
+    SoloRun.refreshWaiting(this)
     // Tell the phone we're looking (it sends every second while we are), and keep saying so.
     hello = lifecycleScope.launch {
       while (true) {
@@ -122,7 +128,17 @@ class MainActivity : ComponentActivity() {
 
   fun send(cmd: String) {
     WatchNotes.buzz(this, long = cmd == "stop")
-    PhoneLink.sendAsync(this, Paths.CMD, cmdJson(cmd))
+    if (SoloRun.active) SoloService.send(cmd) else PhoneLink.sendAsync(this, Paths.CMD, cmdJson(cmd))
+  }
+
+  /** "Record on this watch", offered when the phone isn't there. */
+  fun onSoloTapped() {
+    if (SoloService.hasLocation(this)) beginSolo() else askSolo.launch(SoloService.permissions())
+  }
+
+  private fun beginSolo() {
+    local.value = Local.None
+    SoloService.start(this, prefs().getBoolean(PhoneLink.UNITS_KM, true))
   }
 
   fun dismiss() {

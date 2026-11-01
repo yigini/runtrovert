@@ -270,6 +270,8 @@ export function RunDetailScreen({
       <Text style={styles.date}>{d.toLocaleString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</Text>
       {source?.kind === 'manual' ? (
         <Text style={styles.source}>{ui().addRun.addedByHand}</Text>
+      ) : source?.kind === 'watch' ? (
+        <Text style={styles.source}>{ui().runDetail.onWatch}</Text>
       ) : indoor ? (
         <Text style={styles.source}>{ui().runAids.indoorTag}</Text>
       ) : source ? (

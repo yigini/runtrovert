@@ -71,6 +71,7 @@
 
   <h2>The watch app</h2>
   <p>The Wear OS app talks to the phone over the direct link between your phone and watch (the Wearable Data Layer that Android provides). Nothing goes through a server of ours, because there isn't one. It reads your heart rate from the watch's sensor only while a run is recording, and sends it to the phone to be kept with that run.</p>
+  <p>If your phone isn't with you, the watch app can record a run by itself, with the watch's own GPS, but only when you tap "Record on this watch" (Android asks you to allow location the first time). The run is kept in the watch app's private storage until the phone app is open nearby; then it goes to the phone over the same direct link and is deleted from the watch. It's never sent anywhere else.</p>
   <p>Other watches and chest straps (a Garmin with Broadcast heart rate on, Polar, Coros, Suunto, Wahoo and others) connect straight to the phone over Bluetooth, only during a run and while the strap's settings page is open. The phone reads the standard heart-rate signal and nothing else, and keeps it with the run like the watch app's.</p>
 
   <h2 id="health-connect">Health Connect</h2>
@@ -96,6 +97,7 @@
     <li><b>Nearby devices</b> (Bluetooth), only if you look for a heart-rate strap: to find and connect to it. It is set up so it can't be used to work out where you are.</li>
     <li><b>Health Connect</b> (only if you switch it on): to add your runs there, and to read runs other apps saved there when you ask. See Health Connect above.</li>
     <li><b>On the watch, body sensors</b> (called heart rate on newer Wear OS): heart rate during a run. If you say no, the watch app still shows the run, without heart rate.</li>
+    <li><b>On the watch, location and physical activity</b>, only if you record a run on the watch alone: the route and distance of that run.</li>
   </ul>
 
   <h2>Children</h2>
