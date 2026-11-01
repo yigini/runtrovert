@@ -36,7 +36,7 @@ import type { StatPoint } from '../runStats';
 import { useSettings } from '../settings';
 import { finishSurprise, type Surprise } from '../surprises';
 import { continueRun, ensurePermissions, getState, haltRun, lap, pauseRun, resumeRun, startRun, stopRun, subscribe, TrackingState, unsavedPoints } from '../tracking';
-import { colors, fonts, radius, spacing, type } from '../theme';
+import { colors, fonts, radius, spacing, type, themedStyles, night } from '../theme';
 import { applyEnergy, type PainLevel } from '../training/adapt';
 import { loadPlan, nextSession, savePlan, todaySession } from '../training/store';
 import type { Feel, Plan, Session, Step, StepDone } from '../training/types';
@@ -769,7 +769,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
               style={[
                 styles.segment,
                 { flex: Math.max(0.4, (b.durationS ?? (b.distanceM ?? 0) * 0.35) / 300) },
-                { backgroundColor: i < v.index ? colors.mintDeep : i === v.index ? colors.mint : 'rgba(43,39,51,0.1)' },
+                { backgroundColor: i < v.index ? colors.mintDeep : i === v.index ? colors.mint : colors.empty },
               ]}
             />
           ))}
@@ -817,17 +817,17 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
       <View style={styles.liveLayer} pointerEvents="box-none">
         <View style={styles.liveTop}>
           <View style={styles.statusPill}>
-            <View style={[styles.dot, { backgroundColor: halted ? colors.butter : colors.mint }]} />
-            <Text style={[styles.statusText, { color: halted ? colors.butter : colors.mint }]}>{autoPaused ? ui().run.autoPaused : paused ? ui().run.paused : ui().run.recording}</Text>
+            <View style={[styles.dot, { backgroundColor: halted ? night.butter : night.mint }]} />
+            <Text style={[styles.statusText, { color: halted ? night.butter : night.mint }]}>{autoPaused ? ui().run.autoPaused : paused ? ui().run.paused : ui().run.recording}</Text>
           </View>
           {/* The route being followed, by name (Run this again, Run to work). */}
           {ghostRun ? (
             <View style={[styles.statusPill, { flexShrink: 1 }]}>
-              <Text style={[styles.statusText, { color: colors.onInkMuted }]} numberOfLines={1}>{ghostRun.name}</Text>
+              <Text style={[styles.statusText, { color: night.onInkMuted }]} numberOfLines={1}>{ghostRun.name}</Text>
             </View>
           ) : null}
           <View style={styles.statusPill}>
-            <Text style={[styles.statusText, { color: colors.onInkMuted }]}>{gpsLabel(track.gps)}</Text>
+            <Text style={[styles.statusText, { color: night.onInkMuted }]}>{gpsLabel(track.gps)}</Text>
           </View>
         </View>
 
@@ -853,7 +853,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
           ) : null}
           {onBrowseListen ? (
             <Pressable onPress={onBrowseListen} accessibilityRole="button" accessibilityLabel={ui().listen.listen} accessibilityHint={ui().run.listenHint} style={({ pressed }) => [styles.mapToggle, styles.listenPill, pressed && { opacity: 0.85 }]}>
-              <NoteGlyph color={colors.ink} />
+              <NoteGlyph color={night.ink} />
               <Text style={styles.mapToggleText}>{ui().listen.listen}</Text>
             </Pressable>
           ) : null}
@@ -952,7 +952,7 @@ function StopButton({ onStop, wide }: { onStop: () => void; wide?: boolean }) {
         accessibilityRole="button"
         accessibilityLabel={ui().run.stopRun}
         accessibilityHint={reader ? ui().run.asksBeforeEndingTheRun : ui().run.holdForASecondTo}
-        style={[wide ? styles.stopWide : styles.roundBtn, { backgroundColor: colors.peach, overflow: 'hidden' }]}
+        style={[wide ? styles.stopWide : styles.roundBtn, { backgroundColor: wide ? colors.peach : night.peach, overflow: 'hidden' }]}
       >
         {wide ? (
           <>
@@ -1022,9 +1022,9 @@ function LiveNumbers({ km, t, guided }: { km: boolean; t: TrackingState; guided:
         <Text style={styles.heroUnit}>{ui().run.unitWord(km)}</Text>
       </View>
       <View style={styles.numRow}>
-        <LiveStat value={formatDuration(t.durationS)} label={ui().run.time} color={colors.mint} />
-        <LiveStat value={formatPace(t.distanceM, t.durationS, km)} label={ui().run.avgX(distanceUnit(km))} color={colors.peach} />
-        <LiveStat value={formatSpeedAsPace(t.speedMps, km)} label={ui().run.rightNow} color={colors.lilac} />
+        <LiveStat value={formatDuration(t.durationS)} label={ui().run.time} color={night.mint} />
+        <LiveStat value={formatPace(t.distanceM, t.durationS, km)} label={ui().run.avgX(distanceUnit(km))} color={night.peach} />
+        <LiveStat value={formatSpeedAsPace(t.speedMps, km)} label={ui().run.rightNow} color={night.lilac} />
       </View>
       <Text style={styles.splitLine} numberOfLines={1} adjustsFontSizeToFit>
         {ui().run.splitLine(km, t.splits.length + 1, formatPace(cur.distanceM, cur.durationS, km), formatElevation(t.elevationGainM, km))}
@@ -1037,7 +1037,7 @@ function LiveNumbers({ km, t, guided }: { km: boolean; t: TrackingState; guided:
 function GuidedStrip({ g }: { g: GuidedRun }) {
   const v = g.view;
   const step = v.step;
-  const fill = v.finished ? colors.mint : step?.kind === 'hard' ? colors.peach : step?.kind === 'walk' ? colors.lilac : step?.kind === 'stride' ? colors.butter : colors.mint;
+  const fill = v.finished ? night.mint : step?.kind === 'hard' ? night.peach : step?.kind === 'walk' ? night.lilac : step?.kind === 'stride' ? night.butter : night.mint;
   return (
     <View style={styles.guided}>
       <View style={styles.guidedTop}>
@@ -1141,17 +1141,17 @@ async function pickSurprise(f: TrackingState, history: Run[], metric: boolean): 
   }
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   screen: { flex: 1, backgroundColor: colors.cream, padding: spacing.md, paddingTop: spacing.lg, gap: spacing.md },
-  screenInk: { flex: 1, backgroundColor: colors.ink, padding: spacing.md, paddingTop: spacing.md, gap: spacing.sm },
+  screenInk: { flex: 1, backgroundColor: night.ink, padding: spacing.md, paddingTop: spacing.md, gap: spacing.sm },
   center: { alignItems: 'center', justifyContent: 'center' },
   tiles: { flexDirection: 'row', gap: spacing.sm + 2 },
   tile: { flex: 1, borderRadius: radius.lg, padding: 16 },
   tileValue: { fontFamily: fonts.display, fontSize: 30, lineHeight: 34, color: colors.text, fontVariant: ['tabular-nums'] },
   tileLabel: { fontFamily: fonts.bodySemi, fontSize: 12, marginTop: 2 },
-  countdown: { fontFamily: fonts.displayLight, fontSize: 140, color: colors.cream, fontVariant: ['tabular-nums'] },
-  finishTop: { position: 'absolute', top: 0, left: 0, right: 0, padding: spacing.md, paddingTop: spacing.lg, paddingBottom: 14, gap: 10, backgroundColor: 'rgba(246,241,234,0.9)' },
-  finishCard: { position: 'absolute', left: spacing.md, right: spacing.md, bottom: spacing.md, padding: spacing.md, gap: 12, borderRadius: radius.lg, backgroundColor: 'rgba(246,241,234,0.94)' },
+  countdown: { fontFamily: fonts.displayLight, fontSize: 140, color: night.cream, fontVariant: ['tabular-nums'] },
+  finishTop: { position: 'absolute', top: 0, left: 0, right: 0, padding: spacing.md, paddingTop: spacing.lg, paddingBottom: 14, gap: 10, backgroundColor: colors.wash },
+  finishCard: { position: 'absolute', left: spacing.md, right: spacing.md, bottom: spacing.md, padding: spacing.md, gap: 12, borderRadius: radius.lg, backgroundColor: colors.wash },
   recharge: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   rechargeFaces: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.lilacSoft, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 2 },
   rechargeArrow: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.lilacDeep },
@@ -1161,7 +1161,7 @@ const styles = StyleSheet.create({
   statValue: { fontFamily: fonts.displayLight, fontSize: 34, lineHeight: 38, letterSpacing: -1, color: colors.text, fontVariant: ['tabular-nums'] },
   statValueBig: { fontSize: 52, lineHeight: 54, letterSpacing: -2.5 },
   statLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: colors.inkMuted },
-  live: { flex: 1, backgroundColor: colors.ink },
+  live: { flex: 1, backgroundColor: night.ink },
   veil: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(43,39,51,0.66)' },
   liveLayer: { flex: 1, padding: spacing.md, paddingTop: spacing.sm, gap: spacing.md },
   liveTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -1169,40 +1169,40 @@ const styles = StyleSheet.create({
   statusText: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase' },
   dot: { width: 8, height: 8, borderRadius: 4 },
   hero: { alignItems: 'center', paddingTop: spacing.lg },
-  heroValue: { fontFamily: fonts.displayLight, fontSize: 112, lineHeight: 116, letterSpacing: -4, color: colors.cream, fontVariant: ['tabular-nums'] },
-  heroUnit: { fontFamily: fonts.bodySemi, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: colors.onInkMuted },
+  heroValue: { fontFamily: fonts.displayLight, fontSize: 112, lineHeight: 116, letterSpacing: -4, color: night.cream, fontVariant: ['tabular-nums'] },
+  heroUnit: { fontFamily: fonts.bodySemi, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: night.onInkMuted },
   numRow: { flexDirection: 'row', gap: spacing.sm },
   liveStat: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: radius.lg, backgroundColor: 'rgba(246,241,234,0.08)' },
-  liveStatValue: { fontFamily: fonts.display, fontSize: 28, lineHeight: 32, color: colors.cream, fontVariant: ['tabular-nums'] },
-  liveStatLabel: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.onInkMuted },
+  liveStatValue: { fontFamily: fonts.display, fontSize: 28, lineHeight: 32, color: night.cream, fontVariant: ['tabular-nums'] },
+  liveStatLabel: { fontFamily: fonts.bodySemi, fontSize: 12, color: night.onInkMuted },
   statDot: { width: 6, height: 6, borderRadius: 3 },
   guided: { backgroundColor: 'rgba(246,241,234,0.1)', borderRadius: radius.lg, padding: 12, gap: 6 },
   guidedTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  guidedLabel: { flex: 1, fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase', color: colors.onInkMuted },
-  guidedStep: { fontFamily: fonts.display, fontSize: 20, lineHeight: 24, color: colors.cream },
+  guidedLabel: { flex: 1, fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase', color: night.onInkMuted },
+  guidedStep: { fontFamily: fonts.display, fontSize: 20, lineHeight: 24, color: night.cream },
   guidedBar: { height: 4, borderRadius: 2, backgroundColor: 'rgba(246,241,234,0.15)', overflow: 'hidden' },
   guidedFill: { height: 4, borderRadius: 2 },
-  guidedNext: { fontFamily: fonts.body, fontSize: 13, color: colors.onInkMuted, fontVariant: ['tabular-nums'] },
-  splitLine: { textAlign: 'center', fontFamily: fonts.body, fontSize: 14, color: colors.onInkMuted, fontVariant: ['tabular-nums'] },
+  guidedNext: { fontFamily: fonts.body, fontSize: 13, color: night.onInkMuted, fontVariant: ['tabular-nums'] },
+  splitLine: { textAlign: 'center', fontFamily: fonts.body, fontSize: 14, color: night.onInkMuted, fontVariant: ['tabular-nums'] },
   strip: { flexDirection: 'row', backgroundColor: 'rgba(43,39,51,0.82)', borderRadius: radius.lg, paddingVertical: 12, paddingHorizontal: spacing.sm },
-  stripValue: { fontFamily: fonts.display, fontSize: 24, lineHeight: 28, color: colors.cream, fontVariant: ['tabular-nums'] },
-  stripLabel: { fontFamily: fonts.bodySemi, fontSize: 11, color: colors.onInkMuted },
+  stripValue: { fontFamily: fonts.display, fontSize: 24, lineHeight: 28, color: night.cream, fontVariant: ['tabular-nums'] },
+  stripLabel: { fontFamily: fonts.bodySemi, fontSize: 11, color: night.onInkMuted },
   mapToggle: { backgroundColor: 'rgba(246,241,234,0.92)', borderRadius: radius.pill, paddingHorizontal: 22, paddingVertical: 10 },
   toggleRow: { flexDirection: 'row', justifyContent: 'center', gap: spacing.sm },
   listenPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 18 },
   listenLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, alignSelf: 'center', minHeight: 44, paddingHorizontal: spacing.md },
-  mapToggleText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.ink },
+  mapToggleText: { fontFamily: fonts.bodySemi, fontSize: 15, color: night.ink },
   controls: { flexDirection: 'row', gap: spacing.sm + 2, alignItems: 'center', paddingBottom: spacing.sm },
-  roundBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
-  roundGlyph: { color: colors.cream, fontSize: 18, fontFamily: fonts.bodyBold },
+  roundBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: night.ink, alignItems: 'center', justifyContent: 'center' },
+  roundGlyph: { color: night.cream, fontSize: 18, fontFamily: fonts.bodyBold },
   lapBtn: { flex: 1, height: 64, borderRadius: radius.pill, backgroundColor: 'rgba(232,226,245,0.94)', alignItems: 'center', justifyContent: 'center' },
-  lapText: { fontFamily: fonts.bodySemi, fontSize: 17, color: colors.lilacDeep },
-  lapCount: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.lilacDeep },
-  stopSquare: { width: 20, height: 20, borderRadius: 5, backgroundColor: colors.ink },
-  stopFill: { position: 'absolute', width: 64, height: 64, borderRadius: 32, backgroundColor: colors.peachDeep, opacity: 0.45 },
+  lapText: { fontFamily: fonts.bodySemi, fontSize: 17, color: night.lilacDeep },
+  lapCount: { fontFamily: fonts.bodySemi, fontSize: 12, color: night.lilacDeep },
+  stopSquare: { width: 20, height: 20, borderRadius: 5, backgroundColor: night.ink },
+  stopFill: { position: 'absolute', width: 64, height: 64, borderRadius: 32, backgroundColor: night.peachDeep, opacity: 0.45 },
   holdHint: { position: 'absolute', bottom: 74, right: -6, backgroundColor: 'rgba(246,241,234,0.94)', borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 6, minWidth: 110, alignItems: 'center' },
-  holdHintText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.ink },
-  stopCaption: { marginTop: 4, fontFamily: fonts.bodySemi, fontSize: 12, color: colors.onInkMuted },
+  holdHintText: { fontFamily: fonts.bodySemi, fontSize: 13, color: night.ink },
+  stopCaption: { marginTop: 4, fontFamily: fonts.bodySemi, fontSize: 12, color: night.onInkMuted },
   calm: { flex: 1, backgroundColor: colors.cream, padding: spacing.md + 4, paddingTop: spacing.lg },
   calmTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   calmStatus: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -1232,7 +1232,7 @@ const styles = StyleSheet.create({
   resumePill: { backgroundColor: colors.ink, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 8 },
   resumeText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.cream },
   note: { minHeight: 56, borderBottomWidth: 1.5, borderBottomColor: colors.ink, paddingVertical: 10, color: colors.text, fontFamily: fonts.displayItalic, fontSize: 17, textAlignVertical: 'top' },
-});
+}));
 
 function NoteGlyph({ color }: { color: string }) {
   return (

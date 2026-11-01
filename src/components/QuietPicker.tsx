@@ -1,7 +1,7 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { BUSY_LABEL } from '../places';
-import { colors, fonts, radius, spacing } from '../theme';
+import { colors, fonts, radius, spacing, themedStyles } from '../theme';
 import type { Quiet } from '../types';
 import { live, ui } from '../i18n/ui';
 
@@ -26,7 +26,7 @@ export function QuietPicker({ value, onChange }: { value: Quiet | null; onChange
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   wrap: { gap: spacing.sm },
   title: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
   row: { flexDirection: 'row', gap: spacing.sm },
@@ -34,4 +34,4 @@ const styles = StyleSheet.create({
   pillOn: { backgroundColor: colors.ink },
   label: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.inkSoft },
   labelOn: { color: colors.cream },
-});
+}));

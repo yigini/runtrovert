@@ -1,6 +1,6 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
-import { colors, fonts, spacing } from '../theme';
+import { ScrollView, Text } from 'react-native';
+import { colors, fonts, spacing, themedStyles } from '../theme';
 import { ui } from '../i18n/ui';
 
 /**
@@ -26,9 +26,9 @@ export class ErrorBoundary extends React.Component<{ children: React.ReactNode }
   }
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   screen: { flex: 1, backgroundColor: colors.cream },
   h: { fontFamily: fonts.display, fontSize: 28, color: colors.text, marginTop: spacing.xl },
   p: { fontFamily: fonts.body, fontSize: 16, color: colors.text },
   code: { fontFamily: 'monospace', fontSize: 12, color: colors.peachDeep, backgroundColor: colors.peach, padding: 12, borderRadius: 12 },
-});
+}));

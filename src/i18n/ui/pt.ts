@@ -1979,6 +1979,16 @@ export const pt: Strings = {
     putBack: 'Voltar ao que foi gravado',
     correctedWas: (distance: string, time: string) => `Corrigida por você. Gravado: ${distance} em ${time}.`,
   },
+  appearance: {
+    title: 'Aparência',
+    followPhone: 'Igual ao celular',
+    followPhoneHint: 'Escuro quando o celular está escuro, claro quando está claro. Muda junto com o celular, inclusive por horário.',
+    light: 'Claro',
+    dark: 'Escuro',
+    followsValue: (dark) => `Igual ao celular · ${dark ? 'escuro agora' : 'claro agora'}`,
+    afterRun: 'O novo visual chega depois desta corrida.',
+    runStaysDark: 'A tela durante a corrida mantém o mapa escuro nos dois casos.',
+  },
   backup: {
     keepACopy: 'Guardar uma cópia completa',
     oneFileWithEverything: 'Um só arquivo com tudo: corridas, rotas, frequência cardíaca, lugares, notas, seu plano e suas configurações. Salve no Drive, num computador ou onde quiser, e traga de volta aqui ou num celular novo.',

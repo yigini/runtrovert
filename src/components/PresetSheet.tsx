@@ -1,7 +1,7 @@
 import React from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { PRESETS, type RunPreset } from '../presets';
-import { colors, fonts, radius, spacing } from '../theme';
+import { colors, fonts, radius, spacing, themedStyles } from '../theme';
 import { Button } from './Button';
 import { ui } from '../i18n/ui';
 
@@ -78,10 +78,10 @@ function Dial({ k, v, on }: { k: string; v: string; on: boolean }) {
   );
 }
 
-const styles = StyleSheet.create({
-  scrim: { flex: 1, backgroundColor: 'rgba(43,39,51,0.45)', justifyContent: 'flex-end' },
+const styles = themedStyles(() => ({
+  scrim: { flex: 1, backgroundColor: colors.scrim, justifyContent: 'flex-end' },
   sheet: { maxHeight: '92%', backgroundColor: colors.cream, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, padding: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
-  grabber: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(43,39,51,0.2)', marginTop: -8, marginBottom: 4 },
+  grabber: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.grabber, marginTop: -8, marginBottom: 4 },
   h2: { fontFamily: fonts.display, fontSize: 24, lineHeight: 30, color: colors.text },
   small: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.muted },
   opt: { gap: 6, paddingVertical: 16, paddingHorizontal: 18, borderRadius: radius.lg, backgroundColor: colors.white },
@@ -94,4 +94,4 @@ const styles = StyleSheet.create({
   dial: { flexDirection: 'row', gap: spacing.sm },
   dk: { width: 92, fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.muted },
   dv: { flex: 1, fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.text },
-});
+}));

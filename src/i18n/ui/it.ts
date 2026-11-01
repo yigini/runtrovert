@@ -1979,6 +1979,16 @@ export const it: Strings = {
     putBack: 'Ripristina i valori registrati',
     correctedWas: (distance: string, time: string) => `Corretta da te. Registrato: ${distance} in ${time}.`,
   },
+  appearance: {
+    title: 'Aspetto',
+    followPhone: 'Come il telefono',
+    followPhoneHint: 'Scuro quando il telefono è scuro, chiaro quando è chiaro. Cambia insieme al telefono, anche a orario.',
+    light: 'Chiaro',
+    dark: 'Scuro',
+    followsValue: (dark) => `Come il telefono · ${dark ? 'ora scuro' : 'ora chiaro'}`,
+    afterRun: 'Il nuovo aspetto arriva dopo questa corsa.',
+    runStaysDark: 'La schermata durante la corsa tiene la sua mappa scura in entrambi i casi.',
+  },
   backup: {
     keepACopy: 'Tieni una copia completa',
     oneFileWithEverything: 'Un solo file con tutto: corse, percorsi, frequenza cardiaca, luoghi, note, il tuo piano e le tue impostazioni. Salvalo su Drive, su un computer o dove vuoi, e riportalo qui o su un nuovo telefono.',

@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, Pressable, Text, View } from 'react-native';
 import { notificationStatus, rescheduleReminders, turnOnNotifications, type NotifyStatus } from '../notify';
 import { DEFAULT_PER_WEEK } from '../reminderPlan';
 import { useSettings } from '../settings';
-import { colors, fonts, radius, spacing } from '../theme';
+import { colors, fonts, radius, spacing, themedStyles } from '../theme';
 import { ui } from '../i18n/ui';
 
 /**
@@ -99,7 +99,7 @@ export function PlanReminderLine({ paused = false }: { paused?: boolean }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   card: { backgroundColor: colors.white, borderRadius: radius.lg, padding: spacing.md, gap: 6 },
   cardOff: { backgroundColor: colors.butter },
   top: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
@@ -110,4 +110,4 @@ const styles = StyleSheet.create({
   btnText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.cream },
   line: { fontFamily: fonts.body, fontSize: 12, lineHeight: 17, color: colors.inkSoft, marginTop: 2 },
   lineLink: { fontFamily: fonts.bodySemi, color: colors.ink, textDecorationLine: 'underline' },
-});
+}));

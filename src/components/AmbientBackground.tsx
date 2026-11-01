@@ -3,12 +3,13 @@ import React, { useEffect } from 'react';
 import { AppState, Image, StyleSheet, View } from 'react-native';
 import type { Footage } from '../footage';
 import { useStillFootage } from '../motion';
-import { colors } from '../theme';
+import { colors, scheme, themedStyles } from '../theme';
 
 // Styles: graded real-footage loops (src/footage.ts, assets/CREDITS.md,
 // scripts/grade-bg.sh) and three drawn in code (scripts/make-bg-video.mjs).
 export type BgStyle = Footage | 'painterly' | 'flat' | 'abstract';
 const DEFAULT_STYLE: BgStyle = 'sunset-beach';
+const DARK_SHADE = 0.3;
 const SOURCES: Record<BgStyle, { video: number; poster: number }> = {
   'sunset-beach': { video: require('../../assets/bg-sunset-beach.mp4'), poster: require('../../assets/bg-sunset-beach.jpg') },
   'mist-beach': { video: require('../../assets/bg-mist-beach.mp4'), poster: require('../../assets/bg-mist-beach.jpg') },
@@ -52,6 +53,8 @@ const SOURCES: Record<BgStyle, { video: number; poster: number }> = {
  */
 export function AmbientBackground({ children, dim = 0, style = DEFAULT_STYLE, still: forceStill = false }: { children?: React.ReactNode; dim?: number; style?: BgStyle; still?: boolean }) {
   const still = useStillFootage() || forceStill;
+  // In the dark palette the footage sits a little lower, like a cinema, so light words on the dusk wash stay easy to read.
+  const shade = Math.max(dim, scheme() === 'dark' ? DARK_SHADE : 0);
   const { video: VIDEO, poster: POSTER } = SOURCES[style];
   const player = useVideoPlayer(VIDEO, (p) => {
     p.loop = true;
@@ -75,12 +78,12 @@ export function AmbientBackground({ children, dim = 0, style = DEFAULT_STYLE, st
     <View style={styles.root}>
       <Image source={POSTER} style={StyleSheet.absoluteFill} resizeMode="cover" />
       {!still && <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} allowsPictureInPicture={false} />}
-      {dim > 0 && <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.cream, opacity: dim }]} />}
+      {shade > 0 && <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.cream, opacity: shade }]} />}
       {children}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   root: { flex: 1, backgroundColor: colors.sky },
-});
+}));

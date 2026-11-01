@@ -1,7 +1,7 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, type ViewStyle } from 'react-native';
+import { Pressable, Text, type ViewStyle } from 'react-native';
 import { useBack } from '../back';
-import { colors, fonts, radius } from '../theme';
+import { colors, fonts, radius, themedStyles, night } from '../theme';
 import { ui } from '../i18n/ui';
 
 /**
@@ -29,7 +29,7 @@ export function BackButton({ label = ui().backButton.back, onPress, onInk, style
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   pill: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
@@ -43,8 +43,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.ink,
   },
-  pillInk: { backgroundColor: 'rgba(43,39,51,0.82)', borderColor: colors.cream },
+  pillInk: { backgroundColor: 'rgba(43,39,51,0.82)', borderColor: night.cream },
   chev: { fontFamily: fonts.bodyBold, fontSize: 24, lineHeight: 26, marginTop: -3, color: colors.ink },
   text: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.ink },
-  textInk: { color: colors.cream },
-});
+  textInk: { color: night.cream },
+}));

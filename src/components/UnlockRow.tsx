@@ -1,6 +1,6 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radius, spacing, type } from '../theme';
+import { Pressable, Text, View } from 'react-native';
+import { colors, fonts, radius, spacing, type, themedStyles } from '../theme';
 import { UNLOCKED_BUILD, unlockName, UNLOCK_PRICE } from '../unlock';
 import { openUnlock, useUnlockState, useUnlocked } from '../unlockState';
 import { ui } from '../i18n/ui';
@@ -39,7 +39,7 @@ export function MoneyNote() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.lilacSoft, borderRadius: radius.md, paddingVertical: 14, paddingHorizontal: spacing.md },
   title: { fontFamily: fonts.display, fontSize: 18, color: colors.text },
   detail: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.lilacDeep },
@@ -47,4 +47,4 @@ const styles = StyleSheet.create({
   money: { backgroundColor: colors.butter, borderRadius: radius.md, padding: spacing.md, gap: 6 },
   moneyText: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.text },
   link: { fontFamily: fonts.bodySemi, textDecorationLine: 'underline' },
-});
+}));

@@ -3,28 +3,43 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, type LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import { boundsFor, fitBounds } from '../mapFit';
 import { useLastPlace } from '../place';
-import { colors, radius } from '../theme';
+import { colors, radius, themedStyles, scheme, type Scheme } from '../theme';
 import type { LatLon } from '../types';
 import { useSettings } from '../settings';
 import { ui } from '../i18n/ui';
 
 /**
  * MapLibre: open source, no API key, no Google. Tiles come from a public
- * OpenFreeMap style (free, no key); swap MAP_STYLE for your own host later.
+ * OpenFreeMap style (free, no key); swap MAP_STYLES for your own host later.
  * The tile host sees the area on screen and the phone's IP, so nothing is
  * fetched until the runner has been told once (welcome screen, or the alert
  * below for people who onboarded before it). Settings > Plain map, or the
  * `offline` prop, keeps the blank style: the route still draws on a plain mint
  * ground with no tile requests at all.
  */
-export const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
-
-/** No tiles, nothing requested over the network. */
-export const BLANK_STYLE = {
-  version: 8 as const,
-  sources: {},
-  layers: [{ id: 'bg', type: 'background' as const, paint: { 'background-color': colors.mintSoft } }],
+const MAP_STYLES: Record<Scheme, string> = {
+  light: 'https://tiles.openfreemap.org/styles/positron',
+  // The same host's dark style: same tiles and requests, only the drawing differs.
+  dark: 'https://tiles.openfreemap.org/styles/dark',
 };
+
+/** The tile style for the palette in use. */
+export function mapStyle(): string {
+  return MAP_STYLES[scheme()];
+}
+
+/** No tiles, nothing requested over the network. A plain object per palette, so the map gets a stable style. */
+function makeBlank() {
+  return {
+    version: 8 as const,
+    sources: {},
+    layers: [{ id: 'bg', type: 'background' as const, paint: { 'background-color': colors.mintSoft } }],
+  };
+}
+const blank: Partial<Record<Scheme, ReturnType<typeof makeBlank>>> = {};
+export function blankStyle() {
+  return (blank[scheme()] ??= makeBlank());
+}
 
 type ViewPadding = { top: number; right: number; bottom: number; left: number };
 
@@ -138,7 +153,7 @@ export function RouteMap({
     <View style={fill ? styles.fill : [styles.wrap, { height }]} pointerEvents={interactive ? 'auto' : 'none'} onLayout={onLayout}>
       <MapLibreMap
         style={StyleSheet.absoluteFill}
-        mapStyle={plain ? BLANK_STYLE : MAP_STYLE}
+        mapStyle={plain ? blankStyle() : mapStyle()}
         logo={false}
         attribution={!plain}
         attributionPosition={fill ? { top: 60, right: 12 } : undefined}
@@ -154,7 +169,7 @@ export function RouteMap({
         {view ? <Camera initialViewState={initial} {...view} /> : <Camera initialViewState={initial} />}
         {ghostLine && (
           <GeoJSONSource key="ghost" id="ghost" data={ghostLine}>
-            <Layer id="ghost-line" type="line" paint={{ 'line-color': colors.lilac, 'line-width': 6, 'line-opacity': 0.9, 'line-dasharray': [1.2, 1.4] }} layout={{ 'line-cap': 'round', 'line-join': 'round' }} />
+            <Layer id="ghost-line" type="line" paint={{ 'line-color': colors.lilacMark, 'line-width': 6, 'line-opacity': 0.9, 'line-dasharray': [1.2, 1.4] }} layout={{ 'line-cap': 'round', 'line-join': 'round' }} />
           </GeoJSONSource>
         )}
         {path.length > 1 && (
@@ -165,7 +180,7 @@ export function RouteMap({
         )}
         {goal && (
           <GeoJSONSource key="goal" id="goal" data={{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [goal.longitude, goal.latitude] } }}>
-            <Layer id="goal-ring" type="circle" paint={{ 'circle-radius': 11, 'circle-color': colors.peach, 'circle-opacity': 0.9, 'circle-stroke-color': colors.ink, 'circle-stroke-width': 3 }} />
+            <Layer id="goal-ring" type="circle" paint={{ 'circle-radius': 11, 'circle-color': colors.peachMark, 'circle-opacity': 0.9, 'circle-stroke-color': colors.ink, 'circle-stroke-width': 3 }} />
           </GeoJSONSource>
         )}
         {pins && pins.length > 0 && (
@@ -174,7 +189,7 @@ export function RouteMap({
             id="pins"
             data={{ type: 'FeatureCollection', features: pins.map((p) => ({ type: 'Feature' as const, properties: {}, geometry: { type: 'Point' as const, coordinates: [p.lon, p.lat] } })) }}
           >
-            <Layer id="pins-dot" type="circle" paint={{ 'circle-radius': 5, 'circle-color': colors.butter, 'circle-stroke-color': colors.ink, 'circle-stroke-width': 2 }} />
+            <Layer id="pins-dot" type="circle" paint={{ 'circle-radius': 5, 'circle-color': colors.butterMark, 'circle-stroke-color': colors.ink, 'circle-stroke-width': 2 }} />
           </GeoJSONSource>
         )}
         {/* Every source keeps its own slot and a key matching its id. A ternary
@@ -197,7 +212,7 @@ export function RouteMap({
               type="circle"
               paint={{
                 'circle-radius': ['match', ['get', 'end'], 0, 7, 9],
-                'circle-color': ['match', ['get', 'end'], 0, colors.mint, colors.peach],
+                'circle-color': ['match', ['get', 'end'], 0, colors.mintMark, colors.peachMark],
                 'circle-stroke-color': colors.ink,
                 'circle-stroke-width': 3,
               }}
@@ -231,7 +246,8 @@ export function askAboutTiles(update: (patch: { plainMap?: boolean; mapNoticeSee
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   wrap: { borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.mintSoft },
-  fill: { ...StyleSheet.absoluteFill, backgroundColor: colors.inkSoft },
-});
+  // Under the tiles while they load: dusk by day (the live run screen), the ground itself at night.
+  fill: { ...StyleSheet.absoluteFill, backgroundColor: scheme() === 'dark' ? colors.bg : colors.inkSoft },
+}));

@@ -1,9 +1,9 @@
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useState } from 'react';
-import { AppState, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, Image, Pressable, Text, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { appByKey, canControl, canShowNowPlaying, isPlaying, nowPlaying, nowPlayingAllowed, openPlaying, press, type NowPlaying } from '../music';
-import { colors, fonts, radius } from '../theme';
+import { night, fonts, radius, themedStyles } from '../theme';
 import { ui } from '../i18n/ui';
 
 /**
@@ -122,12 +122,12 @@ function Btn({ label, onPress, main, children }: { label: string; onPress: () =>
 }
 
 // Glyphs drawn with the same round stroke as the rest of the app.
-const S = { stroke: colors.cream, strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
+const S = { stroke: night.cream, strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
 
 function PlayGlyph() {
   return (
     <Svg width={18} height={18} viewBox="0 0 18 18">
-      <Path d="M5.5 3.5 L14 9 L5.5 14.5 Z" {...S} fill={colors.cream} />
+      <Path d="M5.5 3.5 L14 9 L5.5 14.5 Z" {...S} fill={night.cream} />
     </Svg>
   );
 }
@@ -135,8 +135,8 @@ function PlayGlyph() {
 function PauseGlyph() {
   return (
     <Svg width={18} height={18} viewBox="0 0 18 18">
-      <Rect x={4.5} y={3.5} width={3} height={11} rx={1.2} fill={colors.cream} />
-      <Rect x={10.5} y={3.5} width={3} height={11} rx={1.2} fill={colors.cream} />
+      <Rect x={4.5} y={3.5} width={3} height={11} rx={1.2} fill={night.cream} />
+      <Rect x={10.5} y={3.5} width={3} height={11} rx={1.2} fill={night.cream} />
     </Svg>
   );
 }
@@ -153,9 +153,9 @@ function SkipGlyph({ flip }: { flip?: boolean }) {
 function NoteGlyph() {
   return (
     <Svg width={16} height={16} viewBox="0 0 16 16">
-      <Path d="M6 12 V3.4 L13 2 V10.8" stroke={colors.lilac} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <Circle cx={4.2} cy={12} r={1.9} stroke={colors.lilac} strokeWidth={1.6} fill="none" />
-      <Circle cx={11.2} cy={10.8} r={1.9} stroke={colors.lilac} strokeWidth={1.6} fill="none" />
+      <Path d="M6 12 V3.4 L13 2 V10.8" stroke={night.lilac} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <Circle cx={4.2} cy={12} r={1.9} stroke={night.lilac} strokeWidth={1.6} fill="none" />
+      <Circle cx={11.2} cy={10.8} r={1.9} stroke={night.lilac} strokeWidth={1.6} fill="none" />
     </Svg>
   );
 }
@@ -163,20 +163,20 @@ function NoteGlyph() {
 function ArrowGlyph() {
   return (
     <Svg width={12} height={12} viewBox="0 0 12 12">
-      <Path d="M3.5 8.5 L8.5 3.5 M4.5 3.5 H8.5 V7.5" stroke={colors.onInkMuted} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <Path d="M3.5 8.5 L8.5 3.5 M4.5 3.5 H8.5 V7.5" stroke={night.onInkMuted} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </Svg>
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(43,39,51,0.78)', borderRadius: radius.pill, padding: 6 },
   app: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.pill, backgroundColor: 'rgba(246,241,234,0.08)' },
-  appText: { flexShrink: 1, fontFamily: fonts.bodySemi, fontSize: 14, color: colors.cream },
+  appText: { flexShrink: 1, fontFamily: fonts.bodySemi, fontSize: 14, color: night.cream },
   song: { paddingLeft: 6, paddingVertical: 4 },
   cover: { width: 36, height: 36, borderRadius: 8 },
   coverBlank: { alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(246,241,234,0.08)' },
-  artist: { fontFamily: fonts.body, fontSize: 12, color: colors.onInkMuted },
+  artist: { fontFamily: fonts.body, fontSize: 12, color: night.onInkMuted },
   buttons: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   btn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   btnMain: { backgroundColor: 'rgba(217,208,240,0.22)' },
-});
+}));

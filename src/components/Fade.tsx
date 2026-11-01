@@ -1,7 +1,7 @@
 import React from 'react';
-import { StyleSheet, View, ViewStyle } from 'react-native';
+import { View, ViewStyle } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-import { colors } from '../theme';
+import { colors, themedStyles } from '../theme';
 
 /**
  * A soft wash of cream over footage so ink text reads without a box behind it.
@@ -25,6 +25,6 @@ export function Fade({ from, height, strength = 0.85, color = colors.cream, styl
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   wrap: { position: 'absolute', left: 0, right: 0 },
-});
+}));

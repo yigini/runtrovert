@@ -1989,6 +1989,16 @@ export const en = {
     putBack: 'Put back what was recorded',
     correctedWas: (distance: string, time: string) => `Corrected by you. Recorded: ${distance} in ${time}.`,
   },
+  appearance: {
+    title: 'Appearance',
+    followPhone: 'Follow the phone',
+    followPhoneHint: 'Dark when your phone is dark, light when it’s light. It changes when the phone does, on a schedule too.',
+    light: 'Light',
+    dark: 'Dark',
+    followsValue: (dark: boolean) => `Follows the phone · ${dark ? 'dark now' : 'light now'}`,
+    afterRun: 'The new look starts after this run.',
+    runStaysDark: 'The screen during a run keeps its dark map either way.',
+  },
   backup: {
     keepACopy: 'Keep a full copy',
     oneFileWithEverything: 'One file with everything: runs, routes, heart rate, places, notes, your plan and your settings. Save it to Drive, a computer or wherever you like, and bring it back here or on a new phone.',

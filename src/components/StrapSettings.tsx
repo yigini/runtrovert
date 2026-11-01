@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, Text, View } from 'react-native';
 import { saveStrap, scanStraps, strapCheck, strapSupported, useStrap, type Strap } from '../strap';
-import { colors, fonts, spacing } from '../theme';
+import { colors, fonts, spacing, themedStyles } from '../theme';
 import { Group, kit, Note, PlainRow, RowButton, RowLink } from './SettingsKit';
 import { ui } from '../i18n/ui';
 
@@ -106,7 +106,7 @@ export function StrapSettings() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   use: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.mintDeep },
   warning: { fontFamily: fonts.bodyMedium, fontSize: 13, lineHeight: 19, color: colors.text, paddingHorizontal: spacing.xs },
-});
+}));

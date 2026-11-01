@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radius, spacing } from '../theme';
+import { Pressable, Text, View } from 'react-native';
+import { colors, fonts, radius, spacing, themedStyles } from '../theme';
 import { ui } from '../i18n/ui';
 
 /**
@@ -25,10 +25,10 @@ export function HowWasIt({ plan, answered, children }: { plan: boolean; answered
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   card: { borderRadius: radius.lg, paddingVertical: 10, paddingHorizontal: 18, backgroundColor: colors.lilacSoft, gap: spacing.md },
   head: { flexDirection: 'row', alignItems: 'center', minHeight: 48, gap: spacing.sm },
   title: { fontFamily: fonts.bodySemi, fontSize: 15, lineHeight: 20, color: colors.lilacDeep },
   hint: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.inkMuted },
   chev: { fontFamily: fonts.bodySemi, fontSize: 20, color: colors.lilacDeep, paddingHorizontal: spacing.xs },
-});
+}));

@@ -21,6 +21,7 @@
     "expo-splash-screen": "~58.0.11",
     "expo-sqlite": "~58.0.14",
     "expo-status-bar": "~58.0.4",
+    "expo-system-ui": "~58.0.7",
     "expo-task-manager": "~58.0.12",
     "expo-video": "~58.0.12",
     "react": "19.3.0",
@@ -70,7 +71,7 @@
     "test:deep": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-deep.ts",
     "test:commute": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-commute.ts",
     "test:stories": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-stories.ts",
-    "test": "npm run sim:gps && npm run test:mapfit && npm run test:reminders && npm run test:plans && npm run test:shelf && npm run test:playlists && npm run test:progress && npm run test:tips && npm run test:stats && npm run test:recording && npm run test:accuracy && npm run test:a11y && npm run test:presets && npm run test:comeback && npm run test:unlock && npm run test:places && npm run test:patterns && npm run test:deep && npm run test:stories && npm run test:commute && npm run test:voice && npm run test:io && npm run test:rebuilds && npm run test:ui && npm run test:heart && npm run test:review && npm run test:plan-notes && npm run test:wear && npm run test:credits && npm run test:footage && npm run test:backup && npm run test:runedit && npm run test:quick",
+    "test": "npm run sim:gps && npm run test:mapfit && npm run test:reminders && npm run test:plans && npm run test:shelf && npm run test:playlists && npm run test:progress && npm run test:tips && npm run test:stats && npm run test:recording && npm run test:accuracy && npm run test:a11y && npm run test:presets && npm run test:comeback && npm run test:unlock && npm run test:places && npm run test:patterns && npm run test:deep && npm run test:stories && npm run test:commute && npm run test:voice && npm run test:io && npm run test:rebuilds && npm run test:ui && npm run test:heart && npm run test:review && npm run test:plan-notes && npm run test:wear && npm run test:credits && npm run test:footage && npm run test:backup && npm run test:runedit && npm run test:quick && npm run test:theme",
     "test:voice": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-voice.ts",
     "wear:strings": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/make-wear-strings.ts",
     "test:review": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-review.ts",
@@ -80,7 +81,8 @@
     "credits": "node scripts/make-credits.mjs",
     "test:footage": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-footage.ts",
     "test:credits": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-credits.ts",
-    "test:ui": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-ui.ts"
+    "test:ui": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-ui.ts",
+    "test:theme": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-theme.ts"
   },
   "private": true
 }

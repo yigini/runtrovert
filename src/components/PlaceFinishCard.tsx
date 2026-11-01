@@ -1,9 +1,9 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { offerLine } from '../places';
 import type { FinishPlace, PlaceDraft } from '../placeStore';
-import { colors, fonts, radius, spacing } from '../theme';
+import { colors, fonts, radius, spacing, themedStyles } from '../theme';
 import { ui } from '../i18n/ui';
 
 /**
@@ -70,7 +70,7 @@ function Pin({ color, size = 24 }: { color: string; size?: number }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   card: { borderRadius: radius.lg, paddingVertical: 14, paddingHorizontal: 18, gap: 4 },
   known: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.mintSoft },
   offer: { backgroundColor: colors.mint, flexDirection: 'column' },
@@ -82,4 +82,4 @@ const styles = StyleSheet.create({
   link: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', minHeight: 44 },
   linkText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.mintDeep, textDecorationLine: 'underline' },
   notNowText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.mintDeep, textDecorationLine: 'underline' },
-});
+}));

@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { type GestureResponderEvent, StyleSheet, Text, View } from 'react-native';
+import { type GestureResponderEvent, Text, View } from 'react-native';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 import { distanceUnit, estimateCalories, formatDistance, formatDistanceNumber, formatDuration, formatElevation, formatPace, MILE_M } from '../geo';
 import { runStats, type RunStats as Stats, type SeriesPoint, type StatPoint, type StatRun, type Sun } from '../runStats';
 import { clock } from '../sky';
-import { colors, fonts, radius, spacing, type } from '../theme';
+import { colors, fonts, radius, spacing, type, themedStyles } from '../theme';
 import { BUSY_LABEL } from '../places';
 import { SplitsTable, type SplitRow } from './SplitsTable';
 import { live, ui } from '../i18n/ui';
@@ -322,10 +322,10 @@ function DayArc({ light }: { light: NonNullable<Stats['light']> }) {
         {w > 0 && (
           <Svg width={w} height={h}>
             <Line x1={0} x2={w} y1={horizon} y2={horizon} stroke={colors.inkMuted} strokeWidth={1} opacity={0.25} />
-            <Path d={dip} stroke={colors.lilac} strokeWidth={2} fill="none" strokeDasharray="2 5" strokeLinecap="round" />
-            <Path d={arc} stroke={colors.butter} strokeWidth={2} fill="none" strokeDasharray="2 5" strokeLinecap="round" />
+            <Path d={dip} stroke={colors.lilacMark} strokeWidth={2} fill="none" strokeDasharray="2 5" strokeLinecap="round" />
+            <Path d={arc} stroke={colors.butterMark} strokeWidth={2} fill="none" strokeDasharray="2 5" strokeLinecap="round" />
             <Path d={runPath} stroke={dark ? colors.lilacDeep : colors.butterDeep} strokeWidth={6} fill="none" strokeLinecap="round" />
-            <Circle cx={endP.x} cy={endP.y} r={8} fill={dark ? colors.lilac : colors.butter} stroke={colors.white} strokeWidth={2} />
+            <Circle cx={endP.x} cy={endP.y} r={8} fill={dark ? colors.lilacMark : colors.butterMark} stroke={colors.white} strokeWidth={2} />
           </Svg>
         )}
         <Text style={[styles.tick, { left: 0, top: h - 14 }]}>↑ {clock(sunrise)}</Text>
@@ -380,7 +380,7 @@ function Facts({ run, stats, km }: { run: RunStatsProps['run']; stats: Stats; km
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   card: { backgroundColor: colors.white, borderRadius: radius.lg, padding: spacing.md, gap: 10 },
   eyebrow: { ...type.eyebrow, letterSpacing: 1.5 },
   label: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.4, textTransform: 'uppercase', color: colors.inkMuted },
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
 
   readout: { gap: 2, minHeight: 44 },
   readoutValue: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.text, fontVariant: ['tabular-nums'] },
-  axisNote: { position: 'absolute', fontFamily: fonts.bodySemi, fontSize: 10, color: colors.inkMuted, backgroundColor: 'rgba(255,255,255,0.8)', paddingHorizontal: 4, borderRadius: 4 },
+  axisNote: { position: 'absolute', fontFamily: fonts.bodySemi, fontSize: 10, color: colors.inkMuted, backgroundColor: colors.glass, paddingHorizontal: 4, borderRadius: 4 },
   tick: { position: 'absolute', fontFamily: fonts.body, fontSize: 10, color: colors.muted, fontVariant: ['tabular-nums'] },
 
   rowLabel: { fontFamily: fonts.body, fontSize: 14, color: colors.text },
@@ -409,4 +409,4 @@ const styles = StyleSheet.create({
   tile: { width: '47%', flexGrow: 1, borderRadius: radius.md, padding: spacing.md, gap: 4, minHeight: 104, justifyContent: 'flex-end' },
   tileValue: { fontFamily: fonts.display, fontSize: 26, lineHeight: 30, letterSpacing: -0.5, color: colors.text, fontVariant: ['tabular-nums'] },
   tileLabel: { fontFamily: fonts.body, fontSize: 13, lineHeight: 17 },
-});
+}));

@@ -1,6 +1,6 @@
 import { isQuick } from '../training/quick';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AppState, Pressable, ScrollView, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { DISPLAY_MAX_SCALE } from '../a11y';
 import { AmbientBackground } from '../components/AmbientBackground';
@@ -23,7 +23,7 @@ import { effectivePreset, presetInfo, type RunPreset } from '../presets';
 import { clock, formatTemp, headline, suggestions } from '../sky';
 import { useSettings } from '../settings';
 import { seasonalLine } from '../surprises';
-import { colors, fonts, radius, spacing } from '../theme';
+import { colors, fonts, radius, spacing, themedStyles } from '../theme';
 import { choiceLine, daysAway, isWelcomeBack, stoppedWeek } from '../training/comeback';
 import { WEEKDAY_LONG, weekdayOf } from '../training/dates';
 import type { Plan, Session } from '../training/types';
@@ -434,7 +434,7 @@ function startOfDay(ms: number): number {
   return d.getTime();
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   screen: { flexGrow: 1, padding: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md, gap: spacing.md },
   dock: { paddingHorizontal: spacing.lg, paddingTop: spacing.xs, paddingBottom: spacing.md, gap: spacing.sm },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
   kindLine: { fontFamily: fonts.body, fontSize: 13, color: colors.inkSoft },
   kindLink: { fontFamily: fonts.bodySemi, color: colors.ink, textDecorationLine: 'underline' },
   skyMore: { fontFamily: fonts.body, fontSize: 18, color: colors.inkMuted },
-  planCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 12, paddingHorizontal: 16, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.8)' },
+  planCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 12, paddingHorizontal: 16, borderRadius: radius.lg, backgroundColor: colors.glass },
   todayLink: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.ink, textDecorationLine: 'underline' },
   todayLine: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.inkSoft },
   startRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 2 },
@@ -469,15 +469,15 @@ const styles = StyleSheet.create({
   adjust: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 4, minHeight: 64, paddingVertical: 14, paddingHorizontal: 18, borderRadius: radius.lg, backgroundColor: colors.white },
   adjustLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: colors.inkMuted },
   adjustText: { fontFamily: fonts.bodySemi, fontSize: 16, color: colors.ink },
-  commute: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 48, paddingHorizontal: 16, borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.72)' },
+  commute: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 48, paddingHorizontal: 16, borderRadius: radius.pill, backgroundColor: colors.glassSoft },
   commuteLabel: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.ink },
   commuteText: { flex: 1, fontFamily: fonts.body, fontSize: 13, color: colors.inkSoft, fontVariant: ['tabular-nums'] },
   adjustArrow: { fontFamily: fonts.body, fontSize: 22, color: colors.inkMuted },
-  placeCard: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 48, paddingLeft: 16, paddingRight: 6, borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.72)' },
+  placeCard: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 48, paddingLeft: 16, paddingRight: 6, borderRadius: radius.pill, backgroundColor: colors.glassSoft },
   placeMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 48 },
   placeNote: { fontFamily: fonts.body, fontSize: 12, color: colors.inkMuted },
   placeHide: { minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 8 },
   routeX: { fontFamily: fonts.bodySemi, fontSize: 22, lineHeight: 24, color: colors.inkSoft },
   routeHint: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.inkSoft, marginTop: 6, paddingHorizontal: 4 },
   placeHideText: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.inkMuted, textDecorationLine: 'underline' },
-});
+}));

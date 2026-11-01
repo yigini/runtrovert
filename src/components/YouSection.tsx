@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import Svg, { Circle, Polyline, Rect } from 'react-native-svg';
 import { formatDistance, formatDuration, formatElevation } from '../geo';
 import { bests, EFFORTS, formatClock, trends, type Best, type Trends } from '../progress';
-import { colors, fonts, radius, spacing, type } from '../theme';
+import { colors, fonts, radius, spacing, type, themedStyles } from '../theme';
 import { useUnlocked } from '../unlockState';
 import { loadYou } from '../you';
 import { LockRow } from './LockRow';
@@ -166,7 +166,7 @@ function Dots({ values, color }: { values: boolean[]; color: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   best: { backgroundColor: colors.white, borderRadius: radius.md, paddingVertical: 10, paddingHorizontal: 14, minWidth: 96 },
   bestValue: { fontFamily: fonts.display, fontSize: 20, lineHeight: 24, color: colors.text, fontVariant: ['tabular-nums'] },
   bestLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', color: colors.muted },
@@ -174,4 +174,4 @@ const styles = StyleSheet.create({
   trend: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 10 },
   trendK: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', color: colors.muted },
   trendV: { fontFamily: fonts.display, fontSize: 16, lineHeight: 21, color: colors.text },
-});
+}));

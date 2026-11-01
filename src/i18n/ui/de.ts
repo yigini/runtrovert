@@ -1978,6 +1978,16 @@ export const de: Strings = {
     putBack: 'Aufgezeichnete Werte zurückholen',
     correctedWas: (distance: string, time: string) => `Von dir korrigiert. Aufgezeichnet: ${distance} in ${time}.`,
   },
+  appearance: {
+    title: 'Darstellung',
+    followPhone: 'Wie das Handy',
+    followPhoneHint: 'Dunkel, wenn dein Handy dunkel ist, hell, wenn es hell ist. Wechselt mit dem Handy, auch nach Zeitplan.',
+    light: 'Hell',
+    dark: 'Dunkel',
+    followsValue: (dark) => `Wie das Handy · ${dark ? 'gerade dunkel' : 'gerade hell'}`,
+    afterRun: 'Das neue Aussehen kommt nach diesem Lauf.',
+    runStaysDark: 'Der Bildschirm während eines Laufs behält in beiden Fällen seine dunkle Karte.',
+  },
   backup: {
     keepACopy: 'Eine vollständige Kopie behalten',
     oneFileWithEverything: 'Eine Datei mit allem: Läufe, Routen, Puls, Orte, Notizen, dein Plan und deine Einstellungen. Speichere sie in Drive, auf einem Computer oder wo du magst, und hol sie hier oder auf einem neuen Handy zurück.',

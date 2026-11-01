@@ -1,7 +1,7 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Pressable, Text, View, type ViewStyle } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
-import { colors, fonts, radius, spacing, type } from '../theme';
+import { colors, fonts, radius, spacing, type, themedStyles } from '../theme';
 import { unlockName } from '../unlock';
 import { openUnlock, useUnlocked } from '../unlockState';
 import { ui } from '../i18n/ui';
@@ -41,7 +41,7 @@ export function LockGlyph({ size = 18, color = colors.inkSoft }: { size?: number
   );
 }
 
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56, paddingVertical: 14, paddingHorizontal: spacing.md, borderRadius: radius.md, backgroundColor: '#ece5da' },
+const styles = themedStyles(() => ({
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56, paddingVertical: 14, paddingHorizontal: spacing.md, borderRadius: radius.md, backgroundColor: colors.sunk },
   title: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.text },
-});
+}));

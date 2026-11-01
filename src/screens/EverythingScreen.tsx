@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, Text, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
 import { Button } from '../components/Button';
 import { LockRow } from '../components/LockRow';
@@ -11,7 +11,7 @@ import { getState } from '../tracking';
 import { restartApp } from '../restart';
 import { dateLocale } from '../i18n/lang';
 import type { SourceKind } from '../io/types';
-import { colors, fonts, radius, spacing, type } from '../theme';
+import { colors, fonts, radius, spacing, type, themedStyles } from '../theme';
 import { useUnlocked } from '../unlockState';
 import { live, ui } from '../i18n/ui';
 
@@ -203,10 +203,10 @@ export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; on
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   screen: { flex: 1, backgroundColor: colors.cream, padding: spacing.md, paddingTop: spacing.lg },
   card: { borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm + 2 },
-  kv: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: '#efe8dd' },
+  kv: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: colors.lineSoft },
   kvLast: { borderBottomWidth: 0, paddingVertical: 4 },
   k: { fontFamily: fonts.body, fontSize: 15, color: colors.text, flex: 1, paddingRight: spacing.sm },
   v: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.text },
@@ -214,4 +214,4 @@ const styles = StyleSheet.create({
   small: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.text },
   hint: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.mintDeep },
   note: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.butter, borderRadius: radius.md, padding: 14 },
-});
+}));

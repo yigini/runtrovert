@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, AppState, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, AppState, Platform, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
 import { CommuteSettings } from '../components/CommuteSettings';
 import { StrapSettings } from '../components/StrapSettings';
@@ -14,7 +14,7 @@ import { strapSupported, useStrap } from '../strap';
 import { onBatteryModeChanged } from '../tracking';
 import { MoneyNote, UnlockSettingsRow } from '../components/UnlockRow';
 import { useSettings } from '../settings';
-import { colors, fonts, radius, spacing } from '../theme';
+import { colors, fonts, radius, spacing, themedStyles, scheme, switchColors } from '../theme';
 import type { BatteryMode, CueMode, ListenDownload, NotifyPerWeek, Settings } from '../types';
 import { live, ui } from '../i18n/ui';
 import { LANGS, langFor, phoneLocale, SHIPPED, type Lang } from '../i18n/lang';
@@ -28,7 +28,10 @@ const HOW_OFTEN: Array<{ key: NotifyPerWeek; label: string; hint: string }> = li
 const CUES: Array<{ key: CueMode; label: string; hint: string }> = live(() => (['silent', 'haptic', 'voice'] as const).map((key) => ({ key, ...ui().settings.cue[key] })));
 
 /** The pages behind the main list. Import/export and credits are screens of their own (App.tsx). */
-type Page = 'home' | 'run' | 'gps' | 'map' | 'watch' | 'music' | 'reminders' | 'commute' | 'extras' | 'language' | 'privacy';
+type Page = 'home' | 'run' | 'gps' | 'map' | 'watch' | 'music' | 'reminders' | 'commute' | 'extras' | 'language' | 'appearance' | 'privacy';
+
+/** A new palette redraws every screen, Settings included: come back to the page it was picked on. */
+let reopen: Page | null = null;
 
 const hasWatchPage = Platform.OS === 'android';
 
@@ -48,7 +51,11 @@ export function fetchesOn(s: Pick<Settings, 'plainMap' | 'weather' | 'listenDown
  * gesture returns to the list first, then leaves.
  */
 export function SettingsScreen({ onOpenListen, onOpenEverything, onOpenCredits, onBack, runLive }: { onOpenListen: () => void; onOpenEverything: () => void; onOpenCredits: () => void; onBack?: () => void; runLive?: boolean }) {
-  const [page, setPage] = useState<Page>('home');
+  const [page, setPage] = useState<Page>(() => {
+    const p = reopen ?? 'home';
+    reopen = null;
+    return p;
+  });
   const home = () => setPage('home');
 
   useBatteryFollow();
@@ -74,6 +81,7 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onOpenCredits, 
           {page === 'commute' && <CommuteSettings />}
           {page === 'extras' && <ExtrasPage />}
           {page === 'language' && <LanguagePage locked={!!runLive} onDone={home} />}
+          {page === 'appearance' && <AppearancePage runLive={!!runLive} />}
           {page === 'privacy' && <PrivacyPage />}
         </>
       )}
@@ -102,6 +110,8 @@ function titleOf(page: Page): string {
       return h.weatherExtras;
     case 'language':
       return ui().settings.language;
+    case 'appearance':
+      return ui().appearance.title;
     case 'privacy':
       return h.whatLeaves;
     default:
@@ -136,6 +146,7 @@ function Home({ open, onOpenEverything, onOpenCredits }: { open: (p: Page) => vo
   const homeWork = !commute ? '' : commute.home && commute.work ? h.bothSet : commute.home ? h.homeSet : commute.work ? h.workSet : ui().commute.notSet;
   const language = s.language ? langName(s.language) : ui().settings.phoneLanguage(langName(langFor(phoneLocale())));
   const strapName = strapSupported() ? (strap.strap?.name ?? null) : null;
+  const appearance = s.theme === 'system' ? ui().appearance.followsValue(scheme() === 'dark') : s.theme === 'dark' ? ui().appearance.dark : ui().appearance.light;
 
   return (
     <>
@@ -154,6 +165,7 @@ function Home({ open, onOpenEverything, onOpenCredits }: { open: (p: Page) => vo
         <NavRow icon="home" label={ui().commute.section} value={homeWork} onPress={() => open('commute')} />
         <NavRow icon="sun" label={h.weatherExtras} value={h.extrasValue(s.weather, s.stories)} onPress={() => open('extras')} />
         <NavRow icon="globe" label={ui().settings.language} value={language} onPress={() => open('language')} />
+        <NavRow icon="moon" label={ui().appearance.title} value={appearance} onPress={() => open('appearance')} />
       </Group>
       <Group title={h.groupPrivacy}>
         <NavRow icon="phone" label={h.whatLeaves} value={h.privacyValue(fetchesOn(s))} onPress={() => open('privacy')} />
@@ -168,7 +180,7 @@ function Home({ open, onOpenEverything, onOpenCredits }: { open: (p: Page) => vo
 }
 
 function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
-  return <Switch value={value} onValueChange={onChange} trackColor={{ true: colors.ink }} />;
+  return <Switch value={value} onValueChange={onChange} {...switchColors(value)} />;
 }
 
 function RunPage({ runLive }: { runLive: boolean }) {
@@ -387,6 +399,33 @@ function ExtrasPage() {
   );
 }
 
+/** Light, dark, or whatever the phone is set to (the default). The live run screen is dark in all three. */
+function AppearancePage({ runLive }: { runLive: boolean }) {
+  const { settings, update } = useSettings();
+  const a = ui().appearance;
+  const choices: Array<{ key: Settings['theme']; label: string; hint?: string }> = [
+    { key: 'system', label: a.followPhone, hint: a.followPhoneHint },
+    { key: 'light', label: a.light },
+    { key: 'dark', label: a.dark },
+  ];
+  return (
+    <>
+      <Group>
+        <RadioList
+          options={choices}
+          value={settings.theme}
+          onPick={(theme) => {
+            if (!runLive) reopen = 'appearance';
+            update({ theme });
+          }}
+        />
+      </Group>
+      {runLive ? <Note strong>{a.afterRun}</Note> : null}
+      <Note>{a.runStaysDark}</Note>
+    </>
+  );
+}
+
 /** The phone's language by default; any language the whole app speaks can be picked instead. Names are in their own language. */
 function LanguagePage({ locked, onDone }: { locked: boolean; onDone: () => void }) {
   const { settings, update } = useSettings();
@@ -456,7 +495,7 @@ function PrivacyPage() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   screen: { flex: 1, backgroundColor: colors.cream },
   content: { padding: spacing.md, paddingTop: spacing.lg, paddingBottom: spacing.xl, gap: spacing.lg - 4 },
   h1: { fontFamily: fonts.display, fontSize: 34, lineHeight: 40, letterSpacing: -0.5, color: colors.text },
@@ -467,4 +506,4 @@ const styles = StyleSheet.create({
   previewHint: { fontFamily: fonts.body, color: colors.muted, fontSize: 12, textAlign: 'right' },
   turnOn: { backgroundColor: colors.ink, borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 14 },
   turnOnText: { fontFamily: fonts.bodySemi, color: colors.cream, fontSize: 13 },
-});
+}));

@@ -52,7 +52,7 @@ import {
   type Shelf,
   type Show,
 } from '../shelfLogic';
-import { colors, fonts, radius, spacing } from '../theme';
+import { colors, fonts, radius, spacing, themedStyles, themed, switchColors, scheme } from '../theme';
 import type { PodcastApp } from '../types';
 import { ui } from '../i18n/ui';
 import { DISPLAY_MAX_SCALE } from '../a11y';
@@ -73,20 +73,20 @@ import { useReduceMotion } from '../motion';
 
 type Tint = { bg: string; fg: string };
 
-const GROUP_TINT: Record<Group, Tint> = {
+const GROUP_TINT: Record<Group, Tint> = themed(() => ({
   quiet: { bg: colors.mint, fg: colors.mintDeep },
   stories: { bg: colors.lilac, fg: colors.lilacDeep },
   learn: { bg: colors.sky, fg: colors.skyDeep },
   start: { bg: colors.butter, fg: colors.butterDeep },
-};
-const LOCAL_TINT: Tint = { bg: colors.peach, fg: colors.peachDeep };
+}));
+const LOCAL_TINT: Tint = themed(() => ({ bg: colors.peach, fg: colors.peachDeep }));
 
-const MOOD_TINT: Record<MoodKey, Tint> = {
+const MOOD_TINT: Record<MoodKey, Tint> = themed(() => ({
   easy: { bg: colors.mint, fg: colors.mintDeep },
   long: { bg: colors.sky, fg: colors.skyDeep },
   tempo: { bg: colors.butter, fg: colors.butterDeep },
   fast: { bg: colors.peach, fg: colors.peachDeep },
-};
+}));
 
 type Picking = { kind: 'music'; then?: Mood } | { kind: 'podcast'; then: Show | null; ep?: Episode | null };
 
@@ -224,7 +224,7 @@ export function ListenScreen({ onBack, runLive = false }: { onBack?: () => void;
             value={settings.musicStrip}
             onValueChange={(v) => update({ musicStrip: v })}
             trackColor={{ true: colors.lilac, false: 'rgba(246,241,234,0.2)' }}
-            thumbColor={settings.musicStrip ? colors.cream : colors.onInkMuted}
+            thumbColor={settings.musicStrip ? (scheme() === 'dark' ? colors.lilacDeep : colors.cream) : colors.onInkMuted}
             accessibilityLabel={ui().listen.musicStripOnTheRun}
           />
         </View>
@@ -617,7 +617,7 @@ export function ListenSheet({ open, onClose, onBrowse }: { open: boolean; onClos
           <Switch
             value={silent}
             onValueChange={(v) => update({ silentDay: v ? dayKey(Date.now()) : null })}
-            trackColor={{ true: colors.ink }}
+            {...switchColors(silent)}
             accessibilityLabel={ui().listen.runInSilenceToday}
           />
         </View>
@@ -1134,7 +1134,7 @@ function flag(cc: string | null): string {
   return String.fromCodePoint(...[...cc.toUpperCase()].map((ch) => 0x1f1e6 + ch.charCodeAt(0) - 65));
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   pullFailed: { fontFamily: fonts.bodySemi, fontSize: 14, lineHeight: 20, color: colors.text, backgroundColor: colors.butter, borderRadius: radius.md, paddingHorizontal: 12, paddingVertical: 8, alignSelf: 'flex-start' },
   recording: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', backgroundColor: colors.ink, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 8 },
   recordingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.mint },
@@ -1199,11 +1199,11 @@ const styles = StyleSheet.create({
   showBy: { fontFamily: fonts.body, fontSize: 12, lineHeight: 17, color: colors.muted },
   why: { fontFamily: fonts.displayItalic, fontSize: 16, lineHeight: 23, color: colors.text },
   sheetName: { fontFamily: fonts.display, fontSize: 22, lineHeight: 27, color: colors.text },
-  eps: { backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: radius.md, padding: 14, gap: 10 },
+  eps: { backgroundColor: colors.glassSoft, borderRadius: radius.md, padding: 14, gap: 10 },
   epsLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase' },
   epsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   epsTitle: { fontFamily: fonts.bodySemi, fontSize: 14, lineHeight: 19, color: colors.text },
-  grabber: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(43,39,51,0.2)', marginTop: -8, marginBottom: 4 },
+  grabber: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.grabber, marginTop: -8, marginBottom: 4 },
 
   pill: { borderRadius: radius.pill, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: colors.white, minHeight: 44, justifyContent: 'center' },
   pillDark: { backgroundColor: colors.ink },
@@ -1219,11 +1219,11 @@ const styles = StyleSheet.create({
   sheetLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, minHeight: 48 },
   sheetLineRule: { paddingTop: spacing.xs },
   sheetLineText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.text },
-  scrim: { flex: 1, backgroundColor: 'rgba(43,39,51,0.45)', justifyContent: 'flex-end' },
+  scrim: { flex: 1, backgroundColor: colors.scrim, justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.cream, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, padding: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
   sheetRow: { paddingVertical: 14, paddingHorizontal: 14, borderRadius: radius.md, backgroundColor: colors.white, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   sheetRowOn: { backgroundColor: colors.ink },
   sheetText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.text, flexShrink: 1 },
   sheetTextOn: { color: colors.cream },
   sheetNote: { fontFamily: fonts.body, fontSize: 12, color: colors.muted },
-});
+}));

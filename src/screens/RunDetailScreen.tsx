@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
 import { DeepRunView } from '../components/DeepStats';
 import { Button } from '../components/Button';
@@ -20,7 +20,7 @@ import { forgetRun } from '../training/store';
 import { compare, youVsYou, type RunFacts } from '../progress';
 import type { RunWeather } from '../shareLines';
 import { useSettings } from '../settings';
-import { colors, fonts, radius, spacing, type } from '../theme';
+import { colors, fonts, radius, spacing, type, themedStyles } from '../theme';
 import type { StatPoint } from '../runStats';
 import type { LatLon, Mood, Run, Split } from '../types';
 import { loadYou } from '../you';
@@ -368,7 +368,7 @@ export function RunDetailScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   screen: { flex: 1, backgroundColor: colors.cream, padding: spacing.md, paddingTop: spacing.lg },
   source: { ...type.small, marginTop: -spacing.sm },
   date: { fontFamily: fonts.display, fontSize: 22, lineHeight: 26, color: colors.text },
@@ -386,4 +386,4 @@ const styles = StyleSheet.create({
   fixLinkText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.muted, textDecorationLine: 'underline' },
   clear: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.muted, textDecorationLine: 'underline' },
   note: { fontFamily: fonts.body, color: colors.text, fontSize: 15, lineHeight: 22, backgroundColor: colors.butter, borderRadius: radius.lg, padding: spacing.md },
-});
+}));

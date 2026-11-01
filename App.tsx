@@ -9,10 +9,11 @@ import { Fraunces_400Regular_Italic } from '@expo-google-fonts/fraunces/400Regul
 import { Fraunces_600SemiBold } from '@expo-google-fonts/fraunces/600SemiBold';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
+import * as SystemUI from 'expo-system-ui';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, BackHandler, Pressable, StyleSheet, Text, ToastAndroid, View } from 'react-native';
+import { Alert, BackHandler, Pressable, Text, ToastAndroid, useColorScheme, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { handleBack } from './src/back';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
@@ -34,7 +35,7 @@ import { SettingsProvider, useSettings } from './src/settings';
 import { onRestart } from './src/restart';
 import { startBilling } from './src/billing';
 import { recoverRun, subscribe } from './src/tracking';
-import { colors, fonts, radius, spacing } from './src/theme';
+import { colors, fonts, night, onScheme, radius, scheme, setScheme, spacing, themedStyles } from './src/theme';
 import { dayName } from './src/training/adapt';
 import type { Place } from './src/placeStore';
 import { onRunSaved } from './src/training/store';
@@ -73,6 +74,13 @@ export default function App() {
 
 function Shell() {
   const { settings, ready, update } = useSettings();
+  const phoneScheme = useColorScheme();
+  // The window behind the app (seen while the keyboard opens) takes the ground colour.
+  useEffect(() => {
+    const paint = () => void SystemUI.setBackgroundColorAsync(colors.bg).catch(() => {});
+    paint();
+    return onScheme(paint);
+  }, []);
   const [tab, setTab] = useState<Tab>('run');
   const [sub, setSub] = useState<Sub>(null);
   const [everythingFrom, setEverythingFrom] = useState<Sub>(null);
@@ -214,11 +222,18 @@ function Shell() {
     }
   }, [ready, response]);
 
+  // Light or dark: the phone's choice unless Settings > Appearance says otherwise.
+  // A live run (and its countdown and finish) keeps the palette it started with;
+  // the new one arrives when it ends, the same way a new language does.
+  const wanted = settings.theme === 'system' ? (phoneScheme === 'dark' ? 'dark' : 'light') : settings.theme;
+  if (ready && !liveRun && !countingDown) setScheme(wanted);
+  const dark = scheme() === 'dark';
+
   if (!ready) return <SafeAreaView style={styles.root} />;
   if (!settings.onboarded) {
     return (
-      <SafeAreaView style={styles.root}>
-        <StatusBar style="dark" />
+      <SafeAreaView style={styles.root} key={scheme()}>
+        <StatusBar style={dark ? 'light' : 'dark'} />
         <WelcomeScreen
           onDone={async (yes) => {
             if (yes) await requestNotificationPermission().catch(() => false);
@@ -273,9 +288,9 @@ function Shell() {
   return (
     <OpenSettings.Provider value={openSettings}>
       <SafeAreaView style={[styles.root, inkMode && styles.rootInk]}>
-        <StatusBar style={inkMode ? 'light' : 'dark'} />
-        {/* A new language redraws every screen; Settings can't change it during a live run. */}
-        <View style={{ flex: 1 }} key={lang()}>
+        <StatusBar style={inkMode || dark ? 'light' : 'dark'} />
+        {/* A new language or palette redraws every screen; neither changes during a live run. */}
+        <View style={{ flex: 1 }} key={`${lang()}-${scheme()}`}>
           {/* RunScreen stays mounted so a live run survives tab switches. */}
           <View style={[{ flex: 1 }, (tab !== 'run' || sub != null) && styles.hidden]}>
             <RunScreen
@@ -390,7 +405,7 @@ function Shell() {
             <TabButton label={ui().app.train} active={tab === 'train'} onPress={() => go('train')} />
           </View>
         )}
-        <UnlockHost />
+        <UnlockHost key={scheme()} />
       </SafeAreaView>
     </OpenSettings.Provider>
   );
@@ -406,9 +421,9 @@ function TabButton({ label, active, onPress }: { label: string; active: boolean;
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   root: { flex: 1, backgroundColor: colors.cream },
-  rootInk: { backgroundColor: colors.ink },
+  rootInk: { backgroundColor: night.ink },
   hidden: { display: 'none' },
   tabs: { flexDirection: 'row', gap: 6, backgroundColor: colors.cream, paddingHorizontal: spacing.md, paddingTop: 8, paddingBottom: spacing.sm + 2 },
   // Three tabs share the width evenly, so a narrow phone or a big font never pushes one off the edge.
@@ -416,4 +431,4 @@ const styles = StyleSheet.create({
   tabActive: { backgroundColor: colors.ink },
   tabText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.muted },
   tabTextActive: { color: colors.cream },
-});
+}));

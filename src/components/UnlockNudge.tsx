@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { listRuns } from '../db';
-import { colors, fonts, spacing, type } from '../theme';
+import { colors, fonts, spacing, type, themedStyles } from '../theme';
 import { calmFinish, type FinishMood, unlockName, shouldNudge, unlockState } from '../unlock';
 import { openUnlock, updateUnlock } from '../unlockState';
 import { ui } from '../i18n/ui';
@@ -78,9 +78,9 @@ export function UnlockNudge(mood: Omit<FinishMood, 'daysSinceLastRun'>) {
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: { borderTopWidth: 1, borderTopColor: '#e4dccf', paddingTop: 12, gap: 6 },
+const styles = themedStyles(() => ({
+  wrap: { borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12, gap: 6 },
   text: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.inkSoft },
   link: { fontFamily: fonts.bodySemi, color: colors.text, textDecorationLine: 'underline' },
   notNow: { alignSelf: 'flex-start', minHeight: 32, justifyContent: 'center', paddingRight: spacing.md },
-});
+}));

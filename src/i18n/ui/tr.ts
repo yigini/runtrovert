@@ -1978,6 +1978,16 @@ export const tr: Strings = {
     putBack: 'Kaydedilen değerlere dön',
     correctedWas: (distance: string, time: string) => `Senin düzeltmen. Kaydedilen: ${time} sürede ${distance}.`,
   },
+  appearance: {
+    title: 'Görünüm',
+    followPhone: 'Telefona uy',
+    followPhoneHint: 'Telefonun koyuysa koyu, açıksa açık. Telefon değişince o da değişir, zamanlamayla da.',
+    light: 'Açık',
+    dark: 'Koyu',
+    followsValue: (dark) => `Telefona uyuyor · ${dark ? 'şu an koyu' : 'şu an açık'}`,
+    afterRun: 'Yeni görünüm bu koşudan sonra gelir.',
+    runStaysDark: 'Koşu sırasındaki ekran iki durumda da koyu haritasını korur.',
+  },
   backup: {
     keepACopy: 'Tam bir kopya sakla',
     oneFileWithEverything: 'Her şey tek dosyada: koşular, rotalar, nabız, yerler, notlar, planın ve ayarların. Drive’a, bir bilgisayara ya da istediğin yere kaydet; buraya ya da yeni bir telefona geri getir.',

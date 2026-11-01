@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, Text, View } from 'react-native';
 import { formatDistance } from '../geo';
 import { BUSY_LABEL, tagLabel } from '../places';
 import { listPlaces, recentVisits, type Place, type PlaceVisit } from '../placeStore';
-import { colors, fonts, radius, spacing, type } from '../theme';
+import { colors, fonts, radius, spacing, type, themedStyles } from '../theme';
 import type { Quiet } from '../types';
 import { LoadFailed } from './LoadFailed';
 import { RouteShape } from './RouteShape';
@@ -110,7 +110,7 @@ export function lastWhen(at: number): string {
   return d.toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' });
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   card: { backgroundColor: colors.white, borderRadius: radius.lg, padding: 16, gap: 10 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   name: { fontFamily: fonts.display, fontSize: 20, lineHeight: 24, color: colors.text },
@@ -122,4 +122,4 @@ const styles = StyleSheet.create({
   again: { minHeight: 44, borderRadius: radius.pill, backgroundColor: colors.ink, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
   againText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.cream },
   empty: { alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.xl },
-});
+}));

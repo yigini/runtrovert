@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import Svg, { Rect } from 'react-native-svg';
 import { distanceUnit, formatDistance, MILE_M } from '../geo';
 import { deepMonths, deepRun, type Bucket, type DeepMonths, type DeepRun, type Group } from '../deepStats';
@@ -7,7 +7,7 @@ import { loadDeepFacts } from '../deepStore';
 import type { HeartSample } from '../heart';
 import type { StatPoint } from '../runStats';
 import { useSettings } from '../settings';
-import { colors, fonts, radius, spacing, type } from '../theme';
+import { colors, fonts, radius, spacing, type, themedStyles, themed } from '../theme';
 import { useUnlocked } from '../unlockState';
 import { LockGlyph, LockRow } from './LockRow';
 import { ui } from '../i18n/ui';
@@ -126,7 +126,7 @@ function GradeRow({ label, b, km }: { label: string; b: Bucket | null; km: boole
   );
 }
 
-const ZONE_TONES = [colors.mintSoft, colors.mint, colors.butter, colors.peach, colors.peachDeep];
+const ZONE_TONES = themed(() => [colors.zoneLow, colors.mintMark, colors.butterMark, colors.peachMark, colors.zoneHigh]);
 
 function Zones({ zones }: { zones: NonNullable<DeepRun['zones']> }) {
   const s = ui().deepStats;
@@ -335,12 +335,11 @@ function Year({ year }: { year: DeepMonths['year'] }) {
 
 // Four steps a phone in sunlight can still tell apart: no run, a short one, a
 // middling one, a long one. The same facts are in the line under the grid.
-const YEAR_MID = '#6fa58a';
 function yearTone(m: number): string {
-  return m <= 0 ? colors.cream : m < 25 ? colors.mint : m < 50 ? YEAR_MID : colors.mintDeep;
+  return m <= 0 ? colors.cream : m < 25 ? colors.mint : m < 50 ? colors.yearMid : colors.mintDeep;
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   toggle: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
   toggleText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.inkMuted, textDecorationLine: 'underline' },
   eyebrow: { ...type.eyebrow, letterSpacing: 1.5 },
@@ -357,4 +356,4 @@ const styles = StyleSheet.create({
   swatch: { width: 12, height: 12, borderRadius: 2 },
   locked: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 36 },
   lockedText: { fontFamily: fonts.body, fontSize: 15, color: colors.inkSoft },
-});
+}));
