@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+rt_serial=$(adb get-serialno)
+rt_qemu=$(adb shell getprop ro.kernel.qemu | tr -d '\r')
+rt_boot_qemu=$(adb shell getprop ro.boot.qemu | tr -d '\r')
+if [[ "$rt_serial" != emulator-* || ( "$rt_qemu" != 1 && "$rt_boot_qemu" != 1 ) ]]; then
+  echo 'This smoke script only installs into a disposable local Android emulator.' >&2
+  exit 1
+fi
+
 # This is an installation/launch smoke test, not a full usability test.
 mkdir -p evidence
 capture_diagnostics() {

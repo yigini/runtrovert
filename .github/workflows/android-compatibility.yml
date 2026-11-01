@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       apis:
-        description: Android API levels to check (API 36 already passed)
+        description: Android API levels to check
         required: true
-        default: '[24]'
+        default: '[24,36]'
         type: choice
         options:
           - '[24]'
@@ -33,9 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Retry the older boundary without repeating the completed API 36 job.
-        # Change this fallback and the input default to [24,36] for a full sweep.
-        api: ${{ fromJSON(inputs.apis || '[24]') }}
+        api: ${{ fromJSON(inputs.apis || '[24,36]') }}
     env:
       BUILD_RUN_ID: '41319989111'
       EXPECTED_SOURCE_SHA: '781f29f54595bec0827390ec7ec6d710dc82bf72'
@@ -262,8 +260,8 @@ jobs:
           disable-linux-hw-accel: false
           pre-emulator-launch-script: |
             cp "$HOME/.android/avd/runtrovert-compat-api-${{ matrix.api }}.avd/config.ini" evidence/avd-config.ini
-            "$ANDROID_HOME/emulator/emulator" -version > evidence/emulator-version.txt 2>&1
-            "$ANDROID_HOME/emulator/emulator" -accel-check > evidence/acceleration.txt 2>&1
+            cat "$ANDROID_HOME/emulator/source.properties" > evidence/emulator-version.txt
+            "$ANDROID_HOME/emulator/emulator" -accel-check > evidence/acceleration.txt 2>&1 || true
             free -m > evidence/runner-memory.txt
             df -h > evidence/runner-disk.txt
           script: bash compatibility-smoke.sh
@@ -276,4 +274,3 @@ jobs:
           path: evidence/
           retention-days: 7
           if-no-files-found: error
-

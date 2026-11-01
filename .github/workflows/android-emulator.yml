@@ -42,10 +42,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - suite: save-interaction
-            cases: 05-record-pause-background-save
-          - suite: gpx-and-places
-            cases: 18-gpx-import-deduplication
+          - suite: onboarding-and-manual
+            cases: 01-welcome-copy,02-onboarding-navigation,03-location-denied,04-background-permission-cancel,08-manual-validation-edit-delete
+          - suite: recording-and-recovery
+            cases: 05-record-pause-background-save,06-finish-recovery-discard,07-quiet-mode,09-quick-workout,13-offline-recording,19-process-death-recovery
+          - suite: settings-and-accessibility
+            cases: 10-settings-pages,11-units-theme-persistence,12-large-text,14-data-tools-cancellation,24-listen-choices-privacy-cancel
+          - suite: backup-and-import
+            cases: 15-backup-roundtrip,16-truncated-backup-safety,17-malformed-backup-rollback,18-gpx-import-deduplication
+          - suite: training-plans
+            cases: 20-mode-fallback-countdown-cancel,21-plan-setup-session-guidance,22-plan-health-warning-cancel,23-plan-pause-rest-ill-stop
     env:
       BUILD_RUN_ID: ${{ inputs.build_run_id || '41319989111' }}
       RT_CASES: ${{ inputs.cases || '' }}
