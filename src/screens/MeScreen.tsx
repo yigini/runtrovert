@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { AmbientBackground } from '../components/AmbientBackground';
+import { FilmScrim, SHEET_OVERLAP } from '../components/FilmHeader';
 import { spokenDistance } from '../a11y';
 import { DeepMonthsView } from '../components/DeepStats';
 import { Group as Fold } from '../components/DeepCharts';
@@ -187,7 +187,7 @@ export function MeScreen({
         <View style={[styles.hero, { paddingTop: insets.top + spacing.md, minHeight: insets.top + HERO_HEIGHT }]} onLayout={onHero}>
           <View style={StyleSheet.absoluteFill} pointerEvents="none">
             <AmbientBackground style={footage} paused={!active} />
-            <Scrim w={hero.w} h={hero.h} />
+            <FilmScrim w={hero.w} h={hero.h} />
           </View>
           {filmTitle}
           {data ? (
@@ -358,7 +358,6 @@ export function MeScreen({
 }
 
 const HERO_HEIGHT = 470;
-const SHEET_OVERLAP = 28;
 const DAY_BAR = 64;
 
 function Footer({ onWhatsHere }: { onWhatsHere: () => void }) {
@@ -373,29 +372,6 @@ function Footer({ onWhatsHere }: { onWhatsHere: () => void }) {
         <Text style={[styles.linkText, { color: colors.lilacDeep }]}>{m.whatsHere}</Text>
       </Pressable>
     </View>
-  );
-}
-
-/**
- * The dark scrim over the film: heavier under the clock and title, lightest across the middle where
- * only the picture shows, darkest at the foot behind the total. Sized in numbers from the header's
- * own layout (a percentage-sized Svg can keep its first, shorter size on Android). Until the header
- * is measured, a flat scrim at the floor stands in, so words are never on bare footage.
- */
-function Scrim({ w, h }: { w: number; h: number }) {
-  if (w === 0 || h === 0) return <View style={[StyleSheet.absoluteFill, { backgroundColor: FILM.scrim, opacity: 0.6 }]} />;
-  return (
-    <Svg width={w} height={h} style={StyleSheet.absoluteFill}>
-      <Defs>
-        <LinearGradient id="meScrim" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={FILM.scrim} stopOpacity={0.6} />
-          <Stop offset="0.3" stopColor={FILM.scrim} stopOpacity={FILM.scrimFloor} />
-          <Stop offset="0.55" stopColor={FILM.scrim} stopOpacity={0.55} />
-          <Stop offset="1" stopColor={FILM.scrim} stopOpacity={0.88} />
-        </LinearGradient>
-      </Defs>
-      <Rect x={0} y={0} width={w} height={h} fill="url(#meScrim)" />
-    </Svg>
   );
 }
 

@@ -5,12 +5,13 @@ import * as Sharing from 'expo-sharing';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
+import { FilmBand, useFilmScroll } from '../components/FilmHeader';
 import { SettingsGear } from '../components/SettingsGear';
 import { Button } from '../components/Button';
 import { FeelPicker } from '../components/FeelPicker';
 import { PlanReminderCard } from '../components/PlanReminders';
 import { useSettings } from '../settings';
-import { colors, fonts, radius, spacing, type, themedStyles, themed } from '../theme';
+import { colors, FILM, fonts, radius, spacing, type, themedStyles, themed } from '../theme';
 import { applyHoliday, applyIllness, dayName, missedState, moveSession, rebuild, type MissedState } from '../training/adapt';
 import { GOAL_LABEL, PLANS, checkGate, daysFit, planById, plansFor, type Goal, type PlanSpec, type RunnerProfile, type Tier } from '../training/catalogue';
 import { WEEKDAY_LONG, WEEKDAY_SHORT, addDays, dayStart, daysBetween, formatDay, mondayOf, weekdayOf } from '../training/dates';
@@ -254,13 +255,19 @@ export function TrainScreen({ refreshKey, onStartSession, onChanged }: { refresh
 function Catalogue({ profile, historyN, lastPlan, onPick, onRules, onQuick }: { profile: RunnerProfile; historyN: number; lastPlan: Plan | null; onPick: (spec: PlanSpec) => void; onRules: () => void; onQuick: () => void }) {
   const goals: Goal[] = ['none', '5k', '10k', 'half', 'marathon'];
   const [goal, setGoal] = useState<Goal>(lastPlan ? planById(lastPlan.setup.planId)?.goal ?? 'none' : 'none');
+  const [bandH, setBandH] = useState(0);
+  const film = useFilmScroll(bandH);
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.screen}>
-      <View style={styles.topRow}>
-        <Text style={type.eyebrow}>{ui().train.train}</Text>
-        <SettingsGear />
-      </View>
-      <Text style={styles.h1}>{ui().train.structureWithoutTheShouting}</Text>
+    <View style={styles.scroll}>
+    <ScrollView style={styles.scroll} contentContainerStyle={styles.screen} onScroll={film.onScroll} scrollEventThrottle={32}>
+      {/* The top of Train: a short band of film with the title on it, then the cream sheet. */}
+      <FilmBand offset={2} topPad={spacing.lg} onHeight={setBandH}>
+        <View style={styles.filmRow}>
+          <Text style={[type.eyebrow, styles.onFilmSoft]}>{ui().train.train}</Text>
+          <SettingsGear onFilm />
+        </View>
+        <Text style={[styles.h1, styles.onFilm]} accessibilityRole="header">{ui().train.structureWithoutTheShouting}</Text>
+      </FilmBand>
       <Text style={styles.lede}>{ui().train.fourteenPlansFromAFirst}</Text>
       <QuickRow onPress={onQuick} />
       {lastPlan?.status === 'done' && <Text style={styles.note}>{ui().train.xIsDoneXRuns(lastPlan.name, planProgress(lastPlan).done, fmtKm(planProgress(lastPlan).kmDone, true))}</Text>}
@@ -278,6 +285,8 @@ function Catalogue({ profile, historyN, lastPlan, onPick, onRules, onQuick }: { 
       <Text style={styles.foot}>{ui().train.howPlansAreBuilt}</Text>
       <Text style={styles.foot}>{ui().train.noAccountNoServerA}</Text>
     </ScrollView>
+    {film.strip}
+    </View>
   );
 }
 
@@ -569,16 +578,22 @@ function WeekView(props: {
   const paused = plan.status === 'paused';
   const behind = missed.kind !== 'none' && plan.weeks.flatMap((w) => w.sessions).some((s) => s.date < today && !s.done && !s.skipped && s.kind !== 'strength' && planSessionOpen(plan, s.id));
   const raceIn = plan.setup.raceDate != null ? daysBetween(today, plan.setup.raceDate) : null;
+  const [bandH, setBandH] = useState(0);
+  const film = useFilmScroll(bandH);
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.screen}>
-      <View style={styles.topRow}>
-        <Text style={[type.eyebrow, { flex: 1 }]}>
-          {plan.name} · {ui().train.weekOf(current.index, spec.tier === 'keep' ? '∞' : weeks[weeks.length - 1].index)}
-        </Text>
-        <SettingsGear />
-      </View>
-      <Text style={styles.h1}>{weekHeadline(current, current, today, raceIn)}</Text>
+    <View style={styles.scroll}>
+    <ScrollView style={styles.scroll} contentContainerStyle={styles.screen} onScroll={film.onScroll} scrollEventThrottle={32}>
+      {/* The top of Train: a short band of film with the plan, the week and its headline, then the cream sheet. */}
+      <FilmBand offset={2} topPad={spacing.lg} onHeight={setBandH}>
+        <View style={styles.filmRow}>
+          <Text style={[type.eyebrow, styles.onFilmSoft, { flex: 1 }]}>
+            {plan.name} · {ui().train.weekOf(current.index, spec.tier === 'keep' ? '∞' : weeks[weeks.length - 1].index)}
+          </Text>
+          <SettingsGear onFilm />
+        </View>
+        <Text style={[styles.h1, styles.onFilm]} accessibilityRole="header">{weekHeadline(current, current, today, raceIn)}</Text>
+      </FilmBand>
 
       {paused ? (
         <View style={styles.banner}>
@@ -670,6 +685,8 @@ function WeekView(props: {
         </Section>
       )}
     </ScrollView>
+    {film.strip}
+    </View>
   );
 }
 
@@ -1254,10 +1271,12 @@ async function exportCalendar(plan: Plan) {
 }
 
 const styles = themedStyles(() => ({
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, marginTop: -10, marginRight: -10 },
   lockLine: { backgroundColor: colors.sunk, borderRadius: radius.md, paddingVertical: 12, paddingHorizontal: 14 },
   lockLineText: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.inkSoft },
   scroll: { flex: 1, backgroundColor: colors.cream },
+  filmRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, marginRight: -10 },
+  onFilm: { color: FILM.text, textShadowColor: FILM.shadow, textShadowRadius: 8 },
+  onFilmSoft: { color: FILM.soft, textShadowColor: FILM.shadow, textShadowRadius: 6 },
   screen: { padding: spacing.md, paddingTop: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
   h1: { fontFamily: fonts.display, fontSize: 34, lineHeight: 38, letterSpacing: -0.6, color: colors.text },
   lede: { fontFamily: fonts.displayItalic, fontSize: 17, lineHeight: 23, color: colors.inkSoft },

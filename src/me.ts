@@ -125,11 +125,13 @@ export const ME_DAY_FOOTAGE = ['sunset-water', 'glass-river', 'sun-trees'] as co
 export const ME_NIGHT_FOOTAGE = ['dark-forest', 'night-park'] as const;
 export type MeFootage = (typeof ME_DAY_FOOTAGE)[number] | (typeof ME_NIGHT_FOOTAGE)[number];
 
-export function meFootage(now: number, dark: boolean): MeFootage {
+/** `offset` turns the same day's set by that many places, so Your runs and Train each get a loop of their own. */
+export function meFootage(now: number, dark: boolean, offset = 0): MeFootage {
   const d = new Date(now);
   const dayNo = Math.floor(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / 86400000);
   const pool: readonly MeFootage[] = dark ? ME_NIGHT_FOOTAGE : ME_DAY_FOOTAGE;
-  return pool[((dayNo % pool.length) + pool.length) % pool.length];
+  const n = dayNo + offset;
+  return pool[((n % pool.length) + pool.length) % pool.length];
 }
 
 /** Monday to Sunday of this week: the minutes run each day (0 for none), for the week's columns. */
