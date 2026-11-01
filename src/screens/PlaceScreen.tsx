@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
 import { Button } from '../components/Button';
 import { LockRow } from '../components/LockRow';
@@ -22,7 +22,20 @@ import { dateLocale } from '../i18n/lang';
  * free; what months of notes add up to ("when it's usually quiet here") comes
  * with Everything, once.
  */
-export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeId: number; onBack: () => void; onChanged: () => void; onRunAgain: (p: Place) => void }) {
+export function PlaceScreen({
+  placeId,
+  onBack,
+  onChanged,
+  onRunAgain,
+  onOpenRun,
+}: {
+  placeId: number;
+  onBack: () => void;
+  onChanged: () => void;
+  onRunAgain: (p: Place) => void;
+  /** A run in the dated list was tapped. */
+  onOpenRun?: (runId: number) => void;
+}) {
   const km = useSettings().settings.unitsKm;
   const unlocked = useUnlocked();
   const [place, setPlace] = useState<Place | null>(null);
@@ -57,7 +70,12 @@ export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeI
     );
   }
 
-  const since = summary.since ? new Date(summary.since).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' }) : null;
+  // Imported runs can go back years: say the year whenever it isn't this one.
+  const since = summary.since
+    ? new Date(summary.since).toLocaleDateString(dateLocale(), new Date(summary.since).getFullYear() === new Date().getFullYear() ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' })
+    : null;
+  // Runs brought in from elsewhere carry no notes: then the list is simply every run here.
+  const anyNotes = visits.some((v) => v.busy || v.note?.trim());
   const facts = [
     summary.count === 1 ? ui().place.runOnce : ui().place.runXTimes(summary.count),
     since ? ui().place.since(since) : null,
@@ -120,7 +138,7 @@ export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeI
           </View>
         ) : null}
 
-        <Text style={[type.eyebrow, { marginTop: spacing.sm }]} accessibilityRole="header">{ui().place.yourNotesDated}</Text>
+        <Text style={[type.eyebrow, { marginTop: spacing.sm }]} accessibilityRole="header">{anyNotes ? ui().place.yourNotesDated : ui().place.everyRunHere}</Text>
         <View>
           {visits.length === 0 ? <Text style={type.small}>{ui().place.nothingYetEachRunHere}</Text> : null}
           {months.map((m) => (
@@ -131,14 +149,35 @@ export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeI
           {m.visits.map((v) => {
             const when = new Date(v.at);
             const label = `${when.toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric', month: 'short' })} ${when.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' })}`;
-            return (
-              <View key={v.id} style={styles.log} accessible accessibilityLabel={[label, v.busy ? BUSY_LABEL[v.busy] : ui().place.noRating, v.note].filter(Boolean).join('. ')}>
-                {/* Date and busyness on one line, the note under them at full width and never cut short. */}
+            const run = v.distanceM && v.durationS ? `${formatDistance(v.distanceM, km)} · ${formatPace(v.distanceM, v.durationS, km)} /${km ? 'km' : 'mi'}` : null;
+            const busy = v.busy ? BUSY_LABEL[v.busy] : null;
+            const note = v.note?.trim() || null;
+            const body = (
+              <>
+                {/* Date and the run on one line; how busy and the note under them, only when there is one. Never a bare dash. */}
                 <View style={styles.logHead}>
                   <Text style={styles.logWhen}>{label}</Text>
-                  <Text style={styles.logBusy}>{v.busy ? BUSY_LABEL[v.busy] : '–'}</Text>
+                  {run ? <Text style={styles.logRun}>{run}</Text> : null}
                 </View>
-                {v.note ? <Text style={styles.logNote}>{v.note}</Text> : null}
+                {busy ? <Text style={styles.logBusy}>{busy}</Text> : null}
+                {note ? <Text style={styles.logNote}>{note}</Text> : null}
+              </>
+            );
+            const a11y = [label, run, busy, note].filter(Boolean).join('. ');
+            return v.runId != null && onOpenRun ? (
+              <Pressable
+                key={v.id}
+                onPress={() => onOpenRun(v.runId!)}
+                accessibilityRole="button"
+                accessibilityLabel={a11y}
+                accessibilityHint={ui().history.opensThisRun}
+                style={({ pressed }) => [styles.log, pressed && { opacity: 0.7 }]}
+              >
+                {body}
+              </Pressable>
+            ) : (
+              <View key={v.id} style={styles.log} accessible accessibilityLabel={a11y}>
+                {body}
               </View>
             );
           })}
@@ -202,8 +241,9 @@ const styles = themedStyles(() => ({
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: -spacing.xs },
   tag: { fontFamily: fonts.body, fontSize: 13, color: colors.mintDeep, backgroundColor: colors.mintSoft, borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 5, overflow: 'hidden' },
   facts: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.text },
-  log: { gap: 4, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.line },
-  logHead: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 2 },
+  log: { gap: 4, minHeight: 44, justifyContent: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.line },
+  logHead: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', columnGap: 12, rowGap: 2 },
+  logRun: { fontFamily: fonts.bodyMedium, fontSize: 13, lineHeight: 18, color: colors.text, fontVariant: ['tabular-nums'] },
   logWhen: { flexShrink: 1, fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.text },
   logBusy: { fontFamily: fonts.bodySemi, fontSize: 13, lineHeight: 18, color: colors.text },
   logNote: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.muted },

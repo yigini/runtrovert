@@ -578,6 +578,7 @@ export const pt: Strings = {
     edit: 'Editar',
     yourNotesX: (tags) => `Suas notas: ${tags}`,
     yourNotesDated: 'Suas notas, com data',
+    everyRunHere: 'Cada corrida aqui, com data',
     nothingYetEachRunHere: 'Nada ainda. Cada corrida aqui acrescenta uma linha.',
     noRating: 'sem nota',
     whenItSUsuallyQuiet: 'Quando costuma estar tranquilo',

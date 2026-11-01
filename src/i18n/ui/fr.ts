@@ -579,6 +579,7 @@ export const fr: Strings = {
     edit: 'Modifier',
     yourNotesX: (tags) => `Tes notes : ${tags}`,
     yourNotesDated: 'Tes notes, datées',
+    everyRunHere: 'Chaque sortie ici, datée',
     nothingYetEachRunHere: 'Rien pour l’instant. Chaque sortie ici ajoute une ligne.',
     noRating: 'pas noté',
     whenItSUsuallyQuiet: 'Quand c’est calme d’habitude ici',

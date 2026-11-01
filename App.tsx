@@ -494,7 +494,15 @@ function Shell() {
                 if (placeFrom != null) setOpenRun(placeFrom);
                 setPlaceFrom(null);
               }}
-              onChanged={() => setRefreshKey((k) => k + 1)} onRunAgain={runAgain} />
+              onChanged={() => setRefreshKey((k) => k + 1)}
+              onRunAgain={runAgain}
+              onOpenRun={(id) => {
+                // The place stays open underneath, so Back from the run comes here again.
+                setPlaceFrom(null);
+                setShareOpen(false);
+                setOpenRun(id);
+              }}
+            />
           )}
           {sub == null && tab === 'runs' && openRun != null && (
             <RunDetailScreen
