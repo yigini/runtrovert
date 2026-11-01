@@ -32,6 +32,7 @@ def log(action, **data):
 def hierarchy():
     for attempt in range(3):
         try:
+            adb('shell','rm','-f','/sdcard/rt-ui.xml')
             adb('shell','uiautomator','dump','--compressed','/sdcard/rt-ui.xml',timeout=18)
             xml = adb('exec-out','cat','/sdcard/rt-ui.xml',timeout=10)
             root = ET.fromstring(xml)
@@ -55,7 +56,7 @@ def match(n, query, contains=False, regex=False):
     vals=[n.get('text',''),n.get('content-desc',''),n.get('resource-id','')]
     if regex: return any(re.search(query,v,re.I) for v in vals if v)
     if contains: return any(query.casefold() in v.casefold() for v in vals if v)
-    return query in vals
+    return any(query.casefold()==v.casefold() for v in vals)
 
 def find(query, root=None, contains=False, regex=False, editable=False):
     if root is None: root,_=hierarchy()
@@ -71,14 +72,15 @@ def scroll(direction='down'):
     time.sleep(.35)
 
 def locate(query, contains=False, regex=False, editable=False, scrolls=5):
-    for attempt in range(scrolls+1):
+    directions = (['up'] * scrolls) if query.startswith('Back to ') else (['down'] * scrolls + ['up'] * (scrolls * 2))
+    for attempt in range(len(directions)+1):
         r,_=hierarchy(); n=find(query,r,contains,regex,editable)
         if n is not None: return n
         # Accessible Pressables sometimes concatenate their children's labels.
         if not contains and not regex and not editable:
             n=find(r'^'+re.escape(query)+r'(?:\s|\.|,|$)',r,regex=True)
             if n is not None: return n
-        if attempt<scrolls: scroll()
+        if attempt<len(directions): scroll(directions[attempt])
     raise Blocked(f'Could not find {query!r}; visible labels: {labels(r)}')
 
 def tap(query, contains=False, regex=False, hold=0, scrolls=5):
@@ -130,6 +132,14 @@ def back():
 def launch():
     adb('shell','am','start','-W','-n',PACKAGE+'/.MainActivity'); time.sleep(2)
 
+def dismiss_launcher_anr():
+    r,_=hierarchy()
+    if any(re.search(r'Pixel Launcher.*responding',s,re.I) for s in labels(r)):
+        shot('emulator-launcher-anr')
+        tap('Close app',scrolls=0)
+        log('emulator-only-recovery',detail='Closed the crashed Pixel Launcher, not Runtrovert')
+        launch()
+
 def onboard():
     tap('I like that'); tap('Not now'); expect('Your runs'); expect('Train')
 
@@ -139,9 +149,10 @@ def fresh(onboarding=True, permissions=True):
     adb('shell','settings','put','system','font_scale','1.0')
     adb('shell','svc','wifi','enable',check=False); adb('shell','svc','data','enable',check=False)
     if permissions:
-        for p in ('ACCESS_COARSE_LOCATION','ACCESS_FINE_LOCATION','ACCESS_BACKGROUND_LOCATION','POST_NOTIFICATIONS'):
+        for p in ('ACCESS_COARSE_LOCATION','ACCESS_FINE_LOCATION','ACCESS_BACKGROUND_LOCATION','POST_NOTIFICATIONS','ACTIVITY_RECOGNITION'):
             adb('shell','pm','grant',PACKAGE,'android.permission.'+p,check=False)
     launch()
+    dismiss_launcher_anr()
     if onboarding: onboard()
 
 def settings_page(name):
@@ -162,7 +173,12 @@ def allow_remaining():
                  'com.android.permissioncontroller:id/permission_allow_button',
                  'com.android.permissioncontroller:id/permission_allow_one_time_button','Run anyway','Got it','OK']
         found=next((q for q in options if find(q,r) is not None),None)
-        if found: tap(found,scrolls=0)
+        if found:
+            try: tap(found,scrolls=0)
+            except Blocked:
+                current,_=hierarchy()
+                if find('Pause',current) is not None or find('Cancel',current) is not None: return
+                raise
         else: break
 
 def begin(label='Start'):
@@ -177,7 +193,7 @@ def gps_loop():
         # A public, synthetic route near Rome, unrelated to the user's location.
         lon=12.4924+step*.000055; lat=41.8902+step*.00001
         try:
-            adb('emu','geo','fix',f'{lon:.7f}',f'{lat:.7f}','25','8',check=False)
+            adb('emu','geo','fix',f'{lon:.7f}',f'{lat:.7f}','25','8','4.7',check=False)
         except Exception:
             pass  # adb can restart when the disposable device enters root mode.
         step=(step+1)%250
@@ -330,8 +346,9 @@ if __name__=='__main__':
     adb('logcat','-c'); adb('logcat','-b','crash','-c')
     threading.Thread(target=gps_loop,daemon=True).start()
     chosen=set(filter(None,os.environ.get('RT_CASES','').split(',')))
+    group=set(filter(None,os.environ.get('RT_GROUP_CASES','').split(',')))
     for name,fn in CASES:
-        if not chosen or name in chosen: case(name,fn)
+        if (not chosen or name in chosen) and (not group or name in group): case(name,fn)
     GPS_STOP.set()
     adb('shell','settings','put','system','font_scale','1.0',check=False)
     adb('shell','svc','wifi','enable',check=False); adb('shell','svc','data','enable',check=False)

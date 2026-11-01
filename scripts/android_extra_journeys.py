@@ -27,7 +27,13 @@ def extra_cases(h):
     def shown(query, **kw):
         # Driver expect intentionally does not scroll; locate establishes reachability.
         h.locate(query, **kw)
-        h.expect(query, contains=kw.get('contains', False), regex=kw.get('regex', False))
+        if kw.get('contains') or kw.get('regex'):
+            h.expect(query, contains=kw.get('contains', False), regex=kw.get('regex', False))
+        else:
+            # Train Row and QuickRow Pressables merge their title + hint into
+            # one accessible label. Match the same boundary as driver's locate
+            # fallback; an exact expect would reject a node locate just found.
+            h.expect(r'^' + re.escape(query) + r'(?:\s|\.|,|$)', regex=True)
 
     def tap_node(n, reason):
         x1, y1, x2, y2 = h.bounds(n)
@@ -147,11 +153,22 @@ def extra_cases(h):
         h.expect('Today’s run: Just run')
         h.settings_page('During a run')
         h.tap('Countdown: 10')
+        n = h.locate('Countdown: 10')
+        assert chosen(n), 'Ten-second countdown was not selected'
         h.back()
         h.back()
         h.tap('Start')
-        h.allow_remaining()
-        h.tap('Cancel', scrolls=0)
+        # fresh() pregrants location/background/activity permissions. Do not run
+        # uiautomator during a changing countdown: its idle wait can outlast the
+        # entire countdown and accidentally turn this into an active-run Back.
+        # The source explicitly supports the system Back gesture for canceling.
+        raw = h.adb('exec-out', 'screencap', '-p', binary=True)
+        assert raw.startswith(b'\x89PNG'), 'Invalid countdown screenshot'
+        folder = h.OUT / h.CURRENT
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / 'countdown-before-system-back.png').write_bytes(raw)
+        h.log('countdown-cancel-via-system-back')
+        h.back()
         h.expect('Start')
         h.not_visible('Pause')
         h.tap('Your runs')
@@ -297,3 +314,4 @@ def extra_cases(h):
         ('23-plan-pause-rest-ill-stop', life_changes),
         ('24-listen-choices-privacy-cancel', listen_choices),
     ]
+
