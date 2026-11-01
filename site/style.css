@@ -464,3 +464,7 @@ main:focus { outline: none; }
   .phone .big b { font-size: 60px; }
   .try button { font-size: 13px; padding: 8px 12px; }
 }
+
+/* Apps you can bring runs over from */
+.apps { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; max-width: 640px; list-style: none; padding: 0; }
+.apps li { font-size: 13.5px; color: var(--cream-soft); padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: rgba(20,18,24,0.45); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
