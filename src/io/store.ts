@@ -38,6 +38,7 @@ export async function importParsed(parsed: Array<{ result: ParseResult; fileName
       if (beats.length) await addHeartRate(id, beats).catch(() => {});
       known.push(shaped);
       tally.added++;
+      tally.ids?.push(id);
     }
   }
   return tally;

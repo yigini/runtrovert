@@ -12,6 +12,8 @@ import org.json.JSONObject
  * Watch -> phone: /runtrovert/cmd   { cmd: start | pause | resume | stop }
  *                 /runtrovert/hello { open }
  *                 /runtrovert/hr    { s: [[epochMs, bpm], ...] }
+ *                 /runtrovert/run   { id, part, of, d } pieces of a run recorded on the watch alone
+ * Phone -> watch: /runtrovert/runack { id, ok }
  */
 object Paths {
   const val LIVE = "/runtrovert/live"
@@ -19,6 +21,8 @@ object Paths {
   const val CMD = "/runtrovert/cmd"
   const val HELLO = "/runtrovert/hello"
   const val HR = "/runtrovert/hr"
+  const val RUN = "/runtrovert/run"
+  const val RUN_ACK = "/runtrovert/runack"
 }
 
 /** The phone app advertises this; the watch app advertises "runtrovert_watch". */

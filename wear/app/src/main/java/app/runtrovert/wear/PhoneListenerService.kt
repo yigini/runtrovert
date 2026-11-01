@@ -10,6 +10,7 @@ class PhoneListenerService : WearableListenerService() {
     when (event.path) {
       Paths.LIVE -> PhoneLink.onLive(applicationContext, json)
       Paths.SPLIT -> Split.parse(json)?.let { WatchNotes.onSplit(applicationContext, it) }
+      Paths.RUN_ACK -> SoloSync.onAck(applicationContext, json)
     }
   }
 }

@@ -14,8 +14,8 @@ android {
     minSdk = 30 // Wear OS 3, the first with Health Services
     targetSdk = 36
     // Watch builds count from 100000 so they never collide with the phone's codes on Play.
-    versionCode = 100002
-    versionName = "0.2.0"
+    versionCode = 100003
+    versionName = "0.3.0"
   }
 
   buildTypes {

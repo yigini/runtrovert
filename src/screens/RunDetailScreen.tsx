@@ -259,6 +259,8 @@ export function RunDetailScreen({
       <Text style={styles.date}>{d.toLocaleString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</Text>
       {source?.kind === 'manual' ? (
         <Text style={styles.source}>{ui().addRun.addedByHand}</Text>
+      ) : source?.kind === 'watch' ? (
+        <Text style={styles.source}>{ui().runDetail.onWatch}</Text>
       ) : source ? (
         <Text style={styles.source}>
           {ui().runDetail.broughtIn(source.kind === 'health' ? ui().runDetail.healthConnect : source.fileName ?? ui().runDetail.aXFile(source.kind.toUpperCase()), new Date(source.importedAt).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' }))}

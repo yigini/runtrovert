@@ -11,6 +11,8 @@ import kotlinx.coroutines.launch
 class WearApp : Application() {
   override fun onCreate() {
     super.onCreate()
+    // A run recorded on the watch that a crash or flat battery cut short is kept, not lost.
+    runCatching { SoloRun.recover(this) }
     // The phone's live note and per-km note are tagged runtrovert-live and
     // runtrovert-split (src/runNotify.ts). With this app on the watch, its own
     // buzz and screen take their place, so they aren't bridged twice. Quiet

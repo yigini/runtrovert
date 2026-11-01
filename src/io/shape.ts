@@ -153,6 +153,8 @@ export interface ImportTally {
   unreadable: number;
   zipped: number;
   other: number;
+  /** When given, the ids of the runs added, in order. */
+  ids?: number[];
 }
 
 export const EMPTY_TALLY: ImportTally = { added: 0, duplicate: 0, notRun: 0, unreadable: 0, zipped: 0, other: 0 };
