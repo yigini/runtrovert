@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { Vibration } from 'react-native';
 import * as Speech from 'expo-speech';
 import type { CueMode } from './types';
 import { formatDuration, formatPace } from './geo';
@@ -31,9 +32,14 @@ export function runSilent(): boolean {
   return hush;
 }
 
-async function buzz(pattern: Haptics.NotificationFeedbackType | 'double' | 'triple') {
+async function buzz(pattern: Haptics.NotificationFeedbackType | 'double' | 'triple' | 'alert') {
   try {
-    if (pattern === 'double') {
+    if (pattern === 'alert') {
+      // Long, short: not a split (two taps), not a pause (three).
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      await new Promise((r) => setTimeout(r, 260));
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } else if (pattern === 'double') {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       await new Promise((r) => setTimeout(r, 180));
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -76,6 +82,28 @@ export async function cueKmSplit(km: number, splitDurationS: number, totalDurati
   }
 }
 
+/** The two taps of a split, without the sentence (the voice speaks on its own interval). */
+export async function cueSplitBuzz() {
+  if (mode === 'silent') return;
+  await buzz('double');
+}
+
+/** A sentence from the run aids (src/runCues.ts): only when cues are set to voice. */
+export function cueSay(text: string) {
+  if (text && mode === 'voice') say(text);
+}
+
+/**
+ * Out of the pace or heart range the runner chose. They asked for it, so it
+ * buzzes even with cues on Silent; a quiet run (Clear my head, Run in silence
+ * today) still says nothing at all.
+ */
+export async function cueAlert(text: string) {
+  if (hush) return;
+  await buzz('alert');
+  if (mode === 'voice') say(text);
+}
+
 export async function cueLap(lap: number, lapDurationS: number) {
   if (mode === 'silent') return;
   await buzz(Haptics.NotificationFeedbackType.Success);
@@ -106,4 +134,24 @@ export async function cueWorkoutStep(text: string, finished = false) {
   if (mode === 'silent') return;
   await buzz(finished ? Haptics.NotificationFeedbackType.Success : 'double');
   if (mode === 'voice') say(text);
+}
+
+/**
+ * Off the route you chose to follow: two long buzzes, unlike anything else the
+ * run does, so it reads through a pocket. It comes even on a quiet run or with
+ * cues off: following was asked for on purpose. Voice says it only when voice is on.
+ */
+export async function cueOffRoute() {
+  try {
+    Vibration.vibrate([0, 650, 250, 650]);
+  } catch {
+    // no vibrator
+  }
+  if (mode === 'voice') say(ui().cues.offRoute);
+}
+
+/** Back on the route: one calm tap. */
+export async function cueBackOnRoute() {
+  await buzz(Haptics.NotificationFeedbackType.Success);
+  if (mode === 'voice') say(ui().cues.backOnRoute);
 }

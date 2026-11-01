@@ -1,4 +1,5 @@
 import { QuickRow, QuickView } from '../components/QuickWorkout';
+import { WorkoutFileLink } from '../components/WorkoutFileLink';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -901,6 +902,7 @@ function SessionView({ plan, spec, session: s, heart, unitsKm, today, onBack, on
           ))}
           {!plan.paces && s.hard && <Text style={styles.hint}>{ui().train.noPacesOnPurposeYou}</Text>}
           {heat && <Text style={styles.hint}>{heat}</Text>}
+          {planSessionOpen(plan, s.id) && <WorkoutFileLink session={s} paces={plan.paces ? paces : null} heart={heart} goal={spec.goal} />}
         </Section>
       )}
 

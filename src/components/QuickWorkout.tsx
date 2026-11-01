@@ -6,6 +6,7 @@ import type { Session } from '../training/types';
 import { formatMin } from '../training/workout';
 import { colors, fonts, radius, spacing, themedStyles } from '../theme';
 import { BackButton } from './BackButton';
+import { WorkoutFileLink } from './WorkoutFileLink';
 import { Button } from './Button';
 import { ui } from '../i18n/ui';
 
@@ -93,6 +94,7 @@ export function QuickView({ onBack, onStart }: { onBack: () => void; onStart: (s
       </View>
       <Button title={ui().quick.start} onPress={start} />
       <Text style={styles.hint}>{ui().quick.how}</Text>
+      <WorkoutFileLink session={quickSession(clampSpec(spec), Date.now())} paces={null} heart={null} goal="none" />
     </ScrollView>
   );
 }

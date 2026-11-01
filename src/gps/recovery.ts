@@ -22,6 +22,9 @@ export interface RunSnapshot {
   splitCount: number;
   lapCount: number;
   savedAt: number;
+  /** A treadmill run: no GPS to pick back up, and the steps credited so far. */
+  indoor?: boolean;
+  indoorSteps?: number;
 }
 
 const KEY = 'live-run';
