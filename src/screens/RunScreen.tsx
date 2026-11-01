@@ -12,6 +12,8 @@ import { MusicStrip } from '../components/MusicStrip';
 import { FeelPicker } from '../components/FeelPicker';
 import { PainPicker } from '../components/PainPicker';
 import { PlaceFinishCard } from '../components/PlaceFinishCard';
+import { shoesForNewRun } from '../shoeStore';
+import { onWidgetStart } from '../widget';
 import { QuietPicker } from '../components/QuietPicker';
 import { RouteMap } from '../components/RouteMap';
 import { StoriesCard, storyPins, useRouteStories } from '../components/StoriesCard';
@@ -256,6 +258,8 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     onWatchCommand((c) => watchRef.current(c));
     return () => onWatchCommand(null);
   }, []);
+  // "Start a run" on the home-screen widget does what the watch's start does.
+  useEffect(() => onWidgetStart(() => watchRef.current('start')), []);
 
   async function onStart() {
     // A route waits here: the line to follow is only drawn in Just run, so it runs as one.
@@ -510,6 +514,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     }
     if (id != null) await recordRunFacts(id, startedAt, durationS).catch(() => {});
     if (id != null) await keepPlace(id).catch(() => {});
+    if (id != null) await shoesForNewRun(id).catch(() => {});
     const extra: RunExtra = { pain, sessionId: guided?.session.id ?? null, feel, steps: guided ? takeWorkoutSteps(final?.distanceM ?? 0, durationS) : null };
     reset();
     savingRef.current = false;

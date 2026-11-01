@@ -13,6 +13,9 @@ import { SettingsGear } from '../components/SettingsGear';
 import { PlanReminderLine } from '../components/PlanReminders';
 import { SkyGlyph } from '../components/SkyGlyph';
 import { TipLine } from '../components/TipLine';
+import { TellSomeoneSheet, useTellSomeone } from '../components/TellSomeone';
+import { goalStore } from '../extraStores';
+import { goalLine, weekSoFar } from '../weekGoal';
 import { ListenSheet } from './ListenScreen';
 import { roughMinutes, type Offer } from '../commute';
 import { useCommuteOffer } from '../commuteStore';
@@ -45,6 +48,10 @@ import { dateLocale } from '../i18n/lang';
 export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, planToday, planNext, plan, onOpenPlan, onPlanChanged, onBrowseListen, onRunPlace, welcomeBack = true, runPreset, onRunWithoutPlan, route = null, onClearRoute }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; onCommute?: (o: Offer) => void; onRunFree?: () => void; planToday?: Session | null; planNext?: Session | null; plan?: Plan | null; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; onRunPlace?: (p: Place) => void; welcomeBack?: boolean; runPreset?: RunPreset; onRunWithoutPlan?: () => void; route?: { name: string; follow?: boolean } | null; onClearRoute?: () => void }) {
   const { settings, update } = useSettings();
   const [presetSheet, setPresetSheet] = useState(false);
+  // Tell someone (off until switched on in Settings) and the weekly goal (likewise): both quiet, both optional.
+  const tellOn = useTellSomeone();
+  const [telling, setTelling] = useState(false);
+  const goal = goalStore.use();
   const [listen, setListen] = useState(false);
   const [adjust, setAdjust] = useState(false);
   // "Other ways to run" brings back the usual Run tab for today.
@@ -135,7 +142,10 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
       {/* Words scroll when there are many of them; the start button never moves. */}
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.screen} showsVerticalScrollIndicator={false}>
         <View style={styles.top}>
-          <Text style={styles.eyebrow}>{dateLine(now)}</Text>
+          <View style={{ flex: 1, gap: 3 }}>
+            <Text style={styles.eyebrow}>{dateLine(now)}</Text>
+            {goal?.on ? <Text style={styles.goalLine}>{goalLine(goal, weekSoFar(runs, now), metric)}</Text> : null}
+          </View>
           <SettingsGear onPhoto />
         </View>
 
@@ -204,6 +214,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
           <Pressable onPress={() => setOthers(true)} accessibilityRole="button" hitSlop={10} style={{ alignSelf: 'center' }}>
             <Text style={styles.todayLink}>{ui().home.otherWaysToRun}</Text>
           </Pressable>
+          {tellOn ? <TellLink onPress={() => setTelling(true)} /> : null}
         </View>
       ) : (
       <View style={styles.dock}>
@@ -310,6 +321,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
           </Pressable>
         )}
         {route ? null : <TreadmillLine on={settings.treadmill} onFlip={() => update({ treadmill: !settings.treadmill })} />}
+        {tellOn ? <TellLink onPress={() => setTelling(true)} /> : null}
       </View>
       )}
       {plan && back ? (
@@ -325,6 +337,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
           }}
         />
       ) : null}
+      {tellOn ? <TellSomeoneSheet open={telling} near={route?.name ?? null} onClose={() => setTelling(false)} /> : null}
       <PresetSheet
         open={presetSheet}
         value={picked}
@@ -407,6 +420,14 @@ function PlanCard({ label, title, hint, onPress }: { label: string; title: strin
   );
 }
 
+function TellLink({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" hitSlop={10} style={{ alignSelf: 'center' }}>
+      <Text style={[styles.kindLine, styles.kindLink]}>{ui().tellSomeone.link}</Text>
+    </Pressable>
+  );
+}
+
 function dateLine(now: number): string {
   const d = new Date(now);
   return `${d.toLocaleDateString(dateLocale(), { weekday: 'long' })} · ${clock(now)}`;
@@ -473,6 +494,7 @@ const styles = themedStyles(() => ({
   newsText: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 19, color: colors.ink },
   newsDismiss: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.inkSoft, textDecorationLine: 'underline' },
   kindLine: { fontFamily: fonts.body, fontSize: 13, color: colors.inkSoft },
+  goalLine: { fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.inkSoft },
   kindLink: { fontFamily: fonts.bodySemi, color: colors.ink, textDecorationLine: 'underline' },
   skyMore: { fontFamily: fonts.body, fontSize: 18, color: colors.inkMuted },
   planCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 12, paddingHorizontal: 16, borderRadius: radius.lg, backgroundColor: colors.glass },
