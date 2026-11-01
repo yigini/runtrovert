@@ -30,7 +30,7 @@ for 30 days, so a new logo needs a new `?v=` on every reference in all the HTML 
 
 ## Footage
 
-(Bump the folder, v2 -> v3, whenever the loops change: the server caches media for 30 days.) `media/v2/bg-*` are the app's 9:16 loops (phones). `media/v2/wide-*` are 1920x1080 versions for
+(Bump the folder, v3 -> v4, whenever the loops change: the server caches media for 30 days.) `media/v3/bg-*` are the app's 9:16 loops (phones). `media/v3/wide-*` are 1920x1080 versions for
 landscape screens, made from the original Pexels clips with `scripts/grade-bg-wide.sh`
 (same grade; Pexels licence, IDs in `assets/CREDITS.md`). Posters are `<img>`s that load
 lazily; `site.js` attaches a chapter's loop only when it comes near the screen.
