@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { DISPLAY_MAX_SCALE } from '../a11y';
@@ -16,7 +16,7 @@ import { ListenSheet } from './ListenScreen';
 import { roughMinutes, type Offer } from '../commute';
 import { useCommuteOffer } from '../commuteStore';
 import { hideHomePlace, homePlaceCard, type HomePlace, type Place } from '../placeStore';
-import { homeFootage } from '../footage';
+import { rotateFootage, sceneFor, type Footage } from '../footage';
 import { formatDistance } from '../geo';
 import { effectivePreset, presetInfo, type RunPreset } from '../presets';
 import { clock, formatTemp, headline, suggestions } from '../sky';
@@ -59,6 +59,8 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
   const metric = settings.unitsKm;
   const [sky, setSky] = useState<WeatherResult | null>(null);
   const [now, setNow] = useState(Date.now());
+  // Each return to Home (opening the app, coming back to the tab) is a new visit and gets a new loop.
+  const [visit, setVisit] = useState(0);
   const commute = useCommuteOffer(runs, now);
   // One of your places, the one you usually run at this time. Looked up again each hour and after each run.
   const [homePlace, setHomePlace] = useState<HomePlace | null>(null);
@@ -88,7 +90,10 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
   useEffect(() => {
     refresh();
     const sub = AppState.addEventListener('change', (s) => {
-      if (s === 'active') refresh();
+      if (s === 'active') {
+        refresh();
+        setVisit((v) => v + 1);
+      }
     });
     const tick = setInterval(() => setNow(Date.now()), 60 * 1000);
     return () => {
@@ -98,6 +103,9 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
   }, [refresh]);
 
   const weather = sky?.kind === 'ok' ? sky.weather : null;
+  const scene = sceneFor(weather, now);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- a new loop per visit or change of sky, not per minute tick
+  const footage = useMemo(() => (lastHome = rotateFootage(scene, lastHome)), [scene, visit]);
   const back = welcomeBack && isWelcomeBack(lastRunAt, now);
   const away = daysAway(lastRunAt, now) ?? 0;
   const adjusted = settings.comeback && settings.comeback.since === lastRunAt ? settings.comeback.choice : null;
@@ -105,7 +113,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
 
   return (
     // The footage follows the same reading as the headline; a still frame in battery saver.
-    <AmbientBackground style={homeFootage(weather, now)}>
+    <AmbientBackground style={footage}>
       <Fade from="top" height="50%" strength={0.82} />
       <Fade from="bottom" height="42%" strength={0.92} />
       {/* Words scroll when there are many of them; the start button never moves. */}
@@ -341,6 +349,9 @@ function HeadphonesGlyph() {
 }
 
 /** The sky in one line: temperature, then the best window. A tap opens the three suggestions. */
+/** The loop Home showed last, kept across tab switches so the next visit never repeats it. */
+let lastHome: Footage | null = null;
+
 function SkyRow({ w, metric, now, open, onToggle }: { w: Weather; metric: boolean; now: number; open: boolean; onToggle: () => void }) {
   const first = suggestions(w, metric, now)[0];
   return (

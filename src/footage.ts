@@ -128,6 +128,22 @@ export function homeFootage(w: Weather | null, now = Date.now()): Footage {
   return pickFootage(sceneFor(w, now), new Date(now).toDateString());
 }
 
+/** Close-ups and the odd showpiece: now and then one of these turns up on Home whatever the sky, as a small surprise. */
+export const SURPRISE: Footage[] = ['cobbles', 'blade-stride', 'sunset-water', 'sea-road', 'sun-trees'];
+/** Dark or wild skies keep their own pictures: a sunny close-up under a storm would look wrong. */
+const NO_SURPRISE: Scene[] = ['night', 'storm', 'snow', 'rain'];
+
+/**
+ * Home gets a fresh loop every time you come back to it: still one that fits the sky, never the one you just saw,
+ * and about one visit in six a surprise from SURPRISE. `rand` is Math.random in the app and fixed in tests.
+ */
+export function rotateFootage(scene: Scene, previous: Footage | null, rand: () => number = Math.random): Footage {
+  const surprise = !NO_SURPRISE.includes(scene) && rand() < 1 / 6;
+  const pool = (surprise ? SURPRISE : POOLS[scene]).filter((f) => f !== previous);
+  const from = pool.length > 0 ? pool : POOLS[scene];
+  return from[Math.floor(rand() * from.length) % from.length];
+}
+
 export function countdownFootage(seed = Date.now()): Footage {
   return COUNTDOWN[hash(String(seed)) % COUNTDOWN.length];
 }
