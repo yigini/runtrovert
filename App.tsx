@@ -39,6 +39,8 @@ import { colors, fonts, night, onScheme, radius, scheme, setScheme, spacing, the
 import { dayName } from './src/training/adapt';
 import type { Place } from './src/placeStore';
 import { onRunSaved } from './src/training/store';
+import { onWatchRuns } from './src/wear';
+import { syncRunToHealth } from './src/health';
 import type { Session } from './src/training/types';
 import { loadUnlock } from './src/unlockState';
 import { NEWS } from './src/whatsNew';
@@ -166,6 +168,18 @@ function Shell() {
   useEffect(() => {
     if (ready && settings.onboarded) refreshWidgets().catch(() => {});
   }, [ready, settings.onboarded, refreshKey, settings.unitsKm, settings.language, goal]);
+  // Runs recorded on the watch alone arrive when phone and watch meet again: tick the plan, refresh the lists.
+  useEffect(() => {
+    onWatchRuns(async (ids) => {
+      for (const id of ids) {
+        const run = await getRun(id).catch(() => null);
+        if (run) await onRunSaved(run, null).catch(() => {});
+      }
+      setRefreshKey((k) => k + 1);
+      setPlanKey((k) => k + 1);
+    });
+    return () => onWatchRuns(null);
+  }, []);
 
   // Re-plan the next two weeks of reminders on open and whenever their settings change.
   useEffect(() => {
@@ -258,6 +272,7 @@ function Shell() {
     getRun(runId)
       .then((run) => notifyAfterRun(settings, runId, run?.moodAfter != null))
       .catch(() => {});
+    syncRunToHealth(runId).catch(() => {});
     setRefreshKey((k) => k + 1);
     setOpenRun(runId);
     setTab('runs');
@@ -284,7 +299,7 @@ function Shell() {
   function runAgain(p: Place) {
     setOpenPlace(null);
     setPlaceFrom(null);
-    setGhost({ placeId: p.id, name: p.name, path: p.sig.pts.map(([latitude, longitude]) => ({ latitude, longitude })) });
+    setGhost({ placeId: p.id, name: p.name, path: p.sig.pts.map(([latitude, longitude]) => ({ latitude, longitude })), follow: true });
     go('run');
   }
 
@@ -329,6 +344,10 @@ function Shell() {
               onOpenEverything={() => {
                 setEverythingFrom('settings');
                 setSub('everything');
+              }}
+              onFollow={(r) => {
+                setGhost({ name: r.name, path: r.path.map((p) => ({ latitude: p.lat, longitude: p.lon })), follow: true });
+                go('run');
               }}
             />
           )}
@@ -379,6 +398,12 @@ function Shell() {
               key={openRun}
               runId={openRun}
               shareOnOpen={shareOpen}
+              onFollow={(name, path) => {
+                setShareOpen(false);
+                setOpenRun(null);
+                setGhost({ name, path, follow: true });
+                go('run');
+              }}
               onBack={() => {
                 setShareOpen(false);
                 setOpenRun(null);

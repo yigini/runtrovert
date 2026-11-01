@@ -1,0 +1,21 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'app.runtrovert'
+version = '0.1.0'
+
+android {
+  namespace "app.runtrovert.health"
+  defaultConfig {
+    versionCode 1
+    versionName '0.1.0'
+  }
+}
+
+dependencies {
+  // Health Connect: Android's own on-phone store for health and fitness data.
+  // Needs Android 9 (API 28) or later; older phones simply never see the setting.
+  implementation 'androidx.health.connect:connect-client:1.1.0'
+}

@@ -28,10 +28,15 @@ object PhoneLink {
 
   @Volatile var appVisible = false
 
+  const val UNITS_KM = "unitsKm"
+
   fun onLive(ctx: Context, json: String) {
     val next = Live.parse(json, SystemClock.elapsedRealtime()) ?: return
     val before = _live.value
     _live.value = next
+    // The phone is here and its app is open: hand over runs recorded on the watch alone, and remember its units.
+    ctx.getSharedPreferences("runtrovert", Context.MODE_PRIVATE).edit().putBoolean(UNITS_KM, next.unitsKm).apply()
+    SoloSync.syncAsync(ctx)
     if (next.status == "idle" && !next.needsOpen && pendingStartAt != 0L) {
       if (SystemClock.elapsedRealtime() - pendingStartAt < 45_000) sendAsync(ctx, Paths.CMD, cmdJson("start"))
       pendingStartAt = 0L

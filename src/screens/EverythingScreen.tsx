@@ -4,7 +4,9 @@ import { BackButton } from '../components/BackButton';
 import { Button } from '../components/Button';
 import { storedCounts } from '../db';
 import { importLine } from '../io/shape';
-import { pickAndImport, shareAllRuns } from '../io/store';
+import { commitImport, pickImportFiles, scanImport, shareAllRuns, type ImportPreview } from '../io/store';
+import { formatDistance } from '../geo';
+import { useSettings } from '../settings';
 import { currentCounts, pickBackup, restoreBackup, shareBackup, type PickedBackup } from '../io/backupStore';
 import { getState } from '../tracking';
 import { restartApp } from '../restart';
@@ -26,21 +28,50 @@ export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; on
   const [line, setLine] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [key, setKey] = useState(0);
+  const { settings } = useSettings();
 
   useEffect(() => {
     storedCounts().then(setCounts).catch(() => {});
   }, [key]);
 
   async function bringIn() {
+    const files = await pickImportFiles().catch(() => null);
+    if (!files) return;
+    setLine(null);
     setBusy(ui().everything.readingTheFiles);
+    let preview: ImportPreview;
     try {
-      const t = await pickAndImport((done, total) => total > 3 && setBusy(ui().everything.readingTheFilesXOf(done, total)));
-      if (t) {
-        setLine(importLine(t));
-        if (t.added) {
-          setKey((k) => k + 1);
-          onChanged();
-        }
+      preview = await scanImport(files, (done, total) => total > 3 && setBusy(ui().everything.readingTheFilesXOf(done, total)));
+    } catch (e) {
+      setBusy(null);
+      Alert.alert(ui().everything.couldnTReadThoseFiles, String((e as Error)?.message ?? e));
+      return;
+    }
+    setBusy(null);
+    if (!preview.fresh) {
+      setLine(importLine(preview.out));
+      return;
+    }
+    // A few files come straight in, as before. A whole export is shown first.
+    if (!preview.archive) return void bring(files, preview);
+    const month = (ts: number | null) => (ts == null ? '' : new Date(ts).toLocaleDateString(dateLocale(), { month: 'long', year: 'numeric' }));
+    const stays = importLine({ ...preview.out, added: 0 }).replace(ui().shape.nothingNewToBringIn, '').trim();
+    const message = [ui().everything.newRuns(preview.fresh, formatDistance(preview.freshKm * 1000, settings.unitsKm), month(preview.firstAt), month(preview.lastAt)), stays, ui().everything.nothingSavedYet].filter(Boolean).join('\n\n');
+    const title = preview.origin === 'strava' ? ui().everything.exportStrava : preview.origin === 'garmin' ? ui().everything.exportGarmin : ui().everything.readyToBringIn;
+    Alert.alert(title, message, [
+      { text: ui().everything.notNow, style: 'cancel' },
+      { text: ui().everything.bringThemIn, onPress: () => void bring(files, preview) },
+    ]);
+  }
+
+  async function bring(files: Parameters<typeof commitImport>[0], preview: ImportPreview) {
+    setBusy(ui().everything.bringingIn);
+    try {
+      const t = await commitImport(files, preview, (done, total) => total > 3 && setBusy(ui().everything.bringingInXOf(done, total)));
+      setLine(importLine(t));
+      if (t.added) {
+        setKey((k) => k + 1);
+        onChanged();
       }
     } catch (e) {
       Alert.alert(ui().everything.couldnTReadThoseFiles, String((e as Error)?.message ?? e));

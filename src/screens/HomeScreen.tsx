@@ -45,7 +45,7 @@ import { dateLocale } from '../i18n/lang';
  * Ten days or more since the last run, it says welcome back instead: no plan
  * day, nothing overdue, one free run, and the plan as a separate choice.
  */
-export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, planToday, planNext, plan, onOpenPlan, onPlanChanged, onBrowseListen, onRunPlace, welcomeBack = true, runPreset, onRunWithoutPlan, route = null, onClearRoute }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; onCommute?: (o: Offer) => void; onRunFree?: () => void; planToday?: Session | null; planNext?: Session | null; plan?: Plan | null; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; onRunPlace?: (p: Place) => void; welcomeBack?: boolean; runPreset?: RunPreset; onRunWithoutPlan?: () => void; route?: { name: string } | null; onClearRoute?: () => void }) {
+export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, planToday, planNext, plan, onOpenPlan, onPlanChanged, onBrowseListen, onRunPlace, welcomeBack = true, runPreset, onRunWithoutPlan, route = null, onClearRoute }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; onCommute?: (o: Offer) => void; onRunFree?: () => void; planToday?: Session | null; planNext?: Session | null; plan?: Plan | null; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; onRunPlace?: (p: Place) => void; welcomeBack?: boolean; runPreset?: RunPreset; onRunWithoutPlan?: () => void; route?: { name: string; follow?: boolean } | null; onClearRoute?: () => void }) {
   const { settings, update } = useSettings();
   const [presetSheet, setPresetSheet] = useState(false);
   // Tell someone (off until switched on in Settings) and the weekly goal (likewise): both quiet, both optional.
@@ -199,6 +199,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
             </Pressable>
           </View>
           <Text style={styles.todayLine}>{plan ? ui().home.startsAsJustRunNo : ui().home.startsAsJustRunNo2}</Text>
+          <TreadmillLine on={settings.treadmill} onFlip={() => update({ treadmill: !settings.treadmill })} />
           {plan ? (
             <Pressable onPress={() => setAdjust(true)} accessibilityRole="button" accessibilityHint={ui().home.chooseWhatHappensToYour} style={({ pressed }) => [styles.adjust, pressed && { opacity: 0.9 }]}>
               <View style={{ flex: 1, gap: 3 }}>
@@ -231,7 +232,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
                 <Text style={styles.routeX}>×</Text>
               </Pressable>
             </View>
-            <Text style={styles.routeHint}>{ui().home.routeHint}</Text>
+            <Text style={styles.routeHint}>{route.follow ? ui().home.routeHintFollow : ui().home.routeHint}</Text>
           </View>
         ) : sessionToday && planToday ? (
           <PlanCard label={isQuick(planToday) ? ui().quick.yourWorkout : ui().home.todayFromYourPlan} title={planToday.title} hint={planToday.summary} onPress={onOpenPlan} />
@@ -299,7 +300,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
         )}
         <MoodPicker inline title={ui().home.energyRightNow} value={mood} onChange={onMood} />
         <View style={styles.startRow}>
-          <Button title={preset === 'plan' && !route ? ui().home.startTodaySSession : ui().home.start} onPress={onStart} style={{ minHeight: 62, flex: 1 }} />
+          <Button title={preset === 'plan' && !route ? ui().home.startTodaySSession : settings.treadmill && !route ? ui().runAids.startTreadmill : ui().home.start} onPress={onStart} style={{ minHeight: 62, flex: 1 }} />
           <Pressable onPress={() => setListen(true)} accessibilityRole="button" accessibilityLabel={ui().home.listen} accessibilityHint={ui().home.musicPodcastsOrASilent} style={({ pressed }) => [styles.listen, pressed && { opacity: 0.85 }]}>
             <HeadphonesGlyph />
           </Pressable>
@@ -319,6 +320,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
             </Text>
           </Pressable>
         )}
+        {route ? null : <TreadmillLine on={settings.treadmill} onFlip={() => update({ treadmill: !settings.treadmill })} />}
         {tellOn ? <TellLink onPress={() => setTelling(true)} /> : null}
       </View>
       )}
@@ -453,6 +455,23 @@ function startOfDay(ms: number): number {
   const d = new Date(ms);
   d.setHours(0, 0, 0, 0);
   return d.getTime();
+}
+
+
+/** One quiet line under Start: a treadmill run has no GPS, so it's said, not hidden. Remembered for next time. */
+function TreadmillLine({ on, onFlip }: { on: boolean; onFlip: () => void }) {
+  const a = ui().runAids;
+  return (
+    <Pressable onPress={onFlip} accessibilityRole="switch" accessibilityState={{ checked: on }} accessibilityLabel={a.treadmillA11y} accessibilityHint={a.treadmillHint} hitSlop={10} style={{ alignSelf: 'center' }}>
+      {on ? (
+        <Text style={styles.kindLine}>
+          {a.treadmillOn} · <Text style={styles.kindLink}>{a.runOutside}</Text>
+        </Text>
+      ) : (
+        <Text style={[styles.kindLine, styles.kindLink]}>{a.onATreadmill}</Text>
+      )}
+    </Pressable>
+  );
 }
 
 const styles = themedStyles(() => ({

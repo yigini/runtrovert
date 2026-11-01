@@ -1,6 +1,7 @@
 import type { RunPreset } from './presets';
 import type { ComebackChoice } from './training/comeback';
 import { type Lang } from './i18n/lang';
+import { DEFAULT_HEART_ALERT, DEFAULT_PACE_ALERT, DEFAULT_VOICE_SAYS, type HeartAlert, type PaceAlert, type VoiceEvery, type VoiceField } from './runAids';
 
 export type Mood = 1 | 2 | 3 | 4 | 5; // 1 = drained, 5 = recharged
 export type Quiet = 'crowded' | 'some' | 'empty';
@@ -81,6 +82,7 @@ export interface Settings {
   weather: boolean; // fetch the local forecast for the home screen (Open-Meteo, coarse location)
   runNotes: boolean; // live stats on the lock screen and a note per km (watches mirror these)
   watch: boolean; // the Wear OS app: live run on the wrist, its buttons, its heart rate into the run
+  healthConnect: boolean; // Android: each saved run is also written to Health Connect (off until turned on)
   batteryMode: BatteryMode;
   keepScreenOn: boolean; // during a run only
   listenDownload: ListenDownload;
@@ -98,10 +100,16 @@ export interface Settings {
   silentDay: string | null; // "Run in silence today" from the Listen sheet, as a dayKey
   comeback: { since: number; choice: ComebackChoice } | null; // what was done with the plan after a break; `since` = the last run then
   deepStats: boolean; // "Show me everything" left open on the run page and in Patterns
+  deepOpen: string[]; // which groups inside "Show me everything" were left open
   stories: boolean; // Things you passed: after a run, ask Wikipedia and OpenStreetMap about the ~1 km squares it went through
   storiesDark: boolean; // include places whose story is about killings, disasters or attacks
   storiesOffered: boolean; // the one finish-screen offer has been shown
   stillBackground: boolean; // footage stays a still picture (also on by itself with the phone's reduce motion)
+  voiceEvery: VoiceEvery; // when the voice speaks (cues on Voice): each km/mile, each half, every 5 or 10 minutes
+  voiceSays: VoiceField[]; // which numbers it says, spoken in a fixed order
+  paceAlert: PaceAlert; // a buzz (and a word with Voice) when the pace drifts out of range; seconds per km
+  heartAlert: HeartAlert; // the same for heart rate, from a watch or strap
+  treadmill: boolean; // the next run is on a treadmill: no GPS, distance from steps
   onboarded: boolean;
 }
 
@@ -123,6 +131,7 @@ export const DEFAULT_SETTINGS: Settings = {
   weather: true,
   runNotes: true,
   watch: true,
+  healthConnect: false,
   batteryMode: 'auto',
   keepScreenOn: false,
   listenDownload: 'ask',
@@ -140,9 +149,15 @@ export const DEFAULT_SETTINGS: Settings = {
   silentDay: null,
   comeback: null,
   deepStats: false,
+  deepOpen: [],
   stories: false,
   storiesDark: false,
   storiesOffered: false,
   stillBackground: false,
+  voiceEvery: 'split',
+  voiceSays: DEFAULT_VOICE_SAYS,
+  paceAlert: DEFAULT_PACE_ALERT,
+  heartAlert: DEFAULT_HEART_ALERT,
+  treadmill: false,
   onboarded: false,
 };

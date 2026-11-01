@@ -76,6 +76,14 @@ const light = {
   /** Ends of the heart-rate zone ramp. */
   zoneLow: '#d8eee2',
   zoneHigh: '#6b3a2a',
+  /** Deep stats charts: quicker than usual and slower than usual (a pair that colour-blind eyes can tell apart). */
+  chartQuick: '#2f6db0',
+  chartSlow: '#c8602f',
+  /** One-hue ramp for "how much" in charts: light to strong. */
+  seq1: '#d9d0f0',
+  seq2: '#a99bd6',
+  seq3: '#7462b0',
+  seq4: '#4a3f6b',
 };
 
 export type Palette = typeof light;
@@ -127,6 +135,12 @@ const dark: Palette = {
   skyMark: '#6b9ccc',
   zoneLow: '#3f7560',
   zoneHigh: '#e8a98f',
+  chartQuick: '#4a86d0',
+  chartSlow: '#d26a38',
+  seq1: '#5f5390',
+  seq2: '#8f80cc',
+  seq3: '#b3a8ea',
+  seq4: '#e2dcfa',
 };
 
 const palettes: Record<Scheme, Palette> = { light, dark };

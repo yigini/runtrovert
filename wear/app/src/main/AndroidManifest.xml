@@ -2,7 +2,13 @@
   <uses-feature android:name="android.hardware.type.watch" />
 
   <!-- Heart rate from the watch's sensor. Wear OS 6 asks for the health permission,
-       earlier versions for body sensors. Nothing else: no internet, no location. -->
+       earlier versions for body sensors. No internet. Location only to record a
+       run on the watch alone, asked the first time "Record on this watch" is tapped. -->
+  <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+  <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
   <uses-permission android:name="android.permission.BODY_SENSORS" android:maxSdkVersion="35" />
   <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -19,7 +25,8 @@
       android:theme="@android:style/Theme.DeviceDefault">
 
     <uses-library android:name="com.google.android.wearable" android:required="false" />
-    <!-- Needs the phone app: the phone records, the watch shows and steers. -->
+    <!-- Needs the phone app: the phone records, the watch shows and steers. Runs
+         recorded on the watch alone wait here until the phone app takes them. -->
     <meta-data android:name="com.google.android.wearable.standalone" android:value="false" />
 
     <activity
@@ -37,6 +44,12 @@
         android:name=".RunService"
         android:exported="false"
         android:foregroundServiceType="health" />
+
+    <!-- A run recorded on the watch alone: GPS, distance and heart rate through Health Services. -->
+    <service
+        android:name=".SoloService"
+        android:exported="false"
+        android:foregroundServiceType="health|location" />
 
     <service
         android:name=".PhoneListenerService"

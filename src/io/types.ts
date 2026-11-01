@@ -1,8 +1,8 @@
 // Runs that arrive from somewhere other than this phone's own recording.
 // Everything here is plain data so the parsers stay pure and testable.
 
-/** Where a run came from. null on a run means it was recorded here. 'health' is kept for Health Connect later; 'manual' is a run typed in by hand. */
-export type SourceKind = 'gpx' | 'fit' | 'health' | 'manual';
+/** Where a run came from. null on a run means it was recorded here. 'health' is kept for Health Connect later; 'manual' is a run typed in by hand; 'watch' was recorded on the Wear OS watch alone; 'strava' and 'garmin' came in a whole export. */
+export type SourceKind = 'gpx' | 'fit' | 'tcx' | 'strava' | 'garmin' | 'health' | 'manual' | 'watch';
 
 export interface TrackPoint {
   ts: number; // epoch ms

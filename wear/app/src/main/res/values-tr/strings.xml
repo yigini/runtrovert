@@ -37,4 +37,12 @@
   <string name="time">Süre</string>
   <string name="distance">Mesafe</string>
   <string name="pace">Tempo</string>
+  <string name="recordHere">Bu saatte kaydet</string>
+  <string name="recordHereHint">Saatin GPS’iyle. Koşu, ikisi yeniden bir araya gelince telefona geçer.</string>
+  <string name="needLocation">Saatte kayıt için konum gerekiyor</string>
+  <string name="needLocationHint">Saatin ayarlarından izin ver ya da telefonunu yanına al.</string>
+  <string name="soloFailed">Bu saat GPS’ini başlatamadı</string>
+  <string name="soloSaved">Saatte kaydedildi</string>
+  <string name="soloSavedHint">İkisi bir sonraki buluşmada, telefonda Runtrovert açıkken telefona geçer.</string>
+  <string name="soloWaiting">Telefonu bekleyen: %1$s</string>
 </resources>

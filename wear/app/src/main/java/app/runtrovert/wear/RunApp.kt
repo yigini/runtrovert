@@ -66,28 +66,50 @@ fun RunApp(activity: MainActivity) {
     val live by PhoneLink.live.collectAsStateWithLifecycle()
     val local by activity.local.collectAsStateWithLifecycle()
     val heart by PhoneLink.heart.collectAsStateWithLifecycle()
+    val solo by SoloRun.state.collectAsStateWithLifecycle()
+    val saved by SoloRun.justSaved.collectAsStateWithLifecycle()
+    val failed by SoloRun.failed.collectAsStateWithLifecycle()
+    val waiting by SoloRun.waiting.collectAsStateWithLifecycle()
     Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
       TimeText()
       val l = live
+      val s = solo
       when {
+        s != null -> Running(activity, s.asLive(), heart)
+        saved -> Message(stringResource(R.string.soloSaved), stringResource(R.string.soloSavedHint)) { SoloRun.justSaved.value = false }
+        failed -> Message(stringResource(R.string.soloFailed)) { SoloRun.failed.value = false }
+        local == Local.NeedLocation -> Message(stringResource(R.string.needLocation), stringResource(R.string.needLocationHint)) { activity.dismiss() }
         local == Local.Asking -> HeartAsk(activity)
         l != null && l.active -> Running(activity, l, heart)
         l != null && l.status == "halted" -> Message(stringResource(R.string.finishOnPhone))
         local == Local.Starting -> Message(stringResource(R.string.starting))
         local == Local.OpeningPhone -> Message(stringResource(R.string.openingPhone))
-        local == Local.NoPhone -> Message(stringResource(R.string.noPhone), stringResource(R.string.noPhoneHint)) { activity.dismiss() }
-        else -> Idle(activity)
+        local == Local.NoPhone -> NoPhone(activity)
+        else -> Idle(activity, waiting)
       }
     }
   }
 }
 
 @Composable
-private fun Idle(activity: MainActivity) {
+private fun Idle(activity: MainActivity, waiting: Int) {
   Column(horizontalAlignment = Alignment.CenterHorizontally) {
     RoundButton(stringResource(R.string.start), Mint, 92) { activity.onStartTapped() }
     Spacer(Modifier.height(8.dp))
     Text(stringResource(R.string.tileHint), color = Muted, fontSize = 12.sp, textAlign = TextAlign.Center)
+    if (waiting > 0) {
+      Text(stringResource(R.string.soloWaiting, waiting.toString()), color = Lilac, fontSize = 11.sp, textAlign = TextAlign.Center)
+    }
+  }
+}
+
+/** The phone isn't there: say so, and offer to record here instead. Tap the words to go back. */
+@Composable
+private fun NoPhone(activity: MainActivity) {
+  Column(Modifier.padding(horizontal = 22.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Text(stringResource(R.string.noPhone), color = Cream, fontSize = 15.sp, textAlign = TextAlign.Center, modifier = Modifier.clickable { activity.dismiss() })
+    PillButton(stringResource(R.string.recordHere), Mint) { activity.onSoloTapped() }
+    Text(stringResource(R.string.recordHereHint), color = Muted, fontSize = 11.sp, textAlign = TextAlign.Center)
   }
 }
 

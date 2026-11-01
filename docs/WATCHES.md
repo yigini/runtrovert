@@ -12,7 +12,8 @@ watch support:
 - **A note at each km/mile** ("Km 3 · 5:42 /km", "3.00 km in 17:20."), with a
   short double buzz. One note replaces the last.
 - **Android lock screen:** a silent ongoing notification with distance, time and
-  average pace, refreshed every 30 s and on pause/resume.
+  average pace, refreshed every 30 s and on pause/resume, with Pause / Lap
+  (Resume when paused) buttons.
 - **Quiet reminders** and the after-run note reach the wrist the same way.
 
 Wear OS shows bridged phone notifications if the Runtrovert app is allowed in the
@@ -31,9 +32,9 @@ per-km notes, not a live screen.
   Needs a small Swift widget extension added through an Expo config plugin
   (for example `expo-apple-targets` or a hand-written plugin). No push server:
   updates come from the running app.
-- **Android notification actions**: Pause / Resume / Lap buttons on the run
-  notification. Doable with expo-notifications categories; buttons on bridged
-  notifications also show on Wear OS.
+- **Android notification actions**: DONE (see docs/RUN_AIDS.md). Pause and
+  Lap while recording, Resume while paused, on the live run notification,
+  through expo-notifications categories.
 
 ## Step 3: real watch apps (separate native projects)
 
@@ -65,7 +66,9 @@ message path says what it is (`src/wearProtocol.ts`, `wear/.../Protocol.kt`):
   every 5 s during a run. The phone answers every hello with a live message, and
   answers heart readings that arrive with no run on with one too, so a Stop the
   watch missed while out of reach is put right within a minute of coming back.
-- Later, for runs recorded on the watch alone: `/runtrovert/run { points, splits, hr }`.
+- Runs recorded on the watch alone: watch → phone `/runtrovert/run { id, part, of, d }`
+  (the run's JSON in pieces of 40 000 characters), phone → watch
+  `/runtrovert/runack { id, ok }` once it's kept or can't be read.
 
 ## Battery on the watch
 
@@ -81,8 +84,9 @@ message path says what it is (`src/wearProtocol.ts`, `wear/.../Protocol.kt`):
 3. ✓ Wear OS app, phase 1 (remote mode, heart rate, km buzz, tile).
    ✓ Phase 2: heart rate from any watch or strap over Bluetooth, heart rate in
    the GPX/FIT export, a complication; the tile and complication start a run.
-   Next: heart rate in You vs you and trends; then standalone recording with
-   the watch GPS.
+   ✓ Phase 3: a run recorded on the watch alone, with the watch's GPS, handed
+   to the phone later (see "Recording on the watch alone" below).
+   Next: heart rate in You vs you and trends.
 4. Apple Watch app in remote mode, then standalone.
 5. ✓ Bluetooth heart-rate straps on the phone (shipped with phase 2, below).
 
@@ -227,3 +231,49 @@ JS side: permission, scan, connect for a run) and
 two-source rule and heart rate on export points; `npm run test:io` the GPX
 and FIT output.
 
+
+
+## Recording on the watch alone (phase 3)
+
+For a run without the phone. Free, like the rest of the watch app.
+
+**When it's offered.** Only when the phone can't be reached: Start on the watch
+looks for the phone as before; if it isn't there (or doesn't answer), the
+"Phone not nearby" screen has one button, **Record on this watch**, and a line
+saying the run goes to the phone later. The first time, Android asks for
+location, physical activity (for distance from steps between GPS fixes) and
+heart rate. No location: a short note, nothing records.
+
+**While running.** The same screen as a phone run: time, distance, pace, heart
+rate, Pause / Resume, Hold to stop, a buzz each km or mile (units as the phone
+last said). `SoloService` runs a Health Services running exercise with GPS on
+(location, total distance, climb when the watch has a barometer, heart rate),
+foreground service type health|location, an ongoing activity on the watch face.
+Health Services decides how often the GPS wakes; the app keeps at most one
+point a second. Auto-pause is off on the watch.
+
+**Afterwards.** "Saved on the watch. It goes to your phone next time they're
+together, with Runtrovert open there." The run waits in the app's private
+folder (`files/solo/run-<id>.json`). The run in progress is written there every
+half minute, so a crash or a flat battery keeps it (recovered on next start).
+Runs under a minute, or under 200 m with almost no GPS, aren't kept. The watch's
+start screen says how many are waiting.
+
+**Hand-over.** Whenever the phone app talks to the watch (it says hello on
+opening and whenever it comes to the front), `SoloSync` sends each waiting run in
+pieces, at most every two minutes per run. The phone puts the pieces together
+(`addRunChunk`), turns the run into an imported run cut at each pause
+(`watchRunToImported`, the watch's distance and moving time win) and keeps it
+through `importParsed(…, 'watch')`, so de-duplication, heart rate, splits,
+places and bests work as for any run. Then it acknowledges; only then does the
+watch delete its copy. A run the phone can't read is set aside on the watch,
+never deleted. The plan ticks the day's session off as for a phone run. The run
+says "Recorded on your watch, without the phone."
+
+**Code.** Watch: `SoloRun.kt` (state, storage), `SoloService.kt`, `SoloSync.kt`;
+phone: `src/wearProtocol.ts` (pure, `npm run test:watch-solo`), `src/wear.ts`.
+Watch version 0.3.0 (100003): reinstall by adb as before.
+
+**Not yet.** Starting from the tile or complication with no phone goes to the
+same "Phone not nearby" screen (one more tap). Watch-only runs don't follow a
+plan session's steps; the run still ticks the day off. No map on the watch.

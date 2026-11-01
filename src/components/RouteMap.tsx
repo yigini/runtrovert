@@ -28,6 +28,11 @@ export function mapStyle(): string {
   return MAP_STYLES[scheme()];
 }
 
+/** Both styles, for a map saved to use without signal (src/offlineMaps.ts). */
+export function lightAndDarkStyles(): string[] {
+  return [MAP_STYLES.light, MAP_STYLES.dark];
+}
+
 /** No tiles, nothing requested over the network. A plain object per palette, so the map gets a stable style. */
 function makeBlank() {
   return {

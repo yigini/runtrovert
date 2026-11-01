@@ -9,7 +9,13 @@ import { listRuns } from '../db';
 import { useShoes } from '../shoeStore';
 import { totals } from '../shoes';
 import { roughDistance } from '../weekGoal';
+import { HealthSettings } from '../components/HealthSettings';
+import { healthStatus } from '../health';
 import { PresetSheet } from '../components/PresetSheet';
+import { OfflineMaps } from '../components/OfflineMaps';
+import { RoutesSettings } from '../components/RoutesSettings';
+import type { SavedRoute } from '../routeStore';
+import { AlertsPage, alertsSummary, VoicePage, voiceSummary } from '../components/RunAidsSettings';
 import { Group, kit, NavRow, Note, PlainRow, RadioList, Row, Segmented, Tag, WideButton } from '../components/SettingsKit';
 import { useCommute } from '../commuteStore';
 import { appByKey } from '../music';
@@ -34,7 +40,7 @@ const HOW_OFTEN: Array<{ key: NotifyPerWeek; label: string; hint: string }> = li
 const CUES: Array<{ key: CueMode; label: string; hint: string }> = live(() => (['silent', 'haptic', 'voice'] as const).map((key) => ({ key, ...ui().settings.cue[key] })));
 
 /** The pages behind the main list. Import/export and credits are screens of their own (App.tsx). */
-type Page = 'home' | 'run' | 'shoes' | 'gps' | 'map' | 'watch' | 'music' | 'reminders' | 'commute' | 'extras' | 'language' | 'appearance' | 'privacy';
+type Page = 'home' | 'run' | 'shoes' | 'voice' | 'alerts' | 'gps' | 'map' | 'routes' | 'watch' | 'music' | 'reminders' | 'commute' | 'extras' | 'language' | 'appearance' | 'privacy' | 'health';
 
 /** A new palette redraws every screen, Settings included: come back to the page it was picked on. */
 let reopen: Page | null = null;
@@ -56,7 +62,7 @@ export function fetchesOn(s: Pick<Settings, 'plainMap' | 'weather' | 'listenDown
  * and a small page behind each row with only that topic. The phone's back
  * gesture returns to the list first, then leaves.
  */
-export function SettingsScreen({ onOpenListen, onOpenEverything, onOpenCredits, onBack, runLive }: { onOpenListen: () => void; onOpenEverything: () => void; onOpenCredits: () => void; onBack?: () => void; runLive?: boolean }) {
+export function SettingsScreen({ onOpenListen, onOpenEverything, onOpenCredits, onBack, runLive, onFollow }: { onOpenListen: () => void; onOpenEverything: () => void; onOpenCredits: () => void; onBack?: () => void; runLive?: boolean; onFollow?: (r: SavedRoute) => void }) {
   const [page, setPage] = useState<Page>(() => {
     const p = reopen ?? 'home';
     reopen = null;
@@ -76,12 +82,16 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onOpenCredits, 
         </>
       ) : (
         <>
-          <BackButton label={ui().settings.settings} onPress={home} />
+          {/* The voice and alerts pages sit behind During a run, so back goes there. */}
+          {page === 'voice' || page === 'alerts' ? <BackButton label={ui().settingsHub.duringARun} onPress={() => setPage('run')} /> : <BackButton label={ui().settings.settings} onPress={home} />}
           <Text style={styles.h1} accessibilityRole="header">{titleOf(page)}</Text>
-          {page === 'run' && <RunPage runLive={!!runLive} />}
+          {page === 'run' && <RunPage runLive={!!runLive} open={setPage} />}
+          {page === 'voice' && <VoicePage />}
+          {page === 'alerts' && <AlertsPage />}
           {page === 'shoes' && <ShoesSettings />}
           {page === 'gps' && <GpsPage />}
           {page === 'map' && <MapPage />}
+          {page === 'routes' && <RoutesSettings onFollow={(r) => onFollow?.(r)} />}
           {page === 'watch' && <WatchPage />}
           {page === 'music' && <MusicPage onOpenListen={onOpenListen} />}
           {page === 'reminders' && <RemindersPage />}
@@ -90,6 +100,7 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onOpenCredits, 
           {page === 'language' && <LanguagePage locked={!!runLive} onDone={home} />}
           {page === 'appearance' && <AppearancePage runLive={!!runLive} />}
           {page === 'privacy' && <PrivacyPage />}
+          {page === 'health' && <HealthSettings />}
         </>
       )}
     </ScrollView>
@@ -103,10 +114,16 @@ function titleOf(page: Page): string {
       return h.duringARun;
     case 'shoes':
       return ui().shoes.title;
+    case 'voice':
+      return ui().runAids.voiceRow;
+    case 'alerts':
+      return ui().runAids.alertsRow;
     case 'gps':
       return h.gpsBattery;
     case 'map':
       return ui().settings.map;
+    case 'routes':
+      return ui().routes.title;
     case 'watch':
       return h.watchHeart;
     case 'music':
@@ -123,6 +140,8 @@ function titleOf(page: Page): string {
       return ui().appearance.title;
     case 'privacy':
       return h.whatLeaves;
+    case 'health':
+      return ui().health.row;
     default:
       return ui().settings.settings;
   }
@@ -165,6 +184,7 @@ function Home({ open, onOpenEverything, onOpenCredits }: { open: (p: Page) => vo
         <NavRow icon="run" label={h.duringARun} value={h.runValue(cue, s.autoPause, s.countdownS)} onPress={() => open('run')} />
         <NavRow icon="battery" label={h.gpsBattery} value={battery} onPress={() => open('gps')} />
         <NavRow icon="map" label={ui().settings.map} value={s.plainMap ? h.plain : h.streets} onPress={() => open('map')} />
+        <NavRow icon="route" label={ui().routes.title} value={ui().routes.navValue} onPress={() => open('routes')} />
         <NavRow icon="shoe" label={ui().shoes.title} value={shoesValue} onPress={() => open('shoes')} />
       </Group>
       <Group title={hasWatchPage ? h.groupWatchMusic : h.groupMusic}>
@@ -181,6 +201,7 @@ function Home({ open, onOpenEverything, onOpenCredits }: { open: (p: Page) => vo
       <Group title={h.groupPrivacy}>
         <NavRow icon="phone" label={h.whatLeaves} value={h.privacyValue(fetchesOn(s))} onPress={() => open('privacy')} />
         <NavRow icon="export" label={ui().settings.everythingYouHave} value={h.importValue} onPress={onOpenEverything} />
+        {healthStatus() !== 'no' ? <NavRow icon="heart" label={ui().health.row} value={s.healthConnect ? ui().health.valueOn : ui().health.valueOff} onPress={() => open('health')} /> : null}
       </Group>
       <Group title={ui().credits.about}>
         <NavRow icon="info" label={ui().credits.title} onPress={onOpenCredits} />
@@ -207,7 +228,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
   return <Switch value={value} onValueChange={onChange} {...switchColors(value)} />;
 }
 
-function RunPage({ runLive }: { runLive: boolean }) {
+function RunPage({ runLive, open }: { runLive: boolean; open: (p: Page) => void }) {
   const { settings, update } = useSettings();
   const [presets, setPresets] = useState(false);
   const preset = settings.runPreset ? presetInfo(settings.runPreset) : null;
@@ -216,6 +237,8 @@ function RunPage({ runLive }: { runLive: boolean }) {
     <>
       <Group title={ui().settings.cues}>
         <RadioList options={CUES} value={settings.cueMode} onPick={(cueMode) => update({ cueMode })} />
+        <NavRow label={ui().runAids.voiceRow} value={settings.cueMode === 'voice' ? voiceSummary(settings) : ui().runAids.onlyWithVoice} onPress={() => open('voice')} />
+        <NavRow label={ui().runAids.alertsRow} value={alertsSummary(settings)} onPress={() => open('alerts')} />
       </Group>
       <Group title={h.startStop}>
         <Row label={ui().settings.countdown} hint={ui().settings.secondsBeforeTheRunStarts}>
@@ -226,7 +249,7 @@ function RunPage({ runLive }: { runLive: boolean }) {
         </Row>
       </Group>
       <Group title={h.onScreen}>
-        <Row label={ui().settings.lockScreenAndWatch} hint={ui().settings.liveDistanceAndTimeOn}>
+        <Row label={ui().settings.lockScreenAndWatch} hint={ui().runAids.lockHint}>
           <Toggle value={settings.runNotes} onChange={(v) => update({ runNotes: v })} />
         </Row>
         <Row label={ui().settings.keepScreenOn} hint={ui().settings.onlyDuringARunCosts}>
@@ -259,11 +282,14 @@ function GpsPage() {
 function MapPage() {
   const { settings, update } = useSettings();
   return (
-    <Group>
-      <Row label={ui().settings.plainMap} hint={ui().settings.yourRouteTheLiveDot}>
-        <Toggle value={settings.plainMap} onChange={(v) => update({ plainMap: v, mapNoticeSeen: true })} />
-      </Row>
-    </Group>
+    <>
+      <Group>
+        <Row label={ui().settings.plainMap} hint={ui().settings.yourRouteTheLiveDot}>
+          <Toggle value={settings.plainMap} onChange={(v) => update({ plainMap: v, mapNoticeSeen: true })} />
+        </Row>
+      </Group>
+      <OfflineMaps />
+    </>
   );
 }
 
@@ -496,6 +522,11 @@ function PrivacyPage() {
         <Row label={ui().settings.quietReminders} hint={h.remindersHint}>
           <Tag label={h.neverSent} />
         </Row>
+        {healthStatus() !== 'no' ? (
+          <Row label={ui().health.row} hint={ui().health.privacyHint}>
+            <Tag label={h.neverSent} />
+          </Row>
+        ) : null}
       </Group>
       <Group title={h.fetched}>
         <Row label={h.mapStreets} hint={h.mapStreetsHint}>
