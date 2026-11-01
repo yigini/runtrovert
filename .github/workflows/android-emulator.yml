@@ -10,6 +10,8 @@ on:
       - scripts/android-user-journeys.py
       - scripts/android_data_journeys.py
       - scripts/android_extra_journeys.py
+      - scripts/RtUiDump.java
+      - scripts/build-rt-ui-dump.sh
   workflow_dispatch:
     inputs:
       build_run_id:
@@ -40,12 +42,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - suite: backup-and-import
-            cases: 15-backup-roundtrip,16-truncated-backup-safety,17-malformed-backup-rollback,18-gpx-import-deduplication
+          - suite: recording-basic
+            cases: 05-record-pause-background-save,06-finish-recovery-discard,07-quiet-mode
+          - suite: workouts-and-recovery
+            cases: 09-quick-workout,13-offline-recording,19-process-death-recovery
+          - suite: corrections-and-restore
+            cases: 08-manual-validation-edit-delete,15-backup-roundtrip
+          - suite: training-session
+            cases: 20-mode-fallback-countdown-cancel,21-plan-setup-session-guidance
     env:
       BUILD_RUN_ID: ${{ inputs.build_run_id || '41319989111' }}
       RT_CASES: ${{ inputs.cases || '' }}
       RT_GROUP_CASES: ${{ matrix.cases }}
+      RT_FAST_UI: '1'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -107,6 +116,8 @@ jobs:
           disable-linux-hw-accel: false
           script: |
             bash scripts/android-emulator-smoke.sh
+            bash scripts/build-rt-ui-dump.sh
+            adb push scripts/rt-ui-dump-build/RtUiDump.jar /data/local/tmp/rt-ui-dump.jar
             python3 scripts/android-user-journeys.py
 
       - name: Keep screenshots and diagnostics

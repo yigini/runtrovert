@@ -78,7 +78,7 @@ def data_cases(h):
         h.tap('Replace'); h.expect('Restored'); h.tap('OK'); time.sleep(2)
         state=database('roundtrip'); assert len(state['runs'])==1 and state['runs'][0]['distance_m']==5000, state
         assert state['runs'][0]['note']=='Synthetic_backup_fixture', state
-        h.tap('Your runs'); h.first_history_run(); h.expect('Synthetic_backup_fixture'); h.shot('restored-detail')
+        h.tap('Your runs'); h.first_history_run(); h.locate('Synthetic_backup_fixture'); h.expect('Synthetic_backup_fixture'); h.shot('restored-detail')
 
     def truncated():
         seed_manual(); raw=backup_bytes(); short=raw.splitlines()[0]+b'\n'
@@ -132,4 +132,3 @@ def data_cases(h):
     return [('15-backup-roundtrip',roundtrip),('16-truncated-backup-safety',truncated),
             ('17-malformed-backup-rollback',malformed_and_future),('18-gpx-import-deduplication',gpx_import),
             ('19-process-death-recovery',process_death)]
-

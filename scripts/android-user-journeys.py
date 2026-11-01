@@ -14,6 +14,7 @@ RESULTS, TRACE = [], []
 CURRENT = 'setup'
 SIZE = (1080, 2400)
 GPS_STOP = threading.Event()
+FAST_UI = os.environ.get('RT_FAST_UI') == '1'
 
 class Blocked(Exception): pass
 
@@ -33,7 +34,11 @@ def hierarchy():
     for attempt in range(3):
         try:
             adb('shell','rm','-f','/sdcard/rt-ui.xml')
-            adb('shell','uiautomator','dump','--compressed','/sdcard/rt-ui.xml',timeout=18)
+            if FAST_UI:
+                adb('shell','CLASSPATH=/data/local/tmp/rt-ui-dump.jar:/system/framework/uiautomator.jar',
+                    'app_process','/system/bin','RtUiDump','/sdcard/rt-ui.xml',*SIZE,timeout=18)
+            else:
+                adb('shell','uiautomator','dump','--compressed','/sdcard/rt-ui.xml',timeout=18)
             xml = adb('exec-out','cat','/sdcard/rt-ui.xml',timeout=10)
             root = ET.fromstring(xml)
             return root, xml
@@ -281,7 +286,7 @@ def manual_entry():
     expect('Put back what was recorded'); shot('corrected')
     tap('Put back what was recorded'); expect('Correct distance or time'); shot('correction-restored')
     type_in('A note, if you want','CI_note_persisted'); tap('Back to Your runs')
-    first_history_run(); expect('CI_note_persisted'); shot('note-persisted')
+    first_history_run(); locate('CI_note_persisted'); expect('CI_note_persisted'); shot('note-persisted')
     tap('Delete run'); expect('Delete run?'); tap('Keep'); expect('Delete run')
     tap('Delete run'); tap('Delete'); expect('No runs yet.'); shot('deleted')
 

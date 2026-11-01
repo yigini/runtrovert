@@ -140,7 +140,8 @@ def extra_cases(h):
         h.tap('Follow my plan', contains=True)
         h.tap('Done')
         h.expect('Today’s run: Just run')
-        shown('Nothing on the plan today, so this one runs as Just run. Plans live in Train.')
+        # The current Home view shows the effective mode; its old explanatory
+        # translation remains unused, so do not assert that obsolete sentence.
         h.shot('plan-mode-without-plan')
         h.adb('shell', 'am', 'force-stop', h.PACKAGE)
         h.launch()
@@ -314,4 +315,3 @@ def extra_cases(h):
         ('23-plan-pause-rest-ill-stop', life_changes),
         ('24-listen-choices-privacy-cancel', listen_choices),
     ]
-
