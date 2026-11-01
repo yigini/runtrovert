@@ -7,6 +7,7 @@ import { PresetSheet } from '../components/PresetSheet';
 import { OfflineMaps } from '../components/OfflineMaps';
 import { RoutesSettings } from '../components/RoutesSettings';
 import type { SavedRoute } from '../routeStore';
+import { AlertsPage, alertsSummary, VoicePage, voiceSummary } from '../components/RunAidsSettings';
 import { Group, kit, NavRow, Note, PlainRow, RadioList, Row, Segmented, Tag, WideButton } from '../components/SettingsKit';
 import { useCommute } from '../commuteStore';
 import { appByKey } from '../music';
@@ -31,7 +32,7 @@ const HOW_OFTEN: Array<{ key: NotifyPerWeek; label: string; hint: string }> = li
 const CUES: Array<{ key: CueMode; label: string; hint: string }> = live(() => (['silent', 'haptic', 'voice'] as const).map((key) => ({ key, ...ui().settings.cue[key] })));
 
 /** The pages behind the main list. Import/export and credits are screens of their own (App.tsx). */
-type Page = 'home' | 'run' | 'gps' | 'map' | 'routes' | 'watch' | 'music' | 'reminders' | 'commute' | 'extras' | 'language' | 'appearance' | 'privacy';
+type Page = 'home' | 'run' | 'voice' | 'alerts' | 'gps' | 'map' | 'routes' | 'watch' | 'music' | 'reminders' | 'commute' | 'extras' | 'language' | 'appearance' | 'privacy';
 
 /** A new palette redraws every screen, Settings included: come back to the page it was picked on. */
 let reopen: Page | null = null;
@@ -73,9 +74,12 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onOpenCredits, 
         </>
       ) : (
         <>
-          <BackButton label={ui().settings.settings} onPress={home} />
+          {/* The voice and alerts pages sit behind During a run, so back goes there. */}
+          {page === 'voice' || page === 'alerts' ? <BackButton label={ui().settingsHub.duringARun} onPress={() => setPage('run')} /> : <BackButton label={ui().settings.settings} onPress={home} />}
           <Text style={styles.h1} accessibilityRole="header">{titleOf(page)}</Text>
-          {page === 'run' && <RunPage runLive={!!runLive} />}
+          {page === 'run' && <RunPage runLive={!!runLive} open={setPage} />}
+          {page === 'voice' && <VoicePage />}
+          {page === 'alerts' && <AlertsPage />}
           {page === 'gps' && <GpsPage />}
           {page === 'map' && <MapPage />}
           {page === 'routes' && <RoutesSettings onFollow={(r) => onFollow?.(r)} />}
@@ -98,6 +102,10 @@ function titleOf(page: Page): string {
   switch (page) {
     case 'run':
       return h.duringARun;
+    case 'voice':
+      return ui().runAids.voiceRow;
+    case 'alerts':
+      return ui().runAids.alertsRow;
     case 'gps':
       return h.gpsBattery;
     case 'map':
@@ -190,7 +198,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
   return <Switch value={value} onValueChange={onChange} {...switchColors(value)} />;
 }
 
-function RunPage({ runLive }: { runLive: boolean }) {
+function RunPage({ runLive, open }: { runLive: boolean; open: (p: Page) => void }) {
   const { settings, update } = useSettings();
   const [presets, setPresets] = useState(false);
   const preset = settings.runPreset ? presetInfo(settings.runPreset) : null;
@@ -199,6 +207,8 @@ function RunPage({ runLive }: { runLive: boolean }) {
     <>
       <Group title={ui().settings.cues}>
         <RadioList options={CUES} value={settings.cueMode} onPick={(cueMode) => update({ cueMode })} />
+        <NavRow label={ui().runAids.voiceRow} value={settings.cueMode === 'voice' ? voiceSummary(settings) : ui().runAids.onlyWithVoice} onPress={() => open('voice')} />
+        <NavRow label={ui().runAids.alertsRow} value={alertsSummary(settings)} onPress={() => open('alerts')} />
       </Group>
       <Group title={h.startStop}>
         <Row label={ui().settings.countdown} hint={ui().settings.secondsBeforeTheRunStarts}>
@@ -209,7 +219,7 @@ function RunPage({ runLive }: { runLive: boolean }) {
         </Row>
       </Group>
       <Group title={h.onScreen}>
-        <Row label={ui().settings.lockScreenAndWatch} hint={ui().settings.liveDistanceAndTimeOn}>
+        <Row label={ui().settings.lockScreenAndWatch} hint={ui().runAids.lockHint}>
           <Toggle value={settings.runNotes} onChange={(v) => update({ runNotes: v })} />
         </Row>
         <Row label={ui().settings.keepScreenOn} hint={ui().settings.onlyDuringARunCosts}>

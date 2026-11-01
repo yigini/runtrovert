@@ -253,28 +253,38 @@ function DistanceAxis({ total, km }: { total: number; km: boolean }) {
 
 function HalvesBar({ halves }: { halves: NonNullable<Stats['halves']> }) {
   const { firstS, secondS } = halves;
-  const max = Math.max(firstS, secondS);
   const diff = secondS - firstS;
   const pct = Math.abs(diff) / Math.max(firstS, 1);
   const verdict =
     pct < 0.02 ? ui().runStats.evenHalvesVeryComposed : diff < 0 ? ui().runStats.negativeSplitXQuickerOn(formatDuration(-diff)) : ui().runStats.secondHalfXSlowerThe(formatDuration(diff));
+  const [w, setW] = useState(0);
+  // One line from the first half to the second: quicker is higher. A small
+  // difference stays close to level, so the slope reads honestly.
+  const h = 64;
+  const tilt = Math.max(-1, Math.min(1, diff / Math.max(firstS * 0.08, 1))); // ±8% fills the height
+  const yA = h / 2 - (tilt * (h - 20)) / 2;
+  const yB = h / 2 + (tilt * (h - 20)) / 2;
+  const tone = pct < 0.02 ? colors.text : diff < 0 ? colors.chartQuick : colors.chartSlow;
+  const xa = 52;
+  const xb = Math.max(xa + 40, w - 52);
   return (
-    <View style={styles.card}>
+    <View style={styles.card} accessible accessibilityLabel={`${ui().runStats.halves}. ${ui().runStats.firstHalf} ${formatDuration(firstS)}, ${ui().runStats.secondHalf} ${formatDuration(secondS)}. ${verdict}`}>
       <Text style={styles.eyebrow}>{ui().runStats.halves}</Text>
-      {[
-        { label: ui().runStats.firstHalf, s: firstS, tone: colors.lilac },
-        { label: ui().runStats.secondHalf, s: secondS, tone: diff < 0 && pct >= 0.02 ? colors.mint : colors.lilac },
-      ].map((r) => (
-        <View key={r.label} style={{ gap: 4 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={styles.rowLabel}>{r.label}</Text>
-            <Text style={styles.rowValue}>{formatDuration(r.s)}</Text>
-          </View>
-          <View style={styles.track}>
-            <View style={[styles.fill, { width: `${(r.s / max) * 100}%`, backgroundColor: r.tone }]} />
-          </View>
-        </View>
-      ))}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+        <Text style={styles.rowLabel}>{ui().runStats.firstHalf}</Text>
+        <Text style={styles.rowLabel}>{ui().runStats.secondHalf}</Text>
+      </View>
+      <View style={{ height: h }} onLayout={(e) => setW(e.nativeEvent.layout.width)} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+        {w > 0 && (
+          <Svg width={w} height={h}>
+            <Line x1={xa} x2={xb} y1={yA} y2={yB} stroke={tone} strokeWidth={2.5} strokeLinecap="round" />
+            <Circle cx={xa} cy={yA} r={5} fill={colors.text} stroke={colors.white} strokeWidth={2} />
+            <Circle cx={xb} cy={yB} r={5} fill={tone} stroke={colors.white} strokeWidth={2} />
+          </Svg>
+        )}
+        <Text style={[styles.halfTime, { left: 0, top: yA - 9 }]}>{formatDuration(firstS)}</Text>
+        <Text style={[styles.halfTime, { right: 0, top: yB - 9 }]}>{formatDuration(secondS)}</Text>
+      </View>
       <Text style={type.small}>{verdict}</Text>
     </View>
   );
@@ -397,6 +407,7 @@ const styles = themedStyles(() => ({
   axisNote: { position: 'absolute', fontFamily: fonts.bodySemi, fontSize: 10, color: colors.inkMuted, backgroundColor: colors.glass, paddingHorizontal: 4, borderRadius: 4 },
   tick: { position: 'absolute', fontFamily: fonts.body, fontSize: 10, color: colors.muted, fontVariant: ['tabular-nums'] },
 
+  halfTime: { position: 'absolute', fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text, fontVariant: ['tabular-nums'] },
   rowLabel: { fontFamily: fonts.body, fontSize: 14, color: colors.text },
   rowValue: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text, fontVariant: ['tabular-nums'] },
   track: { height: 10, borderRadius: 5, backgroundColor: colors.cream, overflow: 'hidden' },

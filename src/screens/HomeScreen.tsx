@@ -189,6 +189,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
             </Pressable>
           </View>
           <Text style={styles.todayLine}>{plan ? ui().home.startsAsJustRunNo : ui().home.startsAsJustRunNo2}</Text>
+          <TreadmillLine on={settings.treadmill} onFlip={() => update({ treadmill: !settings.treadmill })} />
           {plan ? (
             <Pressable onPress={() => setAdjust(true)} accessibilityRole="button" accessibilityHint={ui().home.chooseWhatHappensToYour} style={({ pressed }) => [styles.adjust, pressed && { opacity: 0.9 }]}>
               <View style={{ flex: 1, gap: 3 }}>
@@ -288,7 +289,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
         )}
         <MoodPicker inline title={ui().home.energyRightNow} value={mood} onChange={onMood} />
         <View style={styles.startRow}>
-          <Button title={preset === 'plan' && !route ? ui().home.startTodaySSession : ui().home.start} onPress={onStart} style={{ minHeight: 62, flex: 1 }} />
+          <Button title={preset === 'plan' && !route ? ui().home.startTodaySSession : settings.treadmill && !route ? ui().runAids.startTreadmill : ui().home.start} onPress={onStart} style={{ minHeight: 62, flex: 1 }} />
           <Pressable onPress={() => setListen(true)} accessibilityRole="button" accessibilityLabel={ui().home.listen} accessibilityHint={ui().home.musicPodcastsOrASilent} style={({ pressed }) => [styles.listen, pressed && { opacity: 0.85 }]}>
             <HeadphonesGlyph />
           </Pressable>
@@ -308,6 +309,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
             </Text>
           </Pressable>
         )}
+        {route ? null : <TreadmillLine on={settings.treadmill} onFlip={() => update({ treadmill: !settings.treadmill })} />}
       </View>
       )}
       {plan && back ? (
@@ -432,6 +434,23 @@ function startOfDay(ms: number): number {
   const d = new Date(ms);
   d.setHours(0, 0, 0, 0);
   return d.getTime();
+}
+
+
+/** One quiet line under Start: a treadmill run has no GPS, so it's said, not hidden. Remembered for next time. */
+function TreadmillLine({ on, onFlip }: { on: boolean; onFlip: () => void }) {
+  const a = ui().runAids;
+  return (
+    <Pressable onPress={onFlip} accessibilityRole="switch" accessibilityState={{ checked: on }} accessibilityLabel={a.treadmillA11y} accessibilityHint={a.treadmillHint} hitSlop={10} style={{ alignSelf: 'center' }}>
+      {on ? (
+        <Text style={styles.kindLine}>
+          {a.treadmillOn} · <Text style={styles.kindLink}>{a.runOutside}</Text>
+        </Text>
+      ) : (
+        <Text style={[styles.kindLine, styles.kindLink]}>{a.onATreadmill}</Text>
+      )}
+    </Pressable>
+  );
 }
 
 const styles = themedStyles(() => ({

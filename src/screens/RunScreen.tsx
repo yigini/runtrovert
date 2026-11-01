@@ -35,7 +35,7 @@ import { compare, youVsYou, type RunFacts } from '../progress';
 import type { StatPoint } from '../runStats';
 import { useSettings } from '../settings';
 import { finishSurprise, type Surprise } from '../surprises';
-import { continueRun, ensurePermissions, followRoute, getState, haltRun, lap, pauseRun, resumeRun, startRun, stopRun, subscribe, TrackingState, unsavedPoints } from '../tracking';
+import { continueRun, ensureIndoorPermissions, ensurePermissions, followRoute, getState, haltRun, lap, pauseRun, resumeRun, startRun, stopRun, subscribe, TrackingState, unsavedPoints } from '../tracking';
 import { colors, fonts, radius, spacing, type, themedStyles, night } from '../theme';
 import { applyEnergy, type PainLevel } from '../training/adapt';
 import { loadPlan, nextSession, savePlan, todaySession } from '../training/store';
@@ -47,6 +47,7 @@ import { onWatchCommand } from '../wear';
 import type { WatchCommand } from '../wearProtocol';
 import { cachedWeather } from '../weather';
 import { isQuick } from '../training/quick';
+import { parseDistance } from '../runEdit';
 import { beginWorkout, endWorkout, subscribeWorkout, takeWorkoutSteps, type GuidedRun } from '../workoutRun';
 import type { Offer } from '../commute';
 import { lastCommuteRoute, loadCommute } from '../commuteStore';
@@ -141,10 +142,13 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   const [layout, setLayout] = useState<RunPreset>(preset);
   // Clear my head: the running time stays hidden until asked for.
   const [showTime, setShowTime] = useState(false);
+  // Treadmill: what the treadmill said, typed on the finish screen (in the runner's unit).
+  const [treadmillText, setTreadmillText] = useState('');
 
   // The screen is the second-biggest drain after GPS. Off by default: the lock
   // screen (and the watch) carry the live numbers instead.
-  const keepAwake = phase === 'active' && settings.keepScreenOn;
+  // A treadmill run keeps it on too: the phone counts steps best with the app open, and it sits on the console anyway.
+  const keepAwake = phase === 'active' && (settings.keepScreenOn || track.indoor);
   useEffect(() => {
     if (!keepAwake) return;
     activateKeepAwakeAsync('run').catch(() => {});
@@ -318,6 +322,22 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
 
   /** Runs the session passed in, not the one this render happened to hold. */
   async function begin(as: RunPreset = preset, run: Session | null = session) {
+    // A route to follow is outside by definition; otherwise the Home line decides.
+    const indoor = settings.treadmill && !ghostRun;
+    if (indoor) {
+      // No location at all on a treadmill. Without a step counter the distance waits for the finish.
+      if (!(await ensureIndoorPermissions())) {
+        const ok = await new Promise<boolean>((resolve) =>
+          Alert.alert(ui().runAids.stepsOffTitle, ui().runAids.stepsOff, [
+            { text: ui().run.cancel, style: 'cancel', onPress: () => resolve(false) },
+            { text: ui().run.runAnyway, onPress: () => resolve(true) },
+          ], { cancelable: true, onDismiss: () => resolve(false) }),
+        );
+        if (!ok) return;
+      }
+      await countIn(as, run, true);
+      return;
+    }
     const perm = await ensurePermissions();
     if (!perm.ok) {
       setGhostRun(null);
@@ -347,6 +367,11 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         return;
       }
     }
+    await countIn(as, run, false);
+  }
+
+  /** The countdown (or none), then the run. */
+  async function countIn(as: RunPreset, run: Session | null, indoor: boolean) {
     setLayout(as);
     setShowTime(false);
     setRunSilent(silentRun(as, settings.silentDay, Date.now()));
@@ -363,22 +388,22 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
           if (countdownRef.current) clearInterval(countdownRef.current);
           countdownRef.current = null;
           cueCountdown(0);
-          await go(as, run);
+          await go(as, run, indoor);
         } else {
           cueCountdown(n);
         }
       }, 1000);
     } else {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-      await go(as, run);
+      await go(as, run, indoor);
     }
   }
 
-  async function go(as: RunPreset = preset, run: Session | null = session) {
+  async function go(as: RunPreset = preset, run: Session | null = session, indoor = false) {
     if (as === 'plan' && run && !run.done && !run.skipped) beginWorkout(run);
     try {
-      await startRun(moodBefore);
-      followRoute(ghostRun?.follow ? ghostRun.path : null);
+      await startRun(moodBefore, { indoor });
+      followRoute(!indoor && ghostRun?.follow ? ghostRun.path : null);
       setPhase('active');
     } catch {
       endWorkout();
@@ -433,7 +458,8 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     // Sensors off the moment you stop: nothing records behind the finish screen.
     await haltRun();
     const f = getState();
-    if (f.distanceM < TINY_RUN_M) {
+    // A treadmill run without a step counter shows 0 until the treadmill's number is typed: that's not a pocket tap.
+    if (f.distanceM < TINY_RUN_M && !(f.indoor && f.durationS >= 60)) {
       Alert.alert(
         ui().run.barelyMoved,
         ui().run.xAndXKeepIt(formatDuration(f.durationS), formatDistance(f.distanceM, km)),
@@ -469,7 +495,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     const durationS = final?.durationS ?? 0;
     let id: number | null;
     try {
-      id = await stopRun({ moodAfter, quiet, note: note.trim() || null });
+      id = await stopRun({ moodAfter, quiet, note: note.trim() || null, treadmillM: final?.indoor ? typedTreadmillM(treadmillText, km) : null });
     } catch {
       // Nothing is lost: the run, the answers and the note stay on this screen for another try.
       savingRef.current = false;
@@ -543,6 +569,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     setMoodAfter(null);
     setQuiet(null);
     setNote('');
+    setTreadmillText('');
     setFinal(null);
     setSurprise(null);
     setLive(null);
@@ -580,22 +607,27 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
 
   // ---- Finish ----------------------------------------------------------------
   if (phase === 'finish' && final) {
+    const typedM = final.indoor ? typedTreadmillM(treadmillText, km) : null;
+    const shownM = typedM ?? final.distanceM;
     const partialKm = final.currentKm.distanceM > 20 ? { index: final.splits.length + 1, ...final.currentKm } : null;
-    const mapH = Math.max(Math.round(Dimensions.get('window').height * 0.62), finishPad.top + finishCardH + 160);
+    // A treadmill run has no route to frame: the words and numbers close up.
+    const mapH = final.indoor ? finishPad.top + finishCardH + spacing.lg : Math.max(Math.round(Dimensions.get('window').height * 0.62), finishPad.top + finishCardH + 160);
     const askFeel = hasPlan && (!!guided || (!!session && sessionOpen && session.kind !== 'rest'));
     const you = live ? youVsYou(compare({ ...live.run, moodBefore, moodAfter }, live.history), km, settings.fewerWords) : null;
     return (
       <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
         {/* The run, framed: your route fills the space between the words and the numbers. */}
         <View style={{ height: mapH, backgroundColor: colors.mintSoft }}>
-          <RouteMap
-            path={final.path}
-            here={final.here}
-            fill
-            interactive={false}
-            fitPadding={{ top: finishPad.top + 24, right: 36, bottom: finishPad.bottom + 24, left: 36 }}
-            pins={storyPins(stories)}
-          />
+          {final.indoor ? null : (
+            <RouteMap
+              path={final.path}
+              here={final.here}
+              fill
+              interactive={false}
+              fitPadding={{ top: finishPad.top + 24, right: 36, bottom: finishPad.bottom + 24, left: 36 }}
+              pins={storyPins(stories)}
+            />
+          )}
           <View style={styles.finishTop} pointerEvents="box-none" onLayout={(e) => setFinishPad((p) => ({ ...p, top: e.nativeEvent.layout.y + e.nativeEvent.layout.height }))}>
             <View style={styles.finishTopRow} pointerEvents="box-none">
               <Text style={[type.eyebrow, { color: colors.mintDeep, flex: 1 }]} accessibilityRole="header">{ui().run.runDone}</Text>
@@ -603,7 +635,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
                 <Text style={styles.resumeText}>{ui().run.resumeRun2}</Text>
               </Pressable>
             </View>
-            <Text style={styles.finishTitle} maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>{settings.fewerWords ? ui().run.plainFinish(voice().distance(final.distanceM, km), voice().minutes(final.durationS)) : surprise?.line ?? finishLine()}</Text>
+            <Text style={styles.finishTitle} maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>{settings.fewerWords ? ui().run.plainFinish(voice().distance(shownM, km), voice().minutes(final.durationS)) : surprise?.line ?? finishLine()}</Text>
           </View>
           <View
             style={styles.finishCard}
@@ -613,16 +645,32 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
               setFinishCardH(height);
             }}
           >
-            <View style={styles.statRow} accessible accessibilityLabel={ui().run.xInXAverageX(spokenDistance(final.distanceM, km), spokenDuration(final.durationS), spokenPace(final.distanceM, final.durationS, km), formatElevation(final.elevationGainM, km))}>
-              <Stat value={formatDistanceNumber(final.distanceM, km)} label={distanceUnit(km)} big />
+            <View style={styles.statRow} accessible accessibilityLabel={ui().run.xInXAverageX(spokenDistance(shownM, km), spokenDuration(final.durationS), spokenPace(shownM, final.durationS, km), formatElevation(final.elevationGainM, km))}>
+              <Stat value={formatDistanceNumber(shownM, km)} label={distanceUnit(km)} big />
               <Stat value={formatDuration(final.durationS)} label={ui().run.time} />
-              <Stat value={formatPace(final.distanceM, final.durationS, km)} label={`/${distanceUnit(km)}`} />
+              <Stat value={formatPace(shownM, final.durationS, km)} label={`/${distanceUnit(km)}`} />
               <Stat value={formatElevation(final.elevationGainM, km)} label={ui().run.climb} />
             </View>
             <Recharge before={moodBefore} after={moodAfter} />
           </View>
         </View>
         <View style={{ padding: spacing.md, paddingTop: spacing.lg, gap: spacing.lg }}>
+          {final.indoor ? (
+            <View style={styles.treadmillCard}>
+              <Text style={styles.treadmillTitle}>{ui().runAids.finishAsk}</Text>
+              <Text style={styles.treadmillHint}>{final.indoorSteps > 0 ? ui().runAids.finishHint(formatDistance(final.distanceM, km)) : ui().runAids.finishHintNoSteps}</Text>
+              <TextInput
+                style={styles.treadmillInput}
+                value={treadmillText}
+                onChangeText={setTreadmillText}
+                keyboardType="decimal-pad"
+                placeholder={formatDistanceNumber(final.distanceM, km)}
+                placeholderTextColor={colors.inkMuted}
+                accessibilityLabel={ui().runAids.finishLabel(distanceUnit(km))}
+                maxLength={6}
+              />
+            </View>
+          ) : null}
           {you && <YouLine title={you.title} detail={you.detail} />}
           {/* Calm order: keep it and go first. On a plan the pain question sits
               just above, so it is seen before leaving. Everything else is optional
@@ -802,7 +850,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
 
   return (
     <View style={styles.live}>
-      <RouteMap
+      {track.indoor ? <View style={[StyleSheet.absoluteFill, { backgroundColor: night.ink }]} /> : <RouteMap
         path={track.path}
         here={track.here}
         follow
@@ -814,7 +862,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
         interactive={mapFront}
         fps={mapFront ? undefined : 20}
         focusPadding={mapFront ? { top: 120, right: 0, bottom: 140, left: 0 } : { top: H * 0.5, right: 0, bottom: 150, left: 0 }}
-      />
+      />}
       <Animated.View pointerEvents="none" style={[styles.veil, { opacity: veil }]} />
 
       <View style={styles.liveLayer} pointerEvents="box-none">
@@ -834,7 +882,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
             </View>
           ) : null}
           <View style={styles.statusPill}>
-            <Text style={[styles.statusText, { color: night.onInkMuted }]}>{gpsLabel(track.gps)}</Text>
+            <Text style={[styles.statusText, { color: night.onInkMuted }]}>{track.indoor ? ui().runAids.treadmillPill : gpsLabel(track.gps)}</Text>
           </View>
         </View>
 
@@ -864,9 +912,11 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
               <Text style={styles.mapToggleText}>{ui().listen.listen}</Text>
             </Pressable>
           ) : null}
-          <Pressable onPress={toggleMap} accessibilityRole="button" accessibilityLabel={mapFront ? ui().run.showNumbers : ui().run.showMap} style={({ pressed }) => [styles.mapToggle, pressed && { opacity: 0.85 }]}>
-            <Text style={styles.mapToggleText}>{mapFront ? ui().run.numbers : ui().run.map}</Text>
-          </Pressable>
+          {track.indoor ? null : (
+            <Pressable onPress={toggleMap} accessibilityRole="button" accessibilityLabel={mapFront ? ui().run.showNumbers : ui().run.showMap} style={({ pressed }) => [styles.mapToggle, pressed && { opacity: 0.85 }]}>
+              <Text style={styles.mapToggleText}>{mapFront ? ui().run.numbers : ui().run.map}</Text>
+            </Pressable>
+          )}
         </View>
 
         <View style={styles.controls}>
@@ -1089,6 +1139,11 @@ function StripStat({ value, label }: { value: string; label: string }) {
   );
 }
 
+/** The treadmill's number as typed (in the runner's unit), in metres; null when empty or not a distance. Same reading as Correct distance. */
+function typedTreadmillM(text: string, km: boolean): number | null {
+  return text.trim() ? parseDistance(text, km) : null;
+}
+
 function gpsLabel(q: TrackingState['gps']): string {
   if (q === 'searching') return ui().run.findingYou;
   if (q === 'lost') return ui().run.gpsLost2;
@@ -1238,6 +1293,10 @@ const styles = themedStyles(() => ({
   finishTopRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   resumePill: { backgroundColor: colors.ink, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 8 },
   resumeText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.cream },
+  treadmillCard: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, gap: 6 },
+  treadmillTitle: { fontFamily: fonts.bodySemi, fontSize: 16, color: colors.text },
+  treadmillHint: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.inkSoft },
+  treadmillInput: { borderBottomWidth: 1.5, borderBottomColor: colors.ink, paddingVertical: 8, color: colors.text, fontFamily: fonts.bodySemi, fontSize: 22 },
   note: { minHeight: 56, borderBottomWidth: 1.5, borderBottomColor: colors.ink, paddingVertical: 10, color: colors.text, fontFamily: fonts.displayItalic, fontSize: 17, textAlignVertical: 'top' },
 }));
 

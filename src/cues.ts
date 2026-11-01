@@ -32,9 +32,14 @@ export function runSilent(): boolean {
   return hush;
 }
 
-async function buzz(pattern: Haptics.NotificationFeedbackType | 'double' | 'triple') {
+async function buzz(pattern: Haptics.NotificationFeedbackType | 'double' | 'triple' | 'alert') {
   try {
-    if (pattern === 'double') {
+    if (pattern === 'alert') {
+      // Long, short: not a split (two taps), not a pause (three).
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      await new Promise((r) => setTimeout(r, 260));
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } else if (pattern === 'double') {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       await new Promise((r) => setTimeout(r, 180));
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -75,6 +80,28 @@ export async function cueKmSplit(km: number, splitDurationS: number, totalDurati
     const pace = formatPace(unitsKm ? 1000 : 1609.344, splitDurationS);
     say(ui().cues.split(km, unitsKm, pace.replace(':', ' '), formatDuration(totalDurationS).replace(':', ' ')));
   }
+}
+
+/** The two taps of a split, without the sentence (the voice speaks on its own interval). */
+export async function cueSplitBuzz() {
+  if (mode === 'silent') return;
+  await buzz('double');
+}
+
+/** A sentence from the run aids (src/runCues.ts): only when cues are set to voice. */
+export function cueSay(text: string) {
+  if (text && mode === 'voice') say(text);
+}
+
+/**
+ * Out of the pace or heart range the runner chose. They asked for it, so it
+ * buzzes even with cues on Silent; a quiet run (Clear my head, Run in silence
+ * today) still says nothing at all.
+ */
+export async function cueAlert(text: string) {
+  if (hush) return;
+  await buzz('alert');
+  if (mode === 'voice') say(text);
 }
 
 export async function cueLap(lap: number, lapDurationS: number) {
