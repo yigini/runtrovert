@@ -1,3 +1,4 @@
+import { isQuick } from '../training/quick';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
@@ -222,7 +223,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
             <Text style={styles.routeHint}>{ui().home.routeHint}</Text>
           </View>
         ) : sessionToday && planToday ? (
-          <PlanCard label={ui().home.todayFromYourPlan} title={planToday.title} hint={planToday.summary} onPress={onOpenPlan} />
+          <PlanCard label={isQuick(planToday) ? ui().quick.yourWorkout : ui().home.todayFromYourPlan} title={planToday.title} hint={planToday.summary} onPress={onOpenPlan} />
         ) : commute && onCommute ? (
           <Pressable
             onPress={() => onCommute(commute)}
