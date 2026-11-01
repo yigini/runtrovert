@@ -405,7 +405,7 @@
   })();
 
   // The Me card fills in once, the first time it comes into view: totals count up, the journey
-  // line draws from Lisbon to Berlin, the week ring and the years grow. With motion off it is
+  // week ring, your bests and your years grow. With motion off it is
   // simply shown finished.
   var me = document.querySelector('.me');
   if (me && 'IntersectionObserver' in window) {
@@ -414,8 +414,6 @@
       meSeen.disconnect();
       if (calm()) { me.classList.add('done'); return; }
       me.classList.add('go');
-      var dot = me.querySelector('.me-dot'), move = document.getElementById('me-move');
-      if (move && move.beginElement) { dot.setAttribute('cx', '0'); dot.setAttribute('cy', '0'); move.beginElement(); }
       Array.prototype.forEach.call(me.querySelectorAll('[data-to]'), function (b) {
         var to = +b.getAttribute('data-to'), t0 = performance.now();
         (function step(now) {
