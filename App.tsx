@@ -39,6 +39,7 @@ import { colors, fonts, night, onScheme, radius, scheme, setScheme, spacing, the
 import { dayName } from './src/training/adapt';
 import type { Place } from './src/placeStore';
 import { onRunSaved } from './src/training/store';
+import { syncRunToHealth } from './src/health';
 import type { Session } from './src/training/types';
 import { loadUnlock } from './src/unlockState';
 import { NEWS } from './src/whatsNew';
@@ -250,6 +251,7 @@ function Shell() {
     getRun(runId)
       .then((run) => notifyAfterRun(settings, runId, run?.moodAfter != null))
       .catch(() => {});
+    syncRunToHealth(runId).catch(() => {});
     setRefreshKey((k) => k + 1);
     setOpenRun(runId);
     setTab('runs');
