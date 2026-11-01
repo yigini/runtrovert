@@ -2466,6 +2466,7 @@ export const de: Strings = {
     moved: 'Bestwerte, Trends und Muster findest du jetzt unter Ich.',
     barsNote: 'Je länger der Balken, desto schneller warst du.',
     ofTarget: (t) => `von ${t}`,
+    weekSoFar: 'bisher',
     closeNote: 'Hinweis schließen',
   },
 };

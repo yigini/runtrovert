@@ -2467,6 +2467,7 @@ export const pt: Strings = {
     moved: 'Recordes, tendências e padrões agora ficam em Eu.',
     barsNote: 'Quanto mais longa a barra, mais rápido você correu.',
     ofTarget: (t) => `de ${t}`,
+    weekSoFar: 'até agora',
     closeNote: 'Fechar este aviso',
   },
 };

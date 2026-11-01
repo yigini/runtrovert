@@ -2481,6 +2481,7 @@ export const en = {
     moved: 'Bests, trends and patterns now live in Me.',
     barsNote: 'The longer the bar, the quicker you ran it.',
     ofTarget: (t: string) => `of ${t}`,
+    weekSoFar: 'so far',
     closeNote: 'Close this note',
   },
 };

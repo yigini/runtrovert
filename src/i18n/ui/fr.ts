@@ -2467,6 +2467,7 @@ export const fr: Strings = {
     moved: 'Records, tendances et habitudes sont maintenant dans Moi.',
     barsNote: 'Plus la barre est longue, plus tu as couru vite.',
     ofTarget: (t) => `sur ${t}`,
+    weekSoFar: 'pour l’instant',
     closeNote: 'Fermer ce message',
   },
 };

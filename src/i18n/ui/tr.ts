@@ -2466,6 +2466,7 @@ export const tr: Strings = {
     moved: 'En iyiler, gidişat ve örüntüler artık Ben sekmesinde.',
     barsNote: 'Çubuk ne kadar uzunsa o kadar hızlı koşmuşsun.',
     ofTarget: (t) => `hedef: ${t}`,
+    weekSoFar: 'şimdiye kadar',
     closeNote: 'Bu notu kapat',
   },
 };

@@ -158,6 +158,20 @@ const listeners = new Set<(s: Scheme) => void>();
  */
 export const VEIL_FLOOR: Record<Scheme, number> = { light: 0.7, dark: 0.6 };
 
+/**
+ * Words set straight on film (the top of Me): always light type on a dark scrim, in both palettes,
+ * so dark text never meets dark footage. The scrim never drops under `scrimFloor` where words sit.
+ */
+export const FILM = {
+  text: '#f6f1ea',
+  soft: 'rgba(246,241,234,0.9)',
+  scrim: '#0a080e',
+  scrimFloor: 0.4,
+  chip: 'rgba(246,241,234,0.16)',
+  chipLine: 'rgba(246,241,234,0.32)',
+  shadow: 'rgba(0,0,0,0.45)',
+};
+
 export function scheme(): Scheme {
   return current;
 }
