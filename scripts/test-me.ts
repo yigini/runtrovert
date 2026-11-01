@@ -54,12 +54,16 @@ assert.deepEqual(commutesThisMonth(runs, tags, now), { toWork: 0, home: 0 });
 console.log('me: ok');
 
 // The Me loop: one per day, a night set after dark, never a clip that isn't in the set.
-import { bestBars, meFootage, ME_DAY_FOOTAGE, ME_NIGHT_FOOTAGE } from '../src/me.ts';
-assert.equal(meFootage(at(2026, 11, 1, 9)), meFootage(at(2026, 11, 1, 18)), 'same loop all day');
-assert.ok((ME_DAY_FOOTAGE as readonly string[]).includes(meFootage(at(2026, 11, 2, 12))));
-assert.ok((ME_NIGHT_FOOTAGE as readonly string[]).includes(meFootage(at(2026, 11, 2, 23))));
-assert.ok((ME_NIGHT_FOOTAGE as readonly string[]).includes(meFootage(at(2026, 11, 2, 3))));
-const days = new Set([0, 1, 2].map((k) => meFootage(at(2026, 11, 3 + k, 12))));
+import { bestBars, meFootage, ME_DAY_FOOTAGE, ME_NIGHT_FOOTAGE, todayIndex, weekMinutes } from '../src/me.ts';
+// The week's columns: minutes per day, Monday first; other weeks left out.
+assert.deepEqual(weekMinutes([run(9, at(2026, 11, 1, 7), 5, 30), run(11, at(2026, 11, 1, 18), 2, 12.5), run(10, at(2026, 10, 25, 9), 5, 30), run(12, at(2026, 10, 26, 7), 3, 20)], at(2026, 11, 1, 20)), [20, 0, 0, 0, 0, 0, 42.5]);
+assert.equal(todayIndex(at(2026, 11, 1, 20)), 6, 'Sunday is the last day');
+assert.equal(todayIndex(at(2026, 10, 26, 0)), 0);
+assert.equal(meFootage(at(2026, 11, 1, 9), false), meFootage(at(2026, 11, 1, 23), false), 'same loop all day');
+assert.ok((ME_DAY_FOOTAGE as readonly string[]).includes(meFootage(at(2026, 11, 2, 23), false)), 'light palette: a day loop, even late at night');
+assert.ok((ME_NIGHT_FOOTAGE as readonly string[]).includes(meFootage(at(2026, 11, 2, 12), true)), 'dark palette: a night loop, even at noon');
+assert.ok((ME_NIGHT_FOOTAGE as readonly string[]).includes(meFootage(at(2026, 11, 2, 3), true)));
+const days = new Set([0, 1, 2].map((k) => meFootage(at(2026, 11, 3 + k, 12), false)));
 assert.equal(days.size, 3, 'the day set takes turns');
 
 // Bests as bars: quickest pace is the full bar, slowest still visible.

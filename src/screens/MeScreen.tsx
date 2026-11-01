@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Defs, LinearGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { AmbientBackground } from '../components/AmbientBackground';
 import { spokenDistance } from '../a11y';
 import { DeepMonthsView } from '../components/DeepStats';
@@ -12,13 +13,13 @@ import { commuteTags, useCommute } from '../commuteStore';
 import type { CommuteDir } from '../commute';
 import { goalStore } from '../extraStores';
 import { distanceUnit, formatDistance } from '../geo';
-import { bestYear, commutesThisMonth, journey, lifetime, meFootage, topPlaces, weekDays, years } from '../me';
+import { bestYear, commutesThisMonth, journey, lifetime, meFootage, todayIndex, topPlaces, weekDays, weekMinutes, years } from '../me';
 import { energyPatterns } from '../patterns';
 import { loadYourRuns, patternRuns, type YourRunsData } from '../patternStore';
 import { useSettings } from '../settings';
 import { totals, wear } from '../shoes';
 import { useShoes } from '../shoeStore';
-import { colors, fonts, radius, scheme, spacing, type, themedStyles, VEIL_FLOOR } from '../theme';
+import { colors, FILM, fonts, radius, scheme, spacing, type, themedStyles } from '../theme';
 import { currentWeek, loadPlan } from '../training/store';
 import type { Plan } from '../training/types';
 import { useUnlocked } from '../unlockState';
@@ -41,6 +42,7 @@ export function MeScreen({
   onBringIn,
   onWhatsHere,
   active = true,
+  onFilmTop,
 }: {
   refreshKey: number;
   /** Me is the tab on screen: the loop plays only then. */
@@ -50,6 +52,8 @@ export function MeScreen({
   onOpenTrain: () => void;
   onBringIn: () => void;
   onWhatsHere: () => void;
+  /** Whether the film is under the clock, so App can keep the status bar icons light over it. */
+  onFilmTop?: (onFilm: boolean) => void;
 }) {
   const km = useSettings().settings.unitsKm;
   const unlocked = useUnlocked();
@@ -82,8 +86,27 @@ export function MeScreen({
   const yearList = useMemo(() => years(runs), [runs]);
   const patterns = useMemo(() => (data ? energyPatterns(patternRuns(data), data.places, now, patternFormat(km)) : null), [data, km]);
   const m = ui().me;
-  // One loop a day (a night one after dark), picked when Me is drawn, so it never switches while you look.
-  const footage = useMemo(() => meFootage(Date.now()), []);
+  // A day loop in the light palette and a night loop in the dark one, one a day, so it never switches while you look.
+  const dark = scheme() === 'dark';
+  const footage = useMemo(() => meFootage(Date.now(), dark), [dark]);
+  const insets = useSafeAreaInsets();
+  // The header runs up behind the clock. Once the cream sheet scrolls up under the clock, a strip of
+  // ground colour fades in behind it and the status icons go back to the theme's own.
+  const [hero, setHero] = useState({ w: 0, h: 0 });
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [filmTop, setFilmTop] = useState(true);
+  const flip = Math.max(1, hero.h - insets.top - SHEET_OVERLAP);
+  useEffect(() => {
+    onFilmTop?.(filmTop);
+  }, [filmTop, onFilmTop]);
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const over = e.nativeEvent.contentOffset.y < flip;
+    if (over !== filmTop) setFilmTop(over);
+  };
+  const onHero = (e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    if (Math.round(width) !== hero.w || Math.round(height) !== hero.h) setHero({ w: Math.round(width), h: Math.round(height) });
+  };
 
   const title = (
     <View style={{ gap: spacing.sm }}>
@@ -94,12 +117,21 @@ export function MeScreen({
       <Text style={styles.lede}>{m.lede}</Text>
     </View>
   );
+  const filmTitle = (
+    <View style={{ gap: spacing.sm }}>
+      <View style={styles.topRow}>
+        <Text style={[type.h1, styles.onFilm]} accessibilityRole="header">{m.title}</Text>
+        <SettingsGear onFilm />
+      </View>
+      <Text style={[styles.lede, styles.onFilmSoft]}>{m.lede}</Text>
+    </View>
+  );
 
   // Nothing yet: say what will appear, and offer the way to bring a history in.
   if (data && runs.length === 0) {
     return (
       <View style={styles.screen}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.lg }]} showsVerticalScrollIndicator={false}>
           {title}
           <View style={styles.card}>
             <Text style={type.body}>{m.fillsIn}</Text>
@@ -118,9 +150,12 @@ export function MeScreen({
   const journeyText = j.kind === 'trip' ? m.trip(m.journeys[j.index]) : j.kind === 'marathons' ? m.marathons(j.n) : j.kind === 'earth' ? m.earth(decimal(String(j.n))) : '';
   const since = life.firstAt != null ? m.since(new Date(life.firstAt).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long', year: 'numeric' })) : '';
 
-  // This week: the goal if one is set, your usual week, a dot for each day with a run.
+  // This week: your time (of the goal, if one is set), a column for each day, your usual week.
   const week = weekSoFar(runs, now);
   const days = weekDays(runs, now);
+  const dayMinutes = weekMinutes(runs, now);
+  const today = todayIndex(now);
+  const maxDay = Math.max(1, ...dayMinutes);
   const dayNames = weekdayLetters();
   const ranDays = dayNames.long.filter((_, i) => days[i]);
   const goalOn = goal?.on === true;
@@ -140,47 +175,71 @@ export function MeScreen({
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: 0 }]} showsVerticalScrollIndicator={false}>
-        {/* The top of Me: one slow loop behind your total, fading into the page. It plays only while
-            Me is on screen, and is a still frame under battery saver or reduced motion. Free. */}
-        <View style={styles.hero}>
+      <Animated.ScrollView
+        contentContainerStyle={{ paddingBottom: spacing.xl }}
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={32}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true, listener: onScroll })}
+      >
+        {/* The top of Me: one slow loop, full width and up behind the clock, under a dark scrim so the
+            words on it are always light on dark. It plays only while Me is on screen, and is a still
+            frame under battery saver, reduced motion or still backgrounds. Free. */}
+        <View style={[styles.hero, { paddingTop: insets.top + spacing.md, minHeight: insets.top + HERO_HEIGHT }]} onLayout={onHero}>
           <View style={StyleSheet.absoluteFill} pointerEvents="none">
             <AmbientBackground style={footage} paused={!active} />
-            <Fade />
+            <Scrim w={hero.w} h={hero.h} />
           </View>
-          {title}
+          {filmTitle}
           {data ? (
-            <View style={{ gap: 6, marginTop: spacing.sm }} accessible accessibilityLabel={`${m.soFarSpoken(life.runs, spokenDistance(life.distanceM, km), hours)} ${since}${journeyText}`}>
-              <Text style={[type.eyebrow, { color: colors.inkSoft }]}>{m.soFar}</Text>
+            <View style={{ gap: spacing.sm }} accessible accessibilityLabel={`${m.soFarSpoken(life.runs, spokenDistance(life.distanceM, km), hours)} ${since}${journeyText}`}>
+              <Text style={[type.eyebrow, styles.onFilmSoft]}>{m.soFar}</Text>
               <View style={styles.bigRow}>
-                <Text style={styles.big} numberOfLines={1} adjustsFontSizeToFit>{whole(life.distanceM / (km ? 1000 : 1609.344))}</Text>
-                <Text style={styles.bigUnit}>{distanceUnit(km)}</Text>
+                <Text style={[styles.big, styles.onFilm]} numberOfLines={1} adjustsFontSizeToFit>{whole(life.distanceM / (km ? 1000 : 1609.344))}</Text>
+                <Text style={[styles.bigUnit, styles.onFilm]}>{distanceUnit(km)}</Text>
               </View>
               <View style={styles.chips}>
                 <Text style={styles.chip}>{`${whole(life.runs)} ${m.runs(life.runs)}`}</Text>
                 <Text style={styles.chip}>{`${whole(hours)} ${m.hours(hours)}`}</Text>
               </View>
-              <Text style={[type.body, { color: colors.inkSoft }]}>{since + journeyText}</Text>
+              <Text style={[type.body, styles.onFilmSoft]}>{since + journeyText}</Text>
             </View>
           ) : null}
         </View>
 
-        {/* This week as a ring: the goal's arc when one is set, a dot for each day you ran. Free. No streak. */}
+        {/* The cream sheet slides over the foot of the film and holds everything else. */}
+        <View style={styles.sheet}>
+        <View style={styles.grip} />
+
+        {/* This week: a column per day, its height the minutes run. Today underlined, days to come dashed.
+            The goal's bar only when a goal is set. Free. No streak. */}
         {data ? (
-          <View style={[styles.card, styles.mint, styles.weekCard]} accessible accessibilityLabel={[ui().youSection.thisWeek, parts ? m.of(parts.done, parts.target) : `${m.weekRuns(week.runs)}, ${hoursMinutes(week.durationS)}`, ranDays.length ? m.ranOn(ranDays.join(', ')) : m.noRunDays, usual].filter(Boolean).join('. ')}>
-            <WeekRing share={goalOn && goal ? goalShare(goal, week) : null} center={parts ? parts.done : hoursMinutes(week.durationS)} under={parts ? m.ofTarget(parts.target) : m.weekRuns(week.runs)} />
-            <View style={{ flex: 1, gap: 10 }}>
-              <Text style={[type.eyebrow, { color: colors.mintDeep }]}>{ui().youSection.thisWeek}</Text>
-              <View style={styles.days}>
-                {days.map((on, i) => (
-                  <View key={i} style={styles.day}>
-                    <View style={[styles.dot, on && styles.dotOn]} />
-                    <Text style={styles.dayText}>{dayNames.short[i]}</Text>
-                  </View>
-                ))}
-              </View>
-              {usual ? <Text style={[type.small, { color: colors.mintDeep }]}>{usual}</Text> : null}
+          <View style={styles.card} accessible accessibilityLabel={[ui().youSection.thisWeek, parts ? m.of(parts.done, parts.target) : `${m.weekRuns(week.runs)}, ${hoursMinutes(week.durationS)}`, ranDays.length ? m.ranOn(ranDays.join(', ')) : m.noRunDays, usual].filter(Boolean).join('. ')}>
+            <View style={styles.headRow}>
+              <Text style={type.eyebrow}>{ui().youSection.thisWeek}</Text>
+              <Text style={type.small}>{m.weekRuns(week.runs)}</Text>
             </View>
+            <View style={styles.weekRow}>
+              <Text style={styles.weekBig}>{parts ? parts.done : hoursMinutes(week.durationS)}</Text>
+              <Text style={styles.weekUnder}>{parts ? m.ofTarget(parts.target) : m.weekSoFar}</Text>
+            </View>
+            {goalOn && goal ? (
+              <View style={styles.bar}>
+                <View style={[styles.barFill, { width: `${Math.round(goalShare(goal, week) * 100)}%` }]} />
+              </View>
+            ) : null}
+            <View style={styles.days}>
+              {dayMinutes.map((min, i) => (
+                <View key={i} style={styles.day}>
+                  {min > 0 ? (
+                    <View style={[styles.dayBar, { height: Math.max(10, Math.round((min / maxDay) * DAY_BAR)) }]} />
+                  ) : (
+                    <View style={[styles.dayNone, i > today && styles.dayLater]} />
+                  )}
+                  <Text style={[styles.dayText, i === today && styles.dayToday]}>{dayNames.short[i]}</Text>
+                </View>
+              ))}
+            </View>
+            {usual ? <Text style={type.small}>{usual}</Text> : null}
           </View>
         ) : null}
 
@@ -287,10 +346,20 @@ export function MeScreen({
         <DeepMonthsView km={km} refreshKey={refreshKey} />
 
         <Footer onWhatsHere={onWhatsHere} />
-      </ScrollView>
+        </View>
+      </Animated.ScrollView>
+      {/* Behind the clock once the sheet has scrolled up under it. */}
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.statusStrip, { height: insets.top, opacity: scrollY.interpolate({ inputRange: [flip - 24, flip], outputRange: [0, 1], extrapolate: 'clamp' }) }]}
+      />
     </View>
   );
 }
+
+const HERO_HEIGHT = 470;
+const SHEET_OVERLAP = 28;
+const DAY_BAR = 64;
 
 function Footer({ onWhatsHere }: { onWhatsHere: () => void }) {
   const m = ui().me;
@@ -307,40 +376,26 @@ function Footer({ onWhatsHere }: { onWhatsHere: () => void }) {
   );
 }
 
-/** The ground colour over the loop: never thinner than the theme's floor where words sit, solid at the bottom so it melts into the page. */
-function Fade() {
-  const floor = VEIL_FLOOR[scheme()];
+/**
+ * The dark scrim over the film: heavier under the clock and title, lightest across the middle where
+ * only the picture shows, darkest at the foot behind the total. Sized in numbers from the header's
+ * own layout (a percentage-sized Svg can keep its first, shorter size on Android). Until the header
+ * is measured, a flat scrim at the floor stands in, so words are never on bare footage.
+ */
+function Scrim({ w, h }: { w: number; h: number }) {
+  if (w === 0 || h === 0) return <View style={[StyleSheet.absoluteFill, { backgroundColor: FILM.scrim, opacity: 0.6 }]} />;
   return (
-    <Svg width="100%" height="100%" preserveAspectRatio="none" style={StyleSheet.absoluteFill}>
+    <Svg width={w} height={h} style={StyleSheet.absoluteFill}>
       <Defs>
-        <LinearGradient id="meFade" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={colors.cream} stopOpacity={floor} />
-          <Stop offset="0.7" stopColor={colors.cream} stopOpacity={Math.min(1, floor + 0.08)} />
-          <Stop offset="1" stopColor={colors.cream} stopOpacity={1} />
+        <LinearGradient id="meScrim" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={FILM.scrim} stopOpacity={0.6} />
+          <Stop offset="0.3" stopColor={FILM.scrim} stopOpacity={FILM.scrimFloor} />
+          <Stop offset="0.55" stopColor={FILM.scrim} stopOpacity={0.55} />
+          <Stop offset="1" stopColor={FILM.scrim} stopOpacity={0.88} />
         </LinearGradient>
       </Defs>
-      <Rect width="100%" height="100%" fill="url(#meFade)" />
+      <Rect x={0} y={0} width={w} height={h} fill="url(#meScrim)" />
     </Svg>
-  );
-}
-
-/** The week as a ring. `share` is the goal's arc (null: no goal, just the ring and the time). */
-function WeekRing({ share, center, under }: { share: number | null; center: string; under: string }) {
-  const size = 124;
-  const c = size / 2;
-  const r = c - 10;
-  const C = 2 * Math.PI * r;
-  return (
-    <View style={{ width: size, height: size }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-      <Svg width={size} height={size}>
-        <Circle cx={c} cy={c} r={r} stroke={colors.empty} strokeWidth={11} fill="none" />
-        {share != null && share > 0 ? (
-          <Circle cx={c} cy={c} r={r} stroke={colors.mintDeep} strokeWidth={11} fill="none" strokeLinecap="round" strokeDasharray={`${C * share} ${C}`} transform={`rotate(-90 ${c} ${c})`} />
-        ) : null}
-        <SvgText x={c} y={c + 2} textAnchor="middle" fontFamily={fonts.display} fontSize={center.length > 7 ? 18 : 24} fill={colors.text}>{center}</SvgText>
-        <SvgText x={c} y={c + 22} textAnchor="middle" fontFamily={fonts.bodySemi} fontSize={11} fill={colors.mintDeep}>{under}</SvgText>
-      </Svg>
-    </View>
   );
 }
 
@@ -379,7 +434,6 @@ const styles = themedStyles(() => ({
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginRight: -10 },
   lede: { fontFamily: fonts.displayItalic, fontSize: 17, lineHeight: 24, color: colors.inkSoft },
   card: { backgroundColor: colors.white, borderRadius: radius.lg, paddingVertical: 16, paddingHorizontal: 18, gap: 10 },
-  mint: { backgroundColor: colors.mint },
   headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   headValue: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.mintDeep, flexShrink: 1, textAlign: 'right' },
   statRow: { flexDirection: 'row', gap: spacing.sm },
@@ -388,18 +442,27 @@ const styles = themedStyles(() => ({
   statLabel: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
   bar: { height: 10, borderRadius: radius.pill, backgroundColor: colors.empty, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: radius.pill, backgroundColor: colors.mintDeep },
-  days: { flexDirection: 'row', justifyContent: 'space-between' },
-  day: { alignItems: 'center', gap: 4, minWidth: 28 },
-  dot: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: colors.mintDeep, opacity: 0.45 },
-  dotOn: { backgroundColor: colors.mintDeep, opacity: 1 },
-  dayText: { fontFamily: fonts.bodySemi, fontSize: 11, color: colors.mintDeep },
-  hero: { marginHorizontal: -spacing.md, paddingHorizontal: spacing.md, paddingTop: spacing.lg, paddingBottom: spacing.xl, gap: spacing.sm, overflow: 'hidden' },
+  weekRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: spacing.sm },
+  weekBig: { fontFamily: fonts.display, fontSize: 34, lineHeight: 40, color: colors.text, fontVariant: ['tabular-nums'] },
+  weekUnder: { fontFamily: fonts.body, fontSize: 15, color: colors.muted },
+  days: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', minHeight: 64 + 26, paddingTop: 4 },
+  day: { alignItems: 'center', justifyContent: 'flex-end', gap: 6, width: 34 },
+  dayBar: { width: '100%', borderRadius: 10, backgroundColor: colors.mintDeep },
+  dayNone: { width: '100%', height: 6, borderRadius: radius.pill, backgroundColor: colors.empty },
+  dayLater: { height: 8, backgroundColor: 'transparent', borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.line },
+  dayText: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.muted, paddingBottom: 2 },
+  dayToday: { color: colors.text, borderBottomWidth: 2, borderBottomColor: colors.text },
+  hero: { paddingHorizontal: spacing.md, paddingBottom: SHEET_OVERLAP + spacing.lg, justifyContent: 'space-between', gap: spacing.lg, overflow: 'hidden' },
+  sheet: { marginTop: -SHEET_OVERLAP, backgroundColor: colors.cream, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: spacing.md, paddingTop: 10, gap: spacing.md },
+  grip: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.line },
+  statusStrip: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: colors.cream },
+  onFilm: { color: FILM.text, textShadowColor: FILM.shadow, textShadowRadius: 8 },
+  onFilmSoft: { color: FILM.soft, textShadowColor: FILM.shadow, textShadowRadius: 6 },
   bigRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
   big: { fontFamily: fonts.display, fontSize: 60, lineHeight: 66, letterSpacing: -1.5, color: colors.text, fontVariant: ['tabular-nums'], flexShrink: 1 },
   bigUnit: { fontFamily: fonts.display, fontSize: 20, color: colors.text },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  chip: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text, backgroundColor: colors.glass, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 12, overflow: 'hidden' },
-  weekCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  chip: { fontFamily: fonts.bodySemi, fontSize: 13, color: FILM.text, backgroundColor: FILM.chip, borderWidth: 1, borderColor: FILM.chipLine, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 12, overflow: 'hidden' },
   cols: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: 124 },
   col: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 4 },
   colBar: { width: '100%', borderTopLeftRadius: 8, borderTopRightRadius: 8, borderBottomLeftRadius: 3, borderBottomRightRadius: 3, backgroundColor: colors.seq2 },

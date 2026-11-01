@@ -2466,6 +2466,7 @@ export const es: Strings = {
     moved: 'Marcas, tendencias y patrones están ahora en Yo.',
     barsNote: 'Cuanto más larga la barra, más rápido corriste.',
     ofTarget: (t) => `de ${t}`,
+    weekSoFar: 'por ahora',
     closeNote: 'Cerrar este aviso',
   },
 };

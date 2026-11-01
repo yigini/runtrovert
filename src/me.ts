@@ -117,19 +117,35 @@ export function commutesThisMonth(runs: MeRun[], tags: Map<number, 'toWork' | 'h
 
 /**
  * The loop behind the top of Me: calm, cinematic, a runner you can see.
- * One per day (so it never switches while you look), from a small day set, or
- * a night set after dark. The Run tab rotates by weather; Me stays quieter.
+ * The light palette gets a day loop and the dark palette a night loop, so the
+ * footage always matches the page around it. One per day, so it never switches
+ * while you look. The Run tab rotates by weather; Me stays quieter.
  */
 export const ME_DAY_FOOTAGE = ['sunset-water', 'glass-river', 'sun-trees'] as const;
 export const ME_NIGHT_FOOTAGE = ['dark-forest', 'night-park'] as const;
 export type MeFootage = (typeof ME_DAY_FOOTAGE)[number] | (typeof ME_NIGHT_FOOTAGE)[number];
 
-export function meFootage(now: number): MeFootage {
+export function meFootage(now: number, dark: boolean): MeFootage {
   const d = new Date(now);
-  const h = d.getHours();
   const dayNo = Math.floor(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / 86400000);
-  const pool: readonly MeFootage[] = h < 6 || h >= 21 ? ME_NIGHT_FOOTAGE : ME_DAY_FOOTAGE;
+  const pool: readonly MeFootage[] = dark ? ME_NIGHT_FOOTAGE : ME_DAY_FOOTAGE;
   return pool[((dayNo % pool.length) + pool.length) % pool.length];
+}
+
+/** Monday to Sunday of this week: the minutes run each day (0 for none), for the week's columns. */
+export function weekMinutes(runs: MeRun[], now: number): number[] {
+  const { start, end } = weekOf(now);
+  const out = [0, 0, 0, 0, 0, 0, 0];
+  for (const r of runs) {
+    if (r.startedAt < start || r.startedAt >= end) continue;
+    out[(new Date(r.startedAt).getDay() + 6) % 7] += Math.max(0, r.durationS) / 60;
+  }
+  return out;
+}
+
+/** Monday 0 … Sunday 6 for `now`, so days still to come can be drawn as empty slots. */
+export function todayIndex(now: number): number {
+  return (new Date(now).getDay() + 6) % 7;
 }
 
 /**

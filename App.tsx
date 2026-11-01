@@ -143,6 +143,7 @@ function Shell() {
   const [planKey, setPlanKey] = useState(0);
   // Tabs opened at least once stay mounted; the day they were drawn on.
   const [visited, setVisited] = useState<{ runs: boolean; train: boolean; me: boolean }>({ runs: false, train: false, me: false });
+  const [meFilm, setMeFilm] = useState(true);
   const [day, setDay] = useState(dayOf);
   useEffect(() => {
     if (tab === 'run') return;
@@ -358,14 +359,16 @@ function Shell() {
   }
 
   const inkMode = liveRun && !finishing && tab === 'run' && sub == null && runInk;
+  // Me's header runs up behind the clock: no top inset there, and light icons while the film is under them.
+  const meTop = tab === 'me' && sub == null;
   const go = (t: Tab) => {
     setSub(null);
     setTab(t);
   };
   return (
     <OpenSettings.Provider value={openSettings}>
-      <SafeAreaView style={[styles.root, inkMode && styles.rootInk]}>
-        <StatusBar style={inkMode || dark ? 'light' : 'dark'} />
+      <SafeAreaView style={[styles.root, inkMode && styles.rootInk]} edges={meTop ? ['left', 'right', 'bottom'] : ['top', 'left', 'right', 'bottom']}>
+        <StatusBar style={inkMode || dark || (meTop && meFilm) ? 'light' : 'dark'} />
         {/* A new language or palette redraws every screen; neither changes during a live run. */}
         <View style={{ flex: 1 }} key={`${lang()}-${scheme()}`}>
           {/* RunScreen stays mounted so a live run survives tab switches. */}
@@ -431,6 +434,7 @@ function Shell() {
                 <MeScreen
                   key={day}
                   active={sub == null && tab === 'me'}
+                  onFilmTop={setMeFilm}
                   refreshKey={refreshKey + planKey}
                   onOpenPlace={(id) => {
                     setRunsSection('places');

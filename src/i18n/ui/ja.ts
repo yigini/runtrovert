@@ -2463,6 +2463,7 @@ export const ja: Strings = {
     moved: 'ベスト、傾向、パターンは「自分」に移りました。',
     barsNote: 'バーが長いほど速く走れています。',
     ofTarget: (t) => `目標 ${t}`,
+    weekSoFar: 'ここまで',
     closeNote: 'このお知らせを閉じる',
   },
 };
