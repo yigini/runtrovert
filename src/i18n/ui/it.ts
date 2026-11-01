@@ -2467,6 +2467,7 @@ export const it: Strings = {
     moved: 'Record, tendenze e abitudini ora sono in Io.',
     barsNote: 'Più lunga è la barra, più veloce hai corso.',
     ofTarget: (t) => `su ${t}`,
+    weekSoFar: 'finora',
     closeNote: 'Chiudi questo avviso',
   },
 };
