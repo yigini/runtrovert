@@ -1993,6 +1993,15 @@ export const de: Strings = {
     restWord: { walk: 'gehen', jog: 'traben' },
     titleOf: (effort: string, work: string, rest: string | null, restTime: string | null, reps: number) => `${effort} ${work}${rest ? `, ${rest} ${restTime}` : ''}, ${reps}-mal`,
   },
+  workoutFile: {
+    link: 'Für eine Garmin-, Coros- oder andere Uhr speichern',
+    title: 'Trainingsdatei für die Uhr',
+    how: 'Das speichert die Einheit als .fit-Training, durch das dich deine Uhr Schritt für Schritt führt.\n\nGarmin: per USB in den Ordner GARMIN/NewFiles kopieren. Coros, Suunto und andere: mit einer App wie intervals.icu öffnen, die Trainings an die Uhr schickt.',
+    save: 'Datei speichern',
+    cancel: 'Nicht jetzt',
+    failed: 'Die Trainingsdatei ließ sich nicht erstellen',
+    noShare: (uri: string) => 'Teilen ist hier nicht möglich. Die Datei liegt hier: ' + uri,
+  },
   addRun: {
     link: 'Einen nicht aufgezeichneten Lauf hinzufügen',
     title: 'Lauf hinzufügen',

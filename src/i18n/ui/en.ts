@@ -2004,6 +2004,15 @@ export const en = {
     restWord: { walk: 'walk', jog: 'jog' },
     titleOf: (effort: string, work: string, rest: string | null, restTime: string | null, reps: number) => `${effort} ${work}${rest ? `, ${rest} ${restTime}` : ''}, ${reps} ${reps === 1 ? 'time' : 'times'}`,
   },
+  workoutFile: {
+    link: 'Save it for a Garmin, Coros or other watch',
+    title: 'Workout file for a watch',
+    how: 'This saves the session as a .fit workout your watch can guide you through, step by step.\n\nGarmin: copy it over USB into the GARMIN/NewFiles folder. Coros, Suunto and others: open it with an app such as intervals.icu, which sends workouts to the watch.',
+    save: 'Save the file',
+    cancel: 'Not now',
+    failed: 'Couldn’t make the workout file',
+    noShare: (uri: string) => 'Sharing isn’t available here. The file is at: ' + uri,
+  },
   addRun: {
     link: 'Add a run you didn’t record',
     title: 'Add a run',

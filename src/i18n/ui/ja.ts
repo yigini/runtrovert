@@ -1990,6 +1990,15 @@ export const ja: Strings = {
     restWord: { walk: '歩く', jog: 'ジョグ' },
     titleOf: (effort: string, work: string, rest: string | null, restTime: string | null, reps: number) => `${effort} ${work}${rest ? `・${rest} ${restTime}` : ''}を${reps}回`,
   },
+  workoutFile: {
+    link: 'Garmin・Corosなどのウォッチ用に保存',
+    title: 'ウォッチ用ワークアウトファイル',
+    how: 'セッションを .fit ワークアウトとして保存します。ウォッチがステップごとに案内します。\n\nGarmin：USBで GARMIN/NewFiles フォルダにコピー。Coros・Suuntoなど：ワークアウトをウォッチに送れる intervals.icu などのアプリで開いてください。',
+    save: 'ファイルを保存',
+    cancel: '今はしない',
+    failed: 'ワークアウトファイルを作れませんでした',
+    noShare: (uri: string) => 'ここでは共有できません。ファイルの場所：' + uri,
+  },
   addRun: {
     link: '記録しなかったランを追加',
     title: 'ランを追加',
