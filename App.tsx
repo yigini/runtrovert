@@ -31,6 +31,7 @@ import { EverythingScreen } from './src/screens/EverythingScreen';
 import { CreditsScreen } from './src/screens/CreditsScreen';
 import { FEWER_ACTION, fewer, fewerMessage, notificationStatus, notifyAfterRun, requestNotificationPermission, rescheduleReminders } from './src/notify';
 import { SettingsProvider, useSettings } from './src/settings';
+import { onRestart } from './src/restart';
 import { startBilling } from './src/billing';
 import { recoverRun, subscribe } from './src/tracking';
 import { colors, fonts, radius, spacing } from './src/theme';
@@ -52,6 +53,9 @@ type Sub = 'settings' | 'listen' | 'everything' | 'credits' | null;
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({ DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold, Fraunces_300Light, Fraunces_400Regular_Italic, Fraunces_600SemiBold });
   const ready = fontsLoaded || !!fontError; // if fonts fail, carry on with system fonts rather than hang on the splash
+  // A restored backup starts every screen again from the database.
+  const [generation, setGeneration] = useState(0);
+  useEffect(() => onRestart(() => setGeneration((g) => g + 1)), []);
   useEffect(() => {
     if (ready) SplashScreen.hideAsync().catch(() => {});
   }, [ready]);
@@ -59,7 +63,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
-        <SettingsProvider>
+        <SettingsProvider key={generation}>
           <Shell />
         </SettingsProvider>
       </ErrorBoundary>

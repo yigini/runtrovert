@@ -27,6 +27,11 @@ export async function loadCommute(): Promise<Commute> {
   return current;
 }
 
+/** Drop what was read, so the next load comes from the database again (after a restore). */
+export function forgetCommute(): void {
+  current = null;
+}
+
 export async function saveCommute(patch: Partial<Commute>): Promise<Commute> {
   const next = { ...(await loadCommute()), ...patch };
   current = next;
