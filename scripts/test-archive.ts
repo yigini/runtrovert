@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { deflateRawSync, gzipSync } from 'node:zlib';
-import { activityKind, csvRows, readStravaCsv, stravaDate, stravaIsRun, stravaTypedIn, walkArchive, type Activity } from '../src/io/archive';
+import { activityKind, csvRows, readStravaCsv, stravaDate, stravaIsRun, stravaListed, stravaTypedIn, walkArchive, type Activity } from '../src/io/archive';
 import { parseFit } from '../src/io/fit';
 import { parseGpx, writeGpx } from '../src/io/gpx';
 import { sameRun, shapeRun } from '../src/io/shape';
@@ -187,6 +187,23 @@ check(s2.got.map((a) => a.key).join(',') === 'activities/201.gpx,strava-typed:20
 check(s2.got[1].typed === tr || s2.got[1].typed?.distanceM === 8000, 'the typed run travels with its numbers');
 const only2 = await collect(strava2, new Set(['strava-typed:202']));
 check(only2.got.length === 1 && only2.got[0].typed != null, 'the second pass can ask for a typed run alone');
+
+// The counting pass reads Strava's list instead of opening each file.
+{
+  const got: Activity[] = [];
+  let reads = 0;
+  const base = memorySource(strava2);
+  const counted: typeof base = { size: base.size, read: async (o, l) => (reads++, base.read(o, l)) };
+  await walkArchive(counted, { spill: async (src, e) => memorySource(await entryBytes(src, e)), lite: true }, async (a) => void got.push(a));
+  check(got.map((a) => a.key).join(',') === 'activities/201.gpx,strava-typed:202', `same activities, counted from the list (${got.map((a) => a.key)})`);
+  check(got[0].bytes.length === 0 && got[0].typed?.distanceM === 5012.3 && got[0].typed?.externalId === 'strava:201', 'the file run comes from its list line, unopened');
+  const listedRuns = stravaListed(csv2);
+  check(listedRuns.size === 1 && listedRuns.get('activities/201.gpx')?.startedAt === Date.UTC(2026, 9, 12, 6, 31, 0), 'list lines with a file, by path');
+  const full = { reads: 0 };
+  const base2 = memorySource(strava2);
+  await walkArchive({ size: base2.size, read: async (o, l) => (full.reads++, base2.read(o, l)) }, { spill: async (src, e) => memorySource(await entryBytes(src, e)) }, async () => {});
+  check(reads < full.reads, `fewer reads when counting (${reads} vs ${full.reads})`);
+}
 
 // Two hand-typed runs the same morning, overlapping times: two Strava ids, two runs.
 const am = Date.UTC(2026, 2, 1, 7, 0);

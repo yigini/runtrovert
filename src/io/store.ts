@@ -99,7 +99,21 @@ function parseActivity(a: Activity): ParseResult {
 }
 
 /** Every activity in the picked files, one at a time. A file that isn't an export counts as one activity. */
-async function eachActivity(files: File[], only: Map<number, Set<string>> | null, onProgress: ((done: number, total: number) => void) | undefined, out: ImportTally, cb: (index: number, a: Activity) => Promise<void>): Promise<{ archive: boolean; origin: Origin | null }> {
+// Reading runs is work on the app's own thread. A pause between activities,
+// whenever the last one has kept it busy for a moment, lets taps, scrolling
+// and tab switches through while a few hundred runs come in.
+let busySince = Date.now();
+async function breathe(): Promise<void> {
+  if (Date.now() - busySince < 32) return;
+  await new Promise((r) => setTimeout(r, 4));
+  busySince = Date.now();
+}
+
+async function eachActivity(files: File[], only: Map<number, Set<string>> | null, onProgress: ((done: number, total: number) => void) | undefined, out: ImportTally, cb: (index: number, a: Activity) => Promise<void>, lite = false): Promise<{ archive: boolean; origin: Origin | null }> {
+  const each = async (i: number, a: Activity) => {
+    await breathe();
+    await cb(i, a);
+  };
   let archive = false;
   let origin: Origin | null = null;
   for (const [i, f] of files.entries()) {
@@ -118,7 +132,7 @@ async function eachActivity(files: File[], only: Map<number, Set<string>> | null
       const kind = sniff(f.name ?? '', head);
       if (kind === 'zip') {
         archive = true;
-        const r = await walkArchive(src, { spill, only: want, onProgress: files.length === 1 ? onProgress : undefined }, (a) => cb(i, a));
+        const r = await walkArchive(src, { spill, only: want, lite, onProgress: files.length === 1 ? onProgress : undefined }, (a) => each(i, a));
         origin ??= r.origin;
         out.notRun += r.notRun;
         out.unreadable += r.unreadable;
@@ -141,7 +155,7 @@ async function eachActivity(files: File[], only: Map<number, Set<string>> | null
         out.unreadable++;
         continue;
       }
-      await cb(i, { key: '', fileName: name, kind: k, bytes, sport: null, name: null, externalId: null, origin: null });
+      await each(i, { key: '', fileName: name, kind: k, bytes, sport: null, name: null, externalId: null, origin: null });
     } catch {
       out.unreadable++;
     } finally {
@@ -192,7 +206,7 @@ export async function scanImport(files: File[], onProgress?: (done: number, tota
       if (!set) keep.set(i, (set = new Set()));
       set.add(a.key);
     }
-  });
+  }, true);
   return { archive: archive || activities > 20, origin, fresh, freshKm, firstAt, lastAt, out, keep };
 }
 
@@ -204,7 +218,9 @@ export async function commitImport(files: File[], preview: ImportPreview, onProg
   const saver = new RunSaver(now, addImportedRuns);
   await eachActivity(files, preview.keep, onProgress, { ...EMPTY_TALLY }, (_i, a) => importOne(parseActivity(a), a.typed ? null : a.fileName, a.typed ? 'manual' : (a.origin ?? a.kind), known, now, saver));
   await saver.flush();
-  return { ...preview.out, added: now.added, duplicate: preview.out.duplicate + now.duplicate };
+  // A run counted from Strava's list can still turn out too short or unreadable once opened.
+  const o = preview.out;
+  return { added: now.added, duplicate: o.duplicate + now.duplicate, notRun: o.notRun + now.notRun, unreadable: o.unreadable + now.unreadable, zipped: o.zipped + now.zipped, other: o.other + now.other };
 }
 
 async function share(file: File, mimeType: string, UTI: string, dialogTitle: string): Promise<void> {
