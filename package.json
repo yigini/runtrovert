@@ -36,6 +36,9 @@
   "devDependencies": {
     "@napi-rs/canvas": "^1.0.13",
     "@types/react": "~19.3.0",
+    "@typescript-eslint/parser": "^8.72.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "sharp": "^0.35.5",
     "typescript": "~6.0.3"
   },
@@ -76,7 +79,7 @@
     "test:deep": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-deep.ts && node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-deep-more.ts && node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-deep-long.ts",
     "test:commute": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-commute.ts",
     "test:stories": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-stories.ts",
-    "test": "npm run sim:gps && npm run test:mapfit && npm run test:reminders && npm run test:plans && npm run test:shelf && npm run test:playlists && npm run test:progress && npm run test:tips && npm run test:stats && npm run test:recording && npm run test:accuracy && npm run test:a11y && npm run test:presets && npm run test:comeback && npm run test:unlock && npm run test:places && npm run test:patterns && npm run test:deep && npm run test:stories && npm run test:commute && npm run test:voice && npm run test:io && npm run test:rebuilds && npm run test:ui && npm run test:heart && npm run test:review && npm run test:plan-notes && npm run test:wear && npm run test:credits && npm run test:footage && npm run test:backup && npm run test:runedit && npm run test:quick && npm run test:theme && npm run test:around && npm run test:watch-solo && npm run test:health && npm run test:workout-file && npm run test:archive && npm run test:routes && npm run test:aids",
+    "test": "npm run lint:hooks && npm run sim:gps && npm run test:mapfit && npm run test:reminders && npm run test:plans && npm run test:shelf && npm run test:playlists && npm run test:progress && npm run test:tips && npm run test:stats && npm run test:recording && npm run test:accuracy && npm run test:a11y && npm run test:presets && npm run test:comeback && npm run test:unlock && npm run test:places && npm run test:patterns && npm run test:deep && npm run test:stories && npm run test:commute && npm run test:voice && npm run test:io && npm run test:rebuilds && npm run test:ui && npm run test:heart && npm run test:review && npm run test:plan-notes && npm run test:wear && npm run test:credits && npm run test:footage && npm run test:backup && npm run test:runedit && npm run test:quick && npm run test:theme && npm run test:around && npm run test:watch-solo && npm run test:health && npm run test:workout-file && npm run test:archive && npm run test:routes && npm run test:aids",
     "test:watch-solo": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-watch-solo.ts",
     "test:workout-file": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-workout-file.ts",
     "test:health": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-health.ts",
@@ -92,7 +95,8 @@
     "test:ui": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-ui.ts",
     "test:aids": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-aids.ts",
     "test:theme": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-theme.ts",
-    "test:around": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-around.ts"
+    "test:around": "node --experimental-strip-types --import ./scripts/node-ts.mjs scripts/test-around.ts",
+    "lint:hooks": "eslint --quiet App.tsx src"
   },
   "private": true
 }
