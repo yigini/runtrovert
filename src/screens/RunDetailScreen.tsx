@@ -8,8 +8,9 @@ import { RouteMap } from '../components/RouteMap';
 import { ShareSheet } from '../components/ShareSheet';
 import { RunStatsView } from '../components/RunStats';
 import { YouLine } from '../components/YouLine';
-import { correctRun, deleteRun, getHeartRate, getPoints, getRun, getRunEdit, getRunSource, getSplits, highestHeartRate, putBackRun, setMoodAfter, setRunNote, type RunEdit, type RunSource } from '../db';
+import { correctRun, deleteRun, getHeartRate, getPoints, getRun, getRunEdit, getRunSource, getSplits, highestHeartRate, loadValue, putBackRun, setMoodAfter, setRunNote, type RunEdit, type RunSource } from '../db';
 import { formatDistance, formatDuration } from '../geo';
+import { INDOOR_KEY } from '../runAids';
 import { checkCorrection, distanceField, durationField, parseDistance, parseDuration, type EntryProblem } from '../runEdit';
 import { cleanHeart, heartSummary, type HeartSample, type HeartSummary } from '../heart';
 import { shareRunGpx } from '../io/store';
@@ -65,6 +66,7 @@ export function RunDetailScreen({
   const [weather, setWeather] = useState<RunWeather | null>(null);
   const [sharing, setSharing] = useState(!!shareOnOpen);
   const [source, setSource] = useState<RunSource | null>(null);
+  const [indoor, setIndoor] = useState(false);
   const [saving, setSaving] = useState(false);
   const [place, setPlace] = useState<Place | null>(null);
   // Not in a place yet: its loop, so any run can become one ("Save as a place").
@@ -93,6 +95,7 @@ export function RunDetailScreen({
       setPoints(pts.map((p) => ({ ts: p.ts, lat: p.lat, lon: p.lon, alt: p.alt, acc: p.acc })));
       setSplits(await getSplits(runId));
       setSource(await getRunSource(runId).catch(() => null));
+      setIndoor(!!(await loadValue<Record<string, unknown>>(INDOOR_KEY).catch(() => null))?.[String(runId)]);
       setEdit(await getRunEdit(runId).catch(() => null));
       const inPlace = await placeForRun(runId).catch(() => null);
       setPlace(inPlace);
@@ -259,6 +262,8 @@ export function RunDetailScreen({
       <Text style={styles.date}>{d.toLocaleString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</Text>
       {source?.kind === 'manual' ? (
         <Text style={styles.source}>{ui().addRun.addedByHand}</Text>
+      ) : indoor ? (
+        <Text style={styles.source}>{ui().runAids.indoorTag}</Text>
       ) : source ? (
         <Text style={styles.source}>
           {ui().runDetail.broughtIn(source.kind === 'health' ? ui().runDetail.healthConnect : source.fileName ?? ui().runDetail.aXFile(source.kind.toUpperCase()), new Date(source.importedAt).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' }))}

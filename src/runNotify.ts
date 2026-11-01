@@ -7,6 +7,11 @@
  *   mirror phone notifications on their own, so this is watch support with no
  *   watch app. One note replaces the last, so the shade never fills up.
  *
+ * - Android: Pause, Resume and Lap buttons on the live note, so the run can be
+ *   paused or a lap marked from the lock screen without opening the app.
+ *   They work in the background (the run's foreground service keeps the app
+ *   alive) and go straight to the tracker (src/tracking.ts).
+ *
  * Everything is local; nothing leaves the phone.
  */
 import * as Notifications from 'expo-notifications';
@@ -20,6 +25,15 @@ const SPLIT_CHANNEL = 'runtrovert-splits';
 const LIVE_ID = 'runtrovert-live';
 const SPLIT_ID = 'runtrovert-split';
 const LIVE_EVERY_MS = 30_000;
+// The live note's buttons. Two sets, because Android can't change a button's
+// label in place: recording shows Pause and Lap, paused shows Resume.
+const RUNNING_CATEGORY = 'run-live';
+const PAUSED_CATEGORY = 'run-live-paused';
+export const PAUSE_ACTION = 'run-pause';
+export const RESUME_ACTION = 'run-resume';
+export const LAP_ACTION = 'run-lap';
+export type RunAction = 'pause' | 'resume' | 'lap';
+const ACTIONS: Record<string, RunAction> = { [PAUSE_ACTION]: 'pause', [RESUME_ACTION]: 'resume', [LAP_ACTION]: 'lap' };
 
 let enabled = false;
 let lastLiveAt = 0;
@@ -30,6 +44,38 @@ export interface RunNoteState {
   distanceM: number;
   durationS: number;
   unitsKm: boolean;
+  laps?: number;
+}
+
+let actionHandler: ((a: RunAction) => void) | null = null;
+
+/** The tracker says what the buttons do. One handler. */
+export function setRunActionHandler(h: ((a: RunAction) => void) | null): void {
+  actionHandler = h;
+}
+
+// Registered at load, so a tap with the screen locked reaches the run.
+try {
+  Notifications.addNotificationResponseReceivedListener((r) => {
+    const a = ACTIONS[r.actionIdentifier];
+    if (a) actionHandler?.(a);
+  });
+} catch {
+  // no notifications module (tests, web)
+}
+
+async function ensureCategories() {
+  const bg = { opensAppToForeground: false };
+  await Notifications.setNotificationCategoryAsync(RUNNING_CATEGORY, [
+    { identifier: PAUSE_ACTION, buttonTitle: ui().run.pause, options: bg },
+    { identifier: LAP_ACTION, buttonTitle: ui().run.lap, options: bg },
+  ]).catch(() => {});
+  await Notifications.setNotificationCategoryAsync(PAUSED_CATEGORY, [{ identifier: RESUME_ACTION, buttonTitle: ui().run.resume, options: bg }]).catch(() => {});
+}
+
+/** Post the live note on the next tick even if nothing else changed (a lap was marked). */
+export function refreshLiveNote(): void {
+  lastLiveStatus = '';
 }
 
 async function ensureChannels() {
@@ -64,6 +110,7 @@ export async function beginRunNotes(on: boolean): Promise<void> {
   try {
     if (!(await hasNotificationPermission())) return;
     await ensureChannels();
+    await ensureCategories();
     enabled = true;
   } catch {
     enabled = false;
@@ -86,7 +133,8 @@ export function updateLiveNote(s: RunNoteState): void {
     identifier: LIVE_ID,
     content: {
       title: `${formatDistanceNumber(s.distanceM, s.unitsKm)} ${unit} · ${formatDuration(s.durationS)}`,
-      body: ui().runNotify.liveBody(`${formatPace(s.distanceM, s.durationS, s.unitsKm)} /${unit}`, statusWord(s.status)),
+      body: ui().runNotify.liveBody(`${formatPace(s.distanceM, s.durationS, s.unitsKm)} /${unit}`, statusWord(s.status)) + (s.laps ? ` · ${ui().run.lapsDone(s.laps)}` : ''),
+      categoryIdentifier: s.status === 'running' ? RUNNING_CATEGORY : PAUSED_CATEGORY,
       sound: false,
       sticky: true,
       autoDismiss: false,

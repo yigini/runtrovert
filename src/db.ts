@@ -496,6 +496,26 @@ export async function addSplit(runId: number, s: Omit<Split, 'id' | 'runId'>): P
   );
 }
 
+/** A treadmill run's km splits, redrawn on the distance the treadmill gave (tracking.stopRun). Laps stay as they were. */
+export async function replaceKmSplits(runId: number, splits: Array<Omit<Split, 'id' | 'runId' | 'kind'>>): Promise<void> {
+  const db = await getDb();
+  await db.withTransactionAsync(async () => {
+    await db.runAsync("DELETE FROM splits WHERE run_id = ? AND kind = 'km'", runId);
+    for (const s of splits) {
+      await db.runAsync(
+        'INSERT INTO splits (run_id, kind, idx, distance_m, duration_s, at_distance_m, at_duration_s) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        runId,
+        'km',
+        s.index,
+        s.distanceM,
+        s.durationS,
+        s.atDistanceM,
+        s.atDurationS,
+      );
+    }
+  });
+}
+
 export async function getSplits(runId: number, kind?: SplitKind): Promise<Split[]> {
   const db = await getDb();
   const rows = kind
