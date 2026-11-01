@@ -578,6 +578,7 @@ export const tr: Strings = {
     edit: 'Düzenle',
     yourNotesX: (tags) => `Notların: ${tags}`,
     yourNotesDated: 'Notların, tarihli',
+    everyRunHere: 'Buradaki her koşu, tarihiyle',
     nothingYetEachRunHere: 'Henüz bir şey yok. Buradaki her koşu bir satır ekler.',
     noRating: 'puan yok',
     whenItSUsuallyQuiet: 'Burası genelde ne zaman sakin',
