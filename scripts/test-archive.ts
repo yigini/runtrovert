@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { deflateRawSync, gzipSync } from 'node:zlib';
-import { activityKind, csvRows, readStravaCsv, stravaIsRun, walkArchive, type Activity } from '../src/io/archive';
+import { activityKind, csvRows, readStravaCsv, stravaDate, stravaIsRun, stravaTypedIn, walkArchive, type Activity } from '../src/io/archive';
 import { parseFit } from '../src/io/fit';
 import { parseGpx, writeGpx } from '../src/io/gpx';
 import { shapeRun } from '../src/io/shape';
@@ -159,6 +159,34 @@ check(s.got[1].fileName === '103.tcx' && s.got[1].kind === 'tcx' && parseTcx(tex
 check(parseFit(s.got[2].bytes).runs.length === 1, 'gzipped FIT opened');
 const only = await collect(strava, new Set(['activities/105.fit.gz']));
 check(only.got.length === 1 && only.got[0].key === 'activities/105.fit.gz', 'the second pass reads only what it was told');
+
+// ---- Runs typed in by hand on Strava: a line in the list, no file ---------------------------
+check(stravaDate('Oct 12, 2026, 7:31:00 AM') === Date.UTC(2026, 9, 12, 7, 31, 0), 'Strava date, morning');
+check(stravaDate('Jan 3, 2020, 12:05:09 PM') === Date.UTC(2020, 0, 3, 12, 5, 9), 'Strava date, noon');
+check(stravaDate('Jan 3, 2020, 12:05:09 AM') === Date.UTC(2020, 0, 3, 0, 5, 9), 'Strava date, midnight');
+check(stravaDate('2020-01-03 18:30:00') === Date.UTC(2020, 0, 3, 18, 30, 0), 'ISO date');
+check(stravaDate('3 janvier 2020') === null, 'a date it cannot read is left alone');
+// The newer list: km first, metres later; elapsed and moving time twice too.
+const csv2 =
+  'Activity ID,Activity Date,Activity Name,Activity Type,Activity Description,Elapsed Time,Distance,Max Heart Rate,Filename,Elapsed Time,Moving Time,Distance\n' +
+  '201,"Oct 12, 2026, 6:31:00 AM",Morning Run,Run,,1800,5.01,,activities/201.gpx,1800,1700,5012.3\n' +
+  '202,"Oct 13, 2026, 6:00:00 PM",Track by hand,Run,,2400,8.00,,,2400,2300,8000.0\n' +
+  '203,"Oct 14, 2026, 6:00:00 PM",Gym,Weight Training,,3600,0,,,3600,3600,0\n' +
+  '204,"Oct 15, 2026, 6:00:00 PM",No distance,Run,,600,,,,600,600,\n';
+const typed = stravaTypedIn(csv2);
+check(typed.length === 1 && typed[0].key === 'strava-typed:202', `only the hand-typed run with a distance (${typed.map((t) => t.key)})`);
+const tr = typed[0].run;
+check(tr.startedAt === Date.UTC(2026, 9, 13, 18, 0, 0) && tr.endedAt === tr.startedAt! + 2_400_000, 'its start and end');
+check(tr.distanceM === 8000 && tr.movingS === 2300 && tr.externalId === 'strava:202' && tr.name === 'Track by hand', 'metres and moving time win');
+const shapedTyped = shapeRun(tr);
+check(typeof shapedTyped !== 'string' && shapedTyped.points.length === 0 && shapedTyped.distanceM === 8000 && shapedTyped.durationS === 2300, 'comes in like a run added by hand');
+check(stravaTypedIn(csv).length === 0, 'the older list without times: nothing typed comes in');
+const strava2 = deflatedZip([['activities.csv', enc(csv2)], ['activities/201.gpx', gpxRun(START)]]);
+const s2 = await collect(strava2);
+check(s2.got.map((a) => a.key).join(',') === 'activities/201.gpx,strava-typed:202', `file runs, then typed ones (${s2.got.map((a) => a.key)})`);
+check(s2.got[1].typed === tr || s2.got[1].typed?.distanceM === 8000, 'the typed run travels with its numbers');
+const only2 = await collect(strava2, new Set(['strava-typed:202']));
+check(only2.got.length === 1 && only2.got[0].typed != null, 'the second pass can ask for a typed run alone');
 
 // ---- A Garmin export: zips inside the zip ------------------------------------------------
 const part1 = deflatedZip([

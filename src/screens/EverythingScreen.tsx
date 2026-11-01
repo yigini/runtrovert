@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
 import { Button } from '../components/Button';
+import { ImportGuide } from '../components/ImportGuide';
 import { storedCounts } from '../db';
 import { importLine } from '../io/shape';
 import { commitImport, pickImportFiles, scanImport, shareAllRuns, type ImportPreview } from '../io/store';
@@ -28,6 +29,8 @@ export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; on
   const [line, setLine] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [key, setKey] = useState(0);
+  // How to get runs out of other apps: a page of its own, over this one.
+  const [guide, setGuide] = useState(false);
   const { settings } = useSettings();
 
   useEffect(() => {
@@ -161,6 +164,27 @@ export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; on
   const brought = counts ? Object.entries(counts.brought).filter(([, n]) => n) : [];
   const broughtTotal = brought.reduce((n, [, c]) => n + (c ?? 0), 0);
 
+  const status =
+    busy || line ? (
+      <View style={styles.note} accessibilityLiveRegion="polite">
+        {busy ? <ActivityIndicator color={colors.ink} /> : null}
+        <Text style={[styles.text, { flex: 1 }]}>{busy ?? line}</Text>
+      </View>
+    ) : null;
+
+  if (guide)
+    return (
+      <ScrollView style={styles.screen} contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xl }}>
+        <BackButton label={ui().everything.everythingYouHave} onPress={() => setGuide(false)} />
+        <Text style={type.h1} accessibilityRole="header">{ui().importGuide.title}</Text>
+        <Text style={type.body}>{ui().importGuide.intro}</Text>
+        <ImportGuide />
+        <Button title={ui().everything.chooseFiles} onPress={bringIn} disabled={!!busy} />
+        {status}
+        <Text style={styles.small}>{ui().importGuide.after}</Text>
+      </ScrollView>
+    );
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xl }}>
       <BackButton label={ui().everything.settings} onPress={onBack} />
@@ -198,7 +222,12 @@ export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; on
       <View style={[styles.card, { backgroundColor: colors.mint }]}>
         <Text style={[type.eyebrow, { color: colors.mintDeep }]} accessibilityRole="header">{ui().everything.bringRunsIn}</Text>
         <Text style={styles.text}>{ui().everything.gpxOrFitFilesFrom}</Text>
-        <Text style={styles.hint}>{ui().everything.fromGarminConnectStravaCoros}</Text>
+        <Pressable onPress={() => setGuide(true)} accessibilityRole="button" hitSlop={6} style={({ pressed }) => [styles.guideLink, pressed && { opacity: 0.85 }]}>
+          <Text style={styles.guideText}>{ui().importGuide.link}</Text>
+          <Text style={[styles.guideText, { textDecorationLine: 'none' }]} importantForAccessibility="no" accessibilityElementsHidden>
+            ›
+          </Text>
+        </Pressable>
         <Button title={ui().everything.chooseFiles} onPress={bringIn} disabled={!!busy} />
       </View>
 
@@ -210,12 +239,7 @@ export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; on
         <Button title={ui().everything.allRunsAsFit} variant="secondary" onPress={() => takeOut('fit')} disabled={!!busy} />
       </View>
 
-      {busy || line ? (
-        <View style={styles.note} accessibilityLiveRegion="polite">
-          {busy ? <ActivityIndicator color={colors.ink} /> : null}
-          <Text style={[styles.text, { flex: 1 }]}>{busy ?? line}</Text>
-        </View>
-      ) : null}
+      {status}
 
       <View style={[styles.card, { backgroundColor: colors.white }]}>
         <Text style={type.eyebrow} accessibilityRole="header">{ui().everything.whatHappensAndWhatDoesn}</Text>
@@ -238,6 +262,7 @@ const styles = themedStyles(() => ({
   v: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.text },
   text: { fontFamily: fonts.body, fontSize: 14, lineHeight: 21, color: colors.text },
   small: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.text },
-  hint: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.mintDeep },
+  guideLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 40 },
+  guideText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.mintDeep, textDecorationLine: 'underline' },
   note: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.butter, borderRadius: radius.md, padding: 14 },
 }));
