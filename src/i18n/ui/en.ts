@@ -1583,6 +1583,12 @@ export const en = {
     removeTitle: (name: string) => `Remove ${name}?`,
     removeBody: 'Only the route goes. Your runs stay as they are.',
     followThisRoute: 'Follow this route',
+    farAway: (d: string) => `This route is ${d} from you.`,
+    noFix: 'Runtrovert can’t tell where you are right now, so it can’t say how far away this route is.',
+    checking: 'Checking how far it is…',
+    keepForLater: 'Keep it in Routes to follow',
+    keptForLater: 'Kept. It waits in Settings › Routes to follow for when you’re there.',
+    followAnyway: 'Follow anyway',
   },
   offline: {
     title: 'Maps without signal',

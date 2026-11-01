@@ -1576,6 +1576,12 @@ export const es: Strings = {
     removeTitle: (name: string) => `¿Quitar ${name}?`,
     removeBody: 'Solo se va la ruta. Tus carreras se quedan como están.',
     followThisRoute: 'Seguir esta ruta',
+    farAway: (d: string) => `Esta ruta está a ${d} de ti.`,
+    noFix: 'Runtrovert no sabe dónde estás ahora, así que no puede decir a qué distancia está esta ruta.',
+    checking: 'Comprobando a qué distancia está…',
+    keepForLater: 'Guardarla en Rutas para seguir',
+    keptForLater: 'Guardada. Te espera en Ajustes › Rutas para seguir para cuando estés allí.',
+    followAnyway: 'Seguir de todos modos',
   },
   offline: {
     title: 'Mapas sin cobertura',

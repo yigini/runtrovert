@@ -1577,6 +1577,12 @@ export const it: Strings = {
     removeTitle: (name: string) => `Togliere ${name}?`,
     removeBody: 'Se ne va solo il percorso. Le tue corse restano come sono.',
     followThisRoute: 'Segui questo percorso',
+    farAway: (d: string) => `Questo percorso è a ${d} da te.`,
+    noFix: 'Runtrovert non sa dove sei in questo momento, quindi non può dire quanto è lontano questo percorso.',
+    checking: 'Controllo quanto è lontano…',
+    keepForLater: 'Tienilo in Percorsi da seguire',
+    keptForLater: 'Tenuto. Ti aspetta in Impostazioni › Percorsi da seguire per quando sarai lì.',
+    followAnyway: 'Segui comunque',
   },
   offline: {
     title: 'Mappe senza campo',

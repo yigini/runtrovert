@@ -46,3 +46,7 @@ The unlock screen's free list and the site's price chapter now say "Your places 
 ## Tests
 
 `npm run test:routes`: distance to the line, simplify, running the route (no buzz), running to the start (no buzz), a wrong turn (buzz in 15–30 s, reminders, then quiet), a detour and back (off, back), one or two bad fixes (nothing), poor GPS widening the line, route files (GPX track without times, `<rte>`, TCX course, a recorded run), and the saved-map boxes and tile counts.
+
+## Far from the route
+
+"Follow this route" (Your runs) and Follow it (Settings › Routes to follow) first check where the runner is, from a fresh fix only (the phone's last fix within 30 minutes, or a quick new one; never the place remembered from an old run). Within 2 km of any part of the route, it goes to the Run tab as before. Further away, it stays put and says so: "This route is 340 km from you.", with **Keep it in Routes to follow** (from a past run) and a small **Follow anyway**. With no fix (location off, no signal) it says it can't tell, rather than guessing. `src/routeNear.ts`, `distanceToRoute` and `roughDistance` in `src/routeFollow.ts`, tested in `npm run test:routes`.

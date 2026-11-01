@@ -31,6 +31,12 @@ export async function deleteRoute(id: number): Promise<void> {
   await db.runAsync('DELETE FROM routes WHERE id = ?', id);
 }
 
+/** Keeps a route to follow later, from a past run. */
+export async function keepRoute(name: string, path: Pt[], distanceM: number): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('INSERT INTO routes (name, created_at, distance_m, pts, source) VALUES (?, ?, ?, ?, ?)', name, Date.now(), distanceM, pack(path), null);
+}
+
 /**
  * Opens the phone's file picker and keeps every route in the files picked.
  * null if nothing was picked; otherwise how many routes came in and how many

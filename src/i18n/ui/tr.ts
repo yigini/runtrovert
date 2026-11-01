@@ -1576,6 +1576,12 @@ export const tr: Strings = {
     removeTitle: (name: string) => `${name} kaldırılsın mı?`,
     removeBody: 'Yalnızca rota gider. Koşuların olduğu gibi kalır.',
     followThisRoute: 'Bu rotayı izle',
+    farAway: (d: string) => `Bu rota senden ${d} uzakta.`,
+    noFix: 'Runtrovert şu an nerede olduğunu bilmiyor, bu yüzden rotanın ne kadar uzakta olduğunu söyleyemiyor.',
+    checking: 'Ne kadar uzak olduğuna bakılıyor…',
+    keepForLater: 'Takip edilecek rotalarda sakla',
+    keptForLater: 'Saklandı. Oraya gittiğinde Ayarlar › Takip edilecek rotalar içinde seni bekliyor.',
+    followAnyway: 'Yine de takip et',
   },
   offline: {
     title: 'Çekmeyen yerler için haritalar',

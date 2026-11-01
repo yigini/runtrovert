@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { NEAR_ROUTE_M, roughDistance } from '../routeFollow';
+import { howFarFromRoute } from '../routeNear';
 import { Alert, Text, View } from 'react-native';
 import { formatDistance } from '../geo';
 import { boxOfPath, roughMb } from '../mapArea';
@@ -42,9 +44,21 @@ export function RoutesSettings({ onFollow }: { onFollow: (r: SavedRoute) => void
     setLine(result === 'done' ? ui().offline.saved(r.name) : ui().offline.failed);
   }
 
+  /** Near the route: straight to the Run tab. Far away, or unsure where you are: say so first. */
+  async function follow(r: SavedRoute) {
+    setLine(ui().routes.checking);
+    const m = await howFarFromRoute(r.path);
+    setLine(null);
+    if (m != null && m <= NEAR_ROUTE_M) return onFollow(r);
+    Alert.alert(r.name, m == null ? ui().routes.noFix : ui().routes.farAway(roughDistance(m, settings.unitsKm)), [
+      { text: ui().everything.notNow, style: 'cancel' },
+      { text: ui().routes.followAnyway, onPress: () => onFollow(r) },
+    ]);
+  }
+
   function pick(r: SavedRoute) {
     const buttons = [
-      { text: ui().routes.follow, onPress: () => onFollow(r) },
+      { text: ui().routes.follow, onPress: () => void follow(r) },
       ...(settings.plainMap ? [] : [{ text: ui().offline.saveAlong(roughMb(boxOfPath(r.path)!)), onPress: () => void saveMap(r) }]),
       {
         text: ui().routes.remove,

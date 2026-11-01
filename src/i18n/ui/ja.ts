@@ -1573,6 +1573,12 @@ export const ja: Strings = {
     removeTitle: (name: string) => `${name}を削除しますか？`,
     removeBody: '消えるのはルートだけ。ランはそのままです。',
     followThisRoute: 'このルートをたどる',
+    farAway: (d: string) => `このルートは現在地から${d}離れています。`,
+    noFix: '今いる場所がわからないため、このルートまでの距離を出せません。',
+    checking: '距離を確認しています…',
+    keepForLater: '「たどるルート」に保存',
+    keptForLater: '保存しました。現地に着いたら、設定 › たどるルート から使えます。',
+    followAnyway: 'それでもたどる',
   },
   offline: {
     title: '電波がなくても使える地図',
