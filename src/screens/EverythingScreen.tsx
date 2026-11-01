@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, Text, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
 import { Button } from '../components/Button';
-import { LockRow } from '../components/LockRow';
 import { storedCounts } from '../db';
 import { importLine } from '../io/shape';
 import { pickAndImport, shareAllRuns } from '../io/store';
@@ -12,7 +11,6 @@ import { restartApp } from '../restart';
 import { dateLocale } from '../i18n/lang';
 import type { SourceKind } from '../io/types';
 import { colors, fonts, radius, spacing, type, themedStyles } from '../theme';
-import { useUnlocked } from '../unlockState';
 import { live, ui } from '../i18n/ui';
 
 // "Everything you have": what's stored, bringing runs in from a watch or
@@ -24,7 +22,6 @@ const HAPPENS: string[] = live(() => ui().everything.happens);
 const FROM: Record<Exclude<SourceKind, 'manual'>, string> = live(() => ui().everything.from);
 
 export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; onChanged: () => void }) {
-  const unlocked = useUnlocked();
   const [counts, setCounts] = useState<Awaited<ReturnType<typeof storedCounts>> | null>(null);
   const [line, setLine] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -173,15 +170,9 @@ export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; on
       <View style={[styles.card, { backgroundColor: colors.lilac }]}>
         <Text style={[type.eyebrow, { color: colors.lilacDeep }]} accessibilityRole="header">{ui().everything.takeThemOut}</Text>
         <Text style={styles.text}>{ui().everything.oneRunOpenItIn}</Text>
-        {unlocked ? (
-          <>
-            <Text style={styles.text}>{ui().everything.allYourRunsOneZip}</Text>
-            <Button title={ui().everything.allRunsAsGpx} variant="secondary" onPress={() => takeOut('gpx')} disabled={!!busy} />
-            <Button title={ui().everything.allRunsAsFit} variant="secondary" onPress={() => takeOut('fit')} disabled={!!busy} />
-          </>
-        ) : (
-          <LockRow title={ui().everything.allYourRunsAsGpx} />
-        )}
+        <Text style={styles.text}>{ui().everything.allYourRunsOneZip}</Text>
+        <Button title={ui().everything.allRunsAsGpx} variant="secondary" onPress={() => takeOut('gpx')} disabled={!!busy} />
+        <Button title={ui().everything.allRunsAsFit} variant="secondary" onPress={() => takeOut('fit')} disabled={!!busy} />
       </View>
 
       {busy || line ? (

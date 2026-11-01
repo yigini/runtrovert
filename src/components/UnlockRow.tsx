@@ -9,7 +9,7 @@ import { ui } from '../i18n/ui';
 export function UnlockSettingsRow() {
   const unlocked = useUnlocked();
   const { owned } = useUnlockState();
-  const detail = owned ? ui().unlockRow.itSYoursThankYou : unlocked && UNLOCKED_BUILD ? ui().unlockRow.unlockedInThisTestBuild : ui().unlockRow.plansMonthsOfTrendsBackup(UNLOCK_PRICE);
+  const detail = owned ? ui().unlockRow.itSYoursThankYou : unlocked && UNLOCKED_BUILD ? ui().unlockRow.unlockedInThisTestBuild : ui().unlockRow.fullPlansTrendsPatterns(UNLOCK_PRICE);
   return (
     <Pressable onPress={openUnlock} accessibilityRole="button" accessibilityLabel={`${unlockName()}. ${detail}`} style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]}>
       <View style={{ flex: 1, gap: 2 }}>
