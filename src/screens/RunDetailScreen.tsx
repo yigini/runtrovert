@@ -29,6 +29,9 @@ import type { LatLon, Mood, Run, Split } from '../types';
 import { loadYou } from '../you';
 import { ui } from '../i18n/ui';
 import { dateLocale } from '../i18n/lang';
+import { NEAR_ROUTE_M, pathLength, roughDistance } from '../routeFollow';
+import { howFarFromRoute } from '../routeNear';
+import { keepRoute } from '../routeStore';
 
 export function RunDetailScreen({
   runId,
@@ -80,6 +83,8 @@ export function RunDetailScreen({
   const [heart, setHeart] = useState<HeartSummary | null>(null);
   const [beats, setBeats] = useState<HeartSample[]>([]);
   const [maxHr, setMaxHr] = useState<number | null>(null);
+  // Follow this route: checked against where you are first, so a run from another city doesn't arm a buzz here.
+  const [far, setFar] = useState<null | { at: 'checking' } | { at: 'far'; m: number } | { at: 'unknown' } | { at: 'kept' }>(null);
   // Correcting distance and time: what was recorded, and the open editor's fields.
   const [edit, setEdit] = useState<RunEdit | null>(null);
   const [fixing, setFixing] = useState<{ distance: string; time: string; problem: EntryProblem | null } | null>(null);
@@ -170,6 +175,35 @@ export function RunDetailScreen({
     } catch {
       // What was typed stays in the box for another try.
       Alert.alert(ui().runDetail.couldntSaveThat, ui().common.tryAgainInAMoment);
+    }
+  }
+
+  function routeName(r: Run): string {
+    return new Date(r.startedAt).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' });
+  }
+
+  function followNow() {
+    if (!run || !onFollow) return;
+    setFar(null);
+    onFollow(routeName(run), path);
+  }
+
+  /** Near the route: straight to the Run tab, as before. Far away, or unsure: say so and let the runner choose. */
+  async function follow() {
+    setFar({ at: 'checking' });
+    const m = await howFarFromRoute(path.map((p) => ({ lat: p.latitude, lon: p.longitude })));
+    if (m != null && m <= NEAR_ROUTE_M) return followNow();
+    setFar(m == null ? { at: 'unknown' } : { at: 'far', m });
+  }
+
+  async function keepForLater() {
+    if (!run) return;
+    const pts = path.map((p) => ({ lat: p.latitude, lon: p.longitude }));
+    try {
+      await keepRoute(routeName(run), pts, pathLength(pts));
+      setFar({ at: 'kept' });
+    } catch (e) {
+      Alert.alert(ui().routes.keepForLater, String((e as Error)?.message ?? e));
     }
   }
 
@@ -384,11 +418,20 @@ export function RunDetailScreen({
       {run.endedAt != null ? <RunKit run={run} km={km} /> : null}
       {cmp && <Button title={ui().runDetail.shareWithSomeone} variant="secondary" onPress={() => setSharing(true)} style={{ marginTop: spacing.sm }} />}
       {path.length > 1 && onFollow ? (
-        <Button
-          title={ui().routes.followThisRoute}
-          variant="secondary"
-          onPress={() => onFollow(new Date(run.startedAt).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' }), path)}
-        />
+        <Button title={ui().routes.followThisRoute} variant="secondary" onPress={() => void follow()} disabled={far?.at === 'checking'} />
+      ) : null}
+      {far && far.at !== 'kept' ? (
+        <View style={styles.far} accessibilityLiveRegion="polite">
+          <Text style={styles.farText}>{far.at === 'checking' ? ui().routes.checking : far.at === 'far' ? ui().routes.farAway(roughDistance(far.m, km)) : ui().routes.noFix}</Text>
+          {far.at === 'far' ? <Button title={ui().routes.keepForLater} onPress={() => void keepForLater()} /> : null}
+          {far.at !== 'checking' ? (
+            <Pressable onPress={followNow} accessibilityRole="button" hitSlop={8} style={styles.farLink}>
+              <Text style={styles.farLinkText}>{ui().routes.followAnyway}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : far?.at === 'kept' ? (
+        <Text style={styles.farText} accessibilityLiveRegion="polite">{ui().routes.keptForLater}</Text>
       ) : null}
       {path.length > 1 ? <Button title={saving ? ui().runDetail.saving : ui().runDetail.saveAsGpx} variant="secondary" onPress={onSaveGpx} disabled={saving} /> : null}
       <Button title={ui().runDetail.deleteRun2} variant="danger" onPress={onDelete} style={{ marginTop: spacing.lg }} />
@@ -418,4 +461,8 @@ const styles = themedStyles(() => ({
   fixLinkText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.muted, textDecorationLine: 'underline' },
   clear: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.muted, textDecorationLine: 'underline' },
   note: { fontFamily: fonts.body, color: colors.text, fontSize: 15, lineHeight: 22, backgroundColor: colors.butter, borderRadius: radius.lg, padding: spacing.md },
+  far: { gap: spacing.sm, backgroundColor: colors.butter, borderRadius: radius.lg, padding: spacing.md },
+  farText: { fontFamily: fonts.body, color: colors.text, fontSize: 15, lineHeight: 22 },
+  farLink: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.sm },
+  farLinkText: { fontFamily: fonts.bodySemi, color: colors.text, fontSize: 14, textDecorationLine: 'underline' },
 }));

@@ -152,3 +152,23 @@ export class RouteWatch {
     return this.off;
   }
 }
+
+/** Closer than this to any part of a route counts as being there to follow it. */
+export const NEAR_ROUTE_M = 2000;
+
+/** How far a place is from the nearest part of a route, in metres. */
+export function distanceToRoute(p: Pt, path: Pt[]): number {
+  if (!path.length) return Infinity;
+  let best = Infinity;
+  for (const q of path) best = Math.min(best, metres(p, q));
+  // Close by, the line between two points can be nearer than either point.
+  return best < 20_000 && path.length > 1 ? Math.min(best, nearest(p, path).m) : best;
+}
+
+/** "340 km", "12 km", "1.4 km": a far distance said the way people say it. */
+export function roughDistance(m: number, km: boolean): string {
+  const v = km ? m / 1000 : m / 1609.344;
+  const unit = km ? 'km' : 'mi';
+  if (v >= 10) return `${Math.round(v).toLocaleString('en').replace(/,/g, ' ')} ${unit}`;
+  return `${v.toFixed(1)} ${unit}`;
+}

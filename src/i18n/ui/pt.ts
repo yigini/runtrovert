@@ -1579,6 +1579,12 @@ export const pt: Strings = {
     removeTitle: (name: string) => `Remover ${name}?`,
     removeBody: 'Só o percurso sai. As tuas corridas ficam como estão.',
     followThisRoute: 'Seguir este percurso',
+    farAway: (d: string) => `Este percurso está a ${d} de si.`,
+    noFix: 'O Runtrovert não sabe onde está agora, por isso não consegue dizer a que distância fica este percurso.',
+    checking: 'A ver a que distância está…',
+    keepForLater: 'Guardar em Percursos a seguir',
+    keptForLater: 'Guardado. Fica à espera em Definições › Percursos a seguir para quando lá estiver.',
+    followAnyway: 'Seguir mesmo assim',
   },
   offline: {
     title: 'Mapas sem rede',

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { parseRoutes } from '../src/io/route';
 import { AROUND_KM, MAX_TILES, boxAround, boxOfPath, roughMb, tileCount } from '../src/mapArea';
-import { RouteWatch, metres, nearest, pathLength, simplify, type Pt } from '../src/routeFollow';
+import { NEAR_ROUTE_M, RouteWatch, distanceToRoute, metres, nearest, pathLength, roughDistance, simplify, type Pt } from '../src/routeFollow';
 
 // Following a route and saving its map. Run: npm run test:routes
 let fails = 0;
@@ -119,6 +119,20 @@ const rb = boxOfPath(L)!;
 check(rb[0] < 9 && rb[2] > at(0, 1000).lon && rb[3] > at(2000, 0).lat, 'a route box holds the route and some');
 check(tileCount([-10, 35, 30, 60]) > MAX_TILES, 'half of Europe is too big');
 check(boxOfPath([]) === null, 'no route, no box');
+
+
+// ---- Far from the route --------------------------------------------------------------
+{
+  const route: Pt[] = [{ lat: 45.4642, lon: 9.19 }, { lat: 45.4742, lon: 9.19 }]; // 1.1 km north-south, made up
+  const beside = distanceToRoute({ lat: 45.4692, lon: 9.2 }, route); // ~780 m east of the middle
+  check(beside > 700 && beside < 850 && beside <= NEAR_ROUTE_M, `beside the route counts as near (${beside.toFixed(0)} m)`);
+  const rome = distanceToRoute({ lat: 41.9028, lon: 12.4964 }, route);
+  check(rome > 470_000 && rome < 490_000 && rome > NEAR_ROUTE_M, `another city is far (${(rome / 1000).toFixed(0)} km)`);
+  check(roughDistance(rome, true) === '477 km' || /^4\d\d km$/.test(roughDistance(rome, true)), `said roughly (${roughDistance(rome, true)})`);
+  check(roughDistance(1_234_567, true) === '1 235 km', `thousands spaced (${roughDistance(1_234_567, true)})`);
+  check(roughDistance(3400, true) === '3.4 km' && roughDistance(3400, false) === '2.1 mi', 'short ones keep a decimal');
+  check(distanceToRoute({ lat: 0, lon: 0 }, []) === Infinity, 'no route, never near');
+}
 
 if (fails) {
   console.log(`${fails} failed`);

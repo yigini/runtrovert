@@ -1579,6 +1579,12 @@ export const fr: Strings = {
     removeTitle: (name: string) => `Retirer ${name} ?`,
     removeBody: 'Seul l’itinéraire part. Tes courses restent telles quelles.',
     followThisRoute: 'Suivre cet itinéraire',
+    farAway: (d: string) => `Ce parcours est à ${d} de toi.`,
+    noFix: 'Runtrovert ne sait pas où tu es en ce moment, donc il ne peut pas dire à quelle distance est ce parcours.',
+    checking: 'On regarde à quelle distance il est…',
+    keepForLater: 'Le garder dans Parcours à suivre',
+    keptForLater: 'Gardé. Il t’attend dans Réglages › Parcours à suivre pour quand tu seras là-bas.',
+    followAnyway: 'Suivre quand même',
   },
   offline: {
     title: 'Cartes sans réseau',

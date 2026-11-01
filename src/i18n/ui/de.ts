@@ -1578,6 +1578,12 @@ export const de: Strings = {
     removeTitle: (name: string) => `${name} entfernen?`,
     removeBody: 'Nur die Route geht. Deine Läufe bleiben, wie sie sind.',
     followThisRoute: 'Dieser Route folgen',
+    farAway: (d: string) => `Diese Strecke ist ${d} von dir entfernt.`,
+    noFix: 'Runtrovert weiß gerade nicht, wo du bist, und kann nicht sagen, wie weit diese Strecke entfernt ist.',
+    checking: 'Wird geprüft, wie weit es ist…',
+    keepForLater: 'Unter Strecken zum Folgen behalten',
+    keptForLater: 'Behalten. Sie wartet unter Einstellungen › Strecken zum Folgen, bis du dort bist.',
+    followAnyway: 'Trotzdem folgen',
   },
   offline: {
     title: 'Karten ohne Empfang',
