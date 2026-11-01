@@ -43,5 +43,24 @@ for (const [fg, bg, need] of pairs) {
   if (r < need) fail(`dark ${fg} on ${bg}: ${r.toFixed(2)} < ${need}`);
 }
 
+// Words straight on the Home footage (ink, inkSoft) sit on the Veil: at least VEIL_FLOOR of the ground colour
+// over the photo. The worst photo is pure black by day and pure white by night (after the 30% night shade).
+const floor = src.match(/VEIL_FLOOR[^=]*= \{ light: ([\d.]+), dark: ([\d.]+) \}/);
+const shade = src.length && Number((readFileSync(new URL('../src/components/AmbientBackground.tsx', import.meta.url), 'utf8').match(/DARK_SHADE = ([\d.]+)/) ?? [])[1]);
+if (!floor || !shade) fail('no VEIL_FLOOR or DARK_SHADE');
+else {
+  const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const hex = (c: number[]) => '#' + c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
+  const mix = (a: number[], b: number[], t: number) => a.map((v, i) => v * t + b[i] * (1 - t));
+  const worst = { light: [0, 0, 0], dark: mix(rgb(dark.cream), [255, 255, 255], shade) };
+  for (const [name, pal, f] of [['light', light, Number(floor[1])], ['dark', dark, Number(floor[2])]] as const) {
+    const ground = hex(mix(rgb(pal.cream), worst[name], f));
+    for (const fg of ['ink', 'inkSoft']) {
+      const r = ratio(pal[fg], ground);
+      if (r < 4.5) fail(`${name} ${fg} on the veil over the worst footage: ${r.toFixed(2)} < 4.5`);
+    }
+  }
+}
+
 if (fails) process.exit(1);
-console.log(`theme ok: ${Object.keys(dark).length} tokens, ${pairs.length} dark pairs at AA`);
+console.log(`theme ok: ${Object.keys(dark).length} tokens, ${pairs.length} dark pairs at AA, footage veil at AA`);

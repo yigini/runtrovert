@@ -41,6 +41,7 @@ export const de: Strings = {
     opensX: (name) => `Öffnet ${name}`,
   },
   moodPicker: {
+    optional: 'optional',
     xEnergyXOf5: (label, m) => `${label}, Energie ${m} von 5`,
   },
   musicStrip: {

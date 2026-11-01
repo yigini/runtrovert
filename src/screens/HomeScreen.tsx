@@ -5,7 +5,7 @@ import Svg, { Path } from 'react-native-svg';
 import { DISPLAY_MAX_SCALE } from '../a11y';
 import { AmbientBackground } from '../components/AmbientBackground';
 import { Button } from '../components/Button';
-import { Fade } from '../components/Fade';
+import { Veil } from '../components/Fade';
 import { AdjustPlanSheet } from '../components/AdjustPlanSheet';
 import { MoodPicker } from '../components/MoodPicker';
 import { PresetSheet } from '../components/PresetSheet';
@@ -137,8 +137,8 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
   return (
     // The footage follows the same reading as the headline; a still frame in battery saver.
     <AmbientBackground style={footage}>
-      <Fade from="top" height="50%" strength={0.82} />
-      <Fade from="bottom" height="42%" strength={0.92} />
+      {/* One even wash, never thin enough for a patch of footage to swallow a line of words. */}
+      <Veil />
       {/* Words scroll when there are many of them; the start button never moves. */}
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.screen} showsVerticalScrollIndicator={false}>
         <View style={styles.top}>
@@ -482,10 +482,10 @@ const styles = themedStyles(() => ({
   skyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: spacing.md },
   skyText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.inkSoft, fontVariant: ['tabular-nums'] },
   headline: { fontFamily: fonts.display, fontSize: 40, lineHeight: 44, letterSpacing: -0.8, color: colors.ink },
-  sub: { fontFamily: fonts.displayItalic, fontSize: 17, lineHeight: 23, color: colors.inkSoft, marginTop: -4 },
+  sub: { fontFamily: fonts.displayItalic, fontSize: 17, lineHeight: 23, color: colors.ink, marginTop: -4 },
   list: { gap: 10, marginTop: spacing.xs, paddingLeft: 14, borderLeftWidth: 2, borderLeftColor: colors.ink },
   item: { gap: 1 },
-  itemLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: colors.inkMuted },
+  itemLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: colors.inkSoft },
   itemText: { fontFamily: fonts.bodyMedium, fontSize: 15, lineHeight: 20, color: colors.ink },
   ask: { gap: 4, marginTop: spacing.xs },
   askText: { fontFamily: fonts.bodySemi, fontSize: 16, color: colors.ink },
@@ -496,7 +496,7 @@ const styles = themedStyles(() => ({
   kindLine: { fontFamily: fonts.body, fontSize: 13, color: colors.inkSoft },
   goalLine: { fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.inkSoft },
   kindLink: { fontFamily: fonts.bodySemi, color: colors.ink, textDecorationLine: 'underline' },
-  skyMore: { fontFamily: fonts.body, fontSize: 18, color: colors.inkMuted },
+  skyMore: { fontFamily: fonts.body, fontSize: 18, color: colors.inkSoft },
   planCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 12, paddingHorizontal: 16, borderRadius: radius.lg, backgroundColor: colors.glass },
   todayLink: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.ink, textDecorationLine: 'underline' },
   todayLine: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.inkSoft },
@@ -505,7 +505,7 @@ const styles = themedStyles(() => ({
   planLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: colors.butterDeep },
   planText: { fontFamily: fonts.bodyMedium, fontSize: 16, lineHeight: 21, color: colors.ink },
   planHint: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.inkSoft },
-  awayLine: { fontFamily: fonts.bodySemi, fontSize: 12, letterSpacing: 2.5, textTransform: 'uppercase', color: colors.inkMuted, marginTop: spacing.md },
+  awayLine: { fontFamily: fonts.bodySemi, fontSize: 12, letterSpacing: 2.5, textTransform: 'uppercase', color: colors.inkSoft, marginTop: spacing.md },
   backSub: { fontFamily: fonts.bodyMedium, fontSize: 16, lineHeight: 23, color: colors.inkSoft, marginTop: -4 },
   adjust: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 4, minHeight: 64, paddingVertical: 14, paddingHorizontal: 18, borderRadius: radius.lg, backgroundColor: colors.white },
   adjustLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: colors.inkMuted },
