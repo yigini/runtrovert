@@ -1,15 +1,12 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, SectionList, Text, View } from 'react-native';
+import { Pressable, SectionList, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { spokenDistance, spokenDuration, spokenPace } from '../a11y';
-import { DeepMonthsView } from '../components/DeepStats';
-import { patternFormat, PatternsView } from '../components/PatternsView';
 import { PlacesList } from '../components/PlacesList';
 import { SettingsGear } from '../components/SettingsGear';
-import { YouSection } from '../components/YouSection';
 import { distanceUnit, formatDistance, formatDistanceNumber, formatDuration, formatPace } from '../geo';
-import { energyPatterns, groupRuns, monthSummary } from '../patterns';
-import { loadYourRuns, patternRuns, type YourRunsData } from '../patternStore';
+import { groupRuns, monthSummary } from '../patterns';
+import { loadYourRuns, type YourRunsData } from '../patternStore';
 import { BUSY_LABEL } from '../places';
 import type { Place } from '../placeStore';
 import { useSettings } from '../settings';
@@ -29,8 +26,8 @@ import { dateLocale, lang, monthName, upperFirst } from '../i18n/lang';
 const QUIET_BG: Record<Quiet, string> = themed(() => ({ crowded: colors.peach, some: colors.butter, empty: colors.mint }));
 const QUIET_FG: Record<Quiet, string> = themed(() => ({ crowded: colors.peachDeep, some: colors.butterDeep, empty: colors.mintDeep }));
 
-/** Your runs is split in three: every run, the places you kept, and patterns in your own answers. */
-export type RunsSection = 'runs' | 'places' | 'patterns';
+/** Your runs is the record: every run, and the places you kept. Bests, trends and patterns live in Me. */
+export type RunsSection = 'runs' | 'places';
 
 export function HistoryScreen({
   onOpen,
@@ -52,7 +49,8 @@ export function HistoryScreen({
   /** A run was added here by hand. */
   onChanged?: () => void;
 }) {
-  const km = useSettings().settings.unitsKm;
+  const { settings, update } = useSettings();
+  const km = settings.unitsKm;
   const [data, setData] = useState<YourRunsData | null>(null);
   const load = useCallback(async () => setData(await loadYourRuns()), []);
   // Runs between home and work, tagged softly. Empty until both are set in Settings.
@@ -131,7 +129,6 @@ export function HistoryScreen({
   openRef.current = onOpen;
   const open = useCallback((id: number) => openRef.current(id), []);
   const renderItem = useMemo(() => renderRow(open), [open]);
-  const patterns = useMemo(() => (data ? energyPatterns(patternRuns(data), data.places, now, patternFormat(km)) : null), [data, km]);
 
   const title = (
     <View style={{ gap: spacing.sm + 4 }}>
@@ -147,18 +144,6 @@ export function HistoryScreen({
     return (
       <View style={styles.screen}>
         <PlacesList km={km} refreshKey={refreshKey} header={title} onOpen={(id) => onOpenPlace?.(id)} onRunAgain={(p) => onRunAgain?.(p)} />
-      </View>
-    );
-  }
-
-  if (section === 'patterns') {
-    return (
-      <View style={styles.screen}>
-        <ScrollView contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xl }} showsVerticalScrollIndicator={false}>
-          {title}
-          <PatternsView patterns={patterns} />
-          <DeepMonthsView km={km} refreshKey={refreshKey} />
-        </ScrollView>
       </View>
     );
   }
@@ -214,7 +199,14 @@ export function HistoryScreen({
           <Stat value={hoursMinutes(month.durationS)} label={ui().history.running} />
         </View>
       </View>
-      <YouSection km={km} refreshKey={refreshKey} />
+      {!settings.meMoved && runs.length > 0 ? (
+        <View style={styles.moved}>
+          <Text style={styles.movedText}>{ui().me.moved}</Text>
+          <Pressable onPress={() => update({ meMoved: true })} accessibilityRole="button" accessibilityLabel={ui().me.closeNote} hitSlop={10} style={styles.movedClose}>
+            <Text style={styles.movedText}>✕</Text>
+          </Pressable>
+        </View>
+      ) : null}
       <View style={styles.linkRow}>
         <Pressable onPress={() => setAdding(true)} accessibilityRole="button" hitSlop={8} style={({ pressed }) => [styles.addRun, styles.linkFlex, pressed && { opacity: 0.8 }]}>
           <Text style={styles.addRunText}>{ui().addRun.link}</Text>
@@ -322,7 +314,6 @@ function Sections({ value, onChange }: { value: RunsSection; onChange: (s: RunsS
   const items: Array<{ key: RunsSection; label: string }> = [
     { key: 'runs', label: ui().history.runs },
     { key: 'places', label: ui().history.places },
-    { key: 'patterns', label: ui().history.patterns },
   ];
   return (
     <View style={styles.seg} accessibilityRole="tablist">
@@ -477,6 +468,9 @@ const styles = themedStyles(() => ({
   filterText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text },
   filterTextOn: { color: colors.onInk },
   filterParts: { fontFamily: fonts.bodyMedium, fontSize: 15, lineHeight: 21, color: colors.text },
+  moved: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.butter, borderRadius: radius.md, paddingVertical: 8, paddingLeft: 14, paddingRight: 6 },
+  movedText: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 20, color: colors.butterDeep },
+  movedClose: { flex: 0, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   noMatch: { paddingVertical: spacing.xl, paddingHorizontal: spacing.lg },
   addRunText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.mintDeep, textDecorationLine: 'underline' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg },

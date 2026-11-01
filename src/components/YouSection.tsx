@@ -12,21 +12,24 @@ import { spokenPaceSec } from '../a11y';
 import { live, ui } from '../i18n/ui';
 import { decimal } from '../i18n/lang';
 
-// The top of History: your bests and how you're doing against your own last
-// six weeks. Nobody else is on this screen, and nothing here is ever sent anywhere.
+// The parts of the Me tab built from every run's facts: your bests and how
+// you're doing against your own last six weeks. Nobody else is on this screen,
+// and nothing here is ever sent anywhere.
 
 const DAY = 86400000;
 const LABEL: Record<string, string> = live(() => ({ ...Object.fromEntries(EFFORTS.map((e) => [e.key, e.label])), longest: ui().youSection.longest, climb: ui().youSection.mostClimb }));
 
-export function YouSection({ km, refreshKey }: { km: boolean; refreshKey: number }) {
-  const [data, setData] = useState<{ all: Best[]; recent: Best[]; tr: Trends } | null>(null);
-  // Bests, this week and recharge are free; the six-week and twelve-week trends come with the unlock.
-  const unlocked = useUnlocked();
+export type YouData = { all: Best[]; recent: Best[]; tr: Trends };
+
+/** Bests and trends from the facts kept for every run, read again when runs change. */
+export function useYouData(refreshKey: number): YouData | null {
+  const [data, setData] = useState<YouData | null>(null);
   useEffect(() => {
     let live = true;
     loadYou()
       .then(({ facts }) => {
-        if (!live || facts.length === 0) return;
+        if (!live) return;
+        if (facts.length === 0) return setData(null);
         const now = Date.now();
         setData({ all: bests(facts), recent: bests(facts, now - 90 * DAY), tr: trends(facts, now) });
       })
@@ -35,15 +38,44 @@ export function YouSection({ km, refreshKey }: { km: boolean; refreshKey: number
       live = false;
     };
   }, [refreshKey]);
+  return data;
+}
 
-  if (!data) return null;
-  const { all, recent, tr } = data;
+/** Your bests as a row of chips, the newest marked, then the bests curve folded away. Free. */
+export function BestsRow({ data, km }: { data: YouData; km: boolean }) {
+  const { all, recent } = data;
   const now = Date.now();
+  const value = (b: Best) => (b.key === 'longest' ? formatDistance(b.value, km) : b.key === 'climb' ? formatElevation(b.value, km) : formatClock(b.value));
+  return (
+    <View style={{ gap: spacing.md }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
+        {all.map((b) => {
+          const fresh = now - b.at < 14 * DAY;
+          const r = recent.find((x) => x.key === b.key);
+          const lately = r && r.runId !== b.runId ? ui().youSection.lately(value(r)) : null;
+          return (
+            <View key={b.key} style={[styles.best, fresh && { backgroundColor: colors.mint }]}>
+              <Text style={styles.bestValue}>{value(b)}</Text>
+              <Text style={styles.bestLabel}>{LABEL[b.key]}{fresh ? ui().youSection.new : ''}</Text>
+              {lately && <Text style={styles.bestLately}>{lately}</Text>}
+            </View>
+          );
+        })}
+      </ScrollView>
+      <BestsCurve all={all} recent={recent} km={km} />
+    </View>
+  );
+}
+
+/**
+ * Fitness, usual pace and rhythm against your own last weeks. These read
+ * months of runs, so they come with the unlock ("Trends over months"); locked,
+ * only the lock row shows. Null when unlocked and there is nothing to say yet.
+ */
+export function Lately({ data, km, unlocked }: { data: YouData; km: boolean; unlocked: boolean }) {
+  const { tr } = data;
   const unit = km ? 'km' : 'mi';
   const perUnit = (s: number) => formatClock(km ? s : s * 1.609344);
-
-  const value = (b: Best) => (b.key === 'longest' ? formatDistance(b.value, km) : b.key === 'climb' ? formatElevation(b.value, km) : formatClock(b.value));
-
   const rows: Array<{ k: string; v: string; spark?: React.ReactNode }> = [];
   if (unlocked && tr.fitness) {
     const f = tr.fitness;
@@ -68,62 +100,39 @@ export function YouSection({ km, refreshKey }: { km: boolean; refreshKey: number
       spark: <Line values={p.series.map((x) => -x)} color={colors.peachDeep} />,
     });
   }
-  {
-    const w = tr.week;
-    const big = w.usual != null && w.usual > 0 && w.now > w.usual * 1.3;
-    rows.push({
-      k: ui().youSection.thisWeek,
-      v: `${w.now > 0 ? formatDuration(w.now) : ui().youSection.nothingYet}.` + (w.usual != null && w.usual > 0 ? ui().youSection.yourUsualIsX(formatDuration(Math.round(w.usual))) : '') + (big ? ui().youSection.aBigWeekAnEasy : ''),
-      spark: <Bars values={w.bars} color={colors.butterDeep} />,
-    });
-  }
-  if (tr.recharge) {
-    const r = tr.recharge;
-    const faces = Math.abs(r.avg) < 0.05 ? ui().youSection.noChange : ui().youSection.faces(`${r.avg > 0 ? '+' : ''}${decimal(r.avg.toFixed(1))}`);
-    rows.push({
-      k: ui().youSection.recharge,
-      v: ui().youSection.onAverageARunMoves(faces) + (r.best ? ui().youSection.liftYouMost(r.best) : ''),
-    });
-  }
   const weeks = tr.rhythm.filter(Boolean).length;
   if (unlocked) rows.push({ k: ui().youSection.rhythm, v: ui().youSection.ranInXOfThe(weeks), spark: <Dots values={tr.rhythm} color={colors.skyDeep} /> });
-
+  if (!unlocked) return <LockRow title={ui().youSection.trendsOverMonths} detail={ui().youSection.fitnessUsualPaceAndRhythm} />;
   return (
-    <View style={{ gap: spacing.md }}>
-      <View>
-        <Text style={type.eyebrow}>{ui().youSection.youVsYou}</Text>
-        <Text style={type.h2}>{ui().youSection.onlyOneNameOnThis}</Text>
-      </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
-        {all.map((b) => {
-          const fresh = now - b.at < 14 * DAY;
-          const r = recent.find((x) => x.key === b.key);
-          const lately = r && r.runId !== b.runId ? ui().youSection.lately(value(r)) : null;
-          return (
-            <View key={b.key} style={[styles.best, fresh && { backgroundColor: colors.mint }]}>
-              <Text style={styles.bestValue}>{value(b)}</Text>
-              <Text style={styles.bestLabel}>{LABEL[b.key]}{fresh ? ui().youSection.new : ''}</Text>
-              {lately && <Text style={styles.bestLately}>{lately}</Text>}
-            </View>
-          );
-        })}
-      </ScrollView>
-      <BestsCurve all={all} recent={recent} km={km} />
-      <View>
-        {rows.map((r) => (
-          <View key={r.k} style={styles.trend}>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.trendK}>{r.k}</Text>
-              <Text style={styles.trendV}>{r.v}</Text>
-            </View>
-            {r.spark ? <View style={{ width: 76, alignItems: 'flex-end' }}>{r.spark}</View> : null}
+    <View>
+      {rows.map((r, i) => (
+        <View key={r.k} style={[styles.trend, i > 0 && styles.trendLine]}>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={styles.trendK}>{r.k}</Text>
+            <Text style={styles.trendV}>{r.v}</Text>
           </View>
-        ))}
-      </View>
-      <LockRow title={ui().youSection.trendsOverMonths} detail={ui().youSection.fitnessUsualPaceAndRhythm} />
-      <Text style={type.small}>{ui().youSection.onlyEverComparedWithYour}</Text>
+          {r.spark ? <View style={{ width: 76, alignItems: 'flex-end' }}>{r.spark}</View> : null}
+        </View>
+      ))}
+      <Text style={[type.small, { marginTop: spacing.sm }]}>{ui().youSection.onlyEverComparedWithYour}</Text>
     </View>
   );
+}
+
+/** "On average a run moves your energy +0.6 faces. Evenings lift you most." Free; null with too few answers. */
+export function rechargeLine(tr: Trends): string | null {
+  const r = tr.recharge;
+  if (!r) return null;
+  const faces = Math.abs(r.avg) < 0.05 ? ui().youSection.noChange : ui().youSection.faces(`${r.avg > 0 ? '+' : ''}${decimal(r.avg.toFixed(1))}`);
+  return ui().youSection.onAverageARunMoves(faces) + (r.best ? ui().youSection.liftYouMost(r.best) : '');
+}
+
+/** "This week" against your usual week, from the same facts. */
+export function weekLine(tr: Trends): string | null {
+  const w = tr.week;
+  if (w.usual == null || w.usual <= 0) return null;
+  const big = w.now > w.usual * 1.3;
+  return ui().youSection.yourUsualIsX(formatDuration(Math.round(w.usual))).trim() + (big ? ui().youSection.aBigWeekAnEasy : '');
 }
 
 function scale(values: number[], h: number): number[] {
@@ -179,7 +188,7 @@ function Dots({ values, color }: { values: boolean[]; color: string }) {
 
 // ---- Bests as one curve (V3) --------------------------------------------------------
 // Best pace for each distance, all time and the last 90 days, on a log scale of
-// distance. Folded away until opened, so the top of Your runs stays calm.
+// distance. Folded away until opened, so the Me tab stays calm.
 
 function BestsCurve({ all, recent, km }: { all: Best[]; recent: Best[]; km: boolean }) {
   const [w, setW] = useState(0);
@@ -244,6 +253,7 @@ const styles = themedStyles(() => ({
   bestLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', color: colors.muted },
   bestLately: { fontFamily: fonts.body, fontSize: 11, color: colors.muted, marginTop: 2 },
   trend: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 10 },
+  trendLine: { borderTopWidth: 1, borderTopColor: colors.line },
   trendK: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', color: colors.muted },
   curveTick: { position: 'absolute', width: 48, textAlign: 'center', fontFamily: fonts.body, fontSize: 10, color: colors.muted },
   trendV: { fontFamily: fonts.display, fontSize: 16, lineHeight: 21, color: colors.text },

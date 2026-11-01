@@ -101,6 +101,7 @@ export interface Settings {
   comeback: { since: number; choice: ComebackChoice } | null; // what was done with the plan after a break; `since` = the last run then
   deepStats: boolean; // "Show me everything" left open on the run page and in Patterns
   deepOpen: string[]; // which groups inside "Show me everything" were left open
+  meMoved: boolean; // the one-time note in Your runs that bests, trends and patterns moved to Me was closed
   stories: boolean; // Things you passed: after a run, ask Wikipedia and OpenStreetMap about the ~1 km squares it went through
   storiesDark: boolean; // include places whose story is about killings, disasters or attacks
   storiesOffered: boolean; // the one finish-screen offer has been shown
@@ -150,6 +151,7 @@ export const DEFAULT_SETTINGS: Settings = {
   comeback: null,
   deepStats: false,
   deepOpen: [],
+  meMoved: false,
   stories: false,
   storiesDark: false,
   storiesOffered: false,

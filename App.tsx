@@ -20,6 +20,7 @@ import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { OpenSettings } from './src/components/SettingsGear';
 import { closeUnfinishedRuns, getRun, touchRuns } from './src/db';
 import { HistoryScreen, type RunsSection } from './src/screens/HistoryScreen';
+import { MeScreen } from './src/screens/MeScreen';
 import { ListenScreen } from './src/screens/ListenScreen';
 import { RunDetailScreen } from './src/screens/RunDetailScreen';
 import { PlaceScreen } from './src/screens/PlaceScreen';
@@ -75,7 +76,7 @@ function later(ms: number, work: () => void): () => void {
 /** The day, so a tab kept open since yesterday is drawn again (today's session, this week). */
 const dayOf = (t = Date.now()) => new Date(t).toDateString();
 
-type Tab = 'run' | 'runs' | 'train';
+type Tab = 'run' | 'runs' | 'train' | 'me';
 /** Opened over any tab: Settings from the gear, every Listen shelf from the sheet beside Start. */
 type Sub = 'settings' | 'listen' | 'everything' | 'credits' | null;
 
@@ -141,7 +142,7 @@ function Shell() {
   const [sessionRequest, setSessionRequest] = useState<Session | null>(null);
   const [planKey, setPlanKey] = useState(0);
   // Tabs opened at least once stay mounted; the day they were drawn on.
-  const [visited, setVisited] = useState<{ runs: boolean; train: boolean }>({ runs: false, train: false });
+  const [visited, setVisited] = useState<{ runs: boolean; train: boolean; me: boolean }>({ runs: false, train: false, me: false });
   const [day, setDay] = useState(dayOf);
   useEffect(() => {
     if (tab === 'run') return;
@@ -424,6 +425,38 @@ function Shell() {
               </ScreenActive.Provider>
             </View>
           )}
+          {(visited.me || tab === 'me') && (
+            <View style={[{ flex: 1 }, (sub != null || tab !== 'me') && styles.hidden]}>
+              <ScreenActive.Provider value={sub == null && tab === 'me'}>
+                <MeScreen
+                  key={day}
+                  refreshKey={refreshKey + planKey}
+                  onOpenPlace={(id) => {
+                    setRunsSection('places');
+                    setOpenRun(null);
+                    setPlaceFrom(null);
+                    setOpenPlace(id);
+                    go('runs');
+                  }}
+                  onAllPlaces={() => {
+                    setRunsSection('places');
+                    setOpenRun(null);
+                    setOpenPlace(null);
+                    go('runs');
+                  }}
+                  onOpenTrain={() => go('train')}
+                  onBringIn={() => {
+                    setEverythingFrom(null);
+                    setSub('everything');
+                  }}
+                  onWhatsHere={() => {
+                    setEverythingFrom(null);
+                    setSub('everything');
+                  }}
+                />
+              </ScreenActive.Provider>
+            </View>
+          )}
           {(visited.runs || tab === 'runs') && (
             <View style={[{ flex: 1 }, (sub != null || tab !== 'runs' || openRun != null || openPlace != null) && styles.hidden]}>
               <ScreenActive.Provider value={sub == null && tab === 'runs' && openRun == null && openPlace == null}>
@@ -501,6 +534,7 @@ function Shell() {
               }}
             />
             <TabButton label={ui().app.train} active={tab === 'train'} onPress={() => go('train')} />
+            <TabButton label={ui().app.me} active={tab === 'me'} onPress={() => go('me')} />
           </View>
         )}
         <UnlockHost key={scheme()} />
@@ -524,7 +558,7 @@ const styles = themedStyles(() => ({
   rootInk: { backgroundColor: night.ink },
   hidden: { display: 'none' },
   tabs: { flexDirection: 'row', gap: 6, backgroundColor: colors.cream, paddingHorizontal: spacing.md, paddingTop: 8, paddingBottom: spacing.sm + 2 },
-  // Three tabs share the width evenly, so a narrow phone or a big font never pushes one off the edge.
+  // Four tabs share the width evenly, so a narrow phone or a big font never pushes one off the edge.
   tab: { flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6, borderRadius: radius.pill },
   tabActive: { backgroundColor: colors.ink },
   tabText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.muted },
