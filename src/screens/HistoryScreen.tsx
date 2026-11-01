@@ -19,6 +19,10 @@ import type { CommuteDir } from '../commute';
 import { commuteTags, useCommute } from '../commuteStore';
 import { LoadFailed } from '../components/LoadFailed';
 import { AddRunSheet } from '../components/AddRunSheet';
+import { filterParts, RunFilterSheet } from '../components/RunFilterSheet';
+import { activeCount, applyFilter, choicesFor, isEmpty, NO_FILTER, originOf, tidy, totalsOf, type FilterRun, type Names, type RunFilter } from '../runFilter';
+import { useShoes } from '../shoeStore';
+import { loadPlan } from '../training/store';
 import { ui } from '../i18n/ui';
 import { dateLocale, lang, monthName, upperFirst } from '../i18n/lang';
 
@@ -81,7 +85,47 @@ export function HistoryScreen({
       return rowModel(r, km, pid != null ? names.get(pid) ?? null : null, dir ? (dir === 'toWork' ? toWork : home) : null);
     });
   }, [runs, km, names, tags, data, language]);
-  const groups = useMemo(() => groupRuns(rows, now), [rows]);
+  // Filter: closed by default. The facts it reads are gathered once per load.
+  const [filter, setFilter] = useState<RunFilter>(NO_FILTER);
+  const [filtering, setFiltering] = useState(false);
+  const book = useShoes();
+  const [planRuns, setPlanRuns] = useState<Set<number>>(new Set());
+  useEffect(() => {
+    loadPlan()
+      .then((p) => setPlanRuns(new Set((p?.weeks ?? []).flatMap((w) => w.sessions.map((x) => x.done?.runId ?? 0)).filter((id) => id > 0))))
+      .catch(() => {});
+  }, [refreshKey]);
+  const filterRuns = useMemo<FilterRun[]>(
+    () =>
+      runs.map((r) => ({
+        id: r.id,
+        startedAt: r.startedAt,
+        distanceM: r.distanceM,
+        durationS: r.durationS,
+        note: r.note,
+        placeId: data?.placeOf.get(r.id) ?? null,
+        origin: originOf(data?.sourceOf.get(r.id)),
+        shoeId: book?.runs[String(r.id)] ?? null,
+        fromPlan: planRuns.has(r.id),
+      })),
+    [runs, data, book, planRuns],
+  );
+  const filterNames = useMemo<Names>(() => ({ places: names, shoes: new Map((book?.shoes ?? []).map((x) => [x.id, x.name])) }), [names, book]);
+  const filterOn = !isEmpty(filter);
+  const matched = useMemo(() => (filterOn ? applyFilter(filterRuns, filter, km, filterNames) : null), [filterOn, filterRuns, filter, km, filterNames]);
+  // A filter pointing at a deleted place or shoe, or a year with no runs left, lets go of that part.
+  useEffect(() => {
+    if (!filterOn || !data) return;
+    const next = tidy(filter, choicesFor(filterRuns, filter.year, km));
+    if (JSON.stringify(next) !== JSON.stringify(filter)) setFilter(next);
+  }, [filterRuns]);
+  const shownRows = useMemo(() => {
+    if (!matched) return rows;
+    const ids = new Set(matched.map((r) => r.id));
+    return rows.filter((r) => ids.has(r.id));
+  }, [rows, matched]);
+  const totals = useMemo(() => (matched ? totalsOf(matched) : null), [matched]);
+  const groups = useMemo(() => groupRuns(shownRows, now), [shownRows]);
   // The parent hands a new onOpen each render; rows keep one stable press handler.
   const openRef = useRef(onOpen);
   openRef.current = onOpen;
@@ -121,7 +165,41 @@ export function HistoryScreen({
 
   const month = monthSummary(runs, now);
   const thisMonth = upperFirst(monthName(now));
-  const header = (
+  const filterButton = (
+    <Pressable
+      onPress={() => setFiltering(true)}
+      accessibilityRole="button"
+      hitSlop={8}
+      style={({ pressed }) => [styles.filterBtn, filterOn && styles.filterBtnOn, pressed && { opacity: 0.8 }]}
+    >
+      <Text style={[styles.filterText, filterOn && styles.filterTextOn]}>{filterOn ? ui().runFilter.filterCount(activeCount(filter)) : ui().runFilter.filter}</Text>
+    </Pressable>
+  );
+  const header =
+    filterOn && totals ? (
+      <View style={{ gap: spacing.md, marginBottom: spacing.sm }}>
+        {title}
+        <View
+          style={styles.month}
+          accessible
+          accessibilityLabel={`${ui().runFilter.filtered}: ${filterParts(filter, filterNames, km).join(', ')}. ${ui().runFilter.totalsSpoken(totals.runs, spokenDistance(totals.distanceM, km), spokenDuration(totals.durationS))}.`}
+        >
+          <Text style={type.eyebrow}>{ui().runFilter.filtered}</Text>
+          <Text style={styles.filterParts}>{filterParts(filter, filterNames, km).join(' · ')}</Text>
+          <View style={styles.monthRow}>
+            <Stat value={String(totals.runs)} label={ui().history.runsLabel(totals.runs)} />
+            <Stat value={totals.runs ? formatDistanceNumber(totals.distanceM, km) : '0'} label={distanceUnit(km)} />
+            <Stat value={hoursMinutes(totals.durationS)} label={ui().history.running} />
+          </View>
+        </View>
+        <View style={styles.linkRow}>
+          <Pressable onPress={() => setFilter(NO_FILTER)} accessibilityRole="button" hitSlop={8} style={({ pressed }) => [styles.addRun, pressed && { opacity: 0.8 }]}>
+            <Text style={styles.addRunText}>{ui().runFilter.clearFilter}</Text>
+          </Pressable>
+          {filterButton}
+        </View>
+      </View>
+    ) : (
     <View style={{ gap: spacing.md, marginBottom: spacing.sm }}>
       {title}
       <View
@@ -137,11 +215,15 @@ export function HistoryScreen({
         </View>
       </View>
       <YouSection km={km} refreshKey={refreshKey} />
-      <Pressable onPress={() => setAdding(true)} accessibilityRole="button" hitSlop={8} style={({ pressed }) => [styles.addRun, pressed && { opacity: 0.8 }]}>
-        <Text style={styles.addRunText}>{ui().addRun.link}</Text>
-      </Pressable>
+      <View style={styles.linkRow}>
+        <Pressable onPress={() => setAdding(true)} accessibilityRole="button" hitSlop={8} style={({ pressed }) => [styles.addRun, styles.linkFlex, pressed && { opacity: 0.8 }]}>
+          <Text style={styles.addRunText}>{ui().addRun.link}</Text>
+        </Pressable>
+        {runs.length > 1 ? filterButton : null}
+      </View>
     </View>
-  );
+    );
+
   const sheet = (
     <AddRunSheet
       open={adding}
@@ -204,6 +286,25 @@ export function HistoryScreen({
         windowSize={7}
         removeClippedSubviews
         renderItem={renderItem}
+        ListEmptyComponent={
+          filterOn ? (
+            <View style={styles.noMatch}>
+              <Text style={[type.body, { color: colors.muted, textAlign: 'center' }]}>{ui().runFilter.noMatch}</Text>
+            </View>
+          ) : undefined
+        }
+      />
+      <RunFilterSheet
+        open={filtering}
+        value={filter}
+        runs={filterRuns}
+        names={filterNames}
+        km={km}
+        onClose={() => setFiltering(false)}
+        onApply={(f) => {
+          setFilter(f);
+          setFiltering(false);
+        }}
       />
       {sheet}
     </View>
@@ -369,6 +470,14 @@ const styles = themedStyles(() => ({
   bringIn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.md, marginTop: spacing.sm },
   bringInText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.lilacDeep, textDecorationLine: 'underline', textAlign: 'center' },
   addRun: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
+  linkRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  linkFlex: { flexShrink: 1 },
+  filterBtn: { minHeight: 44, paddingHorizontal: 16, borderRadius: radius.pill, backgroundColor: colors.sunk, alignItems: 'center', justifyContent: 'center' },
+  filterBtnOn: { backgroundColor: colors.ink },
+  filterText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text },
+  filterTextOn: { color: colors.onInk },
+  filterParts: { fontFamily: fonts.bodyMedium, fontSize: 15, lineHeight: 21, color: colors.text },
+  noMatch: { paddingVertical: spacing.xl, paddingHorizontal: spacing.lg },
   addRunText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.mintDeep, textDecorationLine: 'underline' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: radius.lg, padding: 16 },
