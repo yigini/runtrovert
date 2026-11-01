@@ -17,7 +17,7 @@
   <link rel="preload" href="fonts/DMSans_400Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" as="image" href="media/v3/wide-sunset-water.jpg" media="(min-aspect-ratio: 1/1)">
   <link rel="preload" as="image" href="media/v3/bg-sunset-water.jpg" media="(max-aspect-ratio: 999/1000)">
-  <link rel="stylesheet" href="style.css?v=12">
+  <link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -72,8 +72,8 @@
     <div class="demo-text">
       <span class="num"><b>02</b> Today's run</span>
       <h2>What kind of run <em>do you need today?</em></h2>
-      <p class="say plans">Some days you want every number. Some days you want a little quiet. <strong>Choose what comes with you.</strong></p>
-      <p class="demo-hint">Try it: pick one, then finish the run.</p>
+      <p class="say plans">Some days you want every number. Some days you want a little quiet. <strong>Choose what comes with you.</strong> Pause and Lap from the lock screen, pace and heart alerts, voice cues, a buzz if you leave your route, maps that work without signal, and a treadmill mode. All free, and the extras stay off until you want them.</p>
+      <p class="demo-hint">Try it: pick one, try what happens below, then finish the run.</p>
       <div class="three modes" role="tablist" aria-label="Pick today's run">
         <button type="button" role="tab" id="t-silent" aria-controls="demo" aria-selected="true" data-mode="silent"><span class="k">Silent</span><b>Clear my head</b><span>Records quietly. Tap for the time; every number is ready when you finish.</span></button>
         <button type="button" role="tab" id="t-live" aria-controls="demo" aria-selected="false" data-mode="live" tabindex="-1"><span class="k">Live</span><b>Just run</b><span>Distance, time, pace and the map as you go, with your usual cues.</span></button>
@@ -88,10 +88,10 @@
         <button type="button" class="ghost" id="peek">Tap to show the time</button>
       </div>
       <div class="scr" data-show="live" hidden>
-        <p class="rec"><i></i>Recording</p>
+        <p class="rec" id="live-rec"><i></i><span>Recording</span></p>
         <svg class="mini" viewBox="0 0 200 120" aria-hidden="true"><path class="route" pathLength="1" d="M20 96 C30 60 52 40 82 36 S140 22 162 44 S186 92 150 100 S70 108 46 104 Z"/></svg>
         <div class="big"><b id="d-km">4.90</b><span>km</span></div>
-        <div class="pair"><p><b id="d-time">26:52</b><span>time</span></p><p><b>5:29</b><span>pace /km</span></p></div>
+        <div class="pair"><p><b id="d-time">26:52</b><span>time</span></p><p><b id="d-pace">5:29</b><span>pace /km</span></p><p><b id="d-hr">152</b><span>heart</span></p></div>
       </div>
       <div class="scr" data-show="plan" hidden>
         <p class="rec"><i></i>Block 3 of 6</p>
@@ -113,18 +113,63 @@
         </div>
         <button type="button" class="more" id="more" aria-expanded="false" aria-controls="deep">Show me everything</button>
         <div class="deep" id="deep" hidden>
-          <p><span>The shape of your splits</span><b>Negative split</b></p>
-          <p><span>How much your pace wandered</span><b>±4%</b></p>
-          <p><span>Longest steady stretch</span><b>1.6 km at 5:20</b></p>
-          <p><span>Your quickest 200 m</span><b>4.9 km in</b></p>
-          <p><span>Corners taken</span><b>14</b></p>
+          <details>
+            <summary><span>Your pace</span><b>Held to the end</b></summary>
+            <p>You held about 5:29 /km to the end, and the last kilometres were your quickest.</p>
+            <svg viewBox="0 0 200 60" aria-hidden="true"><path class="pl" d="M6 44 L40 38 L74 34 L108 30 L142 26 L176 22 L194 21"/></svg>
+            <p class="cap">Quicker is higher. The first 500 m are left out.</p>
+          </details>
+          <details>
+            <summary><span>Hills</span><b>9 s /km per 1% up</b></summary>
+            <p>Each 1% uphill cost you 9 s /km. Each 1% downhill gave back 4 s /km.</p>
+            <svg viewBox="0 0 200 60" aria-hidden="true"><g class="dots"><circle cx="20" cy="30" r="2.5"/><circle cx="34" cy="26" r="2.5"/><circle cx="48" cy="32" r="2.5"/><circle cx="62" cy="28" r="2.5"/><circle cx="80" cy="30" r="2.5"/><circle cx="98" cy="31" r="2.5"/><circle cx="118" cy="38" r="2.5"/><circle cx="136" cy="41" r="2.5"/><circle cx="152" cy="46" r="2.5"/><circle cx="170" cy="49" r="2.5"/><circle cx="186" cy="53" r="2.5"/></g><path class="pl" d="M10 26 L100 31 L194 54"/></svg>
+            <p class="cap">Each dot is 100 m: slope against your pace on the flat.</p>
+          </details>
+          <details>
+            <summary><span>Stops and corners</span><b>Stops 0:42 · 14 sharp corners</b></summary>
+            <p>2 stops cost you 0:42. 0:11 of that was slowing down and getting back up to speed. 14 sharp corners cost you about 19 s.</p>
+            <svg viewBox="0 0 200 120" aria-hidden="true"><path class="rt" d="M20 96 C30 60 52 40 82 36 S140 22 162 44 S186 92 150 100 S70 108 46 104 Z"/><g class="cn"><circle cx="31" cy="62" r="4"/><circle cx="82" cy="36" r="3"/><circle cx="162" cy="44" r="6"/><circle cx="176" cy="80" r="3"/><circle cx="150" cy="100" r="4"/><circle cx="46" cy="104" r="3"/></g><g class="st"><rect x="112" y="23" width="9" height="9" rx="2"/><rect x="92" y="102" width="9" height="9" rx="2"/></g></svg>
+            <p class="cap">Dots are corners, bigger costs more. Squares are stops.</p>
+          </details>
+          <details>
+            <summary><span>Heart</span><b>Catches up in 22 s</b></summary>
+            <p>When you changed pace, your heart took about 22 seconds to follow.</p>
+            <div class="zones" role="img" aria-label="Time in each heart zone: easy 6 min, steady 14 min, tempo 7 min, hard 1 min"><i style="--w:21%"></i><i style="--w:49%"></i><i style="--w:25%"></i><i style="--w:5%"></i></div>
+            <p class="cap">Time in each heart zone, from a watch or strap.</p>
+          </details>
+          <details>
+            <summary><span>The GPS</span><b>96% within 5 m</b></summary>
+            <p>96% of this run was within 5 metres.</p>
+            <div class="gps" aria-hidden="true"><i style="--w:38%"></i><i class="f" style="--w:3%"></i><i style="--w:59%"></i></div>
+            <p class="cap">From the accuracy the phone gave with each point.</p>
+          </details>
+          <p class="shoes"><span>Shoes</span><b>Blue pair · 412 km</b></p>
         </div>
         <div class="after">
           <button type="button" class="ghost" id="keep">Save as a place</button>
           <button type="button" class="ghost" id="again">Run it again</button>
         </div>
       </div>
+      <div class="scr lockscr" data-show="lock" hidden>
+        <p class="clock">07:42</p>
+        <p class="date">Sunday 2 November</p>
+        <div class="noti" role="group" aria-label="Run notification on the lock screen">
+          <p class="h"><img src="mark.svg?v=2" alt=""> Runtrovert · <span id="lk-state">Recording</span></p>
+          <p class="l"><b id="lk-km">4.92 km</b> · <span id="lk-time">27:00</span></p>
+          <p class="b"><button type="button" id="lk-pause">Pause</button><button type="button" id="lk-lap">Lap</button></p>
+        </div>
+        <p class="lk-said" id="lk-said" aria-live="polite"></p>
+        <button type="button" class="unlock" id="unlock">Back to the app</button>
+      </div>
+      <p class="toast" id="toast" role="status" aria-live="polite"></p>
       <button type="button" class="finish" id="finish">Finish</button>
+    </div>
+    <div class="try" role="group" aria-labelledby="try-h">
+      <p class="k" id="try-h">What happens when…</p>
+      <button type="button" data-ev="km">A kilometre goes by</button>
+      <button type="button" data-ev="pace">You speed up</button>
+      <button type="button" data-ev="route">You take a wrong turn</button>
+      <button type="button" data-ev="lock">You lock your phone</button>
     </div>
   </div>
 </section>
@@ -135,7 +180,24 @@
   <div class="in">
     <span class="num"><b>03</b> Progress</span>
     <h2>A goal <em>when you want one.</em></h2>
-    <p class="say">Work towards your first 5K, your next race, or a routine that fits your life. <strong>Fourteen plans, from a first run to a marathon,</strong> each one building gradually, with lighter weeks, and giving way when life does. Week 1 of every plan is free, and so are quick workouts like run 3, walk 1. Every run you've done stays, with every number, whenever you want to look back.</p>
+    <p class="say">Work towards your first 5K, your next race, or a routine that fits your life. <strong>Fourteen plans, from a first run to a marathon,</strong> each one building gradually, with lighter weeks, and giving way when life does. Week 1 of every plan is free, and so are quick workouts like run 3, walk 1, and your best pace at every distance. Every run you've done stays, with every number, whenever you want to look back. Shoes keep their kilometres, a weekly goal is there if you want one, and plan sessions go to a Garmin or Coros watch as workout files. Left the phone at home? The Wear OS watch records on its own and hands the run over later.</p>
+    <div class="curve" aria-labelledby="cv-t">
+      <p class="t" id="cv-t">Your best pace at each distance</p>
+      <p class="m" id="cv-say" aria-live="polite">5K at 4:39 /km</p>
+      <svg viewBox="0 0 300 120" aria-hidden="true">
+        <path class="all" d="M20 24 L74 34 L150 52 L210 66 L280 86"/>
+        <path class="r90" d="M20 32 L74 41 L150 55 L210 74"/>
+        <g class="pts all"><circle cx="20" cy="24" r="4"/><circle cx="74" cy="34" r="4"/><circle cx="150" cy="52" r="4"/><circle cx="210" cy="66" r="4"/><circle cx="280" cy="86" r="4"/></g>
+        <g class="pts r90"><circle cx="20" cy="32" r="3.5"/><circle cx="74" cy="41" r="3.5"/><circle cx="150" cy="55" r="3.5"/><circle cx="210" cy="74" r="3.5"/></g>
+      </svg>
+      <div class="cv-x" id="cv-x"></div>
+      <p class="key"><span class="ka">All time</span><span class="kr">Last 90 days</span><span class="kq">Higher is quicker</span></p>
+      <div class="locked">
+        <p><span>How you’re changing</span><a class="lockpill" href="#price">Everything, once</a></p>
+        <p><span>When and where</span><a class="lockpill" href="#price">Everything, once</a></p>
+        <p><span>What suits you</span><a class="lockpill" href="#price">Everything, once</a></p>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -180,7 +242,7 @@
   <div class="in">
     <span class="num"><b>06</b> Privacy</span>
     <h2>Yours to keep. <em>Yours to share.</em></h2>
-    <p class="say">Your running history is stored on your phone. We don't receive it. No public profile, no feed, no followers. <strong>If you share a run, it goes to the person you pick, through your phone's own share sheet, and the route stays off unless you switch it on.</strong> New phone? One backup file, kept wherever you like. The app fetches three things, each with a switch, and a fourth only if you ask for it. The line you ran is never sent.</p>
+    <p class="say">Your running history is stored on your phone. We don't receive it. No public profile, no feed, no followers. <strong>If you share a run, it goes to the person you pick, through your phone's own share sheet, and the route stays off unless you switch it on.</strong> Want someone to know? “Tell someone first” writes “back by 18:50” for you to send yourself. New phone? One backup file, kept wherever you like. The app fetches three things, each with a switch, and a fourth only if you ask for it. The line you ran is never sent.</p>
     <ul class="three">
       <li><span class="k">Plain map turns it off</span><b>Map tiles</b><span>OpenFreeMap sees which area is on screen. With Plain map your route still draws, just without streets.</span></li>
       <li><span class="k">Weather switch</span><b>The forecast</b><span>Open-Meteo gets a location rounded to about 1 km.</span></li>
@@ -258,6 +320,6 @@
   </div>
 </footer>
 
-<script src="site.js?v=12" defer></script>
+<script src="site.js?v=13" defer></script>
 </body>
 </html>
