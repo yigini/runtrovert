@@ -9,6 +9,8 @@ import {
   asciiBytes,
   asciiJson,
   backupFileName,
+  checkComplete,
+  footer,
   insertSql,
   makeHeader,
   readHeader,
@@ -62,6 +64,7 @@ export async function shareBackup(onProgress?: (done: number, total: number) => 
   };
   try {
     buf += asciiJson(makeHeader(madeAt, tables, counts)) + '\n';
+    const written = tables.map(() => 0);
     for (const [t, { name, cols }] of tables.entries()) {
       onProgress?.(t, tables.length);
       let last = -1;
@@ -73,10 +76,12 @@ export async function shareBackup(onProgress?: (done: number, total: number) => 
           last = r._rowid as number;
           if (name === 'settings' && KEEP_KEYS.includes(r.key as string)) continue;
           buf += asciiJson([t, ...cols.map((c) => r[c] ?? null)]) + '\n';
+          written[t]++;
         }
         await flush();
       }
     }
+    buf += footer(written) + '\n';
     await flush(true);
   } finally {
     handle.close();
@@ -90,7 +95,7 @@ export async function shareBackup(onProgress?: (done: number, total: number) => 
 export type PickedBackup = { header: BackupHeader; bytes: Uint8Array };
 
 /** Opens the file picker for one backup file. null if nothing was picked. */
-export async function pickBackup(): Promise<PickedBackup | 'notBackup' | 'newer' | null> {
+export async function pickBackup(): Promise<PickedBackup | 'notBackup' | 'newer' | 'incomplete' | null> {
   const picked = await File.pickFileAsync({ mimeTypes: '*/*' });
   if (picked.canceled) return null;
   const f = Array.isArray(picked.result) ? picked.result[0] : picked.result;
@@ -98,6 +103,8 @@ export async function pickBackup(): Promise<PickedBackup | 'notBackup' | 'newer'
   const bytes = await f.bytes();
   const header = readHeader(bytes);
   if (typeof header === 'string') return header;
+  // Checked before the preview, so the counts it shows are ones the file really holds.
+  if (checkComplete(bytes, header) !== 'ok') return 'incomplete';
   return { header, bytes };
 }
 
@@ -110,6 +117,8 @@ export async function pickBackup(): Promise<PickedBackup | 'notBackup' | 'newer'
 export async function restoreBackup(picked: PickedBackup): Promise<void> {
   const db = await getDb();
   const { header, bytes } = picked;
+  // Again here, right before anything is deleted: an incomplete file never replaces what you have.
+  if (checkComplete(bytes, header) !== 'ok') throw new Error(ui().backup.incomplete);
   const current = new Map<string, string[]>();
   for (const name of BACKUP_TABLES) current.set(name, await columns(name));
   const plan = new Map<string, { names: string[]; idx: number[]; keyAt: number }>();

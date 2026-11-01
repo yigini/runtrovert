@@ -2094,6 +2094,7 @@ export const de: Strings = {
     holds: (runs: number, places: number, notes: number) => `Die Sicherung enthält ${runs} ${runs === 1 ? 'Lauf' : 'Läufe'}, ${places} ${places === 1 ? 'Ort' : 'Orte'} und ${notes} ${notes === 1 ? 'Notiz' : 'Notizen'}.`,
     couldntMake: 'Sicherung konnte nicht erstellt werden',
     couldntRestore: 'Sicherung konnte nicht wiederhergestellt werden',
+    incomplete: 'Diese Sicherung ist unvollständig und kann nicht wiederhergestellt werden. Wähle eine andere Sicherung.',
     nothingChanged: 'Auf diesem Handy wurde nichts geändert.',
     notABackup: 'Das ist keine Runtrovert-Sicherungsdatei.',
     newer: 'Diese Sicherung stammt aus einer neueren Runtrovert-Version. Aktualisiere die App und versuch es noch einmal.',
