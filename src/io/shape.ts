@@ -128,13 +128,17 @@ export function sameRun(a: KnownRun, b: KnownRun): boolean {
   return near && similar;
 }
 
-/** Which reader a picked file needs, from its name and first bytes. */
-export function sniff(name: string, head: Uint8Array): 'gpx' | 'fit' | 'zipped' | null {
+/** Which reader a picked file needs, from its name and first bytes. 'zip' is a whole export; 'gzip' is one file squeezed (Strava's .fit.gz). */
+export function sniff(name: string, head: Uint8Array): 'gpx' | 'fit' | 'tcx' | 'zip' | 'gzip' | null {
   const n = name.toLowerCase();
   if (head.length >= 12 && head[8] === 0x2e && head[9] === 0x46 && head[10] === 0x49 && head[11] === 0x54) return 'fit';
-  if ((head[0] === 0x1f && head[1] === 0x8b) || (head[0] === 0x50 && head[1] === 0x4b) || /\.(gz|zip)$/.test(n)) return 'zipped';
+  if (head[0] === 0x1f && head[1] === 0x8b) return 'gzip';
+  if (head[0] === 0x50 && head[1] === 0x4b) return 'zip';
+  if (n.endsWith('.gz')) return 'gzip';
+  if (n.endsWith('.zip')) return 'zip';
   if (n.endsWith('.fit')) return 'fit';
   const text = String.fromCharCode(...head.subarray(0, 512));
+  if (n.endsWith('.tcx') || /<(?:[\w-]+:)?TrainingCenterDatabase\b/.test(text)) return 'tcx';
   if (n.endsWith('.gpx') || /<(?:[\w-]+:)?gpx\b/.test(text) || /^\s*(?:\uFEFF)?<\?xml/.test(text)) return 'gpx';
   return null;
 }

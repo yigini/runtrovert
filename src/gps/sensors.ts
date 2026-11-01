@@ -17,6 +17,7 @@ import { Barometer, Pedometer } from 'expo-sensors';
 import { Platform } from 'react-native';
 import { BARO_RULE, ClimbCounter, GPS_RULE } from './climb';
 import { GapFill } from './gapFill';
+import { stepDelta } from '../runAids';
 
 export class ElevationTracker {
   private sub: { remove: () => void } | null = null;
@@ -135,5 +136,53 @@ export class StepFusion {
 
   get stride() {
     return this.gap.stride;
+  }
+
+  get calibrated() {
+    return this.gap.calibrated;
+  }
+}
+
+/**
+ * Treadmill runs: the step watch alone, no GPS. take() hands over the steps
+ * counted since it was last called; the tracker credits them while running
+ * and drops them while paused. A watch that restarts from zero (Android, after
+ * the app comes back) is caught by stepDelta.
+ */
+export class IndoorSteps {
+  private sub: { remove: () => void } | null = null;
+  private reported = 0;
+  private last = 0;
+  available = false;
+
+  async start() {
+    this.stop();
+    this.reported = 0;
+    this.last = 0;
+    try {
+      this.available = await Pedometer.isAvailableAsync();
+      if (!this.available) return;
+      const perm = await Pedometer.getPermissionsAsync();
+      if (!perm.granted) {
+        this.available = false;
+        return;
+      }
+      this.sub = Pedometer.watchStepCount((r) => {
+        this.reported = r.steps;
+      });
+    } catch {
+      this.available = false;
+    }
+  }
+
+  take(): number {
+    const d = stepDelta(this.last, this.reported);
+    this.last = d.last;
+    return d.add;
+  }
+
+  stop() {
+    this.sub?.remove();
+    this.sub = null;
   }
 }

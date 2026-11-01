@@ -191,6 +191,15 @@
    "url": "https://docs.expo.dev/versions/latest/sdk/video/"
   },
   {
+   "name": "fflate",
+   "version": "0.8.2",
+   "licence": "MIT",
+   "copyright": [
+    "Copyright (c) 2023 Arjun Barrett"
+   ],
+   "url": "https://101arrowz.github.io/fflate"
+  },
+  {
    "name": "react",
    "version": "19.3.0",
    "licence": "MIT",

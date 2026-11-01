@@ -36,7 +36,7 @@ for (const p of ['mint', 'lilac', 'peach', 'butter', 'sky']) {
   for (const bg of [p, 'bg', 'card']) pairs.push([`${p}Deep`, bg, 4.5]);
   pairs.push(['text', p, 4.5], ['inkMuted', p, 4.5], [`${p}Mark`, 'card', 3], [`${p}Mark`, 'bg', 3]);
 }
-pairs.push(['lilacDeep', 'lilacSoft', 4.5], ['mintDeep', 'mintSoft', 4.5], ['onInk', 'ink', 4.5], ['onInkMuted', 'ink', 4.5], ['ring', 'card', 3], ['danger', 'bg', 4.5], ['zoneLow', 'card', 3]);
+pairs.push(['lilacDeep', 'lilacSoft', 4.5], ['mintDeep', 'mintSoft', 4.5], ['onInk', 'ink', 4.5], ['onInkMuted', 'ink', 4.5], ['ring', 'card', 3], ['danger', 'bg', 4.5], ['zoneLow', 'card', 3], ['chartQuick', 'card', 3], ['chartSlow', 'card', 3], ['chartQuick', 'bg', 3], ['chartSlow', 'bg', 3], ['seq4', 'card', 3]);
 
 for (const [fg, bg, need] of pairs) {
   const r = ratio(dark[fg], dark[bg]);
