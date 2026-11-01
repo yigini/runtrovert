@@ -1,17 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Svg, { Rect } from 'react-native-svg';
-import { distanceUnit, formatDistance, MILE_M } from '../geo';
+import { distanceUnit, formatDistance, formatDuration, MILE_M } from '../geo';
 import { deepMonths, deepRun, type Bucket, type DeepMonths, type DeepRun, type Group } from '../deepStats';
 import { loadDeepFacts } from '../deepStore';
 import type { HeartSample } from '../heart';
-import type { StatPoint } from '../runStats';
 import { useSettings } from '../settings';
 import { colors, fonts, radius, spacing, type, themedStyles, themed } from '../theme';
 import { useUnlocked } from '../unlockState';
 import { LockGlyph, LockRow } from './LockRow';
 import { ui } from '../i18n/ui';
-import { DISPLAY_MAX_SCALE, spokenBpm, spokenDistance, spokenPaceSec } from '../a11y';
+import { DISPLAY_MAX_SCALE, spokenBpm, spokenDistance, spokenDuration, spokenPaceSec } from '../a11y';
+import { deepMore, moving, type CornersCost, type DeepMore, type MorePoint } from '../deepMore';
+import { CornersShape, GpsStrip, Group as Fold, HeartPathChart, HillChart, LagChart, Legend, StopsChart, TurnChart, ZonesBar } from './DeepCharts';
 import { dateLocale, decimal } from '../i18n/lang';
 
 // "Show me everything": the deep stats, closed by default so the run page and
@@ -49,54 +50,169 @@ export function DeepToggle() {
 
 // ---- One run (free) --------------------------------------------------------------------
 
-export function DeepRunView({ points, kmPaces, heart, maxHr, km }: { points: StatPoint[]; kmPaces: number[]; heart: HeartSample[]; maxHr: number | null; km: boolean }) {
+export function DeepRunView({ points, kmPaces, heart, maxHr, km, climbM = 0 }: { points: MorePoint[]; kmPaces: number[]; heart: HeartSample[]; maxHr: number | null; km: boolean; climbM?: number }) {
   const open = useSettings().settings.deepStats;
   const deep = useMemo(() => (open ? deepRun({ points, kmPaces, heart, maxHr }) : null), [open, points, kmPaces, heart, maxHr]);
+  const more = useMemo(() => (open ? deepMore(points, heart, climbM) : null), [open, points, heart, climbM]);
+  const totalM = useMemo(() => (open && points.length > 1 ? moving(points).d.slice(-1)[0] : 0), [open, points]);
   return (
     <View style={{ gap: spacing.md }}>
       <DeepToggle />
-      {deep ? <RunCards deep={deep} km={km} hasHeart={heart.length > 0} /> : null}
+      {deep && more ? <RunCards deep={deep} more={more} km={km} hasHeart={heart.length > 0} totalM={totalM} /> : null}
     </View>
   );
 }
 
-function RunCards({ deep, km, hasHeart }: { deep: DeepRun; km: boolean; hasHeart: boolean }) {
+// Five folding groups, closed until opened, each with a one-line headline so the
+// closed list already says something. A group only shows when it has something.
+function RunCards({ deep, more, km, hasHeart, totalM }: { deep: DeepRun; more: DeepMore; km: boolean; hasHeart: boolean; totalM: number }) {
   const s = ui().deepStats;
+  const m = ui().deepMore;
   const unit = distanceUnit(km);
-  const any = deep.wobble || deep.shape || deep.steady || deep.grade || deep.drift || deep.zones;
+  const perUnit = (x: number) => decimal(String(Math.round((km ? x : x * (MILE_M / 1000)) * 10) / 10));
+  const hasPace = deep.wobble || deep.shape || deep.steady || more.turn;
+  const hasHills = deep.grade || more.hill;
+  const hasStops = more.stops || more.corners;
+  const hasHeartGroup = deep.drift || deep.zones || more.lag || more.heartPath;
+  const any = hasPace || hasHills || hasStops || hasHeartGroup || more.gps;
+  const turn = more.turn;
+  const hill = more.hill;
   return (
     <View style={{ gap: spacing.sm }}>
       <Text style={styles.eyebrow} accessibilityRole="header">{s.theDeepEnd}</Text>
       {!any ? <Text style={type.small}>{s.nothingYet}</Text> : null}
-      {deep.shape ? (
-        <Card title={s.shape} value={s.shapeWord[deep.shape.kind]} line={{ even: s.shapeEven, negative: s.shapeNegative(pct(deep.shape.diffPct)), faded: s.shapeFaded(pct(deep.shape.diffPct)), lateKick: s.shapeLateKick, wandering: s.shapeWandering }[deep.shape.kind]} />
+      {hasPace ? (
+        <Fold
+          id="pace"
+          title={m.groups.pace}
+          headline={turn ? (turn.kind === 'faded' ? m.turnHeadlineFaded(formatDistance(turn.atM, km)) : m.turnHeadlineHeld) : deep.shape ? s.shapeWord[deep.shape.kind] : null}
+        >
+          {turn ? (
+            <ChartCard
+              title={m.turn}
+              line={turn.kind === 'faded' ? `${m.turnFaded(paceText(turn.holdPace, km), unit, formatDistance(turn.atM, km))} ${m.turnFadedEnd(paceText(turn.endPace, km), unit)}` : m.turnHeld(paceText(turn.pace, km), unit)}
+              spoken={turn.kind === 'faded' ? m.turnFadedSpoken(spokenPaceSec(turn.holdPace, km), spokenDistance(turn.atM, km), spokenPaceSec(turn.endPace, km)) : m.turnHeldSpoken(spokenPaceSec(turn.pace, km))}
+              detail={m.quickerIsHigher}
+            >
+              <TurnChart turn={turn} />
+            </ChartCard>
+          ) : null}
+          {deep.shape ? (
+            <Card title={s.shape} value={s.shapeWord[deep.shape.kind]} line={{ even: s.shapeEven, negative: s.shapeNegative(pct(deep.shape.diffPct)), faded: s.shapeFaded(pct(deep.shape.diffPct)), lateKick: s.shapeLateKick, wandering: s.shapeWandering }[deep.shape.kind]} />
+          ) : null}
+          {deep.wobble ? <Card title={s.wobble} value={s.wobbleValue(pct(deep.wobble.pct))} line={s.wobbleDetail(deep.wobble.quickest, deep.wobble.slowest, unit)} /> : null}
+          {deep.steady ? (
+            <Card
+              title={s.steady}
+              value={formatDistance(deep.steady.m, km)}
+              line={s.steadyDetail(paceText(deep.steady.pace, km), unit, formatDistance(deep.steady.fromM, km))}
+              spoken={[s.steady, spokenDistance(deep.steady.m, km), s.steadySpoken(spokenPaceSec(deep.steady.pace, km), spokenDistance(deep.steady.fromM, km))].join('. ')}
+            />
+          ) : null}
+        </Fold>
       ) : null}
-      {deep.wobble ? (
-        <Card title={s.wobble} value={s.wobbleValue(pct(deep.wobble.pct))} line={s.wobbleDetail(deep.wobble.quickest, deep.wobble.slowest, unit)} />
+      {hasHills ? (
+        <Fold id="hills" title={m.groups.hills} headline={hill?.upS != null ? m.hillHeadline(perUnit(hill.upS), unit) : hill?.downS != null ? m.hillHeadlineDown(perUnit(hill.downS), unit) : null}>
+          {hill ? (
+            <ChartCard title={m.hill} line={[hill.upS != null ? m.hillUp(perUnit(hill.upS), unit) : null, hill.downS != null ? m.hillDown(perUnit(hill.downS), unit) : null].filter(Boolean).join(' ')} detail={m.hillDetail}>
+              <HillChart hill={hill} />
+              <Legend items={[{ c: colors.chartSlow, t: s.uphill }, { c: colors.chartQuick, t: s.downhill }]} />
+            </ChartCard>
+          ) : null}
+          {deep.grade ? (
+            <Card title={s.grade} detail={s.gradeDetail}>
+              <GradeRow label={s.uphill} b={deep.grade.up} km={km} />
+              <GradeRow label={s.flat} b={deep.grade.flat} km={km} />
+              <GradeRow label={s.downhill} b={deep.grade.down} km={km} />
+            </Card>
+          ) : null}
+        </Fold>
       ) : null}
-      {deep.steady ? (
-        <Card
-          title={s.steady}
-          value={formatDistance(deep.steady.m, km)}
-          line={s.steadyDetail(paceText(deep.steady.pace, km), unit, formatDistance(deep.steady.fromM, km))}
-          spoken={[s.steady, spokenDistance(deep.steady.m, km), s.steadySpoken(spokenPaceSec(deep.steady.pace, km), spokenDistance(deep.steady.fromM, km))].join('. ')}
-        />
+      {hasStops ? (
+        <Fold
+          id="stops"
+          title={m.groups.stops}
+          headline={[more.stops ? m.stopsHeadline(formatDuration(more.stops.standS + more.stops.restartS)) : null, more.corners ? m.cornersHeadline(more.corners.corners.length) : null].filter(Boolean).join(' · ')}
+        >
+          {more.stops ? (
+            <ChartCard
+              title={m.stops}
+              line={m.stopsLine(more.stops.stops.length, formatDuration(more.stops.standS + more.stops.restartS), formatDuration(more.stops.restartS))}
+              spoken={m.stopsLine(more.stops.stops.length, spokenDuration(more.stops.standS + more.stops.restartS), spokenDuration(more.stops.restartS))}
+            >
+              <StopsChart stops={more.stops} totalM={totalM} />
+            </ChartCard>
+          ) : null}
+          {more.corners ? (
+            <ChartCard title={m.corners} line={cornerLine(more.corners, km)} detail={m.cornersDetail}>
+              <CornersShape corners={more.corners} />
+            </ChartCard>
+          ) : null}
+        </Fold>
       ) : null}
-      {deep.grade ? (
-        <Card title={s.grade} detail={s.gradeDetail}>
-          <GradeRow label={s.uphill} b={deep.grade.up} km={km} />
-          <GradeRow label={s.flat} b={deep.grade.flat} km={km} />
-          <GradeRow label={s.downhill} b={deep.grade.down} km={km} />
-        </Card>
+      {hasHeartGroup ? (
+        <Fold id="heart" title={m.groups.heart} headline={[deep.drift ? s.driftWord(deep.drift.pct) : null, more.lag ? m.lagHeadline(more.lag.lagS) : null].filter(Boolean).join(' · ')}>
+          {deep.drift ? (
+            <ChartCard
+              title={s.drift}
+              value={`${deep.drift.pct < 0 ? '−' : ''}${pct(deep.drift.pct)}%`}
+              line={`${s.driftWord(deep.drift.pct)}. ${s.driftDetail(deep.drift.firstBpm, deep.drift.secondBpm)}`}
+              spoken={[s.drift, `${deep.drift.pct < 0 ? '−' : ''}${pct(deep.drift.pct)}%`, s.driftWord(deep.drift.pct), s.driftSpoken(spokenBpm(deep.drift.firstBpm), spokenBpm(deep.drift.secondBpm))].join('. ')}
+            />
+          ) : null}
+          {more.heartPath ? (
+            <ChartCard
+              title={m.path}
+              detail={m.pathDetail}
+              spoken={m.pathSpoken(pathPoint(more.heartPath[0], km), pathPoint(more.heartPath[more.heartPath.length - 1], km))}
+            >
+              <HeartPathChart path={more.heartPath} />
+            </ChartCard>
+          ) : null}
+          {deep.zones ? <Zones zones={deep.zones} /> : null}
+          {more.lag ? (
+            <ChartCard title={m.lag} line={m.lagLine(more.lag.lagS)} detail={m.lagDetail}>
+              <LagChart lag={more.lag} />
+            </ChartCard>
+          ) : null}
+        </Fold>
       ) : null}
-      {deep.drift ? (
-        <Card title={s.drift} value={`${deep.drift.pct < 0 ? '−' : ''}${pct(deep.drift.pct)}%`} tone={colors.lilacSoft} line={`${s.driftWord(deep.drift.pct)}. ${s.driftDetail(deep.drift.firstBpm, deep.drift.secondBpm)}`}
-          spoken={[s.drift, `${deep.drift.pct < 0 ? '−' : ''}${pct(deep.drift.pct)}%`, s.driftWord(deep.drift.pct), s.driftSpoken(spokenBpm(deep.drift.firstBpm), spokenBpm(deep.drift.secondBpm))].join('. ')}
-        />
+      {more.gps ? (
+        <Fold id="gps" title={m.groups.gps} headline={m.gpsHeadline(Math.round(more.gps.share.good * 100))}>
+          <ChartCard
+            title={m.gps}
+            line={[m.gpsLine(Math.round(more.gps.share.good * 100)), more.gps.gapM >= 50 ? m.gpsGap(formatDistance(more.gps.gapM, km)) : null].filter(Boolean).join(' ')}
+            detail={m.gpsDetail}
+          >
+            <GpsStrip gps={more.gps} />
+          </ChartCard>
+        </Fold>
       ) : null}
-      {deep.zones ? <Zones zones={deep.zones} /> : null}
       {any && !hasHeart ? <Text style={type.small}>{s.needsAWatch}</Text> : null}
       <Text style={type.small}>{s.workedOutOnThisPhone}</Text>
+    </View>
+  );
+}
+
+function pathPoint(p: { pace: number; bpm: number }, km: boolean): string {
+  return `${spokenPaceSec(p.pace, km)}, ${spokenBpm(p.bpm)}`;
+}
+
+function cornerLine(c: CornersCost, km: boolean): string {
+  const m = ui().deepMore;
+  const worst = c.corners.reduce((a, b) => (b.costS > a.costS ? b : a));
+  return `${m.cornersLine(c.corners.length, formatDuration(c.totalS))} ${m.cornersWorst(m.seconds(decimal(worst.costS.toFixed(1))), formatDistance(worst.atM, km))}`;
+}
+
+/** A card whose chart is hidden from screen readers and said in words instead. */
+function ChartCard({ title, value, line, detail, spoken, children }: { title: string; value?: string; line?: string; detail?: string; spoken?: string; children?: React.ReactNode }) {
+  return (
+    <View style={styles.card} accessible accessibilityLabel={spoken ? [title, spoken, detail].filter(Boolean).join('. ') : [title, value, line, detail].filter(Boolean).join('. ')}>
+      <Text style={styles.cardTitle}>{title}</Text>
+      {value ? <Text style={styles.value} maxFontSizeMultiplier={DISPLAY_MAX_SCALE}>{value}</Text> : null}
+      {line ? <Text style={styles.cardLine}>{line}</Text> : null}
+      {children}
+      {detail ? <Text style={type.small}>{detail}</Text> : null}
     </View>
   );
 }
@@ -130,25 +246,12 @@ const ZONE_TONES = themed(() => [colors.zoneLow, colors.mintMark, colors.butterM
 
 function Zones({ zones }: { zones: NonNullable<DeepRun['zones']> }) {
   const s = ui().deepStats;
-  const total = zones.seconds.reduce((a, b) => a + b, 0) || 1;
+  const parts = zones.seconds.map((sec, i) => `${s.zoneNames[i]} ${ui().common.min(Math.round(sec / 60))}`).join(', ');
   return (
-    <View style={[styles.card, { backgroundColor: colors.lilacSoft }]}>
-      <Text style={styles.cardTitle} accessibilityRole="header">{s.zones}</Text>
-      {zones.seconds.map((sec, i) => {
-        const min = Math.round(sec / 60);
-        return (
-          <View key={i} style={{ gap: 4 }} accessible accessibilityLabel={`${s.zoneNames[i]}: ${ui().common.min(min)}`}>
-            <View style={styles.row}>
-              <Text style={styles.rowLabel}>{s.zoneNames[i]}</Text>
-              <Text style={styles.rowValue}>{ui().common.min(min)}</Text>
-            </View>
-            <View style={styles.track} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-              <View style={[styles.fill, { width: `${(sec / total) * 100}%`, backgroundColor: ZONE_TONES[i] }]} />
-            </View>
-          </View>
-        );
-      })}
-      <Text style={type.small} accessibilityLabel={s.zonesSpoken(spokenBpm(zones.maxHr))}>{s.zonesDetail(zones.maxHr)}</Text>
+    <View style={styles.card} accessible accessibilityLabel={`${ui().deepMore.zonesBarSpoken(parts)} ${s.zonesSpoken(spokenBpm(zones.maxHr))}`}>
+      <Text style={styles.cardTitle}>{s.zones}</Text>
+      <ZonesBar seconds={zones.seconds} tones={ZONE_TONES} names={s.zoneNames} />
+      <Text style={type.small}>{s.zonesDetail(zones.maxHr)}</Text>
     </View>
   );
 }
@@ -345,6 +448,7 @@ const styles = themedStyles(() => ({
   eyebrow: { ...type.eyebrow, letterSpacing: 1.5 },
   card: { backgroundColor: colors.white, borderRadius: radius.lg, padding: spacing.md, gap: 8 },
   cardTitle: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.4, textTransform: 'uppercase', color: colors.inkMuted },
+  cardLine: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.text },
   value: { fontFamily: fonts.display, fontSize: 26, lineHeight: 30, letterSpacing: -0.5, color: colors.text, fontVariant: ['tabular-nums'] },
   row: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: spacing.sm },
   rowLabel: { fontFamily: fonts.body, fontSize: 14, color: colors.text, flexShrink: 1 },

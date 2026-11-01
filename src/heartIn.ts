@@ -13,9 +13,19 @@ let runId: number | null = null;
 let status: WatchStatus = 'idle';
 let strapAt = 0;
 let listener: ((bpm: number, ts: number) => void) | null = null;
+let latest: { bpm: number; at: number } | null = null;
+
+/** Older than this, a reading says nothing about now (the strap slipped, the watch went quiet). */
+const FRESH_MS = 15_000;
+
+/** The last reading of this run, if it is fresh; for the voice and the heart alert (src/runCues.ts). */
+export function latestHeart(now: number): number | null {
+  return latest && now - latest.at <= FRESH_MS ? latest.bpm : null;
+}
 
 /** From the tracking tick. */
 export function heartRun(id: number | null, s: WatchStatus): void {
+  if (id !== runId) latest = null;
   runId = id;
   status = s;
 }
@@ -36,6 +46,8 @@ export function heartIn(from: HeartFrom, samples: Array<[number, number]>): bool
   if (!keepReading(from, now, strapAt) || !samples.length) return true;
   void addHeartRate(runId, samples).catch(() => {});
   const [ts, bpm] = samples[samples.length - 1];
+  // Stamped on arrival: a watch's own clock may be a few seconds off the phone's.
+  latest = { bpm, at: now };
   if (status === 'running' || status === 'autopaused') listener?.(bpm, ts);
   return true;
 }
