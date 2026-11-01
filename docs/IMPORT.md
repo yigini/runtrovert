@@ -22,7 +22,7 @@ Where people get the exports:
 
 Under Bring runs in, one link ("Strava, Garmin and other apps: how to bring runs over") opens **From another app**: one row per app, closed until tapped, each with its own few steps and one line on what comes in. Choose files sits at the bottom of the page, so the steps and the picker are in one place. No second import entry anywhere else.
 
-Apps listed (src/components/ImportGuide.tsx, text in `ui().importGuide.apps`): Strava, Garmin Connect, COROS, Polar Flow, Suunto, Nike Run Club, adidas Running, Runkeeper, Samsung Health, Fitbit, Apple Health (moving from an iPhone), Any other app. Apps with no file export point to Settings › Health Connect. The menu paths are written from each app's own help pages as of November 2026; apps rename menus, so check them when a runner says a path has moved.
+Apps listed (src/components/ImportGuide.tsx, text in `ui().importGuide.apps`): Strava, Garmin Connect, COROS, Polar Flow, Suunto, Nike Run Club, adidas Running, Runkeeper, Samsung Health, Fitbit, Apple Health (moving from an iPhone), Any other app. Apps with no file export point to Settings › Health Connect. The menu paths were written in November 2026 and not yet checked inside each app; apps rename menus, so fix a path when a runner says it has moved.
 
 What already comes in from those exports through the same zip walker: Strava and Garmin (above), adidas Running's `GPS-data/*.gpx`, Runkeeper's GPX files, Apple Health's `workout-routes/*.gpx` (no sport in those files, so walks can come in as runs; fast rides are left out by the speed check). Not read yet: Polar's whole-account JSON, adidas runs without GPS (JSON), Apple's `export.xml`.
 
