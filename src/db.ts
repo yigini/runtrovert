@@ -9,8 +9,9 @@ let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 // Nearly every screen asks for the list of runs. With a few hundred runs that
 // was one full table read (and a fresh object per row) on every tab switch and
 // on every card that needed it. The list is kept in memory and read again only
-// after a write to the runs. Every function here that writes runs, or what is
-// worked out from them, calls touchRuns().
+// after a write to the runs. Every function here that writes runs calls
+// touchRuns(); so do place changes and a run's new weather. Bests and deep
+// summaries saved while they are worked out don't: they follow from the runs.
 
 let version = 0;
 let runsCache: { version: number; runs: Run[] } | null = null;
@@ -484,7 +485,6 @@ export async function saveFacts(runId: number, f: StoredFacts): Promise<void> {
     JSON.stringify(f.efforts),
     f.weather == null ? null : JSON.stringify(f.weather),
   );
-  touchRuns();
 }
 
 /**
@@ -625,7 +625,6 @@ export async function loadDeepSummaries(): Promise<Map<number, { v: number; k: s
 export async function saveDeepSummary(runId: number, v: number, k: string, data: string): Promise<void> {
   const db = await getDb();
   await db.runAsync('INSERT OR REPLACE INTO deep_summaries (run_id, v, k, data) VALUES (?, ?, ?, ?)', runId, v, k, data);
-  touchRuns();
 }
 
 /** How many points each run has, for the summary key. */
