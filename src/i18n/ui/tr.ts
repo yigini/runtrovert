@@ -2464,6 +2464,8 @@ export const tr: Strings = {
     noAccount: 'Hesap yok. Hiçbir şey gönderilmez.',
     whatsHere: 'Bu telefonda neler var',
     moved: 'En iyiler, gidişat ve örüntüler artık Ben sekmesinde.',
+    barsNote: 'Çubuk ne kadar uzunsa o kadar hızlı koşmuşsun.',
+    ofTarget: (t) => `hedef: ${t}`,
     closeNote: 'Bu notu kapat',
   },
 };

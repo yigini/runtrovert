@@ -2465,6 +2465,8 @@ export const it: Strings = {
     noAccount: 'Nessun account. Non si invia nulla.',
     whatsHere: 'Cosa c’è su questo telefono',
     moved: 'Record, tendenze e abitudini ora sono in Io.',
+    barsNote: 'Più lunga è la barra, più veloce hai corso.',
+    ofTarget: (t) => `su ${t}`,
     closeNote: 'Chiudi questo avviso',
   },
 };

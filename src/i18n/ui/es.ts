@@ -2464,6 +2464,8 @@ export const es: Strings = {
     noAccount: 'Sin cuenta. No se envía nada.',
     whatsHere: 'Qué hay en este móvil',
     moved: 'Marcas, tendencias y patrones están ahora en Yo.',
+    barsNote: 'Cuanto más larga la barra, más rápido corriste.',
+    ofTarget: (t) => `de ${t}`,
     closeNote: 'Cerrar este aviso',
   },
 };
