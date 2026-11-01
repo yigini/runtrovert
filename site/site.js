@@ -227,9 +227,33 @@
     var fin = phone.querySelector('.fin'), finH = fin.querySelector('.fin-h');
     finH.tabIndex = -1;
     finish.addEventListener('click', function () { show('finish'); fin.scrollTop = 0; finH.focus({ preventScroll: true }); });
+    // The finish screen asks how you feel and offers to keep the loop, as the app does.
+    var feel = document.getElementById('feel'), feelSay = document.getElementById('feel-say');
+    ['Drained', 'Low', 'Okay', 'Good', 'Recharged'].forEach(function (name, i) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = i + 1;
+      b.setAttribute('aria-label', name + ', energy ' + (i + 1) + ' of 5');
+      b.setAttribute('aria-pressed', 'false');
+      b.addEventListener('click', function () {
+        Array.prototype.forEach.call(feel.children, function (c) { c.setAttribute('aria-pressed', String(c === b)); });
+        feelSay.textContent = name;
+      });
+      feel.appendChild(b);
+    });
+    var keep = document.getElementById('keep');
+    keep.addEventListener('click', function () {
+      if (keep.getAttribute('aria-disabled') === 'true') return;
+      keep.textContent = 'Saved as Park loop';
+      keep.setAttribute('aria-disabled', 'true');
+    });
     document.getElementById('again').addEventListener('click', function () {
       show(mode);
       secs = START;
+      Array.prototype.forEach.call(feel.children, function (c) { c.setAttribute('aria-pressed', 'false'); });
+      feelSay.textContent = 'Optional';
+      keep.textContent = 'Save as a place';
+      keep.removeAttribute('aria-disabled');
       tabs.forEach(function (t) { if (t.getAttribute('aria-selected') === 'true') t.focus({ preventScroll: true }); });
     });
 

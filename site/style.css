@@ -208,6 +208,15 @@ em { font-family: var(--serif); font-weight: 400; font-style: italic; }
 .phone .deep span { color: #6b5f86; }
 .phone .deep b { text-align: right; }
 .phone .fin .ghost { margin-top: 14px; }
+.phone .feel { margin-top: 14px; }
+.phone .feel .lbl { margin-top: 0; }
+.phone .feel .dots { display: flex; gap: 6px; margin-top: 6px; }
+.phone .feel button { flex: 1; min-height: 36px; font: 600 13px var(--sans); color: #4a3f6b; background: transparent; border: 1px solid rgba(43,39,51,0.2); border-radius: 999px; cursor: pointer; }
+.phone .feel button[aria-pressed="true"] { color: var(--cream); background: var(--ink); border-color: var(--ink); }
+.phone .feel button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.phone .fin .after { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.phone .fin .after .ghost { margin-top: 14px; }
+.phone #keep[aria-disabled="true"] { color: #3d6b52; background: rgba(61,107,82,0.12); cursor: default; }
 .phone .fin { scrollbar-width: thin; scrollbar-color: rgba(43,39,51,0.25) transparent; }
 .phone .fin::after { content: ''; position: sticky; bottom: -18px; display: block; flex-shrink: 0; height: 32px; margin: -14px -18px -18px; background: linear-gradient(rgba(246,241,234,0), var(--cream)); pointer-events: none; }
 .phone .finish { position: absolute; left: 50%; bottom: 36px; transform: translateX(-50%); font: 600 15px var(--sans); color: var(--cream); background: var(--ink); border: 0; border-radius: 999px; padding: 14px 34px; min-height: 48px; cursor: pointer; box-shadow: 0 10px 24px -10px rgba(0,0,0,0.5); }
