@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { Vibration } from 'react-native';
 import * as Speech from 'expo-speech';
 import type { CueMode } from './types';
 import { formatDuration, formatPace } from './geo';
@@ -133,4 +134,24 @@ export async function cueWorkoutStep(text: string, finished = false) {
   if (mode === 'silent') return;
   await buzz(finished ? Haptics.NotificationFeedbackType.Success : 'double');
   if (mode === 'voice') say(text);
+}
+
+/**
+ * Off the route you chose to follow: two long buzzes, unlike anything else the
+ * run does, so it reads through a pocket. It comes even on a quiet run or with
+ * cues off: following was asked for on purpose. Voice says it only when voice is on.
+ */
+export async function cueOffRoute() {
+  try {
+    Vibration.vibrate([0, 650, 250, 650]);
+  } catch {
+    // no vibrator
+  }
+  if (mode === 'voice') say(ui().cues.offRoute);
+}
+
+/** Back on the route: one calm tap. */
+export async function cueBackOnRoute() {
+  await buzz(Haptics.NotificationFeedbackType.Success);
+  if (mode === 'voice') say(ui().cues.backOnRoute);
 }

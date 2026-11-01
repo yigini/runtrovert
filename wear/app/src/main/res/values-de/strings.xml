@@ -37,4 +37,12 @@
   <string name="time">Zeit</string>
   <string name="distance">Distanz</string>
   <string name="pace">Tempo</string>
+  <string name="recordHere">Auf dieser Uhr aufzeichnen</string>
+  <string name="recordHereHint">Mit dem GPS der Uhr. Der Lauf kommt aufs Handy, sobald beide wieder zusammen sind.</string>
+  <string name="needLocation">Aufzeichnen auf der Uhr braucht den Standort</string>
+  <string name="needLocationHint">Erlaube ihn in den Einstellungen der Uhr, oder nimm dein Handy mit.</string>
+  <string name="soloFailed">Diese Uhr konnte ihr GPS nicht starten</string>
+  <string name="soloSaved">Auf der Uhr gespeichert</string>
+  <string name="soloSavedHint">Er kommt aufs Handy, wenn beide wieder zusammen sind und Runtrovert dort offen ist.</string>
+  <string name="soloWaiting">Warten aufs Handy: %1$s</string>
 </resources>

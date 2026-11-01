@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The app's cream and ink; values-night has the warm aubergine. -->
+<resources>
+  <color name="rt_widget_bg">#F6F1EA</color>
+  <color name="rt_widget_text">#2B2733</color>
+  <color name="rt_widget_muted">#6B5F86</color>
+  <color name="rt_widget_button">#2B2733</color>
+  <color name="rt_widget_button_text">#F6F1EA</color>
+</resources>

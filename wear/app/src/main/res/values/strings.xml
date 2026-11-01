@@ -38,4 +38,12 @@
   <string name="time">Time</string>
   <string name="distance">Distance</string>
   <string name="pace">Pace</string>
+  <string name="recordHere">Record on this watch</string>
+  <string name="recordHereHint">With the watch’s GPS. The run goes to your phone when they’re together again.</string>
+  <string name="needLocation">Recording on the watch needs location</string>
+  <string name="needLocationHint">Allow it in the watch’s settings, or take your phone.</string>
+  <string name="soloFailed">This watch couldn’t start its GPS</string>
+  <string name="soloSaved">Saved on the watch</string>
+  <string name="soloSavedHint">It goes to your phone next time they’re together, with Runtrovert open there.</string>
+  <string name="soloWaiting">Waiting for your phone: %1$s</string>
 </resources>

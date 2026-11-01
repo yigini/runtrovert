@@ -22,6 +22,14 @@ function median(xs: number[]): number | null {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
 
+function quartile(xs: number[], q: number): number | null {
+  if (xs.length < 3) return null;
+  const s = [...xs].sort((a, b) => a - b);
+  const i = (s.length - 1) * q;
+  const lo = Math.floor(i);
+  return s[lo] + (s[Math.ceil(i)] - s[lo]) * (i - lo);
+}
+
 function mean(xs: number[]): number | null {
   return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
 }
@@ -263,6 +271,9 @@ export interface Group {
   key: string;
   n: number;
   pace: number | null; // median climb-adjusted s/km
+  /** Where the middle half of the runs fall, s/km. */
+  lo?: number | null;
+  hi?: number | null;
   lift?: number | null; // mean energy after minus before
 }
 
@@ -277,7 +288,7 @@ export interface DeepMonths {
   /** Days since the run before: next day, two or three days, four or more. */
   recovery: Group[];
   /** Your places, by quarter of the year: Dec–Feb, Mar–May, Jun–Aug, Sep–Nov. */
-  places: Array<{ placeId: number; name: string; quarters: Array<{ q: number; n: number; pace: number | null }> }>;
+  places: Array<{ placeId: number; name: string; quarters: Array<{ q: number; n: number; pace: number | null; lo: number | null; hi: number | null }> }>;
   /** Minutes run on every day of the last 52 weeks, a week per row, Monday first, oldest week first. */
   year: { weeks: number[][]; days: number; minutes: number };
   /** Last km against the first, in percent (minus = you finish quicker). Median, and per month for six months. */
@@ -293,7 +304,7 @@ function monthStart(t: number, back = 0): number {
 
 function group(key: string, runs: DeepFact[], withLift = false): Group {
   const paces = runs.map(adjustedPace).filter((p): p is number => p != null);
-  const g: Group = { key, n: runs.length, pace: median(paces) };
+  const g: Group = { key, n: runs.length, pace: median(paces), lo: quartile(paces, 0.25), hi: quartile(paces, 0.75) };
   if (withLift) {
     const rated = runs.filter((r) => r.moodBefore != null && r.moodAfter != null);
     g.lift = rated.length >= MIN_GROUP ? mean(rated.map((r) => r.moodAfter! - r.moodBefore!)) : null;
@@ -365,7 +376,8 @@ export function deepMonths(all: DeepFact[], places: Array<{ id: number; name: st
     const quarters = [0, 1, 2, 3]
       .map((q) => {
         const inQ = rs.filter((r) => quarter(r.startedAt) === q);
-        return { q, n: inQ.length, pace: median(inQ.map(adjustedPace).filter((x): x is number => x != null)) };
+        const ps = inQ.map(adjustedPace).filter((x): x is number => x != null);
+        return { q, n: inQ.length, pace: median(ps), lo: quartile(ps, 0.25), hi: quartile(ps, 0.75) };
       })
       .filter((x) => x.n >= 2 && x.pace != null);
     if (quarters.length >= 2) placeRows.push({ placeId: p.id, name: p.name, quarters });

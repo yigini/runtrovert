@@ -37,4 +37,12 @@
   <string name="time">Temps</string>
   <string name="distance">Distance</string>
   <string name="pace">Allure</string>
+  <string name="recordHere">Enregistrer sur cette montre</string>
+  <string name="recordHereHint">Avec le GPS de la montre. La course va sur ton téléphone quand ils sont de nouveau ensemble.</string>
+  <string name="needLocation">Enregistrer sur la montre demande la localisation</string>
+  <string name="needLocationHint">Autorise-la dans les réglages de la montre, ou prends ton téléphone.</string>
+  <string name="soloFailed">Cette montre n’a pas pu lancer son GPS</string>
+  <string name="soloSaved">Enregistrée sur la montre</string>
+  <string name="soloSavedHint">Elle ira sur ton téléphone la prochaine fois qu’ils seront ensemble, avec Runtrovert ouvert.</string>
+  <string name="soloWaiting">En attente du téléphone : %1$s</string>
 </resources>
