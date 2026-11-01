@@ -83,6 +83,24 @@
    "url": "https://github.com/hyodotdev/openiap/tree/main/libraries/expo-iap#readme"
   },
   {
+   "name": "expo-image-manipulator",
+   "version": "58.0.16",
+   "licence": "MIT",
+   "copyright": [
+    "Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)"
+   ],
+   "url": "https://docs.expo.dev/versions/latest/sdk/imagemanipulator/"
+  },
+  {
+   "name": "expo-image-picker",
+   "version": "58.0.10",
+   "licence": "MIT",
+   "copyright": [
+    "Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)"
+   ],
+   "url": "https://docs.expo.dev/versions/latest/sdk/imagepicker/"
+  },
+  {
    "name": "expo-keep-awake",
    "version": "58.0.3",
    "licence": "MIT",
@@ -189,6 +207,15 @@
     "Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)"
    ],
    "url": "https://docs.expo.dev/versions/latest/sdk/video/"
+  },
+  {
+   "name": "fflate",
+   "version": "0.8.2",
+   "licence": "MIT",
+   "copyright": [
+    "Copyright (c) 2023 Arjun Barrett"
+   ],
+   "url": "https://101arrowz.github.io/fflate"
   },
   {
    "name": "react",

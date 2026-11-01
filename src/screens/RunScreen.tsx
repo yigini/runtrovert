@@ -12,6 +12,8 @@ import { MusicStrip } from '../components/MusicStrip';
 import { FeelPicker } from '../components/FeelPicker';
 import { PainPicker } from '../components/PainPicker';
 import { PlaceFinishCard } from '../components/PlaceFinishCard';
+import { shoesForNewRun } from '../shoeStore';
+import { onWidgetStart } from '../widget';
 import { QuietPicker } from '../components/QuietPicker';
 import { RouteMap } from '../components/RouteMap';
 import { StoriesCard, storyPins, useRouteStories } from '../components/StoriesCard';
@@ -35,7 +37,7 @@ import { compare, youVsYou, type RunFacts } from '../progress';
 import type { StatPoint } from '../runStats';
 import { useSettings } from '../settings';
 import { finishSurprise, type Surprise } from '../surprises';
-import { continueRun, ensureIndoorPermissions, ensurePermissions, getState, haltRun, lap, pauseRun, resumeRun, startRun, stopRun, subscribe, TrackingState, unsavedPoints } from '../tracking';
+import { continueRun, ensureIndoorPermissions, ensurePermissions, followRoute, getState, haltRun, lap, pauseRun, resumeRun, startRun, stopRun, subscribe, TrackingState, unsavedPoints } from '../tracking';
 import { colors, fonts, radius, spacing, type, themedStyles, night } from '../theme';
 import { applyEnergy, type PainLevel } from '../training/adapt';
 import { loadPlan, nextSession, savePlan, todaySession } from '../training/store';
@@ -64,6 +66,8 @@ export interface Ghost {
   path: LatLon[];
   /** Run to work, Run home: where the run ends, ringed on the map. */
   goal?: LatLon;
+  /** A route picked to follow: a long buzz when you leave it (src/routeFollow.ts). Run to work's last way there is only a hint. */
+  follow?: boolean;
 }
 
 /** Ids of the once-only finish lines already used (src/surprises.ts). */
@@ -254,6 +258,8 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     onWatchCommand((c) => watchRef.current(c));
     return () => onWatchCommand(null);
   }, []);
+  // "Start a run" on the home-screen widget does what the watch's start does.
+  useEffect(() => onWidgetStart(() => watchRef.current('start')), []);
 
   async function onStart() {
     // A route waits here: the line to follow is only drawn in Just run, so it runs as one.
@@ -401,6 +407,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     if (as === 'plan' && run && !run.done && !run.skipped) beginWorkout(run);
     try {
       await startRun(moodBefore, { indoor });
+      followRoute(!indoor && ghostRun?.follow ? ghostRun.path : null);
       setPhase('active');
     } catch {
       endWorkout();
@@ -507,6 +514,7 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
     }
     if (id != null) await recordRunFacts(id, startedAt, durationS).catch(() => {});
     if (id != null) await keepPlace(id).catch(() => {});
+    if (id != null) await shoesForNewRun(id).catch(() => {});
     const extra: RunExtra = { pain, sessionId: guided?.session.id ?? null, feel, steps: guided ? takeWorkoutSteps(final?.distanceM ?? 0, durationS) : null };
     reset();
     savingRef.current = false;
@@ -580,12 +588,12 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
 
   /** "Run this again" from the home screen's place: the same as from the place itself. */
   function runPlace(p: Place) {
-    setGhostRun({ placeId: p.id, name: p.name, path: p.sig.pts.map(([latitude, longitude]) => ({ latitude, longitude })) });
+    setGhostRun({ placeId: p.id, name: p.name, path: p.sig.pts.map(([latitude, longitude]) => ({ latitude, longitude })), follow: true });
   }
 
   // ---- Idle ------------------------------------------------------------------
   if (phase === 'idle') {
-    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} onCommute={onCommute} onRunFree={onRunFree} planToday={session} planNext={requested ? null : planNext} plan={requested ? null : planShown} welcomeBack={!requested} onOpenPlan={onOpenPlan} onPlanChanged={onPlanChanged} onBrowseListen={onBrowseListen} onRunPlace={runPlace} route={ghostRun ? { name: ghostRun.name } : null} onClearRoute={() => setGhostRun(null)} runPreset={preset} onRunWithoutPlan={requested && sessionOpen ? onRunWithoutPlan : undefined} />;
+    return <HomeScreen runs={runs} mood={moodBefore} onMood={setMoodBefore} onStart={onStart} onCommute={onCommute} onRunFree={onRunFree} planToday={session} planNext={requested ? null : planNext} plan={requested ? null : planShown} welcomeBack={!requested} onOpenPlan={onOpenPlan} onPlanChanged={onPlanChanged} onBrowseListen={onBrowseListen} onRunPlace={runPlace} route={ghostRun ? { name: ghostRun.name, follow: !!ghostRun.follow } : null} onClearRoute={() => setGhostRun(null)} runPreset={preset} onRunWithoutPlan={requested && sessionOpen ? onRunWithoutPlan : undefined} />;
   }
 
   // ---- Countdown -------------------------------------------------------------
@@ -870,8 +878,12 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
           </View>
           {/* The route being followed, by name (Run this again, Run to work). */}
           {ghostRun ? (
-            <View style={[styles.statusPill, { flexShrink: 1 }]}>
-              <Text style={[styles.statusText, { color: night.onInkMuted }]} numberOfLines={1}>{ghostRun.name}</Text>
+            <View style={[styles.statusPill, { flexShrink: 1 }]} accessibilityLiveRegion="polite">
+              {track.offRouteM != null ? (
+                <Text style={[styles.statusText, { color: night.butter }]} numberOfLines={1}>{ui().run.offRouteBy(formatDistance(track.offRouteM, km))}</Text>
+              ) : (
+                <Text style={[styles.statusText, { color: night.onInkMuted }]} numberOfLines={1}>{ghostRun.name}</Text>
+              )}
             </View>
           ) : null}
           <View style={styles.statusPill}>

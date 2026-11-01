@@ -1,0 +1,10 @@
+{
+  "name": "runtrovert-widget",
+  "version": "0.1.0",
+  "description": "Android home-screen widgets: Start a run, and the last run with this week. Shows only words the app hands it; no network.",
+  "license": "MIT",
+  "author": "Runtrovert",
+  "homepage": "https://github.com/yigini/runtrovert",
+  "main": "index.ts",
+  "private": true
+}

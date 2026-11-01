@@ -1,7 +1,9 @@
 import { requireOptionalNativeModule } from 'expo';
 import { AppState, Platform } from 'react-native';
 import { heartIn } from './heartIn';
-import { liveJson, OPEN_FOR_MS, parseCommand, parseHeart, parseHello, PATHS, shouldSend, splitJson, type LiveForWatch, type WatchCommand, type WatchStatus } from './wearProtocol';
+import { importParsed } from './io/store';
+import { EMPTY_TALLY } from './io/shape';
+import { addRunChunk, liveJson, OPEN_FOR_MS, parseCommand, parseHeart, parseHello, parseRunChunk, PATHS, runAckJson, shouldSend, splitJson, watchRunToImported, type ChunkStore, type LiveForWatch, type WatchCommand, type WatchStatus } from './wearProtocol';
 
 /**
  * The Wear OS app's phone side. The phone records; the watch shows the run,
@@ -26,6 +28,27 @@ let watchOpenUntil = 0;
 let lastSent: { at: number; status: WatchStatus } | null = null;
 let current: LiveForWatch & { runId: number | null } = { status: 'idle', distanceM: 0, durationS: 0, unitsKm: true, runId: null };
 let commandHandler: ((c: WatchCommand) => void) | null = null;
+let runHandler: ((runIds: number[]) => void) | null = null;
+const chunks: ChunkStore = new Map();
+
+/**
+ * A run recorded on the watch alone arrived in full: keep it like an imported
+ * run (de-duplicated, heart rate with it), then tell the watch it can let go.
+ * Unreadable runs are acknowledged too, as not kept, so the watch stops
+ * sending them but keeps its copy.
+ */
+async function keepWatchRun(json: string, id: string): Promise<void> {
+  const run = watchRunToImported(json);
+  if (!run) return send(PATHS.runAck, runAckJson(id, false));
+  const tally = { ...EMPTY_TALLY, ids: [] as number[] };
+  try {
+    await importParsed([{ result: { runs: [run], skipped: [] }, fileName: null }], 'watch', tally);
+  } catch {
+    return; // the watch sends it again later
+  }
+  send(PATHS.runAck, runAckJson(id, true));
+  if (tally.ids.length) runHandler?.(tally.ids);
+}
 
 function send(path: string, data: string) {
   if (!native || !enabled) return;
@@ -54,6 +77,10 @@ function startWear(): void {
       if (c === 'start' && current.status === 'idle' && AppState.currentState !== 'active') return sendLive(true);
       if (c) commandHandler?.(c);
       sendLive(); // the watch waits on an answer to know the app is up
+    } else if (path === PATHS.run) {
+      const c = parseRunChunk(data);
+      const whole = c ? addRunChunk(chunks, c, Date.now()) : null;
+      if (c && whole != null) void keepWatchRun(whole, c.id);
     } else if (path === PATHS.hr) {
       // Readings with no run on: the watch missed the Stop. Tell it where things are.
       if (!heartIn('watch', parseHeart(data))) sendLive();
@@ -84,6 +111,11 @@ export function setWearEnabled(on: boolean): void {
 /** The run screen's handler for the watch's buttons. */
 export function onWatchCommand(fn: ((c: WatchCommand) => void) | null): void {
   commandHandler = fn;
+}
+
+/** App.tsx: runs that came in from the watch, to tick the plan and refresh the lists. */
+export function onWatchRuns(fn: ((runIds: number[]) => void) | null): void {
+  runHandler = fn;
 }
 
 /** From the tracking tick. Cheap: most calls send nothing. */

@@ -8,6 +8,7 @@ import { ui } from './i18n/ui';
 
 export interface StatPoint extends TimedPoint {
   alt: number | null;
+  acc?: number | null; // horizontal accuracy in metres, when the phone gave one
 }
 
 export interface StatRun {

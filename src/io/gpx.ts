@@ -7,14 +7,14 @@ import { plausibleBpm, type ImportedRun, type ParseResult, type TrackPoint } fro
 // Strava, Coros, Suunto and Polar add. Heart rate (gpxtpx:hr, ns3:hr) is kept;
 // the rest (cadence, power, temperature) is ignored.
 
-const TAG = (name: string) => new RegExp(`<(?:[\\w-]+:)?${name}\\b([^>]*?)(?:\\/>|>([\\s\\S]*?)<\\/(?:[\\w-]+:)?${name}\\s*>)`, 'g');
+export const TAG = (name: string) => new RegExp(`<(?:[\\w-]+:)?${name}\\b([^>]*?)(?:\\/>|>([\\s\\S]*?)<\\/(?:[\\w-]+:)?${name}\\s*>)`, 'g');
 
-function attr(attrs: string, name: string): string | null {
+export function attr(attrs: string, name: string): string | null {
   const m = new RegExp(`\\b${name}\\s*=\\s*(["'])([^"']*)\\1`).exec(attrs);
   return m ? m[2] : null;
 }
 
-function child(body: string | undefined, name: string): string | null {
+export function child(body: string | undefined, name: string): string | null {
   if (!body) return null;
   const m = new RegExp(`<(?:[\\w-]+:)?${name}\\b[^>]*>([\\s\\S]*?)<\\/(?:[\\w-]+:)?${name}\\s*>`).exec(body);
   return m ? decode(m[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').trim()) : null;
