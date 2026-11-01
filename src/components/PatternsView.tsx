@@ -1,4 +1,5 @@
 import React from 'react';
+import { withYear } from '../when';
 import { Text, View } from 'react-native';
 import type { Change, Insight, Patterns } from '../patterns';
 import { colors, fonts, radius, spacing, type, themedStyles } from '../theme';
@@ -85,7 +86,7 @@ function Dots({ changes }: { changes: Change[] }) {
 /** How the screen writes dates and distances inside pattern lines. */
 export function patternFormat(km: boolean) {
   return {
-    date: (t: number) => new Date(t).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' }),
+    date: (t: number) => new Date(t).toLocaleDateString(dateLocale(), withYear(t, { day: 'numeric', month: 'short' })),
     distance: (m: number) => (km ? `${decimal((m / 1000).toFixed(1))} km` : `${decimal((m / 1609.344).toFixed(1))} mi`),
   };
 }

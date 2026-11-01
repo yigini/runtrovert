@@ -1,4 +1,5 @@
 import { beforeDeleteForHealth, syncRunToHealth } from '../health';
+import { withYear } from '../when';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
@@ -193,7 +194,7 @@ export function RunDetailScreen({
   }
 
   function routeName(r: Run): string {
-    return new Date(r.startedAt).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' });
+    return new Date(r.startedAt).toLocaleDateString(dateLocale(), withYear(r.startedAt, { day: 'numeric', month: 'long' }));
   }
 
   function followNow() {
@@ -332,7 +333,7 @@ export function RunDetailScreen({
         <Text style={styles.source}>{ui().runAids.indoorTag}</Text>
       ) : source ? (
         <Text style={styles.source}>
-          {ui().runDetail.broughtIn(source.kind === 'health' ? (source.fileName ? `${ui().runDetail.healthConnect} (${source.fileName})` : ui().runDetail.healthConnect) : source.fileName ?? ui().runDetail.aXFile(source.kind.toUpperCase()), new Date(source.importedAt).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' }))}
+          {ui().runDetail.broughtIn(source.kind === 'health' ? (source.fileName ? `${ui().runDetail.healthConnect} (${source.fileName})` : ui().runDetail.healthConnect) : source.fileName ?? ui().runDetail.aXFile(source.kind.toUpperCase()), new Date(source.importedAt).toLocaleDateString(dateLocale(), withYear(source.importedAt, { day: 'numeric', month: 'long' })))}
         </Text>
       ) : null}
       <BackHomeCard run={run} />

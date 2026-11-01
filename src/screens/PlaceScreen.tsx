@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { withYear } from '../when';
 import { Alert, ScrollView, Text, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
 import { Button } from '../components/Button';
@@ -57,7 +58,7 @@ export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeI
     );
   }
 
-  const since = summary.since ? new Date(summary.since).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' }) : null;
+  const since = summary.since ? new Date(summary.since).toLocaleDateString(dateLocale(), withYear(summary.since, { day: 'numeric', month: 'short' })) : null;
   const facts = [
     summary.count === 1 ? ui().place.runOnce : ui().place.runXTimes(summary.count),
     since ? ui().place.since(since) : null,
@@ -113,10 +114,10 @@ export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeI
 
         {/* The warmth is the runner's own words, not a line the app made up. */}
         {lastNote ? (
-          <View style={styles.lastNote} accessible accessibilityLabel={`${ui().place.yourLastNote}, ${new Date(lastNote.at).toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}: ${lastNote.note}`}>
+          <View style={styles.lastNote} accessible accessibilityLabel={`${ui().place.yourLastNote}, ${new Date(lastNote.at).toLocaleDateString(dateLocale(), withYear(lastNote.at, { weekday: 'long', day: 'numeric', month: 'long' }))}: ${lastNote.note}`}>
             <Text style={type.eyebrow}>{ui().place.yourLastNote}</Text>
             <Text style={styles.lastNoteText}>{lastNote.note!.trim()}</Text>
-            <Text style={type.small}>{new Date(lastNote.at).toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric', month: 'short' })}</Text>
+            <Text style={type.small}>{new Date(lastNote.at).toLocaleDateString(dateLocale(), withYear(lastNote.at, { weekday: 'short', day: 'numeric', month: 'short' }))}</Text>
           </View>
         ) : null}
 
@@ -130,7 +131,7 @@ export function PlaceScreen({ placeId, onBack, onChanged, onRunAgain }: { placeI
               </Text>
           {m.visits.map((v) => {
             const when = new Date(v.at);
-            const label = `${when.toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric', month: 'short' })} ${when.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' })}`;
+            const label = `${when.toLocaleDateString(dateLocale(), withYear(when, { weekday: 'short', day: 'numeric', month: 'short' }))} ${when.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' })}`;
             return (
               <View key={v.id} style={styles.log} accessible accessibilityLabel={[label, v.busy ? BUSY_LABEL[v.busy] : ui().place.noRating, v.note].filter(Boolean).join('. ')}>
                 {/* Date and busyness on one line, the note under them at full width and never cut short. */}

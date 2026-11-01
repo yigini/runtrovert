@@ -52,6 +52,7 @@ import { lang } from './src/i18n/lang';
 import { warmSigs } from './src/placeStore';
 import { loadYou } from './src/you';
 import { onRunsImported } from './src/io/importJob';
+import { okToFollow } from './src/followCheck';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -350,7 +351,9 @@ function Shell() {
     setTimeout(() => askAgain(), 2500);
   }
 
-  function runAgain(p: Place) {
+  async function runAgain(p: Place) {
+    // Only straight to the Run tab when you're near the place's route; far away, it asks first.
+    if (!(await okToFollow(p.sig.pts.map(([lat, lon]) => ({ lat, lon })), p.name, settings.unitsKm))) return;
     setOpenPlace(null);
     setPlaceFrom(null);
     setGhost({ placeId: p.id, name: p.name, path: p.sig.pts.map(([latitude, longitude]) => ({ latitude, longitude })), follow: true });

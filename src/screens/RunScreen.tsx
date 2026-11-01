@@ -1,4 +1,5 @@
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
+import { okToFollow } from '../followCheck';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Alert, Animated, Dimensions, Easing, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -587,7 +588,8 @@ export function RunScreen({ onSaved, requested = null, onRequestTaken, planKey =
   }
 
   /** "Run this again" from the home screen's place: the same as from the place itself. */
-  function runPlace(p: Place) {
+  async function runPlace(p: Place) {
+    if (!(await okToFollow(p.sig.pts.map(([lat, lon]) => ({ lat, lon })), p.name, km))) return;
     setGhostRun({ placeId: p.id, name: p.name, path: p.sig.pts.map(([latitude, longitude]) => ({ latitude, longitude })), follow: true });
   }
 
