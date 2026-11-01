@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { withYear } from '../when';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { formatDistance } from '../geo';
 import { BUSY_LABEL, tagLabel } from '../places';
@@ -107,7 +108,7 @@ export function lastWhen(at: number): string {
   const days = (Date.now() - at) / 86400000;
   const time = d.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' });
   if (days < 6.5) return `${d.toLocaleDateString(dateLocale(), { weekday: 'short' })} ${time}`;
-  return d.toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' });
+  return d.toLocaleDateString(dateLocale(), withYear(d, { day: 'numeric', month: 'short' }));
 }
 
 const styles = themedStyles(() => ({

@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { parseRoutes } from '../src/io/route';
+import { withYear } from '../src/when';
 import { AROUND_KM, MAX_TILES, boxAround, boxOfPath, roughMb, tileCount } from '../src/mapArea';
 import { NEAR_ROUTE_M, RouteWatch, distanceToRoute, metres, nearest, pathLength, roughDistance, simplify, type Pt } from '../src/routeFollow';
 
@@ -132,6 +133,14 @@ check(boxOfPath([]) === null, 'no route, no box');
   check(roughDistance(1_234_567, true) === '1 235 km', `thousands spaced (${roughDistance(1_234_567, true)})`);
   check(roughDistance(3400, true) === '3.4 km' && roughDistance(3400, false) === '2.1 mi', 'short ones keep a decimal');
   check(distanceToRoute({ lat: 0, lon: 0 }, []) === Infinity, 'no route, never near');
+}
+
+
+// ---- Dates from other years say the year ------------------------------------------------
+{
+  const now = new Date(2026, 10, 1);
+  check(withYear(new Date(2015, 7, 11).getTime(), { day: 'numeric', month: 'short' }, now).year === 'numeric', 'a run from 2015 shows its year');
+  check(withYear(new Date(2026, 7, 11), { day: 'numeric', month: 'short' }, now).year === undefined, 'this year needs no year');
 }
 
 if (fails) {

@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { withYear } from '../when';
 import * as Sharing from 'expo-sharing';
 import React, { useMemo, useRef, useState } from 'react';
 import { Alert, Dimensions, Modal, Pressable, ScrollView, Text, View } from 'react-native';
@@ -99,7 +100,7 @@ export function ShareSheet({
   })();
 
   const faces = stat === 'energy' && run.moodBefore != null && run.moodAfter != null ? { before: run.moodBefore, after: run.moodAfter } : null;
-  const when = `${new Date(run.startedAt).toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric', month: 'short' })} · ${roughTime(run.startedAt)}`;
+  const when = `${new Date(run.startedAt).toLocaleDateString(dateLocale(), withYear(run.startedAt, { weekday: 'short', day: 'numeric', month: 'short' }))} · ${roughTime(run.startedAt)}`;
 
   async function onShare() {
     if (!card.current || busy) return;

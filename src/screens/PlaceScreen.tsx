@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { withYear } from '../when';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
 import { Button } from '../components/Button';
@@ -70,10 +71,7 @@ export function PlaceScreen({
     );
   }
 
-  // Imported runs can go back years: say the year whenever it isn't this one.
-  const since = summary.since
-    ? new Date(summary.since).toLocaleDateString(dateLocale(), new Date(summary.since).getFullYear() === new Date().getFullYear() ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' })
-    : null;
+  const since = summary.since ? new Date(summary.since).toLocaleDateString(dateLocale(), withYear(summary.since, { day: 'numeric', month: 'short' })) : null;
   // Runs brought in from elsewhere carry no notes: then the list is simply every run here.
   const anyNotes = visits.some((v) => v.busy || v.note?.trim());
   const facts = [
@@ -131,10 +129,10 @@ export function PlaceScreen({
 
         {/* The warmth is the runner's own words, not a line the app made up. */}
         {lastNote ? (
-          <View style={styles.lastNote} accessible accessibilityLabel={`${ui().place.yourLastNote}, ${new Date(lastNote.at).toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}: ${lastNote.note}`}>
+          <View style={styles.lastNote} accessible accessibilityLabel={`${ui().place.yourLastNote}, ${new Date(lastNote.at).toLocaleDateString(dateLocale(), withYear(lastNote.at, { weekday: 'long', day: 'numeric', month: 'long' }))}: ${lastNote.note}`}>
             <Text style={type.eyebrow}>{ui().place.yourLastNote}</Text>
             <Text style={styles.lastNoteText}>{lastNote.note!.trim()}</Text>
-            <Text style={type.small}>{new Date(lastNote.at).toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric', month: 'short' })}</Text>
+            <Text style={type.small}>{new Date(lastNote.at).toLocaleDateString(dateLocale(), withYear(lastNote.at, { weekday: 'short', day: 'numeric', month: 'short' }))}</Text>
           </View>
         ) : null}
 
@@ -148,7 +146,7 @@ export function PlaceScreen({
               </Text>
           {m.visits.map((v) => {
             const when = new Date(v.at);
-            const label = `${when.toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric', month: 'short' })} ${when.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' })}`;
+            const label = `${when.toLocaleDateString(dateLocale(), withYear(when, { weekday: 'short', day: 'numeric', month: 'short' }))} ${when.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' })}`;
             const run = v.distanceM && v.durationS ? `${formatDistance(v.distanceM, km)} · ${formatPace(v.distanceM, v.durationS, km)} /${km ? 'km' : 'mi'}` : null;
             const busy = v.busy ? BUSY_LABEL[v.busy] : null;
             const note = v.note?.trim() || null;
