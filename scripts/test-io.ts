@@ -172,7 +172,8 @@ check(sniff('Morning_Run.fit', watchBytes.subarray(0, 512)) === 'fit', 'FIT by i
 check(sniff('export', watchBytes.subarray(0, 512)) === 'fit', 'FIT without the extension');
 check(sniff('a.gpx', new Uint8Array(sample('strava-run.gpx').subarray(0, 512))) === 'gpx', 'GPX');
 check(sniff('download', new Uint8Array(sample('garmin-two-pieces.gpx').subarray(0, 512))) === 'gpx', 'GPX without the extension');
-check(sniff('123.fit.gz', new Uint8Array([0x1f, 0x8b, 8, 0])) === 'zipped', 'Strava bulk export files are gzipped');
+check(sniff('123.fit.gz', new Uint8Array([0x1f, 0x8b, 8, 0])) === 'gzip', 'Strava bulk export files are gzipped');
+check(sniff('export.zip', new Uint8Array([0x50, 0x4b, 3, 4])) === 'zip', 'a whole export');
 check(sniff('photo.jpg', new Uint8Array([0xff, 0xd8, 0xff, 0xe0])) === null, 'anything else');
 
 // ---- Words --------------------------------------------------------------------
