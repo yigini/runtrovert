@@ -189,9 +189,9 @@ const only2 = await collect(strava2, new Set(['strava-typed:202']));
 check(only2.got.length === 1 && only2.got[0].typed != null, 'the second pass can ask for a typed run alone');
 
 // Two hand-typed runs the same morning, overlapping times: two Strava ids, two runs.
-const am = Date.UTC(2015, 4, 15, 7, 30);
-check(!sameRun({ startedAt: am, endedAt: am + 3420_000, distanceM: 10300, externalId: 'strava:399423244' }, { startedAt: am + 1_800_000, endedAt: am + 3_351_000, distanceM: 2500, externalId: 'strava:399423210' }), 'different Strava ids are different runs');
-check(sameRun({ startedAt: am, endedAt: am + 3420_000, distanceM: 10300, externalId: 'strava:1' }, { startedAt: am, endedAt: am + 3420_000, distanceM: 10300, externalId: 'fit:9:9:0' }), 'a Strava run and the watch file of it are still one run');
+const am = Date.UTC(2026, 2, 1, 7, 0);
+check(!sameRun({ startedAt: am, endedAt: am + 3_600_000, distanceM: 10000, externalId: 'strava:1001' }, { startedAt: am + 1_800_000, endedAt: am + 3_000_000, distanceM: 2000, externalId: 'strava:1002' }), 'different Strava ids are different runs');
+check(sameRun({ startedAt: am, endedAt: am + 3_600_000, distanceM: 10000, externalId: 'strava:1' }, { startedAt: am, endedAt: am + 3_600_000, distanceM: 10000, externalId: 'fit:9:9:0' }), 'a Strava run and the watch file of it are still one run');
 
 // ---- A Garmin export: zips inside the zip ------------------------------------------------
 const part1 = deflatedZip([
