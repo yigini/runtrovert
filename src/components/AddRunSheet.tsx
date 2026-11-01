@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { addManualRun, getRun, runSpans } from '../db';
 import { distanceUnit } from '../geo';
 import { checkEntry, defaultMinutes, entryStart, parseDistance, parseDuration, type EntryProblem } from '../runEdit';
 import { onRunSaved } from '../training/store';
-import { colors, fonts, radius, spacing } from '../theme';
+import { colors, fonts, radius, spacing, themedStyles } from '../theme';
 import { Button } from './Button';
 import { ui } from '../i18n/ui';
 import { dateLocale } from '../i18n/lang';
@@ -126,10 +126,10 @@ function Stepper({ label, value, onLess, onMore, moreDisabled, lessHint, moreHin
   );
 }
 
-const styles = StyleSheet.create({
-  scrim: { flex: 1, backgroundColor: 'rgba(43,39,51,0.45)', justifyContent: 'flex-end' },
+const styles = themedStyles(() => ({
+  scrim: { flex: 1, backgroundColor: colors.scrim, justifyContent: 'flex-end' },
   sheet: { maxHeight: '92%', backgroundColor: colors.cream, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, padding: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
-  grabber: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(43,39,51,0.2)', marginTop: -8, marginBottom: 4 },
+  grabber: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.grabber, marginTop: -8, marginBottom: 4 },
   h2: { fontFamily: fonts.display, fontSize: 24, lineHeight: 30, color: colors.text },
   small: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.muted },
   label: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text },
@@ -141,4 +141,4 @@ const styles = StyleSheet.create({
   stepText: { fontFamily: fonts.bodySemi, fontSize: 22, color: colors.text },
   stepValue: { minWidth: 120, textAlign: 'center', fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
   problem: { fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 20, color: colors.peachDeep },
-});
+}));

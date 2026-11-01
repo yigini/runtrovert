@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { loadValue, saveValue } from '../db';
 import { clampSpec, MAX_REPS, QUICK_PRESETS, quickMinutes, quickSession, quickTitle, REST_S, WARM_MIN, WORK_S, type QuickEffort, type QuickPresetKey, type QuickRest, type QuickSpec } from '../training/quick';
 import type { Session } from '../training/types';
 import { formatMin } from '../training/workout';
-import { colors, fonts, radius, spacing } from '../theme';
+import { colors, fonts, radius, spacing, themedStyles } from '../theme';
 import { BackButton } from './BackButton';
 import { Button } from './Button';
 import { ui } from '../i18n/ui';
@@ -122,7 +122,7 @@ function Stepper({ label, value, less, more }: { label: string; value: string; l
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   scroll: { flex: 1, backgroundColor: colors.cream },
   screen: { padding: spacing.md, paddingTop: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
   h1: { fontFamily: fonts.display, fontSize: 34, lineHeight: 38, letterSpacing: -0.6, color: colors.text },
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   chev: { fontFamily: fonts.bodySemi, fontSize: 22, color: colors.muted },
   card: { backgroundColor: colors.white, borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  chip: { minHeight: 40, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: colors.white, justifyContent: 'center', borderWidth: 1, borderColor: '#e8e0d4' },
+  chip: { minHeight: 40, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: colors.white, justifyContent: 'center', borderWidth: 1, borderColor: colors.line },
   chipSmall: { minHeight: 36, paddingHorizontal: 12 },
   chipOn: { backgroundColor: colors.mint, borderColor: colors.mint },
   chipText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.text },
@@ -145,4 +145,4 @@ const styles = StyleSheet.create({
   stepText: { fontFamily: fonts.bodySemi, fontSize: 22, color: colors.text },
   stepValue: { minWidth: 90, textAlign: 'center', fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
   summaryTitle: { fontFamily: fonts.display, fontSize: 21, lineHeight: 26, color: colors.text },
-});
+}));
