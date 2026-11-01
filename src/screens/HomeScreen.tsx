@@ -308,7 +308,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
         {/* The run's kind lives in the Start button now; this opens the choice. Remembered, so most days nobody taps it. */}
         {route ? null : onRunWithoutPlan ? (
           // Opened from Train: the session is followed, and the way out is a run without it.
-          <Pressable onPress={onRunWithoutPlan} accessibilityRole="button" accessibilityHint={ui().home.runWithoutThePlanHint} hitSlop={10} style={{ alignSelf: 'center' }}>
+          <Pressable onPress={onRunWithoutPlan} accessibilityRole="button" accessibilityLabel={`${presetInfo(preset).name}. ${ui().home.runWithoutThePlan}`} accessibilityHint={ui().home.runWithoutThePlanHint} hitSlop={10} style={{ alignSelf: 'center' }}>
             <Text style={styles.kindLine}>
               {presetInfo(preset).name} · <Text style={styles.kindLink}>{ui().home.runWithoutThePlan}</Text>
             </Text>

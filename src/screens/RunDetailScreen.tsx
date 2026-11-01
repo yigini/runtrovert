@@ -181,15 +181,20 @@ export function RunDetailScreen({
     }
   }
 
+  const keeping = useRef(false);
   async function keepAsPlace(d: PlaceDraft) {
-    if (!choice) return;
-    setPlaceSheet(false);
+    if (!choice || keeping.current) return; // a second tap while saving makes no second place
+    keeping.current = true;
+    // The sheet stays open with what was typed until the place is really saved.
     try {
       const id = await placeFromRun(runId, d, choice.sig);
-      setPlace(await getPlace(id));
+      setPlaceSheet(false);
+      setPlace(await getPlace(id).catch(() => null));
       setChoice(null);
     } catch {
-      // nothing kept; the link stays
+      Alert.alert(ui().runDetail.couldntSaveThat, ui().common.tryAgainInAMoment);
+    } finally {
+      keeping.current = false;
     }
   }
 

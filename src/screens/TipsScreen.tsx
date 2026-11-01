@@ -48,7 +48,7 @@ export function TipsScreen({ visible, today, hidden, onHidden, onClose }: { visi
               <Text style={styles.rowLabel}>{ui().tips.oneOnTheHomeScreen}</Text>
               <Text style={styles.rowHint}>{ui().tips.aNewOneEachDay}</Text>
             </View>
-            <Switch value={!hidden} onValueChange={(v) => onHidden(!v)} {...switchColors(!hidden)} />
+            <Switch value={!hidden} onValueChange={(v) => onHidden(!v)} accessibilityLabel={ui().tips.oneOnTheHomeScreen} accessibilityHint={ui().tips.aNewOneEachDay} {...switchColors(!hidden)} />
           </View>
           <Text style={styles.small}>{ui().tips.tipsNotMedicalAdviceIf}</Text>
         </ScrollView>

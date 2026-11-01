@@ -38,6 +38,8 @@ export function RunStatsView({ run, points, splits, laps = [], partial, sun, km,
   );
   const [at, setAt] = useState<number | null>(null); // metres along the run, while a finger is on a chart
   const charted = stats.pace.length > 0;
+  // Added by hand (or brought in without a route): the distance and time are real, there's just no track to draw or split.
+  const noTrack = points.length < 2;
 
   return (
     <View style={{ gap: spacing.md }}>
@@ -57,11 +59,11 @@ export function RunStatsView({ run, points, splits, laps = [], partial, sun, km,
         </View>
       ) : (
         <View style={[styles.card, { backgroundColor: colors.lilacSoft }]}>
-          <Text style={styles.emptyTitle}>{ui().runStats.tooShortToDraw}</Text>
-          <Text style={type.small}>{ui().runStats.chartsStartAfterAbout400}</Text>
+          <Text style={styles.emptyTitle}>{noTrack ? ui().runStats.noRecordedRoute : ui().runStats.tooShortToDraw}</Text>
+          <Text style={type.small}>{noTrack ? ui().runStats.noTrackNothingToChart : ui().runStats.chartsStartAfterAbout400}</Text>
         </View>
       )}
-      <SplitsTable title={ui().runStats.splitsPerX(distanceUnit(km))} rows={splits} km={km} partial={partial} />
+      {noTrack && !splits.length ? null : <SplitsTable title={ui().runStats.splitsPerX(distanceUnit(km))} rows={splits} km={km} partial={partial} />}
       {laps.length > 0 && <SplitsTable title={ui().runStats.laps} rows={laps} km={km} />}
       {stats.halves && <HalvesBar halves={stats.halves} />}
       {stats.light && <DayArc light={stats.light} />}

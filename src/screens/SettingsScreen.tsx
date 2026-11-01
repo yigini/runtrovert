@@ -224,8 +224,9 @@ function useShoesValue(km: boolean): string {
   return ui().shoes.rowValue(shoe.name, roughDistance(totals(book, runs).get(shoe.id)?.distanceM ?? 0, km));
 }
 
-function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
-  return <Switch value={value} onValueChange={onChange} {...switchColors(value)} />;
+// Row hands its label and hint down; they must reach the Switch, or a screen reader hears a nameless switch.
+function Toggle({ value, onChange, accessibilityLabel, accessibilityHint }: { value: boolean; onChange: (v: boolean) => void; accessibilityLabel?: string; accessibilityHint?: string }) {
+  return <Switch value={value} onValueChange={onChange} accessibilityLabel={accessibilityLabel} accessibilityHint={accessibilityHint} {...switchColors(value)} />;
 }
 
 function RunPage({ runLive, open }: { runLive: boolean; open: (p: Page) => void }) {
