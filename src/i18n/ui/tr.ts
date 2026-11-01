@@ -1941,6 +1941,15 @@ export const tr: Strings = {
     restWord: { walk: 'yürü', jog: 'hafif koş' },
     titleOf: (effort: string, work: string, rest: string | null, restTime: string | null, reps: number) => `${effort} ${work}${rest ? `, ${rest} ${restTime}` : ''}, ${reps} tekrar`,
   },
+  workoutFile: {
+    link: 'Garmin, Coros ya da başka bir saat için kaydet',
+    title: 'Saat için antrenman dosyası',
+    how: 'Seansı, saatinin seni adım adım yönlendireceği bir .fit antrenmanı olarak kaydeder.\n\nGarmin: USB ile GARMIN/NewFiles klasörüne kopyala. Coros, Suunto ve diğerleri: antrenmanları saate gönderen intervals.icu gibi bir uygulamayla aç.',
+    save: 'Dosyayı kaydet',
+    cancel: 'Şimdi değil',
+    failed: 'Antrenman dosyası oluşturulamadı',
+    noShare: (uri: string) => 'Burada paylaşım yok. Dosya şurada: ' + uri,
+  },
   addRun: {
     link: 'Kaydetmediğin bir koşu ekle',
     title: 'Koşu ekle',

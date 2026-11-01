@@ -1941,6 +1941,15 @@ export const es: Strings = {
     restWord: { walk: 'caminar', jog: 'trotar' },
     titleOf: (effort: string, work: string, rest: string | null, restTime: string | null, reps: number) => `${effort} ${work}${rest ? `, ${rest} ${restTime}` : ''}, ${reps} ${reps === 1 ? 'vez' : 'veces'}`,
   },
+  workoutFile: {
+    link: 'Guardarlo para un reloj Garmin, Coros u otro',
+    title: 'Archivo de entrenamiento para el reloj',
+    how: 'Esto guarda la sesión como entrenamiento .fit para que tu reloj te guíe paso a paso.\n\nGarmin: cópialo por USB en la carpeta GARMIN/NewFiles. Coros, Suunto y otros: ábrelo con una app como intervals.icu, que envía los entrenamientos al reloj.',
+    save: 'Guardar el archivo',
+    cancel: 'Ahora no',
+    failed: 'No se pudo crear el archivo de entrenamiento',
+    noShare: (uri: string) => 'Aquí no se puede compartir. El archivo está en: ' + uri,
+  },
   addRun: {
     link: 'Añadir una salida que no grabaste',
     title: 'Añadir una salida',
