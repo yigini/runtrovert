@@ -8,6 +8,8 @@ on:
       - .github/workflows/android-emulator.yml
       - scripts/android-emulator-smoke.sh
       - scripts/android-user-journeys.py
+      - scripts/android_data_journeys.py
+      - scripts/android_extra_journeys.py
   workflow_dispatch:
     inputs:
       build_run_id:
@@ -15,14 +17,19 @@ on:
         required: true
         default: '41319989111'
         type: string
+      cases:
+        description: Optional comma-separated journey IDs; empty runs all checks
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
   actions: read
 
 concurrency:
-  group: android-emulator-${{ github.ref }}
-  cancel-in-progress: true
+  group: android-emulator-${{ github.ref }}-${{ github.run_id }}
+  cancel-in-progress: false
 
 jobs:
   emulator:
@@ -30,6 +37,7 @@ jobs:
     timeout-minutes: 45
     env:
       BUILD_RUN_ID: ${{ inputs.build_run_id || '41319989111' }}
+      RT_CASES: ${{ inputs.cases || '04-background-permission-cancel,11-units-theme-persistence,15-backup-roundtrip,16-truncated-backup-safety,17-malformed-backup-rollback,18-gpx-import-deduplication,19-process-death-recovery,20-mode-fallback-countdown-cancel,21-plan-setup-session-guidance,22-plan-health-warning-cancel,23-plan-pause-rest-ill-stop,24-listen-choices-privacy-cancel' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:

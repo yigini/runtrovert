@@ -169,14 +169,17 @@ def begin(label='Start'):
     tap(label); allow_remaining(); time.sleep(5); expect('Pause',timeout=20)
 
 def first_history_run():
-    tap(r'(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday).*in .*minute',regex=True)
+    tap(r'(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday).*in .*(second|minute|hour)',regex=True)
 
 def gps_loop():
     step=0
     while not GPS_STOP.is_set():
         # A public, synthetic route near Rome, unrelated to the user's location.
         lon=12.4924+step*.000055; lat=41.8902+step*.00001
-        adb('emu','geo','fix',f'{lon:.7f}',f'{lat:.7f}','25','8',check=False)
+        try:
+            adb('emu','geo','fix',f'{lon:.7f}',f'{lat:.7f}','25','8',check=False)
+        except Exception:
+            pass  # adb can restart when the disposable device enters root mode.
         step=(step+1)%250
         GPS_STOP.wait(2)
 
@@ -223,6 +226,9 @@ def missing_background():
     if find('Background location',r) is None:
         # Android may open the app's system permission page on this first request.
         back()
+        r,_=hierarchy()
+        if find('com.android.permissioncontroller:id/permission_allow_button',r) is not None:
+            tap('com.android.permissioncontroller:id/permission_allow_button',scrolls=0)
     expect('Background location'); tap('Cancel'); expect('Start'); not_visible('Pause')
 
 def record_run():
@@ -284,9 +290,9 @@ def settings_sweep():
     if missing: raise Blocked(f'Settings pages not reached: {missing}')
 
 def units_theme():
-    fresh(); settings_page('During a run'); tap('mi'); shot('miles-selected'); back(); tap('Appearance'); tap('Dark'); shot('dark-settings'); back(); back()
+    fresh(); settings_page('During a run'); tap('Units: mi'); shot('miles-selected'); back(); tap('Appearance'); tap('Dark'); shot('dark-settings'); back(); back()
     adb('shell','am','force-stop',PACKAGE); launch(); settings_page('During a run')
-    n=locate('mi'); assert n.get('selected')=='true' or n.get('checked')=='true', 'Miles selection did not persist in accessibility state'
+    n=locate('Units: mi'); assert n.get('selected')=='true' or n.get('checked')=='true', 'Miles selection did not persist in accessibility state'
     shot('units-persisted'); back(); tap('Appearance'); shot('theme-persisted')
 
 def large_text():
@@ -312,6 +318,11 @@ CASES=[('01-welcome-copy',welcome_copy),('02-onboarding-navigation',navigation),
  ('09-quick-workout',quick_workout),('10-settings-pages',settings_sweep),
  ('11-units-theme-persistence',units_theme),('12-large-text',large_text),
  ('13-offline-recording',offline_run),('14-data-tools-cancellation',import_cancel_backup)]
+
+from android_data_journeys import data_cases
+from android_extra_journeys import extra_cases
+CASES += data_cases(sys.modules[__name__])
+CASES += extra_cases(sys.modules[__name__])
 
 if __name__=='__main__':
     size=adb('shell','wm','size'); numbers=re.findall(r'(\d+)x(\d+)',size)
