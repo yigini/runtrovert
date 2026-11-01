@@ -1,4 +1,4 @@
-name: Android emulator smoke test
+name: Android emulator user journeys
 
 on:
   # Bootstrap and iterate on the isolated test environment without changing main.
@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/android-emulator.yml
       - scripts/android-emulator-smoke.sh
+      - scripts/android-user-journeys.py
   workflow_dispatch:
     inputs:
       build_run_id:
@@ -26,7 +27,7 @@ concurrency:
 jobs:
   emulator:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 45
     env:
       BUILD_RUN_ID: ${{ inputs.build_run_id || '41319989111' }}
     steps:
@@ -88,7 +89,9 @@ jobs:
           emulator-boot-timeout: 300
           emulator-options: -no-window -gpu software -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none
           disable-linux-hw-accel: false
-          script: bash scripts/android-emulator-smoke.sh
+          script: |
+            bash scripts/android-emulator-smoke.sh
+            python3 scripts/android-user-journeys.py
 
       - name: Keep screenshots and diagnostics
         if: always()
