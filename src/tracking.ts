@@ -8,17 +8,19 @@
  * Everything the UI reads comes from subscribe()/getState().
  */
 import { AppState } from 'react-native';
-import { cueAutoPause, cueAutoResume, cueKmSplit, cueLap, runSilent, setCueMode } from './cues';
-import { addPoints, addSplit, clearBufferedFixes, createRun, finishRun, getBufferedFixes, getPoints, getRun, updateRunProgress } from './db';
+import { cueAutoPause, cueAutoResume, cueLap, runSilent, setCueMode } from './cues';
+import { addPoints, addSplit, clearBufferedFixes, createRun, finishRun, getBufferedFixes, getPoints, getRun, getSplits, loadValue, replaceKmSplits, saveValue, updateRunProgress } from './db';
 import { getEngine } from './gps/engine';
 import { GpsFilter, type FilteredFix, type RawFix } from './gps/kalman';
 import { clearSnapshot, loadSnapshot, saveSnapshot, type RunSnapshot } from './gps/recovery';
 import { replayFixes } from './gps/replay';
 import { autoPauseDue } from './gps/moving';
-import { ElevationTracker, StepFusion } from './gps/sensors';
+import { ElevationTracker, IndoorSteps, StepFusion } from './gps/sensors';
 import { rememberPlace } from './place';
 import { GPS_PROFILES, profileFor, readPower, type GpsProfileName } from './power';
-import { beginRunNotes, batteryNote, endRunNotes, splitNote, updateLiveNote } from './runNotify';
+import { beginRunNotes, batteryNote, endRunNotes, refreshLiveNote, setRunActionHandler, splitNote, updateLiveNote } from './runNotify';
+import { aidsSplit, aidsTick, beginAids, setAidSettings } from './runCues';
+import { INDOOR_KEY, learnStride, rescaleSplits, STRIDE_KEY, treadmillStride } from './runAids';
 import { setWearEnabled, wearLive, wearSplit } from './wear';
 import { heartRun } from './heartIn';
 import { strapRun } from './strap';
@@ -31,6 +33,8 @@ const MOVING_SPEED_MPS = 0.9; // ~3.2 km/h; slower than a walk
 const SNAPSHOT_EVERY_MS = 5000;
 const MAX_PATH_POINTS = 20000; // ~5.5 h at 1 Hz before we thin the live path
 const POWER_CHECK_EVERY_MS = 120_000; // battery level moves slowly; no need to ask often
+// Treadmill: step counters hand over steps in batches, so a still belt needs longer to be sure of.
+const INDOOR_STILL_MS = 12_000;
 
 export type TrackingStatus = 'idle' | 'running' | 'paused' | 'autopaused';
 export type GpsQuality = 'searching' | 'good' | 'ok' | 'weak' | 'lost';
@@ -64,6 +68,10 @@ export interface TrackingState {
   gpsProfile: GpsProfileName;
   /** Stop tapped, sensors off, finish screen showing. */
   halted: boolean;
+  /** A treadmill run: no GPS, distance from steps × stride. */
+  indoor: boolean;
+  /** Treadmill: steps credited so far (0 outdoors). */
+  indoorSteps: number;
 }
 
 let settings: Settings = { ...DEFAULT_SETTINGS };
@@ -71,11 +79,14 @@ export function applySettings(s: Settings) {
   settings = s;
   setCueMode(s.cueMode);
   setWearEnabled(s.watch);
+  setAidSettings(s);
 }
 
 const filter = new GpsFilter();
 const elevation = new ElevationTracker();
 const steps = new StepFusion();
+const indoorSteps = new IndoorSteps();
+let indoorStride = treadmillStride(null);
 
 const state: TrackingState = {
   status: 'idle',
@@ -98,6 +109,8 @@ const state: TrackingState = {
   stepFilledM: 0,
   gpsProfile: 'best',
   halted: false,
+  indoor: false,
+  indoorSteps: 0,
 };
 
 let accumulatedS = 0;
@@ -149,7 +162,7 @@ function snapshot(): TrackingState {
 }
 
 function emit() {
-  if (state.status !== 'idle') updateLiveNote({ status: state.status, distanceM: state.distanceM, durationS: liveDuration(), unitsKm: settings.unitsKm });
+  if (state.status !== 'idle') updateLiveNote({ status: state.status, distanceM: state.distanceM, durationS: liveDuration(), unitsKm: settings.unitsKm, laps: state.laps.length });
   const runStatus = state.halted ? 'halted' : state.status;
   heartRun(state.runId, runStatus);
   strapRun(runStatus);
@@ -221,6 +234,8 @@ async function persist(force = false) {
     splitCount: state.splits.length,
     lapCount: state.laps.length,
     savedAt: now,
+    indoor: state.indoor,
+    indoorSteps: state.indoorSteps,
   };
   await saveSnapshot(snap);
 }
@@ -246,7 +261,7 @@ async function maybeCloseKmSplit(quiet = false) {
       await addSplit(state.runId, row);
     }
     if (quiet) continue;
-    cueKmSplit(index, closedDur, kmMarkDuration, settings.unitsKm);
+    aidsSplit(index, closedDur, kmMarkDistance, kmMarkDuration);
     if (!runSilent()) splitNote(index, closedDur, kmMarkDistance, kmMarkDuration, settings.unitsKm);
     if (!runSilent()) wearSplit(index, closedDur, kmMarkDistance, kmMarkDuration, settings.unitsKm);
   }
@@ -263,8 +278,17 @@ export async function lap(): Promise<void> {
   await addSplit(state.runId, { kind: 'lap', index, distanceM: split.distanceM, durationS: split.durationS, atDistanceM: lapMarkDistance, atDurationS: lapMarkDuration });
   cueLap(index, split.durationS);
   await persist(true);
+  refreshLiveNote(); // the lock screen shows the new lap count straight away
   emit();
 }
+
+// The live note's buttons (lock screen, notification shade). Same as the ones on screen.
+setRunActionHandler((a) => {
+  if (state.status === 'idle' || state.halted) return;
+  if (a === 'pause') pauseRun();
+  else if (a === 'resume') resumeRun();
+  else if (state.status === 'running') void lap();
+});
 
 // ---- Fix pipeline ------------------------------------------------------------
 
@@ -334,9 +358,37 @@ function pushPath(p: LatLon) {
   }
 }
 
+/** Treadmill: steps since the last tick become distance; no steps for a while is a stop. */
+async function indoorTick(now: number) {
+  const add = indoorSteps.take(); // taken every tick, so steps while paused are dropped
+  state.gps = 'good';
+  if (state.status === 'autopaused' && add > 0) {
+    state.status = 'running';
+    openSegment();
+    cueAutoResume();
+  }
+  if (state.status !== 'running') return;
+  const m = add * indoorStride;
+  if (add > 0) {
+    state.distanceM += m;
+    state.indoorSteps += add;
+    lastMovementTs = now;
+  }
+  // Steps come in bursts: smooth them into a pace to show.
+  state.speedMps = state.speedMps * 0.8 + m * 0.2;
+  await maybeCloseKmSplit();
+  if (settings.autoPause && indoorSteps.available && lastMovementTs && now - lastMovementTs > INDOOR_STILL_MS) {
+    state.status = 'autopaused';
+    state.speedMps = 0;
+    closeSegment();
+    cueAutoPause();
+  }
+}
+
 async function tick() {
   const now = Date.now();
-  if (state.status === 'running') {
+  if (state.indoor) await indoorTick(now);
+  else if (state.status === 'running') {
     if (lastFixTs && now - lastFixTs > 10000) state.gps = 'lost';
     const filled = await steps.tick(now);
     if (filled > 0) {
@@ -362,6 +414,7 @@ async function tick() {
   }
   await persist();
   if (progressHook && state.status !== 'idle') progressHook(state.distanceM, liveDuration(), state.status);
+  if (state.status !== 'idle') aidsTick({ now, status: state.status, distanceM: state.distanceM, durationS: liveDuration(), guided: progressHook != null });
   emit();
 }
 
@@ -374,6 +427,7 @@ async function tick() {
  * and flip-flopping around the threshold would be worse.
  */
 async function applyPowerProfile(when: 'start' | 'tick' | 'user'): Promise<void> {
+  if (state.indoor) return; // no GPS to manage
   const power = await readPower();
   const next = profileFor(settings.batteryMode, power);
   if (when === 'start') {
@@ -411,6 +465,18 @@ export async function ensurePermissions(): Promise<{ ok: boolean; background: bo
   return { ok: true, background: bg.status === 'granted' };
 }
 
+/** A treadmill run needs no location at all, only steps. false: no step counter, distance is typed at the end. */
+export async function ensureIndoorPermissions(): Promise<boolean> {
+  try {
+    const { Pedometer } = await import('expo-sensors');
+    if (!(await Pedometer.isAvailableAsync())) return false;
+    const r = await Pedometer.requestPermissionsAsync();
+    return r.granted;
+  } catch {
+    return false;
+  }
+}
+
 // ---- Controls --------------------------------------------------------------
 
 function resetState() {
@@ -438,6 +504,8 @@ function resetState() {
   state.gpsProfile = 'best';
   pendingPoints = [];
   state.halted = false;
+  state.indoor = false;
+  state.indoorSteps = 0;
   filter.reset();
   elevation.reset();
   steps.reset();
@@ -445,11 +513,16 @@ function resetState() {
 
 async function attachSensors() {
   state.halted = false;
-  const engine = getEngine();
-  engine.setListener(onFixes);
-  await clearBufferedFixes().catch(() => {}); // recording live again; anything kept is stale
-  await elevation.start();
-  await steps.start();
+  if (state.indoor) {
+    // No GPS, no barometer (a treadmill climbs nothing you can measure): steps only.
+    await indoorSteps.start();
+  } else {
+    const engine = getEngine();
+    engine.setListener(onFixes);
+    await clearBufferedFixes().catch(() => {}); // recording live again; anything kept is stale
+    await elevation.start();
+    await steps.start();
+  }
   if (tickTimer) clearInterval(tickTimer);
   tickTimer = setInterval(() => void tick(), 1000);
 }
@@ -465,6 +538,7 @@ async function detachSensors() {
   await engine.stop().catch(() => {});
   elevation.stop();
   steps.stop();
+  indoorSteps.stop();
 }
 
 /**
@@ -473,6 +547,7 @@ async function detachSensors() {
  * app is open, so the run goes ahead instead of failing.
  */
 async function startEngine() {
+  if (state.indoor) return;
   try {
     await getEngine().start(GPS_PROFILES[state.gpsProfile]);
   } catch {
@@ -480,9 +555,11 @@ async function startEngine() {
   }
 }
 
-export async function startRun(moodBefore: Mood | null): Promise<void> {
+export async function startRun(moodBefore: Mood | null, opts: { indoor?: boolean } = {}): Promise<void> {
   if (state.status !== 'idle') return;
   resetState();
+  state.indoor = !!opts.indoor;
+  if (state.indoor) indoorStride = treadmillStride(await loadValue<{ outdoor?: number; treadmill?: number }>(STRIDE_KEY).catch(() => null));
   const now = Date.now();
   const runId = await createRun(now, moodBefore);
   state.status = 'running';
@@ -491,6 +568,7 @@ export async function startRun(moodBefore: Mood | null): Promise<void> {
   openSegment();
   await applyPowerProfile('start');
   lastPowerCheckAt = Date.now();
+  beginAids();
   await beginRunNotes(settings.runNotes);
   await attachSensors();
   await startEngine();
@@ -544,7 +622,12 @@ export function resumeRun(): void {
   emit();
 }
 
-export async function stopRun(extra: { moodAfter: Mood | null; quiet: Quiet | null; note: string | null }): Promise<number | null> {
+/**
+ * treadmillM: what the treadmill said, typed on the finish screen. The run
+ * takes that distance, its km splits are redrawn on it, and the stride it
+ * implies is kept for the next treadmill run.
+ */
+export async function stopRun(extra: { moodAfter: Mood | null; quiet: Quiet | null; note: string | null; treadmillM?: number | null }): Promise<number | null> {
   if (state.status === 'idle' || state.runId == null) return null;
   const runId = state.runId;
   const durationS = Math.floor(liveDuration());
@@ -552,9 +635,10 @@ export async function stopRun(extra: { moodAfter: Mood | null; quiet: Quiet | nu
   state.halted = false;
   if (pendingPoints.length) await addPoints(runId, pendingPoints);
   pendingPoints = [];
+  const distanceM = await settleDistance(runId, durationS, extra.treadmillM ?? null);
   await finishRun(runId, {
     endedAt: Date.now(),
-    distanceM: state.distanceM,
+    distanceM,
     durationS,
     elevationGainM: elevation.gainM,
     moodAfter: extra.moodAfter,
@@ -567,6 +651,32 @@ export async function stopRun(extra: { moodAfter: Mood | null; quiet: Quiet | nu
   resetState();
   emit();
   return runId;
+}
+
+/** The run's final distance, and what it teaches about stride. Never stops a save: anything that fails here keeps what was recorded. */
+async function settleDistance(runId: number, durationS: number, typedM: number | null): Promise<number> {
+  let distanceM = state.distanceM;
+  try {
+    const learned = (await loadValue<{ outdoor?: number; treadmill?: number }>(STRIDE_KEY)) ?? {};
+    if (!state.indoor) {
+      // GPS measured this runner's stride today: the next treadmill run starts from it.
+      if (steps.calibrated) await saveValue(STRIDE_KEY, { ...learned, outdoor: Math.round(steps.stride * 1000) / 1000 });
+      return distanceM;
+    }
+    if (typedM != null && typedM > 0 && Math.abs(typedM - distanceM) >= 1) {
+      const kms = await getSplits(runId, 'km');
+      await replaceKmSplits(runId, rescaleSplits(kms, distanceM, typedM, durationS, splitUnitM()));
+      distanceM = typedM;
+      const stride = learnStride(state.indoorSteps, typedM);
+      if (stride) await saveValue(STRIDE_KEY, { ...learned, treadmill: stride });
+    }
+    const marks = (await loadValue<Record<string, { steps: number; strideM: number }>>(INDOOR_KEY)) ?? {};
+    marks[String(runId)] = { steps: state.indoorSteps, strideM: indoorStride };
+    await saveValue(INDOOR_KEY, marks);
+  } catch {
+    // keep what was recorded
+  }
+  return distanceM;
 }
 
 // ---- Recovery ---------------------------------------------------------------
@@ -615,6 +725,9 @@ async function recoverRunInner(): Promise<boolean> {
   lapMarkDuration = snap.lapMarkDuration;
 
   elevation.gainM = snap.elevationGainM ?? 0;
+  state.indoor = !!snap.indoor;
+  state.indoorSteps = snap.indoorSteps ?? 0;
+  if (state.indoor) indoorStride = treadmillStride(await loadValue<{ outdoor?: number; treadmill?: number }>(STRIDE_KEY).catch(() => null));
 
   const pts = await getPoints(snap.runId);
   state.path = pts.map((p) => ({ latitude: p.lat, longitude: p.lon }));
@@ -623,7 +736,7 @@ async function recoverRunInner(): Promise<boolean> {
   // run gets them: a paused one wasn't recording anyway.
   const buffered = await getBufferedFixes().catch(() => []);
   const last = pts.length ? pts[pts.length - 1] : null;
-  const replay = snap.status === 'running' ? replayFixes(last, buffered.filter((f) => f.ts > snap.savedAt)) : null;
+  const replay = snap.status === 'running' && !state.indoor ? replayFixes(last, buffered.filter((f) => f.ts > snap.savedAt)) : null;
   if (replay && replay.points.length) {
     state.distanceM += replay.distanceM;
     for (const p of replay.points) pushPath({ latitude: p.lat, longitude: p.lon });
@@ -647,10 +760,11 @@ async function recoverRunInner(): Promise<boolean> {
 
   await applyPowerProfile('start');
   lastPowerCheckAt = Date.now();
+  beginAids(state.distanceM, liveDuration());
   await beginRunNotes(settings.runNotes);
   await attachSensors();
   for (const a of replay?.alts ?? []) elevation.pushGpsAltitude(a.alt, a.ts); // no-op with a barometer
-  if (!(await getEngine().isRunning())) await startEngine();
+  if (!state.indoor && !(await getEngine().isRunning())) await startEngine();
   if (replay?.points.length) await maybeCloseKmSplit(true);
   await persist(true);
   emit();

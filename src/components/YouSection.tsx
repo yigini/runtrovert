@@ -133,14 +133,22 @@ function scale(values: number[], h: number): number[] {
   return values.map((v) => h - 3 - ((v - min) / span) * (h - 6));
 }
 
-/** Higher is better: callers flip values that improve by going down. */
+/**
+ * Higher is better: callers flip values that improve by going down. The soft
+ * band behind the line is "your usual": the range of the first half of the
+ * line, so the latest point reads against your own baseline.
+ */
 function Line({ values, color }: { values: number[]; color: string }) {
   if (values.length < 2) return null;
   const ys = scale(values, 30);
   const step = 70 / (values.length - 1);
   const pts = ys.map((y, i) => `${3 + i * step},${y}`).join(' ');
+  const base = ys.slice(0, Math.max(2, Math.floor(ys.length / 2)));
+  const top = Math.min(...base);
+  const bottom = Math.max(...base);
   return (
     <Svg width={76} height={30}>
+      <Rect x={0} y={top - 2} width={76} height={Math.max(4, bottom - top + 4)} rx={3} fill={colors.lilacSoft} />
       <Polyline points={pts} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
       <Circle cx={3 + (values.length - 1) * step} cy={ys[ys.length - 1]} r={3} fill={color} />
     </Svg>
