@@ -90,6 +90,12 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
           bpm INTEGER NOT NULL,
           PRIMARY KEY (run_id, ts)
         );
+        CREATE TABLE IF NOT EXISTS deep_summaries (
+          run_id INTEGER PRIMARY KEY,
+          v INTEGER NOT NULL,
+          k TEXT NOT NULL,
+          data TEXT NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS bg_fixes (
           ts INTEGER PRIMARY KEY,
           lat REAL NOT NULL,
@@ -215,6 +221,7 @@ export async function deleteRun(runId: number) {
     await db.runAsync('DELETE FROM splits WHERE run_id = ?', runId);
     await db.runAsync('DELETE FROM heart_rate WHERE run_id = ?', runId);
     await db.runAsync('DELETE FROM run_facts WHERE run_id = ?', runId);
+    await db.runAsync('DELETE FROM deep_summaries WHERE run_id = ?', runId);
     await db.runAsync('DELETE FROM run_sources WHERE run_id = ?', runId);
     // A deleted run takes its line in a place's log with it; the place itself stays.
     await db.runAsync('DELETE FROM route_sigs WHERE run_id = ?', runId);
@@ -518,6 +525,37 @@ export async function allKmPaces(): Promise<Map<number, number[]>> {
     out.set(r.run_id, list);
   }
   return out;
+}
+
+// ---- Deep stats across months -----------------------------------------------
+// A small summary per run (how far the pace held, hill price, streets as grid
+// cells), worked out once from its points. Not in backups: it is rebuilt from
+// the runs. `k` ties a row to the run it was made from (start time and number of
+// points), so a restored or corrected run is worked out again.
+
+export async function loadDeepSummaries(): Promise<Map<number, { v: number; k: string; data: string }>> {
+  const db = await getDb();
+  const rows = (await db.getAllAsync('SELECT run_id, v, k, data FROM deep_summaries')) as Array<{ run_id: number; v: number; k: string; data: string }>;
+  return new Map(rows.map((r) => [r.run_id, { v: r.v, k: r.k, data: r.data }]));
+}
+
+export async function saveDeepSummary(runId: number, v: number, k: string, data: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('INSERT OR REPLACE INTO deep_summaries (run_id, v, k, data) VALUES (?, ?, ?, ?)', runId, v, k, data);
+}
+
+/** How many points each run has, for the summary key. */
+export async function pointCounts(): Promise<Map<number, number>> {
+  const db = await getDb();
+  const rows = (await db.getAllAsync('SELECT run_id, COUNT(*) AS n FROM points GROUP BY run_id')) as Array<{ run_id: number; n: number }>;
+  return new Map(rows.map((r) => [r.run_id, r.n]));
+}
+
+/** Your places with the length of their loop. */
+export async function placeLoops(): Promise<Array<{ id: number; name: string; distanceM: number }>> {
+  const db = await getDb();
+  const rows = (await db.getAllAsync('SELECT id, name, distance_m FROM places')) as Array<{ id: number; name: string; distance_m: number }>;
+  return rows.map((r) => ({ id: r.id, name: r.name, distanceM: r.distance_m }));
 }
 
 // ---- Settings --------------------------------------------------------------
