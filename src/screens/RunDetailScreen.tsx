@@ -8,8 +8,9 @@ import { RouteMap } from '../components/RouteMap';
 import { ShareSheet } from '../components/ShareSheet';
 import { RunStatsView } from '../components/RunStats';
 import { YouLine } from '../components/YouLine';
-import { correctRun, deleteRun, getHeartRate, getPoints, getRun, getRunEdit, getRunSource, getSplits, highestHeartRate, putBackRun, setMoodAfter, setRunNote, type RunEdit, type RunSource } from '../db';
+import { correctRun, deleteRun, getHeartRate, getPoints, getRun, getRunEdit, getRunSource, getSplits, highestHeartRate, loadValue, putBackRun, setMoodAfter, setRunNote, type RunEdit, type RunSource } from '../db';
 import { formatDistance, formatDuration } from '../geo';
+import { INDOOR_KEY } from '../runAids';
 import { checkCorrection, distanceField, durationField, parseDistance, parseDuration, type EntryProblem } from '../runEdit';
 import { cleanHeart, heartSummary, type HeartSample, type HeartSummary } from '../heart';
 import { shareRunGpx } from '../io/store';
@@ -34,6 +35,7 @@ export function RunDetailScreen({
   onOpenPlace,
   shareOnOpen,
   onChanged,
+  onFollow,
 }: {
   runId: number;
   onBack: () => void;
@@ -42,6 +44,8 @@ export function RunDetailScreen({
   shareOnOpen?: boolean;
   /** Distance or time was corrected. */
   onChanged?: () => void;
+  /** Run this route again, with a buzz when you leave it. */
+  onFollow?: (name: string, path: LatLon[]) => void;
 }) {
   const km = useSettings().settings.unitsKm;
   const [run, setRun] = useState<Run | null>(null);
@@ -65,6 +69,7 @@ export function RunDetailScreen({
   const [weather, setWeather] = useState<RunWeather | null>(null);
   const [sharing, setSharing] = useState(!!shareOnOpen);
   const [source, setSource] = useState<RunSource | null>(null);
+  const [indoor, setIndoor] = useState(false);
   const [saving, setSaving] = useState(false);
   const [place, setPlace] = useState<Place | null>(null);
   // Not in a place yet: its loop, so any run can become one ("Save as a place").
@@ -90,9 +95,10 @@ export function RunDetailScreen({
       }
       const pts = await getPoints(runId);
       setPath(pts.map((p) => ({ latitude: p.lat, longitude: p.lon })));
-      setPoints(pts.map((p) => ({ ts: p.ts, lat: p.lat, lon: p.lon, alt: p.alt })));
+      setPoints(pts.map((p) => ({ ts: p.ts, lat: p.lat, lon: p.lon, alt: p.alt, acc: p.acc })));
       setSplits(await getSplits(runId));
       setSource(await getRunSource(runId).catch(() => null));
+      setIndoor(!!(await loadValue<Record<string, unknown>>(INDOOR_KEY).catch(() => null))?.[String(runId)]);
       setEdit(await getRunEdit(runId).catch(() => null));
       const inPlace = await placeForRun(runId).catch(() => null);
       setPlace(inPlace);
@@ -259,6 +265,8 @@ export function RunDetailScreen({
       <Text style={styles.date}>{d.toLocaleString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</Text>
       {source?.kind === 'manual' ? (
         <Text style={styles.source}>{ui().addRun.addedByHand}</Text>
+      ) : indoor ? (
+        <Text style={styles.source}>{ui().runAids.indoorTag}</Text>
       ) : source ? (
         <Text style={styles.source}>
           {ui().runDetail.broughtIn(source.kind === 'health' ? ui().runDetail.healthConnect : source.fileName ?? ui().runDetail.aXFile(source.kind.toUpperCase()), new Date(source.importedAt).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' }))}
@@ -289,7 +297,7 @@ export function RunDetailScreen({
       <RouteMap path={path} height={260} />
       {line && <YouLine title={line.title.replace('\n', ' ')} detail={line.detail} />}
       <RunStatsView run={run} points={points} splits={kmSplits} laps={laps} partial={partial} sun={weather} km={km} heart={heart} />
-      <DeepRunView points={points} kmPaces={kmPaces} heart={beats} maxHr={maxHr} km={km} />
+      <DeepRunView points={points} kmPaces={kmPaces} heart={beats} maxHr={maxHr} km={km} climbM={run.elevationGainM} />
       {run.endedAt != null ? (
         fixing ? (
           <View style={styles.fix}>
@@ -358,6 +366,13 @@ export function RunDetailScreen({
         <Text style={styles.note}>{run.note}</Text>
       ) : null}
       {cmp && <Button title={ui().runDetail.shareWithSomeone} variant="secondary" onPress={() => setSharing(true)} style={{ marginTop: spacing.sm }} />}
+      {path.length > 1 && onFollow ? (
+        <Button
+          title={ui().routes.followThisRoute}
+          variant="secondary"
+          onPress={() => onFollow(new Date(run.startedAt).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' }), path)}
+        />
+      ) : null}
       {path.length > 1 ? <Button title={saving ? ui().runDetail.saving : ui().runDetail.saveAsGpx} variant="secondary" onPress={onSaveGpx} disabled={saving} /> : null}
       <Button title={ui().runDetail.deleteRun2} variant="danger" onPress={onDelete} style={{ marginTop: spacing.lg }} />
       {choice && !choice.match ? (

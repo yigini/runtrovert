@@ -10,7 +10,7 @@
 export const BACKUP_V = 1;
 
 /** Parents first: restore inserts in this order and deletes in the reverse. */
-export const BACKUP_TABLES = ['runs', 'points', 'splits', 'run_facts', 'run_sources', 'route_sigs', 'heart_rate', 'places', 'place_visits', 'settings'] as const;
+export const BACKUP_TABLES = ['runs', 'points', 'splits', 'run_facts', 'run_sources', 'route_sigs', 'heart_rate', 'places', 'place_visits', 'routes', 'settings'] as const;
 export type BackupTable = (typeof BACKUP_TABLES)[number];
 
 /** Settings keys that never go into a backup and are never replaced by one. The purchase is confirmed with the store, not carried in a file. */
