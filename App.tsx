@@ -43,6 +43,8 @@ import type { Session } from './src/training/types';
 import { loadUnlock } from './src/unlockState';
 import { NEWS } from './src/whatsNew';
 import { ui } from './src/i18n/ui';
+import { refreshWidgets } from './src/widget';
+import { goalStore } from './src/extraStores';
 import { lang } from './src/i18n/lang';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -158,6 +160,12 @@ function Shell() {
       })
       .catch(() => {});
   }, []);
+
+  // The home-screen widgets get fresh words on open, after any change to the runs, and with the units, language or weekly goal.
+  const goal = goalStore.use();
+  useEffect(() => {
+    if (ready && settings.onboarded) refreshWidgets().catch(() => {});
+  }, [ready, settings.onboarded, refreshKey, settings.unitsKm, settings.language, goal]);
 
   // Re-plan the next two weeks of reminders on open and whenever their settings change.
   useEffect(() => {

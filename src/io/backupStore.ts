@@ -2,6 +2,8 @@ import { File, FileMode, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { getDb } from '../db';
 import { forgetCommute } from '../commuteStore';
+import { forgetShoes } from '../shoeStore';
+import { forgetValues } from '../valueStore';
 import { ui } from '../i18n/ui';
 import {
   BACKUP_TABLES,
@@ -147,4 +149,6 @@ export async function restoreBackup(picked: PickedBackup): Promise<void> {
     await db.runAsync('DELETE FROM bg_fixes');
   });
   forgetCommute();
+  forgetShoes();
+  forgetValues();
 }

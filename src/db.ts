@@ -219,6 +219,8 @@ export async function deleteRun(runId: number) {
     // A deleted run takes its line in a place's log with it; the place itself stays.
     await db.runAsync('DELETE FROM route_sigs WHERE run_id = ?', runId);
     await db.runAsync('DELETE FROM place_visits WHERE run_id = ?', runId);
+    // Its photo, if it had one (runPhoto.ts): only ever on this phone.
+    await db.runAsync('DELETE FROM settings WHERE key = ?', `photo:${runId}`);
     await db.runAsync('DELETE FROM runs WHERE id = ?', runId);
   });
 }

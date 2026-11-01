@@ -3,6 +3,12 @@ import { Alert, AppState, Platform, Pressable, ScrollView, Switch, Text, View } 
 import { BackButton } from '../components/BackButton';
 import { CommuteSettings } from '../components/CommuteSettings';
 import { StrapSettings } from '../components/StrapSettings';
+import { ShoesSettings } from '../components/ShoesSettings';
+import { TellSomeoneSettings, WeekGoalSettings, WidgetNote } from '../components/AroundRunSettings';
+import { listRuns } from '../db';
+import { useShoes } from '../shoeStore';
+import { totals } from '../shoes';
+import { roughDistance } from '../weekGoal';
 import { PresetSheet } from '../components/PresetSheet';
 import { Group, kit, NavRow, Note, PlainRow, RadioList, Row, Segmented, Tag, WideButton } from '../components/SettingsKit';
 import { useCommute } from '../commuteStore';
@@ -28,7 +34,7 @@ const HOW_OFTEN: Array<{ key: NotifyPerWeek; label: string; hint: string }> = li
 const CUES: Array<{ key: CueMode; label: string; hint: string }> = live(() => (['silent', 'haptic', 'voice'] as const).map((key) => ({ key, ...ui().settings.cue[key] })));
 
 /** The pages behind the main list. Import/export and credits are screens of their own (App.tsx). */
-type Page = 'home' | 'run' | 'gps' | 'map' | 'watch' | 'music' | 'reminders' | 'commute' | 'extras' | 'language' | 'appearance' | 'privacy';
+type Page = 'home' | 'run' | 'shoes' | 'gps' | 'map' | 'watch' | 'music' | 'reminders' | 'commute' | 'extras' | 'language' | 'appearance' | 'privacy';
 
 /** A new palette redraws every screen, Settings included: come back to the page it was picked on. */
 let reopen: Page | null = null;
@@ -73,6 +79,7 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onOpenCredits, 
           <BackButton label={ui().settings.settings} onPress={home} />
           <Text style={styles.h1} accessibilityRole="header">{titleOf(page)}</Text>
           {page === 'run' && <RunPage runLive={!!runLive} />}
+          {page === 'shoes' && <ShoesSettings />}
           {page === 'gps' && <GpsPage />}
           {page === 'map' && <MapPage />}
           {page === 'watch' && <WatchPage />}
@@ -94,6 +101,8 @@ function titleOf(page: Page): string {
   switch (page) {
     case 'run':
       return h.duringARun;
+    case 'shoes':
+      return ui().shoes.title;
     case 'gps':
       return h.gpsBattery;
     case 'map':
@@ -146,6 +155,7 @@ function Home({ open, onOpenEverything, onOpenCredits }: { open: (p: Page) => vo
   const homeWork = !commute ? '' : commute.home && commute.work ? h.bothSet : commute.home ? h.homeSet : commute.work ? h.workSet : ui().commute.notSet;
   const language = s.language ? langName(s.language) : ui().settings.phoneLanguage(langName(langFor(phoneLocale())));
   const strapName = strapSupported() ? (strap.strap?.name ?? null) : null;
+  const shoesValue = useShoesValue(s.unitsKm);
   const appearance = s.theme === 'system' ? ui().appearance.followsValue(scheme() === 'dark') : s.theme === 'dark' ? ui().appearance.dark : ui().appearance.light;
 
   return (
@@ -155,6 +165,7 @@ function Home({ open, onOpenEverything, onOpenCredits }: { open: (p: Page) => vo
         <NavRow icon="run" label={h.duringARun} value={h.runValue(cue, s.autoPause, s.countdownS)} onPress={() => open('run')} />
         <NavRow icon="battery" label={h.gpsBattery} value={battery} onPress={() => open('gps')} />
         <NavRow icon="map" label={ui().settings.map} value={s.plainMap ? h.plain : h.streets} onPress={() => open('map')} />
+        <NavRow icon="shoe" label={ui().shoes.title} value={shoesValue} onPress={() => open('shoes')} />
       </Group>
       <Group title={hasWatchPage ? h.groupWatchMusic : h.groupMusic}>
         {hasWatchPage ? <NavRow icon="heart" label={h.watchHeart} value={h.watchValue(s.watch, strapName)} onPress={() => open('watch')} /> : null}
@@ -177,6 +188,19 @@ function Home({ open, onOpenEverything, onOpenCredits }: { open: (p: Page) => vo
       <Text style={styles.madeBy}>{ui().credits.madeBy}</Text>
     </>
   );
+}
+
+/** The pair new runs go to, and how far it has gone; or how to start. */
+function useShoesValue(km: boolean): string {
+  const book = useShoes();
+  const [runs, setRuns] = useState<Array<{ id: number; distanceM: number }>>([]);
+  const has = !!book?.shoes.length;
+  useEffect(() => {
+    if (has) listRuns().then(setRuns).catch(() => {});
+  }, [has]);
+  const shoe = book?.shoes.find((x) => x.id === book.defaultId) ?? null;
+  if (!book || !shoe) return ui().shoes.rowNone;
+  return ui().shoes.rowValue(shoe.name, roughDistance(totals(book, runs).get(shoe.id)?.distanceM ?? 0, km));
 }
 
 function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
@@ -214,6 +238,7 @@ function RunPage({ runLive }: { runLive: boolean }) {
         </Row>
         <NavRow label={ui().settings.whatEachPresetShows} value={`${preset ? ui().settings.pickedX(preset.name) : ''}${ui().settings.presetsHint(PRESETS.map((p) => p.name))}`} onPress={() => setPresets(true)} />
       </Group>
+      <TellSomeoneSettings />
       <PresetSheet open={presets} value={settings.runPreset ?? 'just'} onPick={(p) => update({ runPreset: p })} onClose={() => setPresets(false)} />
     </>
   );
@@ -385,6 +410,7 @@ function ExtrasPage() {
           <Toggle value={settings.stillBackground} onChange={(v) => update({ stillBackground: v })} />
         </Row>
       </Group>
+      <WeekGoalSettings />
       <Group title={ui().stories.section}>
         <Row label={ui().stories.thingsYouPassedSetting} hint={ui().stories.thingsYouPassedHint}>
           <Toggle value={settings.stories} onChange={(v) => update({ stories: v, storiesOffered: true })} />
@@ -395,6 +421,7 @@ function ExtrasPage() {
           </Row>
         )}
       </Group>
+      {Platform.OS === 'android' ? <WidgetNote /> : null}
     </>
   );
 }
