@@ -284,53 +284,74 @@ export async function runSpans(): Promise<Array<{ startedAt: number; endedAt: nu
   return rows.map((r) => ({ startedAt: r.started_at, endedAt: r.ended_at, distanceM: r.distance_m, externalId: r.external_id }));
 }
 
+/** One run from a file: the run, its points, its km splits, where it came from and any heart rate. */
+export interface ImportedRunRow {
+  run: { startedAt: number; endedAt: number; distanceM: number; durationS: number; elevationGainM: number };
+  points: Array<{ ts: number; lat: number; lon: number; alt: number | null }>;
+  splits: Array<Omit<Split, 'id' | 'runId' | 'kind'>>;
+  source: Omit<RunSource, 'importedAt'>;
+  heart?: Array<[number, number]>;
+}
+
+// Rows per INSERT: well under SQLite's limit on bound values (5 or 3 per row).
+const ROWS_PER_INSERT = 150;
+
+/** Many rows of the same shape in as few statements as possible. */
+async function insertRows(db: Awaited<ReturnType<typeof getDb>>, head: string, cols: number, extra: string, rows: unknown[][]): Promise<void> {
+  if (!rows.length) return;
+  const one = `(${Array(cols).fill('?').join(', ')}${extra})`;
+  for (let i = 0; i < rows.length; i += ROWS_PER_INSERT) {
+    const chunk = rows.slice(i, i + ROWS_PER_INSERT);
+    await db.runAsync(`${head} VALUES ${Array(chunk.length).fill(one).join(', ')}`, chunk.flat() as any[]);
+  }
+}
+
+/**
+ * Runs from files, all in one transaction: either every one of them is
+ * saved or none is, so an import stopped half way leaves no half run behind,
+ * and bringing the same files in again picks up exactly what is missing.
+ * Points go in 150 to a statement, which is what makes a few hundred runs quick.
+ */
+export async function addImportedRuns(rows: ImportedRunRow[]): Promise<number[]> {
+  if (!rows.length) return [];
+  const db = await getDb();
+  const ids: number[] = [];
+  await db.withTransactionAsync(async () => {
+    for (const { run, points, splits, source, heart } of rows) {
+      const res = await db.runAsync(
+        'INSERT INTO runs (started_at, ended_at, distance_m, duration_s, elevation_gain_m) VALUES (?, ?, ?, ?, ?)',
+        run.startedAt,
+        run.endedAt,
+        run.distanceM,
+        run.durationS,
+        run.elevationGainM,
+      );
+      const id = res.lastInsertRowId;
+      ids.push(id);
+      await insertRows(db, 'INSERT INTO points (run_id, ts, lat, lon, alt, acc)', 5, ', NULL', points.map((p) => [id, p.ts, p.lat, p.lon, p.alt]));
+      await insertRows(
+        db,
+        'INSERT INTO splits (run_id, kind, idx, distance_m, duration_s, at_distance_m, at_duration_s)',
+        7,
+        '',
+        splits.map((s) => [id, 'km', s.index, s.distanceM, s.durationS, s.atDistanceM, s.atDurationS]),
+      );
+      await db.runAsync('INSERT INTO run_sources (run_id, kind, file_name, external_id, imported_at) VALUES (?, ?, ?, ?, ?)', id, source.kind, source.fileName, source.externalId, Date.now());
+      if (heart?.length) await insertRows(db, 'INSERT OR IGNORE INTO heart_rate (run_id, ts, bpm)', 3, '', heart.map(([ts, bpm]) => [id, ts, bpm]));
+    }
+  });
+  // touchRuns(): wire in when the listRuns cache (perf/snappy) lands, so lists reload after an import.
+  return ids;
+}
+
 /** A whole run from a file, in one go: the run, its points, its km splits and where it came from. */
 export async function addImportedRun(
-  run: { startedAt: number; endedAt: number; distanceM: number; durationS: number; elevationGainM: number },
-  points: Array<{ ts: number; lat: number; lon: number; alt: number | null }>,
-  splits: Array<Omit<Split, 'id' | 'runId' | 'kind'>>,
-  source: Omit<RunSource, 'importedAt'>,
+  run: ImportedRunRow['run'],
+  points: ImportedRunRow['points'],
+  splits: ImportedRunRow['splits'],
+  source: ImportedRunRow['source'],
 ): Promise<number> {
-  const db = await getDb();
-  let id = 0;
-  await db.withTransactionAsync(async () => {
-    const res = await db.runAsync(
-      'INSERT INTO runs (started_at, ended_at, distance_m, duration_s, elevation_gain_m) VALUES (?, ?, ?, ?, ?)',
-      run.startedAt,
-      run.endedAt,
-      run.distanceM,
-      run.durationS,
-      run.elevationGainM,
-    );
-    id = res.lastInsertRowId;
-    const pt = await db.prepareAsync('INSERT INTO points (run_id, ts, lat, lon, alt, acc) VALUES (?, ?, ?, ?, ?, NULL)');
-    try {
-      for (const p of points) await pt.executeAsync(id, p.ts, p.lat, p.lon, p.alt);
-    } finally {
-      await pt.finalizeAsync();
-    }
-    for (const s of splits) {
-      await db.runAsync(
-        'INSERT INTO splits (run_id, kind, idx, distance_m, duration_s, at_distance_m, at_duration_s) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        id,
-        'km',
-        s.index,
-        s.distanceM,
-        s.durationS,
-        s.atDistanceM,
-        s.atDurationS,
-      );
-    }
-    await db.runAsync(
-      'INSERT INTO run_sources (run_id, kind, file_name, external_id, imported_at) VALUES (?, ?, ?, ?, ?)',
-      id,
-      source.kind,
-      source.fileName,
-      source.externalId,
-      Date.now(),
-    );
-  });
-  return id;
+  return (await addImportedRuns([{ run, points, splits, source }]))[0];
 }
 
 // ---- Runs typed in or corrected by hand -------------------------------------------

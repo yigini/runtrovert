@@ -34,6 +34,19 @@ What already comes in from those exports through the same zip walker: Strava and
 - `tcx.ts` reads TCX like `gpx.ts` reads GPX: tolerant patterns, no DOM. A treadmill TCX has laps and no positions; it comes in with its distance and time and no route.
 - `store.ts` does it in **two passes**. The first reads and counts, saving nothing, and keeps only start, end and distance of each new run plus a list of file keys. The second reads just those files again and saves them. Years of runs never sit in memory at once.
 
+## Leaving the page while it works
+
+Bringing runs in is one job for the whole app (`src/io/importJob.ts`), not part of the page. The runner can go back to Settings or to another tab and it keeps going:
+
+- The Settings row "Backup, import and export" shows how far it is ("Bringing your runs in… 120 of 241"), then the result ("Brought in 257 runs."). It goes back to its usual line once the page has been opened and left again.
+- The page shows the same when opened again, with "You can leave this page. It keeps going…" while it works.
+- A whole export is still shown before anything is saved, now on the page itself (not a pop-up), so the question waits if the runner wanders off. Settings says "257 runs ready to bring in" meanwhile.
+- The screen stays awake while it works (`expo-keep-awake`), so the phone doesn't put the app to sleep half way. Every list reloads once, when it ends.
+
+Speed: runs are saved 25 at a time (or about 60,000 points, whichever comes first), each handful in one transaction, points 150 to a statement (`addImportedRuns` in `db.ts`, `RunSaver` in `src/io/saver.ts`). Before, every point was its own trip to the database. The GPX and TCX readers build each text pattern once instead of once per point.
+
+Stopped half way (the app closed, the battery ran out): what was saved stays, a handful being written is either all in or not at all, and bringing the same files in again adds just the rest. `npm run test:import-resume` checks exactly that.
+
 Duplicates: the same rules as single files (`sameRun` in `shape.ts`: same outside id, more than half the time overlapping, or a start within three minutes at a similar distance), against runs already on the phone **and** within the export itself (Garmin often has the same run as FIT and GPX).
 
 Brought-in runs say where they came from: Settings › Backup, import and export lists "Brought in from a Strava export" and "from a Garmin export" next to GPX, FIT and TCX files.

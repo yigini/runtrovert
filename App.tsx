@@ -48,6 +48,7 @@ import { ui } from './src/i18n/ui';
 import { refreshWidgets } from './src/widget';
 import { goalStore } from './src/extraStores';
 import { lang } from './src/i18n/lang';
+import { onRunsImported } from './src/io/importJob';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -99,6 +100,8 @@ function Shell() {
   const [ghost, setGhost] = useState<Ghost | null>(null);
   const [shareOpen, setShareOpen] = useState(false); // open the share card on arrival ("Keep it and share")
   const [refreshKey, setRefreshKey] = useState(0);
+  // Runs brought in reach every list once, when the import ends, wherever the runner is by then.
+  useEffect(() => onRunsImported(() => setRefreshKey((k) => k + 1)), []);
   const [liveRun, setLiveRun] = useState(false);
   const [countingDown, setCountingDown] = useState(false);
   const wasLive = useRef(false);
@@ -351,7 +354,7 @@ function Shell() {
               }}
             />
           )}
-          {sub === 'everything' && <EverythingScreen onBack={() => setSub(everythingFrom)} onChanged={() => setRefreshKey((k) => k + 1)} />}
+          {sub === 'everything' && <EverythingScreen onBack={() => setSub(everythingFrom)} />}
           {sub === 'credits' && <CreditsScreen onBack={() => setSub('settings')} />}
           {sub === 'listen' && <ListenScreen runLive={liveRun} onBack={() => setSub(null)} />}
           {sub == null && tab === 'train' && (

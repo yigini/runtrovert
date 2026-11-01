@@ -7,16 +7,26 @@ import { plausibleBpm, type ImportedRun, type ParseResult, type TrackPoint } fro
 // Strava, Coros, Suunto and Polar add. Heart rate (gpxtpx:hr, ns3:hr) is kept;
 // the rest (cadence, power, temperature) is ignored.
 
-export const TAG = (name: string) => new RegExp(`<(?:[\\w-]+:)?${name}\\b([^>]*?)(?:\\/>|>([\\s\\S]*?)<\\/(?:[\\w-]+:)?${name}\\s*>)`, 'g');
+// Each pattern is built once per tag name and reused: a long run has thousands
+// of points, and compiling a fresh pattern for every one made big imports slow.
+const cache = new Map<string, RegExp>();
+function cached(key: string, make: () => RegExp): RegExp {
+  let re = cache.get(key);
+  if (!re) cache.set(key, (re = make()));
+  return re;
+}
+
+/** Every <name …>…</name> (or <name …/>). Global: use with matchAll, which copies it. */
+export const TAG = (name: string) => cached(`t:${name}`, () => new RegExp(`<(?:[\\w-]+:)?${name}\\b([^>]*?)(?:\\/>|>([\\s\\S]*?)<\\/(?:[\\w-]+:)?${name}\\s*>)`, 'g'));
 
 export function attr(attrs: string, name: string): string | null {
-  const m = new RegExp(`\\b${name}\\s*=\\s*(["'])([^"']*)\\1`).exec(attrs);
+  const m = cached(`a:${name}`, () => new RegExp(`\\b${name}\\s*=\\s*(["'])([^"']*)\\1`)).exec(attrs);
   return m ? m[2] : null;
 }
 
 export function child(body: string | undefined, name: string): string | null {
   if (!body) return null;
-  const m = new RegExp(`<(?:[\\w-]+:)?${name}\\b[^>]*>([\\s\\S]*?)<\\/(?:[\\w-]+:)?${name}\\s*>`).exec(body);
+  const m = cached(`c:${name}`, () => new RegExp(`<(?:[\\w-]+:)?${name}\\b[^>]*>([\\s\\S]*?)<\\/(?:[\\w-]+:)?${name}\\s*>`)).exec(body);
   return m ? decode(m[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').trim()) : null;
 }
 
