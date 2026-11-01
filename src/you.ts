@@ -1,3 +1,4 @@
+import { eachWithBreaks, singleFlight } from './batch';
 import { getPoints, listRuns, loadAllFacts, loadValue, saveFacts } from './db';
 import type { Weather } from './forecast';
 import { bestEfforts, type Efforts, type RunFacts, type TimedPoint } from './progress';
@@ -60,24 +61,33 @@ export interface YouData {
   weather: Map<number, RunWeather | null>;
 }
 
-/** Every run with its bests, working out any that haven't been yet (older runs, or after an update). */
-export async function loadYou(): Promise<YouData> {
+/**
+ * Every run with its bests, working out any that haven't been yet (older runs,
+ * imported runs, or after an update). Screens that ask at the same time share
+ * one pass, and a long catch-up pauses between runs so scrolling stays smooth.
+ */
+export const loadYou: () => Promise<YouData> = singleFlight(async () => {
   const runs = await listRuns();
   const stored = await loadAllFacts();
+  const missing = runs.filter((r) => {
+    const f = stored.get(r.id);
+    return !f || f.v !== FACTS_V;
+  });
+  await eachWithBreaks(missing, async (r) => {
+    const pts = await getPoints(r.id);
+    const f = { v: FACTS_V, efforts: bestEfforts(pts), weather: stored.get(r.id)?.weather ?? null };
+    await saveFacts(r.id, f);
+    stored.set(r.id, f);
+  });
   const facts: RunFacts[] = [];
   const weather = new Map<number, RunWeather | null>();
   for (const r of runs) {
-    let f = stored.get(r.id);
-    if (!f || f.v !== FACTS_V) {
-      const pts = await getPoints(r.id);
-      f = { v: FACTS_V, efforts: bestEfforts(pts), weather: f?.weather ?? null };
-      await saveFacts(r.id, f);
-    }
+    const f = stored.get(r.id)!;
     facts.push(toFacts(r, f.efforts as Efforts));
     weather.set(r.id, (f.weather as RunWeather | null) ?? null);
   }
   return { runs, facts, weather };
-}
+});
 
 /** Called when a run is kept: bests and the weather, stored with it. */
 export async function recordRunFacts(runId: number, startedAt: number, durationS: number): Promise<void> {

@@ -1,3 +1,4 @@
+import { eachWithBreaks, singleFlight } from './batch';
 import { allKmPaces, getPoints, loadDeepSummaries, placeLoops, pointCounts, saveDeepSummary } from './db';
 import type { DeepFact } from './deepStats';
 import type { LongFact } from './deepLong';
@@ -19,7 +20,7 @@ export interface DeepFacts {
 
 const EMPTY: Omit<RunSummary, 'v'> = { heldM: null, upS: null, lat: null, lon: null, cells: [] };
 
-export async function loadDeepFacts(): Promise<DeepFacts> {
+export const loadDeepFacts: () => Promise<DeepFacts> = singleFlight(async () => {
   const [you, yours, paces, stored, counts, loops] = await Promise.all([loadYou(), loadYourRuns(), allKmPaces(), loadDeepSummaries(), pointCounts(), placeLoops()]);
   const facts: DeepFact[] = you.runs.map((r) => {
     const w = you.weather.get(r.id) ?? null;
@@ -38,7 +39,8 @@ export async function loadDeepFacts(): Promise<DeepFacts> {
     };
   });
   const long: LongFact[] = [];
-  for (const f of facts) {
+  // A long catch-up (hundreds of imported runs) pauses between runs so the screen keeps drawing.
+  await eachWithBreaks(facts, async (f) => {
     const key = `${f.startedAt}:${counts.get(f.id) ?? 0}`;
     const row = stored.get(f.id);
     let summary: Omit<RunSummary, 'v'> = EMPTY;
@@ -56,6 +58,6 @@ export async function loadDeepFacts(): Promise<DeepFacts> {
       await saveDeepSummary(f.id, RUN_SUMMARY_V, key, JSON.stringify(rest)).catch(() => {});
     }
     long.push({ ...f, ...summary, placeId: f.placeId });
-  }
+  });
   return { facts, places: yours.places, long, loops };
-}
+});
