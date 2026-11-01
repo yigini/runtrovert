@@ -14,7 +14,7 @@ import { getEngine } from './gps/engine';
 import { GpsFilter, type FilteredFix, type RawFix } from './gps/kalman';
 import { clearSnapshot, loadSnapshot, saveSnapshot, type RunSnapshot } from './gps/recovery';
 import { replayFixes } from './gps/replay';
-import { autoPauseDue, idleToRemove } from './gps/moving';
+import { autoPauseDue } from './gps/moving';
 import { ElevationTracker, StepFusion } from './gps/sensors';
 import { rememberPlace } from './place';
 import { GPS_PROFILES, profileFor, readPower, type GpsProfileName } from './power';
@@ -347,11 +347,12 @@ async function tick() {
       await maybeCloseKmSplit();
     }
     if (settings.autoPause && autoPauseDue(now, lastFixTs, lastMovementTs)) {
-      const segStart = segmentStartedAt ?? now;
+      // The clock stops where it is. It never steps back to the last movement:
+      // a timer that jumps from 0:24 to 0:17 reads as broken (YY, 1 Nov), and
+      // a few seconds per stop is what Garmin and Strava's live timers count too.
       state.status = 'autopaused';
       state.speedMps = 0;
       closeSegment();
-      accumulatedS -= idleToRemove(now, lastMovementTs, segStart, accumulatedS, Math.max(kmMarkDuration, lapMarkDuration));
       cueAutoPause();
     }
   }

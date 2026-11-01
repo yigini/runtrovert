@@ -13,7 +13,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { BARO_RULE, ClimbCounter, GPS_RULE } from '../src/gps/climb.ts';
 import { GpsFilter, haversineM, type RawFix } from '../src/gps/kalman.ts';
-import { autoPauseDue, idleToRemove } from '../src/gps/moving.ts';
+import { AUTO_PAUSE_AFTER_MS, autoPauseDue } from '../src/gps/moving.ts';
 import { parseFit } from '../src/io/fit.ts';
 import * as C from './accuracy/courses.ts';
 
@@ -193,8 +193,9 @@ function movingTime(fixes: RawFix[], endS: number): { movingS: number; distanceM
       d += o.stepM;
     }
     if (status === 'running' && autoPauseDue(now, lastFixTs, lastMove)) {
+      const before = acc;
       acc += (now - segStart) / 1000;
-      acc -= idleToRemove(now, lastMove, segStart, acc, 0);
+      assert.ok(acc >= before, 'the clock went backwards');
       f.reset();
       status = 'autopaused';
     }
@@ -203,13 +204,14 @@ function movingTime(fixes: RawFix[], endS: number): { movingS: number; distanceM
   return { movingS: acc, distanceM: d };
 }
 
-test('moving time: a 60 s stop at lights comes off the clock, within 3 s', () => {
+test('moving time: a 60 s stop at lights comes off the clock, all but the ~6 s wait', () => {
   const c = C.outAndBack();
   const sim = C.simulate(c, C.OPEN_SKY, { seed: 3, stop: [600, 660] });
   const { movingS } = movingTime(sim.fixes, sim.durationS);
   const truth = c.lengthM / 3.3;
   console.log(`     moving ${movingS.toFixed(0)} s, truth ${truth.toFixed(0)} s, elapsed ${sim.durationS} s`);
-  assert.ok(Math.abs(movingS - truth) <= 3, `moving ${movingS.toFixed(0)} s against ${truth.toFixed(0)} s`);
+  const wait = AUTO_PAUSE_AFTER_MS / 1000;
+  assert.ok(movingS - truth >= 0 && movingS - truth <= wait + 3, `moving ${movingS.toFixed(0)} s against ${truth.toFixed(0)} s`);
 });
 
 test('moving time: no fixes for 30 s (tunnel, held-back updates) does not pause the clock', () => {
