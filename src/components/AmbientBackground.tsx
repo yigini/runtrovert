@@ -77,7 +77,10 @@ export function AmbientBackground({ children, dim = 0, style = DEFAULT_STYLE, st
   return (
     <View style={styles.root}>
       <Image source={POSTER} style={StyleSheet.absoluteFill} resizeMode="cover" />
-      {!still && <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} allowsPictureInPicture={false} />}
+      {/* textureView, not the default surfaceView: on Android a SurfaceView ignores its parent's
+          bounds, so a "cover" loop taller than the screen spilled out under the tab bar and the
+          gesture bar. A TextureView is clipped like any other view. */}
+      {!still && <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" surfaceType="textureView" nativeControls={false} allowsPictureInPicture={false} />}
       {shade > 0 && <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.cream, opacity: shade }]} />}
       {children}
     </View>
@@ -85,5 +88,5 @@ export function AmbientBackground({ children, dim = 0, style = DEFAULT_STYLE, st
 }
 
 const styles = themedStyles(() => ({
-  root: { flex: 1, backgroundColor: colors.sky },
+  root: { flex: 1, overflow: 'hidden', backgroundColor: colors.sky },
 }));
