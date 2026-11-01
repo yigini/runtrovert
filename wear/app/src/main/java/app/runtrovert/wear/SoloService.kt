@@ -48,7 +48,7 @@ class SoloService : LifecycleService() {
       val m = update.latestMetrics
       for (p in m.getData(DataType.LOCATION)) {
         val v: LocationData = p.value
-        val alt = if (v.altitude == LocationData.ALTITUDE_UNAVAILABLE) null else v.altitude
+        val alt = v.altitude.takeIf { it.isFinite() } // "unavailable" is NaN
         SoloRun.addPoint(p.getTimeInstant(boot).toEpochMilli(), v.latitude, v.longitude, alt)
       }
       for (p in m.getData(DataType.HEART_RATE_BPM)) {
