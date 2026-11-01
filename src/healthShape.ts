@@ -4,9 +4,9 @@
 import type { ImportedRun } from './io/types';
 import { plausibleBpm } from './io/types';
 
-/** Which runs we write: ones recorded here or added by hand. Files and Health Connect's own came from somewhere that has them already. */
+/** Which runs we write: ones recorded here, on the Wear OS watch alone, or added by hand. Files and Health Connect's own came from somewhere that has them already. */
 export function writesToHealth(source: { kind: string } | null): boolean {
-  return source == null || source.kind === 'manual';
+  return source == null || source.kind === 'manual' || source.kind === 'watch';
 }
 
 /**

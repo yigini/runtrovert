@@ -6,6 +6,7 @@ import { sameRun, shapeRun } from '../src/io/shape.ts';
 // Only runs recorded here or added by hand go out; files and Health Connect's own don't.
 assert.ok(writesToHealth(null));
 assert.ok(writesToHealth({ kind: 'manual' }));
+assert.ok(writesToHealth({ kind: 'watch' })); // recorded on the Wear OS watch alone
 assert.ok(!writesToHealth({ kind: 'health' }));
 assert.ok(!writesToHealth({ kind: 'fit' }));
 assert.ok(!writesToHealth({ kind: 'gpx' }));
