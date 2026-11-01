@@ -362,6 +362,8 @@ export const ja: Strings = {
     bringingInXOf: (done: string | number, total: string | number) => `ランを取り込んでいます… ${done} / ${total}`,
     readingTheFiles: 'ファイルを読み込み中…',
     readingTheFilesXOf: (done, total) => `ファイルを読み込み中… ${done}/${total}`,
+    keepsGoing: 'このページを離れても大丈夫です。取り込みは続き、設定で進み具合を確認できます。',
+    runsWaiting: (n: number) => (n === 1 ? '取り込めるランが1件あります' : `取り込めるランが${n}件あります`),
     couldnTReadThoseFiles: 'ファイルを読み込めませんでした',
     writingYourRuns: 'ランを書き出し中…',
     writingYourRunsXOf: (done, total) => `ランを書き出し中… ${done}/${total}`,

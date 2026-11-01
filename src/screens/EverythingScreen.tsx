@@ -5,7 +5,8 @@ import { Button } from '../components/Button';
 import { ImportGuide } from '../components/ImportGuide';
 import { storedCounts } from '../db';
 import { importLine } from '../io/shape';
-import { commitImport, pickImportFiles, scanImport, shareAllRuns, type ImportPreview } from '../io/store';
+import { pickImportFiles, shareAllRuns, type ImportPreview } from '../io/store';
+import { clearImport, confirmImport, getImportJob, importBusy, importStatus, startImport, useImportJob } from '../io/importJob';
 import { formatDistance } from '../geo';
 import { useSettings } from '../settings';
 import { currentCounts, pickBackup, restoreBackup, shareBackup, type PickedBackup } from '../io/backupStore';
@@ -24,7 +25,17 @@ const HAPPENS: string[] = live(() => ui().everything.happens);
 
 const FROM: Record<Exclude<SourceKind, 'manual'>, string> = live(() => ui().everything.from);
 
-export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; onChanged: () => void }) {
+function previewTitle(p: ImportPreview): string {
+  return p.origin === 'strava' ? ui().everything.exportStrava : p.origin === 'garmin' ? ui().everything.exportGarmin : ui().everything.readyToBringIn;
+}
+
+function previewText(p: ImportPreview, unitsKm: boolean): string {
+  const month = (ts: number | null) => (ts == null ? '' : new Date(ts).toLocaleDateString(dateLocale(), { month: 'long', year: 'numeric' }));
+  const stays = importLine({ ...p.out, added: 0 }).replace(ui().shape.nothingNewToBringIn, '').trim();
+  return [ui().everything.newRuns(p.fresh, formatDistance(p.freshKm * 1000, unitsKm), month(p.firstAt), month(p.lastAt)), stays, ui().everything.nothingSavedYet].filter(Boolean).join('\n\n');
+}
+
+export function EverythingScreen({ onBack }: { onBack: () => void }) {
   const [counts, setCounts] = useState<Awaited<ReturnType<typeof storedCounts>> | null>(null);
   const [line, setLine] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -32,55 +43,33 @@ export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; on
   // How to get runs out of other apps: a page of its own, over this one.
   const [guide, setGuide] = useState(false);
   const { settings } = useSettings();
+  // Bringing runs in lives outside this page, so leaving it doesn't stop it.
+  const job = useImportJob();
+  const importing = importBusy(job);
+  const working = !!busy || importing || job.phase === 'confirm';
 
   useEffect(() => {
     storedCounts().then(setCounts).catch(() => {});
   }, [key]);
 
+  useEffect(() => {
+    if (job.phase === 'done' || job.phase === 'failed') setKey((k) => k + 1);
+  }, [job.phase]);
+
+  // A result seen here has been read: Settings stops showing it once the page is left.
+  useEffect(
+    () => () => {
+      const p = getImportJob().phase;
+      if (p === 'done' || p === 'failed') clearImport();
+    },
+    [],
+  );
+
   async function bringIn() {
     const files = await pickImportFiles().catch(() => null);
     if (!files) return;
     setLine(null);
-    setBusy(ui().everything.readingTheFiles);
-    let preview: ImportPreview;
-    try {
-      preview = await scanImport(files, (done, total) => total > 3 && setBusy(ui().everything.readingTheFilesXOf(done, total)));
-    } catch (e) {
-      setBusy(null);
-      Alert.alert(ui().everything.couldnTReadThoseFiles, String((e as Error)?.message ?? e));
-      return;
-    }
-    setBusy(null);
-    if (!preview.fresh) {
-      setLine(importLine(preview.out));
-      return;
-    }
-    // A few files come straight in, as before. A whole export is shown first.
-    if (!preview.archive) return void bring(files, preview);
-    const month = (ts: number | null) => (ts == null ? '' : new Date(ts).toLocaleDateString(dateLocale(), { month: 'long', year: 'numeric' }));
-    const stays = importLine({ ...preview.out, added: 0 }).replace(ui().shape.nothingNewToBringIn, '').trim();
-    const message = [ui().everything.newRuns(preview.fresh, formatDistance(preview.freshKm * 1000, settings.unitsKm), month(preview.firstAt), month(preview.lastAt)), stays, ui().everything.nothingSavedYet].filter(Boolean).join('\n\n');
-    const title = preview.origin === 'strava' ? ui().everything.exportStrava : preview.origin === 'garmin' ? ui().everything.exportGarmin : ui().everything.readyToBringIn;
-    Alert.alert(title, message, [
-      { text: ui().everything.notNow, style: 'cancel' },
-      { text: ui().everything.bringThemIn, onPress: () => void bring(files, preview) },
-    ]);
-  }
-
-  async function bring(files: Parameters<typeof commitImport>[0], preview: ImportPreview) {
-    setBusy(ui().everything.bringingIn);
-    try {
-      const t = await commitImport(files, preview, (done, total) => total > 3 && setBusy(ui().everything.bringingInXOf(done, total)));
-      setLine(importLine(t));
-      if (t.added) {
-        setKey((k) => k + 1);
-        onChanged();
-      }
-    } catch (e) {
-      Alert.alert(ui().everything.couldnTReadThoseFiles, String((e as Error)?.message ?? e));
-    } finally {
-      setBusy(null);
-    }
+    void startImport(files);
   }
 
   async function takeOut(format: 'gpx' | 'fit') {
@@ -172,6 +161,26 @@ export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; on
       </View>
     ) : null;
 
+  // Bringing runs in: progress, the question before a whole export is saved, or the result.
+  const importText = importStatus(job);
+  const importBlock =
+    job.phase === 'confirm' && job.preview ? (
+      <View style={styles.ask} accessibilityLiveRegion="polite">
+        <Text style={type.eyebrow} accessibilityRole="header">{previewTitle(job.preview)}</Text>
+        <Text style={styles.text}>{previewText(job.preview, settings.unitsKm)}</Text>
+        <Button title={ui().everything.bringThemIn} onPress={() => void confirmImport()} />
+        <Button title={ui().everything.notNow} variant="secondary" onPress={clearImport} />
+      </View>
+    ) : importText ? (
+      <View style={styles.note} accessibilityLiveRegion="polite">
+        {importing ? <ActivityIndicator color={colors.ink} /> : null}
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text style={styles.text}>{importText}</Text>
+          {importing ? <Text style={styles.small}>{ui().everything.keepsGoing}</Text> : null}
+        </View>
+      </View>
+    ) : null;
+
   if (guide)
     return (
       <ScrollView style={styles.screen} contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xl }}>
@@ -179,7 +188,8 @@ export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; on
         <Text style={type.h1} accessibilityRole="header">{ui().importGuide.title}</Text>
         <Text style={type.body}>{ui().importGuide.intro}</Text>
         <ImportGuide />
-        <Button title={ui().everything.chooseFiles} onPress={bringIn} disabled={!!busy} />
+        {importBlock}
+        <Button title={ui().everything.chooseFiles} onPress={bringIn} disabled={working} />
         {status}
         <Text style={styles.small}>{ui().importGuide.after}</Text>
       </ScrollView>
@@ -194,8 +204,8 @@ export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; on
       <View style={[styles.card, { backgroundColor: colors.butter }]}>
         <Text style={type.eyebrow} accessibilityRole="header">{ui().backup.keepACopy}</Text>
         <Text style={styles.text}>{ui().backup.oneFileWithEverything}</Text>
-        <Button title={ui().backup.makeABackup} onPress={makeBackup} disabled={!!busy} />
-        <Button title={ui().backup.restoreFromAFile} variant="secondary" onPress={restore} disabled={!!busy} />
+        <Button title={ui().backup.makeABackup} onPress={makeBackup} disabled={working} />
+        <Button title={ui().backup.restoreFromAFile} variant="secondary" onPress={restore} disabled={working} />
         <Text style={styles.small}>{ui().backup.noPassword}</Text>
       </View>
 
@@ -228,15 +238,16 @@ export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; on
             ›
           </Text>
         </Pressable>
-        <Button title={ui().everything.chooseFiles} onPress={bringIn} disabled={!!busy} />
+        {importBlock}
+        <Button title={ui().everything.chooseFiles} onPress={bringIn} disabled={working} />
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.lilac }]}>
         <Text style={[type.eyebrow, { color: colors.lilacDeep }]} accessibilityRole="header">{ui().everything.takeThemOut}</Text>
         <Text style={styles.text}>{ui().everything.oneRunOpenItIn}</Text>
         <Text style={styles.text}>{ui().everything.allYourRunsOneZip}</Text>
-        <Button title={ui().everything.allRunsAsGpx} variant="secondary" onPress={() => takeOut('gpx')} disabled={!!busy} />
-        <Button title={ui().everything.allRunsAsFit} variant="secondary" onPress={() => takeOut('fit')} disabled={!!busy} />
+        <Button title={ui().everything.allRunsAsGpx} variant="secondary" onPress={() => takeOut('gpx')} disabled={working} />
+        <Button title={ui().everything.allRunsAsFit} variant="secondary" onPress={() => takeOut('fit')} disabled={working} />
       </View>
 
       {status}
@@ -265,4 +276,5 @@ const styles = themedStyles(() => ({
   guideLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 40 },
   guideText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.mintDeep, textDecorationLine: 'underline' },
   note: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.butter, borderRadius: radius.md, padding: 14 },
+  ask: { gap: spacing.sm, backgroundColor: colors.white, borderRadius: radius.md, padding: 14 },
 }));

@@ -365,6 +365,8 @@ export const pt: Strings = {
     bringingInXOf: (done: string | number, total: string | number) => `A trazer as tuas corridas… ${done} de ${total}`,
     readingTheFiles: 'Lendo os arquivos…',
     readingTheFilesXOf: (done, total) => `Lendo os arquivos… ${done} de ${total}`,
+    keepsGoing: 'Pode sair desta página. Continua a decorrer e as Definições mostram em que ponto está.',
+    runsWaiting: (n: number) => (n === 1 ? '1 corrida pronta para trazer' : `${n} corridas prontas para trazer`),
     couldnTReadThoseFiles: 'Não deu para ler esses arquivos',
     writingYourRuns: 'Gravando suas corridas…',
     writingYourRunsXOf: (done, total) => `Gravando suas corridas… ${done} de ${total}`,
