@@ -577,6 +577,7 @@ export const de: Strings = {
     edit: 'Bearbeiten',
     yourNotesX: (tags) => `Deine Notizen: ${tags}`,
     yourNotesDated: 'Deine Notizen, mit Datum',
+    everyRunHere: 'Jeder Lauf hier, mit Datum',
     nothingYetEachRunHere: 'Noch nichts. Jeder Lauf hier fügt eine Zeile hinzu.',
     noRating: 'keine Angabe',
     whenItSUsuallyQuiet: 'Wann es hier meist ruhig ist',

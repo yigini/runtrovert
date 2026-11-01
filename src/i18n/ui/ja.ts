@@ -575,6 +575,7 @@ export const ja: Strings = {
     edit: '編集',
     yourNotesX: (tags) => `あなたのメモ：${tags}`,
     yourNotesDated: 'あなたのメモ、日付つき',
+    everyRunHere: 'ここでのラン（日付順）',
     nothingYetEachRunHere: 'まだありません。ここで走るたびに一行増えます。',
     noRating: '評価なし',
     whenItSUsuallyQuiet: 'ここがたいてい静かな時間',

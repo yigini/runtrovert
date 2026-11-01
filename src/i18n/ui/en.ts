@@ -578,6 +578,7 @@ export const en = {
     edit: 'Edit',
     yourNotesX: (place: string | number) => `Your notes: ${place}`,
     yourNotesDated: 'Your notes, dated',
+    everyRunHere: 'Every run here, dated',
     nothingYetEachRunHere: 'Nothing yet. Each run here adds a line.',
     noRating: 'no rating',
     whenItSUsuallyQuiet: 'When it’s usually quiet here',
