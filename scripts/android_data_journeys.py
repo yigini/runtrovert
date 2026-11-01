@@ -110,7 +110,7 @@ def data_cases(h):
         pts=''.join(f'<trkpt lat="{41.8902+i*.000015:.7f}" lon="{12.4924+i*.00005:.7f}"><ele>25</ele><time>{(start+timedelta(seconds=2*i)).strftime("%Y-%m-%dT%H:%M:%SZ")}</time></trkpt>' for i in range(151))
         data=('<?xml version="1.0"?><gpx version="1.1" creator="RuntrovertQA" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>Synthetic Rome test</name><type>running</type><trkseg>'+pts+'</trkseg></trk></gpx>').encode()
         push_fixture('qa-synthetic-running.gpx',data)
-        open_data(); h.tap('Choose files'); choose_download('qa-synthetic-running.gpx'); h.expect('Brought in 1 run.',contains=True); h.shot('gpx-imported')
+        open_data(); h.tap('Choose files'); choose_download('qa-synthetic-running.gpx'); h.locate('Brought in 1 run.',contains=True); h.expect('Brought in 1 run.',contains=True); h.shot('gpx-imported')
         h.tap('Choose files'); choose_download('qa-synthetic-running.gpx'); h.shot('duplicate-import')
         state=database('import-once'); assert len(state['runs'])==1 and state['counts']['points']>100,state
         h.tap('Your runs'); h.first_history_run(); h.shot('imported-route')

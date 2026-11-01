@@ -260,8 +260,38 @@ def record_run():
     adb('shell','input','keyevent','KEYCODE_HOME'); time.sleep(8); launch(); expect('Pause'); shot('background-return')
     adb('shell','input','keyevent','KEYCODE_SLEEP'); time.sleep(8)
     adb('shell','input','keyevent','KEYCODE_WAKEUP'); adb('shell','wm','dismiss-keyguard'); launch(); expect('Pause')
-    finish(); tap('Back to Your runs'); expect('Your runs'); not_visible('No runs yet.'); shot('history')
+    finish(False)
+    # Capture the native touch and allow the finish layout to settle. Earlier
+    # first taps sometimes produced no transition, despite matching XML bounds.
+    adb('shell','settings','put','system','show_touches','1')
+    video=subprocess.Popen(['adb','shell','screenrecord','--time-limit','30','/sdcard/rt-save.mp4'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    save_issue=None
+    try:
+        time.sleep(2)
+        n=locate('Save run'); b=n.get('bounds')
+        time.sleep(.5); n=locate('Save run')
+        assert n.get('bounds')==b and n.get('enabled')!='false', 'Save target did not settle'
+        log('save-target-stable',bounds=b,enabled=n.get('enabled'))
+        shot('before-save-tap'); tap('Save run')
+        try: expect('Back to Your runs',timeout=8)
+        except AssertionError:
+            save_issue='Enabled Save run did not respond to its first settled tap'
+            shot('first-save-tap-unresponsive')
+            tap('Save run',hold=150)
+            try: expect('Back to Your runs',timeout=5); log('save-diagnostic',outcome='150ms retry saved')
+            except AssertionError:
+                shot('second-save-tap-unresponsive'); back(); expect('Save this run?')
+                tap('Save run'); expect('Back to Your runs'); log('save-diagnostic',outcome='native Back-dialog save succeeded')
+        shot('saved')
+    finally:
+        adb('shell','pkill','-INT','screenrecord',check=False)
+        try: video.wait(timeout=5)
+        except subprocess.TimeoutExpired: video.terminate()
+        adb('pull','/sdcard/rt-save.mp4',OUT/CURRENT/'save-interaction.mp4',check=False)
+        adb('shell','settings','put','system','show_touches','0',check=False)
+    tap('Back to Your runs'); expect('Your runs'); not_visible('No runs yet.'); shot('history')
     adb('shell','am','force-stop',PACKAGE); launch(); tap('Your runs'); not_visible('No runs yet.'); first_history_run(); shot('persistent-detail')
+    assert save_issue is None, save_issue
 
 def finish_recovery():
     fresh(); begin(); finish(False)
@@ -346,6 +376,10 @@ CASES += data_cases(sys.modules[__name__])
 CASES += extra_cases(sys.modules[__name__])
 
 if __name__=='__main__':
+    serial=adb('get-serialno')
+    is_emulator=adb('shell','getprop','ro.kernel.qemu')=='1' or adb('shell','getprop','ro.boot.qemu')=='1'
+    if not serial.startswith('emulator-') or not is_emulator:
+        sys.exit('Refusing destructive fixture resets: use a disposable local Android emulator, never a personal phone.')
     size=adb('shell','wm','size'); numbers=re.findall(r'(\d+)x(\d+)',size)
     if numbers: SIZE=tuple(map(int,numbers[-1]))
     adb('logcat','-c'); adb('logcat','-b','crash','-c')

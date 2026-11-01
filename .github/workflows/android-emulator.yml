@@ -42,14 +42,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - suite: recording-basic
-            cases: 05-record-pause-background-save,06-finish-recovery-discard,07-quiet-mode
-          - suite: workouts-and-recovery
-            cases: 09-quick-workout,13-offline-recording,19-process-death-recovery
-          - suite: corrections-and-restore
-            cases: 08-manual-validation-edit-delete,15-backup-roundtrip
-          - suite: training-session
-            cases: 20-mode-fallback-countdown-cancel,21-plan-setup-session-guidance
+          - suite: save-interaction
+            cases: 05-record-pause-background-save
+          - suite: gpx-and-places
+            cases: 18-gpx-import-deduplication
     env:
       BUILD_RUN_ID: ${{ inputs.build_run_id || '41319989111' }}
       RT_CASES: ${{ inputs.cases || '' }}
