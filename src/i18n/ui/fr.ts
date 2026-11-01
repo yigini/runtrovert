@@ -2465,6 +2465,8 @@ export const fr: Strings = {
     noAccount: 'Pas de compte. Rien n’est envoyé.',
     whatsHere: 'Ce qu’il y a sur ce téléphone',
     moved: 'Records, tendances et habitudes sont maintenant dans Moi.',
+    barsNote: 'Plus la barre est longue, plus tu as couru vite.',
+    ofTarget: (t) => `sur ${t}`,
     closeNote: 'Fermer ce message',
   },
 };

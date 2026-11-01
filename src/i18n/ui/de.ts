@@ -2464,6 +2464,8 @@ export const de: Strings = {
     noAccount: 'Kein Konto. Nichts wird gesendet.',
     whatsHere: 'Was auf diesem Handy ist',
     moved: 'Bestwerte, Trends und Muster findest du jetzt unter Ich.',
+    barsNote: 'Je länger der Balken, desto schneller warst du.',
+    ofTarget: (t) => `von ${t}`,
     closeNote: 'Hinweis schließen',
   },
 };

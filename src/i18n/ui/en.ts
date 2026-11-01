@@ -2479,6 +2479,8 @@ export const en = {
     noAccount: 'No account. Nothing sent.',
     whatsHere: 'What’s on this phone',
     moved: 'Bests, trends and patterns now live in Me.',
+    barsNote: 'The longer the bar, the quicker you ran it.',
+    ofTarget: (t: string) => `of ${t}`,
     closeNote: 'Close this note',
   },
 };

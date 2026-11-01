@@ -52,3 +52,21 @@ assert.deepEqual(commutesThisMonth(runs, tags, at(2026, 10, 30)), { toWork: 1, h
 assert.deepEqual(commutesThisMonth(runs, tags, now), { toWork: 0, home: 0 });
 
 console.log('me: ok');
+
+// The Me loop: one per day, a night set after dark, never a clip that isn't in the set.
+import { bestBars, meFootage, ME_DAY_FOOTAGE, ME_NIGHT_FOOTAGE } from '../src/me.ts';
+assert.equal(meFootage(at(2026, 11, 1, 9)), meFootage(at(2026, 11, 1, 18)), 'same loop all day');
+assert.ok((ME_DAY_FOOTAGE as readonly string[]).includes(meFootage(at(2026, 11, 2, 12))));
+assert.ok((ME_NIGHT_FOOTAGE as readonly string[]).includes(meFootage(at(2026, 11, 2, 23))));
+assert.ok((ME_NIGHT_FOOTAGE as readonly string[]).includes(meFootage(at(2026, 11, 2, 3))));
+const days = new Set([0, 1, 2].map((k) => meFootage(at(2026, 11, 3 + k, 12))));
+assert.equal(days.size, 3, 'the day set takes turns');
+
+// Bests as bars: quickest pace is the full bar, slowest still visible.
+const bars = bestBars([{ key: '5k', m: 5000, seconds: 22 * 60 + 48 }, { key: '10k', m: 10000, seconds: 47 * 60 + 55 }, { key: 'full', m: 42195, seconds: 3 * 3600 + 58 * 60 }]);
+assert.equal(bars[0].share, 1);
+assert.ok(Math.abs(bars[2].share - 0.45) < 1e-9);
+assert.ok(bars[1].share < 1 && bars[1].share > 0.45);
+assert.deepEqual(bestBars([]), []);
+assert.equal(bestBars([{ key: '5k', m: 5000, seconds: 1500 }])[0].share, 1);
+console.log('me footage + bars: ok');

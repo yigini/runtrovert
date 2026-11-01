@@ -6,6 +6,7 @@ import { bests, EFFORTS, formatClock, trends, type Best, type Trends } from '../
 import { colors, fonts, radius, spacing, type, themedStyles } from '../theme';
 import { useUnlocked } from '../unlockState';
 import { loadYou } from '../you';
+import { bestBars } from '../me';
 import { LockRow } from './LockRow';
 import { Group as Fold, Legend } from './DeepCharts';
 import { spokenPaceSec } from '../a11y';
@@ -62,6 +63,56 @@ export function BestsRow({ data, km }: { data: YouData; km: boolean }) {
           );
         })}
       </ScrollView>
+      <BestsCurve all={all} recent={recent} km={km} />
+    </View>
+  );
+}
+
+/**
+ * Your bests as bars: one per race distance, longer for a quicker pace, the
+ * fresh one in mint. Longest run and most climb sit under them as chips, then
+ * the bests curve, folded. Free.
+ */
+export function BestsBars({ data, km }: { data: YouData; km: boolean }) {
+  const { all, recent } = data;
+  const now = Date.now();
+  const efforts = EFFORTS.map((e) => {
+    const b = all.find((x) => x.key === e.key);
+    return b ? { key: e.key, m: e.m, seconds: b.value, at: b.at, label: e.label } : null;
+  }).filter((x): x is NonNullable<typeof x> => x != null);
+  const bars = bestBars(efforts);
+  const others = all.filter((b) => b.key === 'longest' || b.key === 'climb');
+  return (
+    <View style={{ gap: spacing.md }}>
+      <View style={{ gap: 8 }}>
+        {efforts.map((e, i) => {
+          const fresh = now - e.at < 14 * DAY;
+          return (
+            <View key={e.key} style={styles.rung} accessible accessibilityLabel={`${e.label}: ${formatClock(e.seconds)}${fresh ? ui().youSection.new : ''}`}>
+              <Text style={styles.rungLabel} numberOfLines={1}>{e.label}</Text>
+              <View style={{ flex: 1 }}>
+                <View style={[styles.rungBar, { width: `${Math.round(bars[i].share * 100)}%` }, fresh && { backgroundColor: colors.mint }]}>
+                  <Text style={[styles.rungText, fresh && { color: colors.mintDeep }]} numberOfLines={1}>
+                    {formatClock(e.seconds)}
+                    {fresh ? ui().youSection.new : ''}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+      {efforts.length > 1 ? <Text style={type.small}>{ui().me.barsNote}</Text> : null}
+      {others.length > 0 ? (
+        <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
+          {others.map((b) => (
+            <View key={b.key} style={[styles.best, { backgroundColor: colors.sunk }]}>
+              <Text style={styles.bestValue}>{b.key === 'longest' ? formatDistance(b.value, km) : formatElevation(b.value, km)}</Text>
+              <Text style={styles.bestLabel}>{LABEL[b.key]}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
       <BestsCurve all={all} recent={recent} km={km} />
     </View>
   );
@@ -253,6 +304,10 @@ const styles = themedStyles(() => ({
   bestLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', color: colors.muted },
   bestLately: { fontFamily: fonts.body, fontSize: 11, color: colors.muted, marginTop: 2 },
   trend: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 10 },
+  rung: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  rungLabel: { width: 64, fontFamily: fonts.bodySemi, fontSize: 12, color: colors.muted },
+  rungBar: { minHeight: 30, borderRadius: 10, backgroundColor: colors.lilac, justifyContent: 'center', paddingHorizontal: 10, minWidth: 92 },
+  rungText: { fontFamily: fonts.display, fontSize: 16, color: colors.lilacDeep, fontVariant: ['tabular-nums'] },
   trendLine: { borderTopWidth: 1, borderTopColor: colors.line },
   trendK: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', color: colors.muted },
   curveTick: { position: 'absolute', width: 48, textAlign: 'center', fontFamily: fonts.body, fontSize: 10, color: colors.muted },

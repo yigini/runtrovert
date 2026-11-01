@@ -430,6 +430,7 @@ function Shell() {
               <ScreenActive.Provider value={sub == null && tab === 'me'}>
                 <MeScreen
                   key={day}
+                  active={sub == null && tab === 'me'}
                   refreshKey={refreshKey + planKey}
                   onOpenPlace={(id) => {
                     setRunsSection('places');

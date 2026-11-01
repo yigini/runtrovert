@@ -2465,6 +2465,8 @@ export const pt: Strings = {
     noAccount: 'Sem conta. Nada é enviado.',
     whatsHere: 'O que há neste celular',
     moved: 'Recordes, tendências e padrões agora ficam em Eu.',
+    barsNote: 'Quanto mais longa a barra, mais rápido você correu.',
+    ofTarget: (t) => `de ${t}`,
     closeNote: 'Fechar este aviso',
   },
 };

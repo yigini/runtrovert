@@ -114,3 +114,37 @@ export function commutesThisMonth(runs: MeRun[], tags: Map<number, 'toWork' | 'h
   }
   return out;
 }
+
+/**
+ * The loop behind the top of Me: calm, cinematic, a runner you can see.
+ * One per day (so it never switches while you look), from a small day set, or
+ * a night set after dark. The Run tab rotates by weather; Me stays quieter.
+ */
+export const ME_DAY_FOOTAGE = ['sunset-water', 'glass-river', 'sun-trees'] as const;
+export const ME_NIGHT_FOOTAGE = ['dark-forest', 'night-park'] as const;
+export type MeFootage = (typeof ME_DAY_FOOTAGE)[number] | (typeof ME_NIGHT_FOOTAGE)[number];
+
+export function meFootage(now: number): MeFootage {
+  const d = new Date(now);
+  const h = d.getHours();
+  const dayNo = Math.floor(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / 86400000);
+  const pool: readonly MeFootage[] = h < 6 || h >= 21 ? ME_NIGHT_FOOTAGE : ME_DAY_FOOTAGE;
+  return pool[((dayNo % pool.length) + pool.length) % pool.length];
+}
+
+/**
+ * Bests as bars: each race distance's best, as pace per km, scaled so the
+ * quickest pace is the full width and the slowest still shows. 0..1 each.
+ */
+export function bestBars(efforts: Array<{ key: string; m: number; seconds: number }>): Array<{ key: string; share: number; paceS: number }> {
+  if (efforts.length === 0) return [];
+  const paces = efforts.map((e) => e.seconds / (e.m / 1000));
+  const quick = Math.min(...paces);
+  const slow = Math.max(...paces);
+  return efforts.map((e, i) => ({
+    key: e.key,
+    paceS: paces[i],
+    // Quickest = 1, slowest = 0.45: a gap you can see without the slow end vanishing.
+    share: slow === quick ? 1 : 1 - ((paces[i] - quick) / (slow - quick)) * 0.55,
+  }));
+}

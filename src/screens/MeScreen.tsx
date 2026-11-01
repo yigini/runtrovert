@@ -1,22 +1,24 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Svg, { Circle, Defs, LinearGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
+import { AmbientBackground } from '../components/AmbientBackground';
 import { spokenDistance } from '../a11y';
 import { DeepMonthsView } from '../components/DeepStats';
 import { Group as Fold } from '../components/DeepCharts';
 import { patternFormat, PatternsView } from '../components/PatternsView';
 import { SettingsGear } from '../components/SettingsGear';
-import { BestsRow, Lately, rechargeLine, useYouData, weekLine } from '../components/YouSection';
+import { BestsBars, Lately, rechargeLine, useYouData, weekLine } from '../components/YouSection';
 import { commuteTags, useCommute } from '../commuteStore';
 import type { CommuteDir } from '../commute';
 import { goalStore } from '../extraStores';
 import { distanceUnit, formatDistance } from '../geo';
-import { bestYear, commutesThisMonth, journey, lifetime, topPlaces, weekDays, years } from '../me';
+import { bestYear, commutesThisMonth, journey, lifetime, meFootage, topPlaces, weekDays, years } from '../me';
 import { energyPatterns } from '../patterns';
 import { loadYourRuns, patternRuns, type YourRunsData } from '../patternStore';
 import { useSettings } from '../settings';
 import { totals, wear } from '../shoes';
 import { useShoes } from '../shoeStore';
-import { colors, fonts, radius, spacing, type, themedStyles } from '../theme';
+import { colors, fonts, radius, scheme, spacing, type, themedStyles, VEIL_FLOOR } from '../theme';
 import { currentWeek, loadPlan } from '../training/store';
 import type { Plan } from '../training/types';
 import { useUnlocked } from '../unlockState';
@@ -38,8 +40,11 @@ export function MeScreen({
   onOpenTrain,
   onBringIn,
   onWhatsHere,
+  active = true,
 }: {
   refreshKey: number;
+  /** Me is the tab on screen: the loop plays only then. */
+  active?: boolean;
   onOpenPlace: (id: number) => void;
   onAllPlaces: () => void;
   onOpenTrain: () => void;
@@ -77,6 +82,8 @@ export function MeScreen({
   const yearList = useMemo(() => years(runs), [runs]);
   const patterns = useMemo(() => (data ? energyPatterns(patternRuns(data), data.places, now, patternFormat(km)) : null), [data, km]);
   const m = ui().me;
+  // One loop a day (a night one after dark), picked when Me is drawn, so it never switches while you look.
+  const footage = useMemo(() => meFootage(Date.now()), []);
 
   const title = (
     <View style={{ gap: spacing.sm }}>
@@ -133,43 +140,47 @@ export function MeScreen({
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {title}
-
-        {/* You, so far: plain totals since the first run, imported runs included. Free. */}
-        {data ? (
-          <View style={styles.card} accessible accessibilityLabel={`${m.soFarSpoken(life.runs, spokenDistance(life.distanceM, km), hours)} ${since}${journeyText}`}>
-            <Text style={type.eyebrow}>{m.soFar}</Text>
-            <View style={styles.statRow}>
-              <Stat value={whole(life.runs)} label={m.runs(life.runs)} />
-              <Stat value={whole(life.distanceM / (km ? 1000 : 1609.344))} label={distanceUnit(km)} />
-              <Stat value={whole(hours)} label={m.hours(hours)} />
-            </View>
-            <Text style={type.body}>{since + journeyText}</Text>
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: 0 }]} showsVerticalScrollIndicator={false}>
+        {/* The top of Me: one slow loop behind your total, fading into the page. It plays only while
+            Me is on screen, and is a still frame under battery saver or reduced motion. Free. */}
+        <View style={styles.hero}>
+          <View style={StyleSheet.absoluteFill} pointerEvents="none">
+            <AmbientBackground style={footage} paused={!active} />
+            <Fade />
           </View>
-        ) : null}
-
-        {/* This week. Free. No streak, nothing said about a short week. */}
-        {data ? (
-          <View style={[styles.card, styles.mint]} accessible accessibilityLabel={[ui().youSection.thisWeek, parts ? m.of(parts.done, parts.target) : m.weekRuns(week.runs), ranDays.length ? m.ranOn(ranDays.join(', ')) : m.noRunDays, usual].filter(Boolean).join('. ')}>
-            <View style={styles.headRow}>
-              <Text style={[type.eyebrow, { color: colors.mintDeep }]}>{ui().youSection.thisWeek}</Text>
-              <Text style={styles.headValue}>{parts ? m.of(parts.done, parts.target) : week.runs ? `${m.weekRuns(week.runs)} · ${roughDistance(week.distanceM, km)}` : m.weekRuns(0)}</Text>
-            </View>
-            {goalOn && goal ? (
-              <View style={styles.bar}>
-                <View style={[styles.barFill, { width: `${Math.round(goalShare(goal, week) * 100)}%` }]} />
+          {title}
+          {data ? (
+            <View style={{ gap: 6, marginTop: spacing.sm }} accessible accessibilityLabel={`${m.soFarSpoken(life.runs, spokenDistance(life.distanceM, km), hours)} ${since}${journeyText}`}>
+              <Text style={[type.eyebrow, { color: colors.inkSoft }]}>{m.soFar}</Text>
+              <View style={styles.bigRow}>
+                <Text style={styles.big} numberOfLines={1} adjustsFontSizeToFit>{whole(life.distanceM / (km ? 1000 : 1609.344))}</Text>
+                <Text style={styles.bigUnit}>{distanceUnit(km)}</Text>
               </View>
-            ) : null}
-            <View style={styles.days}>
-              {days.map((on, i) => (
-                <View key={i} style={styles.day}>
-                  <View style={[styles.dot, on && styles.dotOn]} />
-                  <Text style={styles.dayText}>{dayNames.short[i]}</Text>
-                </View>
-              ))}
+              <View style={styles.chips}>
+                <Text style={styles.chip}>{`${whole(life.runs)} ${m.runs(life.runs)}`}</Text>
+                <Text style={styles.chip}>{`${whole(hours)} ${m.hours(hours)}`}</Text>
+              </View>
+              <Text style={[type.body, { color: colors.inkSoft }]}>{since + journeyText}</Text>
             </View>
-            {usual ? <Text style={[type.small, { color: colors.mintDeep }]}>{usual}</Text> : null}
+          ) : null}
+        </View>
+
+        {/* This week as a ring: the goal's arc when one is set, a dot for each day you ran. Free. No streak. */}
+        {data ? (
+          <View style={[styles.card, styles.mint, styles.weekCard]} accessible accessibilityLabel={[ui().youSection.thisWeek, parts ? m.of(parts.done, parts.target) : `${m.weekRuns(week.runs)}, ${hoursMinutes(week.durationS)}`, ranDays.length ? m.ranOn(ranDays.join(', ')) : m.noRunDays, usual].filter(Boolean).join('. ')}>
+            <WeekRing share={goalOn && goal ? goalShare(goal, week) : null} center={parts ? parts.done : hoursMinutes(week.durationS)} under={parts ? m.ofTarget(parts.target) : m.weekRuns(week.runs)} />
+            <View style={{ flex: 1, gap: 10 }}>
+              <Text style={[type.eyebrow, { color: colors.mintDeep }]}>{ui().youSection.thisWeek}</Text>
+              <View style={styles.days}>
+                {days.map((on, i) => (
+                  <View key={i} style={styles.day}>
+                    <View style={[styles.dot, on && styles.dotOn]} />
+                    <Text style={styles.dayText}>{dayNames.short[i]}</Text>
+                  </View>
+                ))}
+              </View>
+              {usual ? <Text style={[type.small, { color: colors.mintDeep }]}>{usual}</Text> : null}
+            </View>
           </View>
         ) : null}
 
@@ -185,14 +196,33 @@ export function MeScreen({
           )
         ) : null}
 
-        {/* Your bests. Free. */}
+        {/* Your bests as bars. Free. */}
         {you && you.all.length > 0 ? (
           <View style={styles.card}>
             <View style={styles.headRow}>
               <Text style={type.eyebrow}>{m.bests}</Text>
               <Text style={type.small}>{m.allTime}</Text>
             </View>
-            <BestsRow data={you} km={km} />
+            <BestsBars data={you} km={km} />
+          </View>
+        ) : null}
+
+        {/* Your years as columns, the biggest in the deeper lilac. Plain totals, free. */}
+        {yearList.length > 1 ? (
+          <View style={styles.card} accessible accessibilityLabel={[m.years, best != null ? m.bestYear(best) : null, ...yearList.map((y) => m.yearSpoken(y.year, spokenDistance(y.distanceM, km), y.runs))].filter(Boolean).join('. ')}>
+            <View style={styles.headRow}>
+              <Text style={type.eyebrow}>{m.years}</Text>
+              {best != null ? <Text style={type.small}>{m.bestYear(best)}</Text> : null}
+            </View>
+            <View style={styles.cols}>
+              {[...yearList].slice(0, 12).reverse().map((y) => (
+                <View key={y.year} style={styles.col}>
+                  <View style={[styles.colBar, { height: Math.max(4, Math.round((y.distanceM / maxYear) * 100)) }, y.year === best && { backgroundColor: colors.seq3 }]} />
+                  <Text style={styles.colText}>{String(y.year).slice(2)}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={type.small}>{m.yearsNote}</Text>
           </View>
         ) : null}
 
@@ -200,20 +230,6 @@ export function MeScreen({
         <View style={{ gap: spacing.sm }}>
           <Text style={[type.eyebrow, { marginTop: spacing.sm }]} accessibilityRole="header">{m.more}</Text>
           <View style={styles.folds}>
-            {yearList.length > 1 ? (
-              <Fold id="me-years" title={m.years} headline={best != null ? m.bestYear(best) : null}>
-                {yearList.map((y) => (
-                  <View key={y.year} style={styles.yearRow} accessible accessibilityLabel={m.yearSpoken(y.year, spokenDistance(y.distanceM, km), y.runs)}>
-                    <Text style={styles.yearName}>{y.year}</Text>
-                    <View style={styles.yearTrack}>
-                      <View style={[styles.yearBar, { width: `${Math.max(3, Math.round((y.distanceM / maxYear) * 100))}%` }, y.year === best && { backgroundColor: colors.seq3 }]} />
-                    </View>
-                    <Text style={styles.yearValue}>{roughDistance(y.distanceM, km)}</Text>
-                  </View>
-                ))}
-                <Text style={type.small}>{m.yearsNote}</Text>
-              </Fold>
-            ) : null}
             {hasEnergy && patterns ? (
               <Fold id="me-lifts" title={m.lifts} headline={patterns.first.ready ? patterns.first.title : null}>
                 {recharge ? <Text style={type.body}>{recharge}</Text> : null}
@@ -291,13 +307,48 @@ function Footer({ onWhatsHere }: { onWhatsHere: () => void }) {
   );
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
+/** The ground colour over the loop: never thinner than the theme's floor where words sit, solid at the bottom so it melts into the page. */
+function Fade() {
+  const floor = VEIL_FLOOR[scheme()];
   return (
-    <View style={styles.stat}>
-      <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+    <Svg width="100%" height="100%" preserveAspectRatio="none" style={StyleSheet.absoluteFill}>
+      <Defs>
+        <LinearGradient id="meFade" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={colors.cream} stopOpacity={floor} />
+          <Stop offset="0.7" stopColor={colors.cream} stopOpacity={Math.min(1, floor + 0.08)} />
+          <Stop offset="1" stopColor={colors.cream} stopOpacity={1} />
+        </LinearGradient>
+      </Defs>
+      <Rect width="100%" height="100%" fill="url(#meFade)" />
+    </Svg>
+  );
+}
+
+/** The week as a ring. `share` is the goal's arc (null: no goal, just the ring and the time). */
+function WeekRing({ share, center, under }: { share: number | null; center: string; under: string }) {
+  const size = 124;
+  const c = size / 2;
+  const r = c - 10;
+  const C = 2 * Math.PI * r;
+  return (
+    <View style={{ width: size, height: size }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+      <Svg width={size} height={size}>
+        <Circle cx={c} cy={c} r={r} stroke={colors.empty} strokeWidth={11} fill="none" />
+        {share != null && share > 0 ? (
+          <Circle cx={c} cy={c} r={r} stroke={colors.mintDeep} strokeWidth={11} fill="none" strokeLinecap="round" strokeDasharray={`${C * share} ${C}`} transform={`rotate(-90 ${c} ${c})`} />
+        ) : null}
+        <SvgText x={c} y={c + 2} textAnchor="middle" fontFamily={fonts.display} fontSize={center.length > 7 ? 18 : 24} fill={colors.text}>{center}</SvgText>
+        <SvgText x={c} y={c + 22} textAnchor="middle" fontFamily={fonts.bodySemi} fontSize={11} fill={colors.mintDeep}>{under}</SvgText>
+      </Svg>
     </View>
   );
+}
+
+/** "5 h 12", "48 min". */
+function hoursMinutes(s: number): string {
+  const h = Math.floor(s / 3600);
+  const mm = Math.floor((s % 3600) / 60);
+  return h > 0 ? ui().history.hoursMinutes(h, String(mm).padStart(2, '0')) : ui().common.min(mm);
 }
 
 /** Whole numbers with the language's thousands mark: 3,140 · 3.140 · 3 140. */
@@ -342,6 +393,17 @@ const styles = themedStyles(() => ({
   dot: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: colors.mintDeep, opacity: 0.45 },
   dotOn: { backgroundColor: colors.mintDeep, opacity: 1 },
   dayText: { fontFamily: fonts.bodySemi, fontSize: 11, color: colors.mintDeep },
+  hero: { marginHorizontal: -spacing.md, paddingHorizontal: spacing.md, paddingTop: spacing.lg, paddingBottom: spacing.xl, gap: spacing.sm, overflow: 'hidden' },
+  bigRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+  big: { fontFamily: fonts.display, fontSize: 60, lineHeight: 66, letterSpacing: -1.5, color: colors.text, fontVariant: ['tabular-nums'], flexShrink: 1 },
+  bigUnit: { fontFamily: fonts.display, fontSize: 20, color: colors.text },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  chip: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text, backgroundColor: colors.glass, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 12, overflow: 'hidden' },
+  weekCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  cols: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: 124 },
+  col: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 4 },
+  colBar: { width: '100%', borderTopLeftRadius: 8, borderTopRightRadius: 8, borderBottomLeftRadius: 3, borderBottomRightRadius: 3, backgroundColor: colors.seq2 },
+  colText: { fontFamily: fonts.bodySemi, fontSize: 10, color: colors.muted, fontVariant: ['tabular-nums'] },
   folds: { backgroundColor: colors.white, borderRadius: radius.lg, paddingHorizontal: 18, paddingVertical: 4 },
   yearRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   yearName: { fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.muted, width: 40, fontVariant: ['tabular-nums'] },
