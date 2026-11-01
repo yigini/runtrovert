@@ -17,7 +17,7 @@
   <link rel="preload" href="fonts/DMSans_400Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" as="image" href="media/v3/wide-sunset-water.jpg" media="(min-aspect-ratio: 1/1)">
   <link rel="preload" as="image" href="media/v3/bg-sunset-water.jpg" media="(max-aspect-ratio: 999/1000)">
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -117,6 +117,10 @@
         <p class="lbl">Splits per km <span id="split-say" aria-live="polite">Tap a bar</span></p>
         <div class="splits" id="splits"></div>
         <p class="line">Negative split, 0:57 quicker on the way home.</p>
+        <div class="feel" role="group" aria-labelledby="feel-q">
+          <p class="lbl" id="feel-q">And your energy now? <span id="feel-say" aria-live="polite">Optional</span></p>
+          <div class="dots" id="feel"></div>
+        </div>
         <button type="button" class="more" id="more" aria-expanded="false" aria-controls="deep">Show me everything</button>
         <div class="deep" id="deep" hidden>
           <p><span>The shape of your splits</span><b>Negative split</b></p>
@@ -125,7 +129,10 @@
           <p><span>Your quickest 200 m</span><b>4.9 km in</b></p>
           <p><span>Corners taken</span><b>14</b></p>
         </div>
-        <button type="button" class="ghost" id="again">Run it again</button>
+        <div class="after">
+          <button type="button" class="ghost" id="keep">Save as a place</button>
+          <button type="button" class="ghost" id="again">Run it again</button>
+        </div>
       </div>
       <button type="button" class="finish" id="finish">Finish</button>
     </div>
@@ -173,11 +180,11 @@
   <div class="in">
     <span class="num"><b>06</b> Privacy</span>
     <h2>Nothing of yours on a server. <em>Here's the whole list.</em></h2>
-    <p class="say">Your runs, routes, places and notes are saved on your phone. The app fetches three things, each with a switch, and a fourth only if you ask for it. <strong>The line you ran is never sent.</strong></p>
+    <p class="say">Your runs, routes, places and notes are saved on your phone. New phone? Make one backup file, keep it wherever you like, and restore. The app fetches three things, each with a switch, and a fourth only if you ask for it. <strong>The line you ran is never sent.</strong></p>
     <ul class="three">
       <li><span class="k">Plain map turns it off</span><b>Map tiles</b><span>OpenFreeMap sees which area is on screen. With Plain map your route still draws, just without streets.</span></li>
       <li><span class="k">Weather switch</span><b>The forecast</b><span>Open-Meteo gets a location rounded to about 1 km.</span></li>
-      <li><span class="k">Only if you say yes</span><b>The Listen list</b><span>Podcasts and playlists picked for running, opened in your own app. One file, the same for everyone; sponsored picks are marked.</span></li>
+      <li><span class="k">Only if you say yes</span><b>The Listen list</b><span>Podcasts and playlists picked for running, opened in your own app. One list, the same for everyone, plus the covers of shows you scroll past; sponsored picks are marked.</span></li>
     </ul>
     <p class="also"><span class="k">Off until you switch it on</span><b>Things you passed.</b> After a run, Wikipedia, OpenStreetMap and Wikidata are asked what's in the squares of about 1 km the run went through. They see those squares, which outline roughly where you ran, never the line itself.</p>
     <p class="say fine">Each of these services sees your IP address, like any website. No account, no analytics, no push server. If your phone's backups are on, Android keeps a copy of the app's data in your own Google account, not with us. The full detail is in the <a href="privacy.html">privacy policy</a>.</p>
@@ -200,7 +207,7 @@
           <li>Your places, silent runs, quiet reminders, the map</li>
           <li>Listen (running podcasts and playlists, opened in your own app), the Wear OS watch app, heart rate from a strap or watch, week 1 of every plan</li>
           <li>Bring your history: import runs from GPX or FIT files, from any watch or app</li>
-          <li>GPX export of a single run</li>
+          <li>GPX export of a single run, and a full backup file you keep yourself to restore on a new phone</li>
         </ul>
       </div>
       <div class="tier once">
@@ -249,6 +256,6 @@
   </div>
 </footer>
 
-<script src="site.js?v=10" defer></script>
+<script src="site.js?v=11" defer></script>
 </body>
 </html>
