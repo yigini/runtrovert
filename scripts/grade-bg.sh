@@ -62,7 +62,9 @@ LOOP=8
 if [ "$MODE" = wide ]; then
   AR_W=16; AR_H=9; SIZE=1920:1080; PREFIX=wide; ENC='-crf 24 -maxrate 2600k -bufsize 5200k -profile:v high'
 else
-  AR_W=9; AR_H=16; SIZE=900:1600; PREFIX=bg; ENC='-crf 28 -maxrate 700k -bufsize 1400k -profile:v main'
+  # 720x1280 at a generous bitrate looks far cleaner on a phone than 900x1600 starved:
+  # busy foliage and handheld motion at 700k broke into blocks (Nov 2026).
+  AR_W=9; AR_H=16; SIZE=${TALL_SIZE:-720:1280}; PREFIX=bg; ENC=${TALL_ENC:-'-crf 23 -maxrate 1600k -bufsize 3200k -profile:v high -tune film'}
 fi
 
 grade() {
