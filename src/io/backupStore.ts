@@ -1,6 +1,6 @@
 import { File, FileMode, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { getDb } from '../db';
+import { getDb, touchRuns } from '../db';
 import { forgetCommute } from '../commuteStore';
 import { forgetShoes } from '../shoeStore';
 import { forgetValues } from '../valueStore';
@@ -157,6 +157,7 @@ export async function restoreBackup(picked: PickedBackup): Promise<void> {
     // The live-run buffer belongs to this phone's last run, not to the backup.
     await db.runAsync('DELETE FROM bg_fixes');
   });
+  touchRuns();
   forgetCommute();
   forgetShoes();
   forgetValues();

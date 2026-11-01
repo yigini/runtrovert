@@ -88,32 +88,46 @@ export function RunDetailScreen({
   const keeping = useRef(false);
 
   useEffect(() => {
+    let alive = true;
     (async () => {
-      const r = await getRun(runId);
+      // Everything for this one run in one go, rather than a dozen reads one after another;
+      // the comparison with every other run comes last and never holds up the page.
+      const [r, pts, sp, src, aids, ed, inPlace, hr] = await Promise.all([
+        getRun(runId),
+        getPoints(runId).catch(() => []),
+        getSplits(runId).catch(() => []),
+        getRunSource(runId).catch(() => null),
+        loadValue<Record<string, unknown>>(INDOOR_KEY).catch(() => null),
+        getRunEdit(runId).catch(() => null),
+        placeForRun(runId).catch(() => null),
+        getHeartRate(runId).catch(() => []),
+      ]);
+      if (!alive) return;
       setRun(r);
       setMissing(!r);
       if (r) {
-        const clean = cleanHeart(await getHeartRate(runId).catch(() => []), r.startedAt, r.endedAt);
+        const clean = cleanHeart(hr, r.startedAt, r.endedAt);
         setHeart(heartSummary(clean));
         setBeats(clean);
-        if (clean.length) setMaxHr(await highestHeartRate().catch(() => null));
+        if (clean.length) highestHeartRate().then((m) => alive && setMaxHr(m)).catch(() => {});
       }
-      const pts = await getPoints(runId);
       setPath(pts.map((p) => ({ latitude: p.lat, longitude: p.lon })));
       setPoints(pts.map((p) => ({ ts: p.ts, lat: p.lat, lon: p.lon, alt: p.alt, acc: p.acc })));
-      setSplits(await getSplits(runId));
-      setSource(await getRunSource(runId).catch(() => null));
-      setIndoor(!!(await loadValue<Record<string, unknown>>(INDOOR_KEY).catch(() => null))?.[String(runId)]);
-      setEdit(await getRunEdit(runId).catch(() => null));
-      const inPlace = await placeForRun(runId).catch(() => null);
+      setSplits(sp);
+      setSource(src);
+      setIndoor(!!aids?.[String(runId)]);
+      setEdit(ed);
       setPlace(inPlace);
-      if (!inPlace) setChoice(await runPlaceChoice(runId).catch(() => null));
+      if (!inPlace) runPlaceChoice(runId).then((c) => alive && setChoice(c)).catch(() => {});
       const you = await loadYou().catch(() => null);
-      if (you) {
+      if (alive && you) {
         setFacts(you.facts);
         setWeather(you.weather.get(runId) ?? null);
       }
-    })();
+    })().catch(() => {});
+    return () => {
+      alive = false;
+    };
   }, [runId]);
 
   const kmPaces = useMemo(

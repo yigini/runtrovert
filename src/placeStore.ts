@@ -163,16 +163,26 @@ async function pastSigs(exceptRunId: number | null): Promise<Array<{ runId: numb
   const rows = (await db.getAllAsync('SELECT run_id, v, sig FROM route_sigs')) as Array<{ run_id: number; v: number; sig: string | null }>;
   const have = new Map(rows.filter((r) => r.v === SIG_V).map((r) => [r.run_id, parseSig(r.sig)]));
   const out: Array<{ runId: number; sig: RouteSig }> = [];
+  let worked = 0;
   for (const r of runs) {
     let sig = have.get(r.id);
     if (sig === undefined) {
       const pts = await getPoints(r.id);
       sig = routeSignature(pts);
       await saveSig(r.id, sig);
+      // After an import hundreds can be missing: a breath every few, so the screen keeps drawing.
+      if (++worked % 4 === 0) await breath();
     }
     if (sig) out.push({ runId: r.id, sig });
   }
   return out;
+}
+
+const breath = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+/** Work out, ahead of time and a few at a time, the loops of runs that have none yet (runs brought in from files). */
+export async function warmSigs(): Promise<void> {
+  await pastSigs(null);
 }
 
 export interface FinishPlace {

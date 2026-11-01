@@ -5,6 +5,28 @@ import { DEFAULT_SETTINGS, type Mood, type Point, type Quiet, type Run, type Set
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
+// ---- What changed, and a cached run list ------------------------------------
+// Nearly every screen asks for the list of runs. With a few hundred runs that
+// was one full table read (and a fresh object per row) on every tab switch and
+// on every card that needed it. The list is kept in memory and read again only
+// after a write to the runs. Every function here that writes runs, or what is
+// worked out from them, calls touchRuns().
+
+let version = 0;
+let runsCache: { version: number; runs: Run[] } | null = null;
+let runsLoading: { version: number; promise: Promise<Run[]> } | null = null;
+
+/** Goes up after every write to runs (and their points, splits and facts). Read caches against it. */
+export function dataVersion(): number {
+  return version;
+}
+
+/** Call after writing runs anywhere outside the functions in this file. */
+export function touchRuns(): void {
+  version++;
+  runsCache = null;
+}
+
 export function getDb(): Promise<SQLite.SQLiteDatabase> {
   if (!dbPromise) {
     dbPromise = (async () => {
@@ -208,18 +230,21 @@ export async function finishRun(
     data.note,
     runId,
   );
+  touchRuns();
 }
 
 /** The energy check, filled in later (from the after-run note), changed, or cleared. */
 export async function setMoodAfter(runId: number, mood: Mood | null): Promise<void> {
   const db = await getDb();
   await db.runAsync('UPDATE runs SET mood_after = ? WHERE id = ?', mood, runId);
+  touchRuns();
 }
 
 /** The after-run note, written or corrected later. Empty clears it. */
 export async function setRunNote(runId: number, note: string | null): Promise<void> {
   const db = await getDb();
   await db.runAsync('UPDATE runs SET note = ? WHERE id = ?', note && note.trim() ? note.trim() : null, runId);
+  touchRuns();
 }
 
 export async function deleteRun(runId: number) {
@@ -238,12 +263,33 @@ export async function deleteRun(runId: number) {
     await db.runAsync('DELETE FROM settings WHERE key = ?', `photo:${runId}`);
     await db.runAsync('DELETE FROM runs WHERE id = ?', runId);
   });
+  touchRuns();
 }
 
+/** Every finished run, newest first. A fresh array each call (sorting it is fine); the runs in it are shared, so never change one. */
 export async function listRuns(): Promise<Run[]> {
-  const db = await getDb();
-  const rows = await db.getAllAsync('SELECT * FROM runs WHERE ended_at IS NOT NULL ORDER BY started_at DESC');
-  return rows.map(rowToRun);
+  const v = version;
+  if (runsCache && runsCache.version === v) return runsCache.runs.slice();
+  if (!runsLoading || runsLoading.version !== v) {
+    const promise = (async () => {
+      const db = await getDb();
+      const rows = await db.getAllAsync('SELECT * FROM runs WHERE ended_at IS NOT NULL ORDER BY started_at DESC');
+      const runs = rows.map(rowToRun);
+      // Only kept when nothing was written while it was read.
+      if (version === v) runsCache = { version: v, runs };
+      return runs;
+    })();
+    runsLoading = { version: v, promise };
+    promise.then(
+      () => {
+        if (runsLoading?.promise === promise) runsLoading = null;
+      },
+      () => {
+        if (runsLoading?.promise === promise) runsLoading = null;
+      },
+    );
+  }
+  return (await runsLoading.promise).slice();
 }
 
 export async function getRun(runId: number): Promise<Run | null> {
@@ -330,6 +376,7 @@ export async function addImportedRun(
       Date.now(),
     );
   });
+  touchRuns();
   return id;
 }
 
@@ -353,6 +400,7 @@ export async function addManualRun(run: { startedAt: number; distanceM: number; 
     id = res.lastInsertRowId;
     await db.runAsync('INSERT INTO run_sources (run_id, kind, file_name, external_id, imported_at) VALUES (?, ?, NULL, NULL, ?)', id, 'manual', Date.now());
   });
+  touchRuns();
   return id;
 }
 
@@ -378,6 +426,7 @@ export async function correctRun(runId: number, distanceM: number, durationS: nu
     await db.runAsync('UPDATE runs SET distance_m = ?, duration_s = ? WHERE id = ?', distanceM, durationS, runId);
     await db.runAsync('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', 'runEdits', JSON.stringify(edits));
   });
+  touchRuns();
 }
 
 /** Back to what was recorded. */
@@ -391,6 +440,7 @@ export async function putBackRun(runId: number): Promise<void> {
     await db.runAsync('UPDATE runs SET distance_m = ?, duration_s = ? WHERE id = ?', was.distanceM, was.durationS, runId);
     await db.runAsync('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', 'runEdits', JSON.stringify(edits));
   });
+  touchRuns();
 }
 
 /** What "Everything you have" counts: runs recorded here, runs brought in, by where from. */
@@ -434,6 +484,7 @@ export async function saveFacts(runId: number, f: StoredFacts): Promise<void> {
     JSON.stringify(f.efforts),
     f.weather == null ? null : JSON.stringify(f.weather),
   );
+  touchRuns();
 }
 
 /**
@@ -461,6 +512,7 @@ export async function closeUnfinishedRuns(keep: number | null = null) {
       await db.runAsync('DELETE FROM runs WHERE id = ?', r.id);
     }
   });
+  touchRuns();
 }
 
 // ---- Heart rate (from a watch) -----------------------------------------------
@@ -524,6 +576,7 @@ export async function replaceKmSplits(runId: number, splits: Array<Omit<Split, '
       );
     }
   });
+  touchRuns();
 }
 
 export async function getSplits(runId: number, kind?: SplitKind): Promise<Split[]> {
@@ -572,6 +625,7 @@ export async function loadDeepSummaries(): Promise<Map<number, { v: number; k: s
 export async function saveDeepSummary(runId: number, v: number, k: string, data: string): Promise<void> {
   const db = await getDb();
   await db.runAsync('INSERT OR REPLACE INTO deep_summaries (run_id, v, k, data) VALUES (?, ?, ?, ?)', runId, v, k, data);
+  touchRuns();
 }
 
 /** How many points each run has, for the summary key. */
