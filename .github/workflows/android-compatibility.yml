@@ -1,0 +1,256 @@
+name: Android API compatibility
+
+on:
+  push:
+    branches: [codex/android-test-environment]
+    paths:
+      - .github/workflows/android-compatibility.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: android-api-compatibility-${{ github.ref }}-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  compatibility:
+    name: Android API ${{ matrix.api }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [24, 36]
+    env:
+      BUILD_RUN_ID: '41319989111'
+      EXPECTED_SOURCE_SHA: '781f29f54595bec0827390ec7ec6d710dc82bf72'
+      TEST_API: ${{ matrix.api }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Record and validate the exact source build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BUILD_RUN_ID" > evidence/source-build.json
+          jq -e --arg sha "$EXPECTED_SOURCE_SHA" '.conclusion == "success" and .head_branch == "main" and .path == ".github/workflows/android.yml" and .head_sha == $sha' evidence/source-build.json
+          jq '{id, head_sha, head_branch, conclusion, html_url, created_at}' evidence/source-build.json
+
+      - name: Download the existing build-157 release bundle
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: runtrovert-aab
+          path: build-input
+          run-id: ${{ env.BUILD_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Make an emulator APK from the same build
+        run: |
+          set -euo pipefail
+          mapfile -t bundles < <(find build-input -maxdepth 2 -name '*.aab' -type f)
+          test "${#bundles[@]}" -eq 1
+          sha256sum "${bundles[0]}" > evidence/bundle-sha256.txt
+          curl --fail --location --retry 3 --output bundletool.jar https://github.com/google/bundletool/releases/download/1.18.1/bundletool-all-1.18.1.jar
+          echo '675786493983787ffa11550bdb7c0715679a44e1643f3ff980a529e9c822595c  bundletool.jar' | sha256sum --check
+          java -jar bundletool.jar dump manifest --bundle="${bundles[0]}" > evidence/AndroidManifest.xml
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          manifest = ET.parse('evidence/AndroidManifest.xml').getroot()
+          ns = '{http://schemas.android.com/apk/res/android}'
+          sdk = manifest.find('uses-sdk')
+          assert manifest.get('package') == 'app.runtrovert'
+          assert sdk is not None and sdk.get(ns + 'minSdkVersion') == '24'
+          assert sdk.get(ns + 'targetSdkVersion') == '36'
+          print('Verified declared minimum API 24 and target API 36')
+          PY
+          keytool -genkeypair -keystore emulator-test.keystore -storepass android -keypass android -alias emulator-test -keyalg RSA -keysize 2048 -validity 30 -dname 'CN=Runtrovert Emulator Test'
+          java -jar bundletool.jar build-apks --bundle="${bundles[0]}" --output=emulator.apks --mode=universal --ks=emulator-test.keystore --ks-pass=pass:android --ks-key-alias=emulator-test --key-pass=pass:android
+          unzip -p emulator.apks universal.apk > emulator-only.apk
+          unzip -Z1 emulator-only.apk > evidence/apk-entries.txt
+          grep -q '^lib/x86_64/' evidence/apk-entries.txt
+          sha256sum emulator-only.apk > evidence/apk-sha256.txt
+
+      - name: Enable hardware acceleration on this disposable runner
+        run: |
+          test -c /dev/kvm
+          sudo chmod a+rw /dev/kvm
+
+      - name: Prepare compatibility smoke check
+        run: |
+          cat > compatibility-smoke.sh <<'BASH'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          mkdir -p evidence
+          capture_diagnostics() {
+            timeout 15s adb logcat -d -v threadtime > evidence/logcat.txt 2>&1 || true
+            timeout 15s adb logcat -b crash -d > evidence/crashes.txt 2>&1 || true
+            timeout 15s adb shell dumpsys activity activities > evidence/activities.txt 2>&1 || true
+            timeout 15s adb shell dumpsys package app.runtrovert > evidence/package.txt 2>&1 || true
+            timeout 15s adb shell dumpsys window windows > evidence/windows.txt 2>&1 || true
+            timeout 15s adb exec-out screencap -p > evidence/final-screen.png || true
+            timeout 20s adb shell uiautomator dump /sdcard/compatibility-final.xml > evidence/final-ui-dump-log.txt 2>&1 &&
+              timeout 15s adb pull /sdcard/compatibility-final.xml evidence/final-screen.xml || true
+          }
+          trap capture_diagnostics EXIT
+
+          adb wait-for-device
+          adb devices -l | tee evidence/devices.txt
+          api=$(adb shell getprop ro.build.version.sdk | tr -d '\r')
+          test "$api" = "$TEST_API"
+          printf '%s\n' "$api" > evidence/android-api.txt
+          adb shell getprop ro.build.version.release > evidence/android-version.txt
+          adb shell getprop ro.build.fingerprint > evidence/android-fingerprint.txt
+          adb shell getprop ro.product.cpu.abi > evidence/device-abi.txt
+          adb shell getconf PAGE_SIZE > evidence/device-page-size.txt || true
+          adb install --no-streaming emulator-only.apk | tee evidence/install.txt
+          grep -q '^Success' evidence/install.txt
+          adb shell pm list packages app.runtrovert | tr -d '\r' | grep -Fx 'package:app.runtrovert'
+          adb logcat -c
+          adb logcat -b crash -c
+          # wm dismiss-keyguard is not implemented on every old Android image.
+          adb shell input keyevent KEYCODE_WAKEUP || true
+          adb shell wm dismiss-keyguard >/dev/null 2>&1 || true
+          adb shell input keyevent KEYCODE_MENU || true
+          # Explicit exported activity avoids newer `cmd package resolve-activity` APIs.
+          adb shell am start -W -n app.runtrovert/.MainActivity | tee evidence/launch.txt
+          grep -q 'Status: ok' evidence/launch.txt
+          sleep 20
+          adb shell dumpsys activity activities > evidence/initial-activities.txt
+          grep -E '(topResumedActivity|mResumedActivity).*app.runtrovert' evidence/initial-activities.txt
+          timeout 15s adb exec-out screencap -p > evidence/first-launch.png
+          python3 - <<'PY'
+          from pathlib import Path
+          data = Path('evidence/first-launch.png').read_bytes()
+          assert len(data) > 1000 and data.startswith(b'\x89PNG\r\n\x1a\n'), 'Invalid first-launch screenshot'
+          PY
+
+          # Only first use: welcome -> notification opt-out -> Home. No GPS run,
+          # background tracking, store account, purchase or external sharing.
+          python3 - <<'PY'
+          import json, re, subprocess, time
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          out = Path('evidence')
+          trace = []
+          def adb(*args, timeout=25):
+              result = subprocess.run(['adb', *map(str, args)], capture_output=True, timeout=timeout)
+              if result.returncode:
+                  raise RuntimeError(result.stderr.decode(errors='replace'))
+              return result.stdout
+          size = re.findall(r'(\d+)x(\d+)', adb('shell', 'wm', 'size').decode())
+          width, height = map(int, size[-1]) if size else (1080, 1920)
+          def tree(stage):
+              last = None
+              for attempt in range(3):
+                  try:
+                      adb('shell', 'uiautomator', 'dump', '--compressed', '/sdcard/compatibility-ui.xml', timeout=20)
+                      raw = adb('exec-out', 'cat', '/sdcard/compatibility-ui.xml')
+                      root = ET.fromstring(raw)
+                      (out / (stage + '.xml')).write_bytes(raw)
+                      return root
+                  except Exception as error:
+                      last = error
+                      time.sleep(1)
+              raise RuntimeError('Could not read Android UI: ' + str(last))
+          def rect(node):
+              values = list(map(int, re.findall(r'\d+', node.get('bounds', ''))))
+              return values if len(values) == 4 else [0, 0, 0, 0]
+          def matches(node, label):
+              return label in (node.get('text', ''), node.get('content-desc', ''))
+          def screenshot(stage):
+              raw = adb('exec-out', 'screencap', '-p')
+              assert len(raw) > 1000 and raw.startswith(b'\x89PNG\r\n\x1a\n')
+              (out / (stage + '.png')).write_bytes(raw)
+          def click(label, stage):
+              for attempt in range(7):
+                  root = tree(stage)
+                  parents = {c: p for p in root.iter() for c in p}
+                  options = []
+                  for node in root.iter('node'):
+                      if not matches(node, label):
+                          continue
+                      target = node
+                      while target.get('clickable') != 'true' and target in parents:
+                          target = parents[target]
+                      x1, y1, x2, y2 = rect(target)
+                      if target.get('clickable') == 'true' and x2 > x1 and y2 > y1 and y1 < height - 60 and y2 > 60:
+                          options.append((target, (x1, y1, x2, y2)))
+                  if options:
+                      unique = {n.get('bounds'): (n, r) for n, r in options}
+                      assert len(unique) == 1, 'Ambiguous button: ' + label
+                      _, (x1, y1, x2, y2) = next(iter(unique.values()))
+                      screenshot(stage)
+                      adb('shell', 'input', 'tap', (x1 + x2) // 2, (max(60, y1) + min(height - 60, y2)) // 2)
+                      trace.append({'button': label, 'attempt': attempt})
+                      (out / 'onboarding-trace.json').write_text(json.dumps(trace, indent=2))
+                      time.sleep(.8)
+                      return
+                  if attempt < 6:
+                      adb('shell', 'input', 'swipe', width // 2, int(height * .78), width // 2, int(height * .32), 400)
+              raise AssertionError('Could not reach button: ' + label)
+          click('I like that', 'welcome')
+          click('Not now', 'notification-choice')
+          deadline = time.monotonic() + 20
+          while True:
+              root = tree('home')
+              labels = {n.get(k, '') for n in root.iter('node') for k in ('text', 'content-desc')}
+              if {'Your runs', 'Train'}.issubset(labels) and 'I like that' not in labels:
+                  break
+              if time.monotonic() > deadline:
+                  raise AssertionError('Onboarding did not reach Home: ' + repr(sorted(labels)))
+              time.sleep(1)
+          screenshot('home')
+          (out / 'onboarding-result.json').write_text(json.dumps({'status': 'passed', 'screen': 'Home', 'notifications': 'opted out'}))
+          PY
+
+          adb shell dumpsys activity activities > evidence/activities.txt
+          grep -E '(topResumedActivity|mResumedActivity).*app.runtrovert' evidence/activities.txt
+          adb logcat -b crash -d > evidence/crashes.txt
+          adb logcat -d -v threadtime > evidence/logcat.txt
+          if grep -E 'Process: app\.runtrovert([,: ]|$)|>>> app\.runtrovert <<<' evidence/crashes.txt || grep -E 'ANR in app\.runtrovert([: ]|$)' evidence/logcat.txt; then
+            echo 'Runtrovert crash or ANR during compatibility check' >&2
+            exit 1
+          fi
+          {
+            echo "## Runtrovert compatibility: API $TEST_API"
+            echo
+            echo 'PASS: APK installed, app reached Home through onboarding, stayed in foreground, and produced no detected app crash/ANR.'
+            echo "Source build: https://github.com/$GITHUB_REPOSITORY/actions/runs/$BUILD_RUN_ID"
+            echo "Source commit: $EXPECTED_SOURCE_SHA"
+            echo
+            echo 'APK converted from the same build-157 AAB with a temporary emulator signing key.'
+            echo 'Installation, initial rendering and onboarding only. This does not validate every feature, real-device performance, real ARM hardware or 16 KB compatibility.'
+          } | tee evidence/result.md >> "$GITHUB_STEP_SUMMARY"
+          BASH
+          bash -n compatibility-smoke.sh
+
+      - name: Boot API ${{ matrix.api }} and verify launch
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: ${{ matrix.api }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          avd-name: runtrovert-compat-api-${{ matrix.api }}
+          ram-size: 4096M
+          cores: 2
+          emulator-boot-timeout: 300
+          emulator-options: -no-window -gpu software -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none
+          disable-linux-hw-accel: false
+          script: bash compatibility-smoke.sh
+
+      - name: Keep API-specific screenshots and diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: android-compatibility-api-${{ matrix.api }}-${{ github.run_number }}
+          path: evidence/
+          retention-days: 7
+          if-no-files-found: error
