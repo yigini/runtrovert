@@ -8,7 +8,8 @@
  * Everything the UI reads comes from subscribe()/getState().
  */
 import { AppState } from 'react-native';
-import { cueAutoPause, cueAutoResume, cueLap, runSilent, setCueMode } from './cues';
+import { cueAutoPause, cueAutoResume, cueBackOnRoute, cueLap, cueOffRoute, runSilent, setCueMode } from './cues';
+import { RouteWatch, simplify } from './routeFollow';
 import { addPoints, addSplit, clearBufferedFixes, createRun, finishRun, getBufferedFixes, getPoints, getRun, getSplits, loadValue, replaceKmSplits, saveValue, updateRunProgress } from './db';
 import { getEngine } from './gps/engine';
 import { GpsFilter, type FilteredFix, type RawFix } from './gps/kalman';
@@ -68,6 +69,8 @@ export interface TrackingState {
   gpsProfile: GpsProfileName;
   /** Stop tapped, sensors off, finish screen showing. */
   halted: boolean;
+  /** Following a route: how far off it you are, while off; null on it or not following. */
+  offRouteM: number | null;
   /** A treadmill run: no GPS, distance from steps × stride. */
   indoor: boolean;
   /** Treadmill: steps credited so far (0 outdoors). */
@@ -109,9 +112,20 @@ const state: TrackingState = {
   stepFilledM: 0,
   gpsProfile: 'best',
   halted: false,
+  offRouteM: null,
   indoor: false,
   indoorSteps: 0,
 };
+
+// Following a route (src/routeFollow.ts): set after the run starts, gone when it ends.
+let routeWatch: RouteWatch | null = null;
+
+/** Follow this line for the run under way: a long buzz when you leave it, a tap when you're back. null stops. */
+export function followRoute(path: LatLon[] | null): void {
+  routeWatch = path && path.length > 1 ? new RouteWatch(simplify(path.map((p) => ({ lat: p.latitude, lon: p.longitude })), 4)) : null;
+  state.offRouteM = null;
+  emit();
+}
 
 let accumulatedS = 0;
 let segmentStartedAt: number | null = null;
@@ -343,6 +357,12 @@ function onFixes(raws: RawFix[]) {
       pendingPoints.push({ ts: fix.ts, lat: fix.lat, lon: fix.lon, alt: fix.alt, acc: fix.acc });
     }
     elevation.pushGpsAltitude(fix.alt, fix.ts);
+    if (routeWatch) {
+      const ev = routeWatch.push({ lat: fix.lat, lon: fix.lon }, fix.acc, fix.ts);
+      state.offRouteM = routeWatch.offByM;
+      if (ev === 'off' || ev === 'remind') void cueOffRoute();
+      else if (ev === 'back') void cueBackOnRoute();
+    }
   }
 
   void maybeCloseKmSplit().then(() => persist());
@@ -504,6 +524,8 @@ function resetState() {
   state.gpsProfile = 'best';
   pendingPoints = [];
   state.halted = false;
+  state.offRouteM = null;
+  routeWatch = null;
   state.indoor = false;
   state.indoorSteps = 0;
   filter.reset();

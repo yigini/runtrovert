@@ -42,7 +42,7 @@ import { dateLocale } from '../i18n/lang';
  * Ten days or more since the last run, it says welcome back instead: no plan
  * day, nothing overdue, one free run, and the plan as a separate choice.
  */
-export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, planToday, planNext, plan, onOpenPlan, onPlanChanged, onBrowseListen, onRunPlace, welcomeBack = true, runPreset, onRunWithoutPlan, route = null, onClearRoute }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; onCommute?: (o: Offer) => void; onRunFree?: () => void; planToday?: Session | null; planNext?: Session | null; plan?: Plan | null; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; onRunPlace?: (p: Place) => void; welcomeBack?: boolean; runPreset?: RunPreset; onRunWithoutPlan?: () => void; route?: { name: string } | null; onClearRoute?: () => void }) {
+export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, planToday, planNext, plan, onOpenPlan, onPlanChanged, onBrowseListen, onRunPlace, welcomeBack = true, runPreset, onRunWithoutPlan, route = null, onClearRoute }: { runs: Run[]; mood: Mood | null; onMood: (m: Mood) => void; onStart: () => void; onCommute?: (o: Offer) => void; onRunFree?: () => void; planToday?: Session | null; planNext?: Session | null; plan?: Plan | null; onOpenPlan?: () => void; onPlanChanged?: () => void; onBrowseListen?: () => void; onRunPlace?: (p: Place) => void; welcomeBack?: boolean; runPreset?: RunPreset; onRunWithoutPlan?: () => void; route?: { name: string; follow?: boolean } | null; onClearRoute?: () => void }) {
   const { settings, update } = useSettings();
   const [presetSheet, setPresetSheet] = useState(false);
   const [listen, setListen] = useState(false);
@@ -221,7 +221,7 @@ export function HomeScreen({ runs, mood, onMood, onStart, onCommute, onRunFree, 
                 <Text style={styles.routeX}>×</Text>
               </Pressable>
             </View>
-            <Text style={styles.routeHint}>{ui().home.routeHint}</Text>
+            <Text style={styles.routeHint}>{route.follow ? ui().home.routeHintFollow : ui().home.routeHint}</Text>
           </View>
         ) : sessionToday && planToday ? (
           <PlanCard label={isQuick(planToday) ? ui().quick.yourWorkout : ui().home.todayFromYourPlan} title={planToday.title} hint={planToday.summary} onPress={onOpenPlan} />
