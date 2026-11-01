@@ -2019,6 +2019,12 @@ export const pt: Strings = {
     everythingIsBack: 'Tudo do backup está neste celular agora.',
   },
   deepMore: {
+    curveTitle: 'Seu melhor ritmo em cada distância',
+    curveHeadline: (label, pace, unit) => `${label} a ${pace} /${unit}`,
+    curveDetail: 'Seu trecho mais rápido de cada distância, achado dentro de qualquer corrida. Mais alto é mais rápido.',
+    allTime: 'De todos os tempos',
+    last90: 'Últimos 90 dias',
+    curveSpoken: (label, all, recent) => (recent ? `${label}: ${all}; últimos 90 dias ${recent}` : `${label}: ${all}`),
     groups: { pace: 'Seu ritmo', hills: 'Subidas', stops: 'Paradas e curvas', heart: 'Coração', gps: 'O GPS' },
     groupHint: 'Mostra ou esconde este grupo.',
     turn: 'Onde virou',

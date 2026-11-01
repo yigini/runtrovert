@@ -2018,6 +2018,12 @@ export const de: Strings = {
     everythingIsBack: 'Alles aus der Sicherung ist jetzt auf diesem Handy.',
   },
   deepMore: {
+    curveTitle: 'Deine beste Pace auf jeder Distanz',
+    curveHeadline: (label, pace, unit) => `${label} in ${pace} /${unit}`,
+    curveDetail: 'Dein schnellster Abschnitt jeder Länge, in irgendeinem Lauf gefunden. Höher ist schneller.',
+    allTime: 'Insgesamt',
+    last90: 'Letzte 90 Tage',
+    curveSpoken: (label, all, recent) => (recent ? `${label}: ${all}; letzte 90 Tage ${recent}` : `${label}: ${all}`),
     groups: { pace: 'Dein Tempo', hills: 'Hügel', stops: 'Stopps und Kurven', heart: 'Herz', gps: 'Das GPS' },
     groupHint: 'Zeigt oder verbirgt diese Gruppe.',
     turn: 'Wo es kippte',
