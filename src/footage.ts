@@ -30,7 +30,7 @@ export type Footage =
   | 'river-bridge' // grey morning, riverside boardwalk, bridge and skyline
   | 'sunset-water' // runner towards camera, sunset mirrored in wet sand
   | 'cobbles' // close on feet over sunlit cobbles
-  | 'blade-stride' // close on a blade runner's stride by the sea
+  | 'blade-stride' // close on a blade runner's stride by the sea (site only for now: too quick for Home even slowed)
   | 'sun-trees' // low sun through a row of trees, a runner passing
   | 'sea-road' // seafront road in bright sun, slow motion
   | 'dark-forest' // deep woods, runner from behind, moody light
@@ -78,16 +78,16 @@ const POOLS: Record<Scene, Footage[]> = {
   night: ['night-park', 'dark-forest'],
   dusk: ['sunset-beach', 'sunset-water', 'sun-trees', 'glass-river'],
   cold: ['winter-city', 'snow-plain', 'rock-coast', 'park-trees', 'bare-woods', 'lake-side', 'sunny-park'],
-  heat: ['dirt-road', 'rice-field', 'dirt-track', 'leafy-lane', 'sea-road', 'blade-stride'],
-  wind: ['rock-coast', 'grey-beach', 'dirt-track', 'rice-field', 'bare-woods', 'blade-stride'],
-  clear: ['green-tunnel', 'dirt-road', 'rock-coast', 'dirt-track', 'track-day', 'leafy-lane', 'bare-woods', 'glass-river', 'sunny-park', 'sun-trees', 'blade-stride', 'sea-road', 'cobbles'],
+  heat: ['dirt-road', 'rice-field', 'dirt-track', 'leafy-lane', 'sea-road'],
+  wind: ['rock-coast', 'grey-beach', 'dirt-track', 'rice-field', 'bare-woods'],
+  clear: ['green-tunnel', 'dirt-road', 'rock-coast', 'dirt-track', 'track-day', 'leafy-lane', 'bare-woods', 'glass-river', 'sunny-park', 'sun-trees', 'sea-road', 'cobbles'],
   cloud: ['grey-path', 'grey-beach', 'green-tunnel', 'park-trees', 'rice-field', 'track-day', 'tree-avenue', 'lake-side', 'river-bridge', 'dark-forest'],
 };
 
 /** Behind the motto, once. */
 export const WELCOME: Footage = 'sunset-water';
 /** Behind the countdown: runners already on their way. */
-export const COUNTDOWN: Footage[] = ['cobbles', 'blade-stride', 'trail-bridge', 'green-tunnel', 'river-bridge'];
+export const COUNTDOWN: Footage[] = ['cobbles', 'trail-bridge', 'green-tunnel', 'river-bridge'];
 
 /** Same order of precedence as the headline in sky.ts, so words and picture agree. */
 export function sceneFor(w: Weather | null, now = Date.now()): Scene {
@@ -134,7 +134,7 @@ export function fitsScene(f: Footage, scene: Scene): boolean {
 }
 
 /** Close-ups and the odd showpiece: now and then one of these turns up on Home whatever the sky, as a small surprise. */
-export const SURPRISE: Footage[] = ['cobbles', 'blade-stride', 'sunset-water', 'sea-road', 'sun-trees'];
+export const SURPRISE: Footage[] = ['cobbles', 'sunset-water', 'glass-river', 'sea-road', 'sun-trees'];
 /** Dark or wild skies keep their own pictures: a sunny close-up under a storm would look wrong. */
 const NO_SURPRISE: Scene[] = ['night', 'storm', 'snow', 'rain'];
 
