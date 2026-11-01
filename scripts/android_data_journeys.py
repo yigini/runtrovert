@@ -63,7 +63,9 @@ def data_cases(h):
             # Standard Android DocumentsUI roots; selectors inspected in snapshots.
             h.tap('Show roots',scrolls=0)
             h.tap('Downloads',scrolls=0)
-        h.tap(name,contains=True); time.sleep(1)
+        # Match the filename itself; contains also matches DocumentsUI's
+        # separate "Preview the file ..." icon, which does not choose it.
+        h.tap(name); time.sleep(1)
 
     def restore(name):
         h.tap('Restore from a file'); h.shot('restore-picker'); choose_download(name)
@@ -130,3 +132,4 @@ def data_cases(h):
     return [('15-backup-roundtrip',roundtrip),('16-truncated-backup-safety',truncated),
             ('17-malformed-backup-rollback',malformed_and_future),('18-gpx-import-deduplication',gpx_import),
             ('19-process-death-recovery',process_death)]
+
