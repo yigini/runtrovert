@@ -18,7 +18,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { handleBack, ScreenActive } from './src/back';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { OpenSettings } from './src/components/SettingsGear';
-import { closeUnfinishedRuns, getRun } from './src/db';
+import { closeUnfinishedRuns, getRun, touchRuns } from './src/db';
 import { HistoryScreen, type RunsSection } from './src/screens/HistoryScreen';
 import { ListenScreen } from './src/screens/ListenScreen';
 import { RunDetailScreen } from './src/screens/RunDetailScreen';
@@ -216,6 +216,7 @@ function Shell() {
         const run = await getRun(id).catch(() => null);
         if (run) await onRunSaved(run, null).catch(() => {});
       }
+      touchRuns();
       setRefreshKey((k) => k + 1);
       setPlanKey((k) => k + 1);
     });
@@ -392,7 +393,16 @@ function Shell() {
               }}
             />
           )}
-          {sub === 'everything' && <EverythingScreen onBack={() => setSub(everythingFrom)} onChanged={() => setRefreshKey((k) => k + 1)} />}
+          {sub === 'everything' && (
+            <EverythingScreen
+              onBack={() => setSub(everythingFrom)}
+              onChanged={() => {
+                // Runs brought in or restored: every kept list and answer is read again.
+                touchRuns();
+                setRefreshKey((k) => k + 1);
+              }}
+            />
+          )}
           {sub === 'credits' && <CreditsScreen onBack={() => setSub('settings')} />}
           {sub === 'listen' && <ListenScreen runLive={liveRun} onBack={() => setSub(null)} />}
           {/* Your runs and Train stay mounted once visited (hidden like the Run tab), so coming back is
