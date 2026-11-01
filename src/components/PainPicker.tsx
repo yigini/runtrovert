@@ -1,6 +1,6 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radius, spacing } from '../theme';
+import { Pressable, Text, View } from 'react-native';
+import { colors, fonts, radius, spacing, themedStyles } from '../theme';
 import type { PainLevel } from '../training/adapt';
 import { live, ui } from '../i18n/ui';
 
@@ -27,7 +27,7 @@ export function PainPicker({ value, onChange }: { value: PainLevel | null; onCha
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   wrap: { gap: spacing.sm },
   title: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
   row: { flexDirection: 'row', gap: spacing.sm },
@@ -38,4 +38,4 @@ const styles = StyleSheet.create({
   labelOn: { color: colors.cream },
   labelPain: { color: colors.peachDeep },
   hint: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.muted, minHeight: 18 },
-});
+}));

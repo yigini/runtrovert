@@ -164,6 +164,15 @@
    "url": "https://docs.expo.dev/versions/latest/sdk/status-bar/"
   },
   {
+   "name": "expo-system-ui",
+   "version": "58.0.7",
+   "licence": "MIT",
+   "copyright": [
+    "Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)"
+   ],
+   "url": "https://docs.expo.dev/versions/latest/sdk/system-ui"
+  },
+  {
    "name": "expo-task-manager",
    "version": "58.0.12",
    "licence": "MIT",

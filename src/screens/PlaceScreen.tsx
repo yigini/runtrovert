@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
 import { Button } from '../components/Button';
 import { LockRow } from '../components/LockRow';
@@ -10,7 +10,7 @@ import { formatDistance, formatPace } from '../geo';
 import { BUSY_LABEL, byMonth, latestNote, placeSummary, quietPatterns, tagLabel } from '../places';
 import { deletePlace, getPlace, placeVisits, updatePlace, type Place, type PlaceVisit } from '../placeStore';
 import { useSettings } from '../settings';
-import { colors, fonts, radius, spacing, type } from '../theme';
+import { colors, fonts, radius, spacing, type, themedStyles } from '../theme';
 import type { LatLon } from '../types';
 import { useUnlocked } from '../unlockState';
 import { ui } from '../i18n/ui';
@@ -195,14 +195,14 @@ function monthLabel(year: number, month: number): string {
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   screen: { padding: spacing.md, paddingTop: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md, backgroundColor: colors.cream, flexGrow: 1 },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   edit: { minHeight: 44, paddingHorizontal: 18, paddingVertical: 6 },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: -spacing.xs },
   tag: { fontFamily: fonts.body, fontSize: 13, color: colors.mintDeep, backgroundColor: colors.mintSoft, borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 5, overflow: 'hidden' },
   facts: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.text },
-  log: { gap: 4, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#e4dccf' },
+  log: { gap: 4, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.line },
   logHead: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 2 },
   logWhen: { flexShrink: 1, fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.text },
   logBusy: { fontFamily: fonts.bodySemi, fontSize: 13, lineHeight: 18, color: colors.text },
@@ -212,4 +212,4 @@ const styles = StyleSheet.create({
   month: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.muted, paddingTop: spacing.sm, paddingBottom: 2 },
   patterns: { gap: spacing.sm, backgroundColor: colors.lilacSoft, borderRadius: radius.md, padding: spacing.md },
   pattern: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.text },
-});
+}));

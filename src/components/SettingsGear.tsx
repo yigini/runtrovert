@@ -1,7 +1,7 @@
 import React, { createContext, useContext } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
-import { colors } from '../theme';
+import { colors, themedStyles } from '../theme';
 import { ui } from '../i18n/ui';
 
 /** App.tsx provides how Settings opens; each tab's gear just asks. */
@@ -20,8 +20,8 @@ export function SettingsGear({ onPhoto }: { onPhoto?: boolean }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   btn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  // Over footage the gear sits on a little cream so it never gets lost in the picture.
-  onPhoto: { backgroundColor: 'rgba(246,241,234,0.85)' },
-});
+  // Over footage the gear sits on a little of the ground colour so it never gets lost in the picture.
+  onPhoto: { backgroundColor: colors.wash },
+}));

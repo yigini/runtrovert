@@ -1,12 +1,12 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, spacing } from '../theme';
+import { Pressable, Text, View } from 'react-native';
+import { colors, fonts, spacing, themedStyles, themed } from '../theme';
 import type { Mood } from '../types';
 import { Face } from './Mark';
 import { live, ui } from '../i18n/ui';
 
 const LABELS: Record<Mood, string> = live(() => ui().common.mood);
-const ON_FILL: Record<Mood, string> = { 1: colors.sky, 2: colors.lilac, 3: colors.butter, 4: colors.mint, 5: colors.peach };
+const ON_FILL: Record<Mood, string> = themed(() => ({ 1: colors.sky, 2: colors.lilac, 3: colors.butter, 4: colors.mint, 5: colors.peach }));
 
 /**
  * Five faces, no box. Unpicked faces are just line drawings; the picked one
@@ -55,7 +55,7 @@ export function MoodPicker({ value, onChange, title, inline }: { value: Mood | n
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   wrap: { gap: spacing.sm },
   title: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
@@ -64,4 +64,4 @@ const styles = StyleSheet.create({
   inline: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   inlineTitle: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text },
   inlineHint: { fontFamily: fonts.body, fontSize: 12, color: colors.inkSoft, opacity: 0.75 },
-});
+}));

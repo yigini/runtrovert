@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { AmbientBackground } from '../components/AmbientBackground';
 import { Button } from '../components/Button';
 import { Fade } from '../components/Fade';
 import { Mark } from '../components/Mark';
 import { WELCOME } from '../footage';
-import { colors, fonts, spacing } from '../theme';
+import { colors, fonts, spacing, themedStyles } from '../theme';
 import { ui } from '../i18n/ui';
 
 /**
@@ -76,7 +76,7 @@ function Item({ title, text }: { title: string; text: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   screen: { flex: 1, backgroundColor: 'transparent' },
   content: { flexGrow: 1, paddingHorizontal: 28, paddingTop: spacing.xl, paddingBottom: spacing.xl, gap: 18 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -88,4 +88,4 @@ const styles = StyleSheet.create({
   itemTitle: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.ink },
   itemText: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.inkSoft },
   footer: { fontFamily: fonts.body, fontSize: 12, color: colors.inkSoft, textAlign: 'center' },
-});
+}));

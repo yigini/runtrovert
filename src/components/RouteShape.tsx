@@ -4,7 +4,7 @@ import type { RouteSig } from '../places';
 import { colors } from '../theme';
 
 /** A place's loop drawn as a small shape, from its saved route alone: no map, nothing fetched. */
-export function RouteShape({ sig, size = 64, color = colors.ink, bg = '#ece5da' }: { sig: RouteSig; size?: number; color?: string; bg?: string }) {
+export function RouteShape({ sig, size = 64, color = colors.ink, bg = colors.sunk }: { sig: RouteSig; size?: number; color?: string; bg?: string }) {
   const d = useMemo(() => shapePath(sig, size, size * 0.18), [sig, size]);
   return (
     <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} accessibilityElementsHidden importantForAccessibility="no">

@@ -1975,6 +1975,16 @@ export const ja: Strings = {
     putBack: '記録した値に戻す',
     correctedWas: (distance: string, time: string) => `あなたが修正しました。記録：${distance}、${time}。`,
   },
+  appearance: {
+    title: '外観',
+    followPhone: '端末に合わせる',
+    followPhoneHint: '端末がダークならダーク、ライトならライト。スケジュールでの切り替えにも合わせます。',
+    light: 'ライト',
+    dark: 'ダーク',
+    followsValue: (dark) => `端末に合わせる · ${dark ? '今はダーク' : '今はライト'}`,
+    afterRun: '新しい見た目はこのランのあとに変わります。',
+    runStaysDark: 'ラン中の画面はどちらでも暗い地図のままです。',
+  },
   backup: {
     keepACopy: 'すべてのコピーを残す',
     oneFileWithEverything: 'ラン、ルート、心拍数、場所、メモ、プラン、設定をすべて一つのファイルに。Drive やパソコンなど好きな場所に保存して、この端末や新しいスマホに戻せます。',

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radius, spacing } from '../theme';
+import { Pressable, Text, View } from 'react-native';
+import { colors, fonts, radius, spacing, themedStyles } from '../theme';
 import type { Feel } from '../training/types';
 import { ui } from '../i18n/ui';
 
@@ -29,7 +29,7 @@ export function FeelPicker({ value, onChange, title }: { value: Feel | null; onC
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   wrap: { gap: spacing.sm },
   title: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
   row: { flexDirection: 'row', gap: 6 },
@@ -38,4 +38,4 @@ const styles = StyleSheet.create({
   label: { fontFamily: fonts.bodySemi, fontSize: 13, lineHeight: 16, color: colors.inkSoft, textAlign: 'center' },
   labelOn: { color: colors.cream },
   hint: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.muted, minHeight: 18 },
-});
+}));

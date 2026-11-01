@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { MAX_APART_M, metres, MIN_APART_M, type Nudges } from '../commute';
 import { saveCommute, useCommute } from '../commuteStore';
-import { colors, fonts, spacing } from '../theme';
+import { colors, fonts, spacing, themedStyles } from '../theme';
 import { Group, kit, Note, PlainRow, Row, RowButton, RowLink, Segmented } from './SettingsKit';
 import type { LatLon } from '../types';
 import { ui } from '../i18n/ui';
@@ -69,6 +69,6 @@ function SpotRow({ label, spot, onSet, onForget }: { label: string; spot: LatLon
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   warning: { fontFamily: fonts.bodyMedium, fontSize: 13, lineHeight: 19, color: colors.peachDeep, paddingHorizontal: spacing.xs },
-});
+}));

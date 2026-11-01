@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { buyUnlock, restoreUnlock, storePrice } from '../billing';
 import { Button } from '../components/Button';
-import { colors, fonts, radius, spacing, type } from '../theme';
+import { colors, fonts, radius, spacing, type, themedStyles, themed, switchColors } from '../theme';
 import { BILLING_ON, priceLine, UNLOCKED_BUILD, unlockName, UNLOCK_PRICE, UNLOCK_PRICE_LATER } from '../unlock';
 import { closeUnlock, updateUnlock, useUnlockOpen, useUnlockState, useUnlocked } from '../unlockState';
 import { live, ui } from '../i18n/ui';
@@ -18,8 +18,8 @@ export function UnlockHost() {
   );
 }
 
-const DOTS = [colors.mint, colors.peach, colors.lilac, colors.sky, colors.butter];
-const ADDS: Array<{ text: string; dot: string }> = live(() => ui().unlock.adds.map((text, i) => ({ text, dot: DOTS[i] })));
+const DOTS = themed(() => [colors.mint, colors.peach, colors.lilac, colors.sky, colors.butter]);
+const ADDS: string[] = live(() => ui().unlock.adds);
 
 /** Everything, once: what it adds, what stays free, one price, one plain line. Nothing else. */
 export function UnlockScreen({ onClose }: { onClose: () => void }) {
@@ -57,10 +57,10 @@ export function UnlockScreen({ onClose }: { onClose: () => void }) {
 
       <View style={styles.card}>
         <Text style={type.eyebrow}>{ui().unlock.whatItAdds}</Text>
-        {ADDS.map((a) => (
-          <View key={a.text} style={styles.item}>
-            <View style={[styles.dot, { backgroundColor: a.dot }]} />
-            <Text style={styles.itemText}>{a.text}</Text>
+        {ADDS.map((text, i) => (
+          <View key={text} style={styles.item}>
+            <View style={[styles.dot, { backgroundColor: DOTS[i] }]} />
+            <Text style={styles.itemText}>{text}</Text>
           </View>
         ))}
       </View>
@@ -101,7 +101,7 @@ export function UnlockScreen({ onClose }: { onClose: () => void }) {
             <Switch
               value={state.previewLocks}
               onValueChange={(v) => updateUnlock({ previewLocks: v, ...(v ? { nudge: 'unseen' as const } : {}) })}
-              trackColor={{ true: colors.ink }}
+              {...switchColors(state.previewLocks)}
               accessibilityLabel={ui().unlock.showTheLocks}
               accessibilityHint={ui().unlock.previewsTheStoreVersionS}
             />
@@ -112,7 +112,7 @@ export function UnlockScreen({ onClose }: { onClose: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   root: { flex: 1, backgroundColor: colors.cream },
   screen: { flexGrow: 1, padding: spacing.md + 4, paddingTop: spacing.sm, gap: spacing.md, backgroundColor: colors.cream },
   h1: { fontFamily: fonts.display, fontSize: 40, lineHeight: 44, letterSpacing: -0.5, color: colors.text },
@@ -127,4 +127,4 @@ const styles = StyleSheet.create({
   quiet: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   quietText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.text },
   switchRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.cream, borderRadius: radius.md, padding: 14 },
-});
+}));

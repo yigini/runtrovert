@@ -1,7 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { formatDistance, formatDuration, formatPace } from '../geo';
-import { colors, fonts, radius, spacing, type } from '../theme';
+import { colors, fonts, radius, spacing, type, themedStyles } from '../theme';
 import { ui } from '../i18n/ui';
 
 export interface SplitRow {
@@ -30,7 +30,7 @@ export function SplitsTable({ title, rows, km, partial }: { title: string; rows:
           const isFastest = fastest != null && Math.abs(p - fastest) < 1e-9 && !r.partial;
           return (
             <View key={r.index} style={[styles.col, r.partial && { opacity: 0.55 }]}>
-              <View style={[styles.bar, { height: h, backgroundColor: isFastest ? colors.mint : colors.lilac }]} />
+              <View style={[styles.bar, { height: h, backgroundColor: isFastest ? colors.mintMark : colors.lilacMark }]} />
               <Text style={[styles.pace, isFastest && { color: colors.mintDeep, fontFamily: fonts.bodyBold }]}>{formatPace(r.distanceM, r.durationS, km)}</Text>
               <Text style={styles.idx}>{r.partial ? formatDistance(r.distanceM, km) : String(r.index)}</Text>
             </View>
@@ -42,11 +42,11 @@ export function SplitsTable({ title, rows, km, partial }: { title: string; rows:
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   wrap: { backgroundColor: colors.white, borderRadius: radius.lg, padding: spacing.md, gap: 10 },
   bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
   col: { flex: 1, alignItems: 'center', gap: 4 },
   bar: { width: '100%', borderTopLeftRadius: 8, borderTopRightRadius: 8, borderBottomLeftRadius: 4, borderBottomRightRadius: 4 },
   pace: { fontFamily: fonts.bodySemi, fontSize: 11, color: colors.text, fontVariant: ['tabular-nums'] },
   idx: { fontFamily: fonts.body, fontSize: 10, color: colors.muted },
-});
+}));

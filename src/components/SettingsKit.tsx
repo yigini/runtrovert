@@ -1,7 +1,7 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
-import { colors, fonts, radius, spacing } from '../theme';
+import { colors, fonts, radius, spacing, themedStyles, themed } from '../theme';
 
 /**
  * The pieces Settings is built from: a group (small heading over a white list),
@@ -161,9 +161,9 @@ export function Tag({ label }: { label: string }) {
   );
 }
 
-export type IconName = 'run' | 'battery' | 'map' | 'heart' | 'music' | 'bell' | 'home' | 'sun' | 'globe' | 'phone' | 'export' | 'info';
+export type IconName = 'run' | 'battery' | 'map' | 'heart' | 'music' | 'bell' | 'home' | 'sun' | 'globe' | 'phone' | 'export' | 'info' | 'moon';
 
-const ICON_COLOURS: Record<IconName, [string, string]> = {
+const ICON_COLOURS: Record<IconName, [string, string]> = themed(() => ({
   run: [colors.lilac, colors.lilacDeep],
   battery: [colors.sky, colors.skyDeep],
   map: [colors.mint, colors.mintDeep],
@@ -176,7 +176,8 @@ const ICON_COLOURS: Record<IconName, [string, string]> = {
   phone: [colors.mint, colors.mintDeep],
   export: [colors.butter, colors.butterDeep],
   info: [colors.lilacSoft, colors.lilacDeep],
-};
+  moon: [colors.lilac, colors.lilacDeep],
+}));
 
 function Icon({ name }: { name: IconName }) {
   const [bg, fg] = ICON_COLOURS[name];
@@ -225,6 +226,7 @@ function Icon({ name }: { name: IconName }) {
             <Path d="M11 18h2" {...p} />
           </>
         )}
+        {name === 'moon' && <Path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z" {...p} />}
         {name === 'export' && <Path d="M12 3v12M7 10l5 5 5-5M4 19h16" {...p} />}
         {name === 'info' && (
           <>
@@ -237,12 +239,12 @@ function Icon({ name }: { name: IconName }) {
   );
 }
 
-export const kit = StyleSheet.create({
+export const kit = themedStyles(() => ({
   label: { fontFamily: fonts.bodySemi, fontSize: 16, color: colors.text },
   hint: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.muted, marginTop: 2 },
-});
+}));
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   group: { gap: 6 },
   eyebrow: { fontFamily: fonts.bodySemi, fontSize: 12, letterSpacing: 1.5, textTransform: 'uppercase', color: colors.muted, paddingLeft: spacing.xs },
   list: { borderRadius: radius.md, overflow: 'hidden', gap: 2, backgroundColor: colors.cream },
@@ -254,7 +256,7 @@ const styles = StyleSheet.create({
   hint: kit.hint,
   chev: { fontFamily: fonts.bodySemi, fontSize: 22, color: colors.muted, paddingLeft: spacing.xs },
   icon: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: colors.onInkMuted },
+  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: colors.ring },
   radioOn: { borderWidth: 6, borderColor: colors.ink },
   note: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.muted, paddingHorizontal: spacing.xs },
   noteStrong: { color: colors.text },
@@ -273,4 +275,4 @@ const styles = StyleSheet.create({
   wideTextQuiet: { color: colors.text },
   tag: { backgroundColor: colors.mint, borderRadius: radius.pill, paddingVertical: 3, paddingHorizontal: 9 },
   tagText: { fontFamily: fonts.bodySemi, fontSize: 11, color: colors.mintDeep },
-});
+}));

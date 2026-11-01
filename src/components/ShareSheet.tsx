@@ -1,14 +1,14 @@
 import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
 import React, { useMemo, useRef, useState } from 'react';
-import { Alert, Dimensions, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Dimensions, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { captureRef } from 'react-native-view-shot';
 import { distanceUnit, formatDistanceNumber, formatDuration, formatPace } from '../geo';
 import { formatClock, type Comparison } from '../progress';
 import { pickLine, type RunWeather, type Tone } from '../shareLines';
 import { routePath } from '../shareShape';
-import { colors, fonts, radius, spacing, type } from '../theme';
+import { colors, fonts, radius, spacing, type, themedStyles, themed } from '../theme';
 import type { LatLon, Mood, Quiet } from '../types';
 import { Button } from './Button';
 import { Face, Mark } from './Mark';
@@ -33,7 +33,7 @@ export interface ShareRun {
 
 type StatKind = 'distance' | 'time' | 'pace' | 'best' | 'energy';
 
-const TONE: Record<Tone, string> = { mint: colors.mint, butter: colors.butter, sky: colors.sky, peach: colors.peach, lilac: colors.lilac };
+const TONE: Record<Tone, string> = themed(() => ({ mint: colors.mint, butter: colors.butter, sky: colors.sky, peach: colors.peach, lilac: colors.lilac }));
 const CARD_RATIO = 1350 / 1080;
 
 function roughTime(ms: number): string {
@@ -196,7 +196,7 @@ function Chip({ label, on, onPress, strong }: { label: string; on?: boolean; onP
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   sheet: { padding: spacing.md, paddingTop: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md, alignItems: 'stretch' },
   lede: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.muted },
   card: { alignSelf: 'center', overflow: 'hidden' },
@@ -210,4 +210,4 @@ const styles = StyleSheet.create({
   chipOn: { backgroundColor: colors.lilac },
   chipStrong: { backgroundColor: colors.ink },
   chipText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.muted },
-});
+}));

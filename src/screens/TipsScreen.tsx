@@ -1,13 +1,13 @@
 import React from 'react';
-import { Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { colors, fonts, radius, spacing } from '../theme';
+import { Modal, Pressable, SafeAreaView, ScrollView, Switch, Text, View } from 'react-native';
+import { colors, fonts, radius, spacing, themedStyles, themed, switchColors } from '../theme';
 import { type Tip } from '../tips';
 import { localTips, localTipsByTopic } from '../i18n/voice';
 import { live, ui } from '../i18n/ui';
 
 const GROUPS = live(() => localTipsByTopic());
 const COUNT = localTips().length;
-const TINT = [colors.mint, colors.peach, colors.lilac, colors.butter, colors.sky];
+const TINT = themed(() => [colors.mint, colors.peach, colors.lilac, colors.butter, colors.sky]);
 
 /** The whole list, grouped. Something to read on the sofa, not during the run. */
 export function TipsScreen({ visible, today, hidden, onHidden, onClose }: { visible: boolean; today: Tip | null; hidden: boolean; onHidden: (v: boolean) => void; onClose: () => void }) {
@@ -48,7 +48,7 @@ export function TipsScreen({ visible, today, hidden, onHidden, onClose }: { visi
               <Text style={styles.rowLabel}>{ui().tips.oneOnTheHomeScreen}</Text>
               <Text style={styles.rowHint}>{ui().tips.aNewOneEachDay}</Text>
             </View>
-            <Switch value={!hidden} onValueChange={(v) => onHidden(!v)} trackColor={{ true: colors.ink }} />
+            <Switch value={!hidden} onValueChange={(v) => onHidden(!v)} {...switchColors(!hidden)} />
           </View>
           <Text style={styles.small}>{ui().tips.tipsNotMedicalAdviceIf}</Text>
         </ScrollView>
@@ -57,7 +57,7 @@ export function TipsScreen({ visible, today, hidden, onHidden, onClose }: { visi
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   root: { flex: 1, backgroundColor: colors.cream },
   content: { padding: spacing.md, paddingTop: spacing.lg, gap: spacing.md, paddingBottom: spacing.xl },
   top: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
@@ -78,4 +78,4 @@ const styles = StyleSheet.create({
   rowLabel: { fontFamily: fonts.bodySemi, fontSize: 16, color: colors.text },
   rowHint: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, marginTop: 2 },
   small: { fontFamily: fonts.body, fontSize: 12, lineHeight: 18, color: colors.muted, textAlign: 'center' },
-});
+}));

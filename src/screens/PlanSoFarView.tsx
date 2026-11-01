@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
 import { Button } from '../components/Button';
 import { LockRow } from '../components/LockRow';
-import { colors, fonts, radius, spacing, type } from '../theme';
+import { colors, fonts, radius, spacing, type, themedStyles, themed } from '../theme';
 import { GOAL_LABEL, type PlanSpec } from '../training/catalogue';
 import { formatRaceTime, formatSPerKm, pacesFromRace } from '../training/paces';
 import { PACES_STALE_WEEKS, refreshPaces, soFar, type Phase, type WeekSoFar } from '../training/overview';
@@ -17,7 +17,7 @@ import { decimal } from '../i18n/lang';
 
 const KM_IN_MI = 1.609344;
 const RACES = [5, 10, 21.0975, 42.195];
-const PHASE_FILL: Record<Phase, string> = { base: colors.mint, build: colors.sky, peak: colors.butter, taper: colors.peach };
+const PHASE_FILL: Record<Phase, string> = themed(() => ({ base: colors.mint, build: colors.sky, peak: colors.butter, taper: colors.peach }));
 
 /**
  * "Your plan so far": planned against done, week by week, the phases, the long
@@ -76,7 +76,7 @@ export function PlanSoFarView({ plan, spec, today, unitsKm, onBack, onCommit }: 
       <Block title={ui().soFar.loadTitle}>
         {loads.length ? (
           <>
-            <Bars weeks={f.weeks} planned={(w) => w.load ?? 0} done={(w) => w.load ?? 0} label={(w) => (w.load != null ? String(w.load) : '')} tone={colors.lilac} />
+            <Bars weeks={f.weeks} planned={(w) => w.load ?? 0} done={(w) => w.load ?? 0} label={(w) => (w.load != null ? String(w.load) : '')} tone={colors.lilacMark} />
             <Text style={styles.hint}>{ui().soFar.loadHint}</Text>
           </>
         ) : (
@@ -274,7 +274,7 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   scroll: { flex: 1, backgroundColor: colors.bg },
   screen: { padding: spacing.md, paddingBottom: spacing.xl * 2, gap: spacing.md },
   h1: { fontFamily: fonts.display, fontSize: 30, lineHeight: 36, color: colors.text },
@@ -307,4 +307,4 @@ const styles = StyleSheet.create({
   knob: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.white },
   knobOn: { transform: [{ translateX: 20 }] },
   box: { width: 64, minHeight: 48, borderRadius: radius.sm, borderWidth: 1.5, borderColor: colors.ink, textAlign: 'center', fontFamily: fonts.bodySemi, fontSize: 18, color: colors.text },
-});
+}));

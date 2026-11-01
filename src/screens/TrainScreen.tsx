@@ -2,14 +2,14 @@ import { QuickRow, QuickView } from '../components/QuickWorkout';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
 import { SettingsGear } from '../components/SettingsGear';
 import { Button } from '../components/Button';
 import { FeelPicker } from '../components/FeelPicker';
 import { PlanReminderCard } from '../components/PlanReminders';
 import { useSettings } from '../settings';
-import { colors, fonts, radius, spacing, type } from '../theme';
+import { colors, fonts, radius, spacing, type, themedStyles, themed } from '../theme';
 import { applyHoliday, applyIllness, dayName, missedState, moveSession, rebuild, type MissedState } from '../training/adapt';
 import { GOAL_LABEL, PLANS, checkGate, daysFit, planById, plansFor, type Goal, type PlanSpec, type RunnerProfile, type Tier } from '../training/catalogue';
 import { WEEKDAY_LONG, WEEKDAY_SHORT, addDays, dayStart, daysBetween, formatDay, mondayOf, weekdayOf } from '../training/dates';
@@ -53,7 +53,7 @@ type Page =
 type DetailDraft = { days: number; runDays: number[]; longDay: number; raceDate: number; extra: boolean; weekly: number; longest: number; raceKm: number | null; h: string; m: string; sec: string };
 
 const TIER_LABEL: Record<Tier, string> = live(() => ui().train.tier);
-const TIER_FILL: Record<Tier, string> = { start: colors.sky, keep: colors.mint, comeback: colors.lilac, finish: colors.mint, improve: colors.butter, race: colors.peach };
+const TIER_FILL: Record<Tier, string> = themed(() => ({ start: colors.sky, keep: colors.mint, comeback: colors.lilac, finish: colors.mint, improve: colors.butter, race: colors.peach }));
 const DEFAULT_DAYS: Record<number, number[]> = { 2: [2, 6], 3: [2, 4, 6], 4: [2, 4, 6, 0], 5: [1, 2, 4, 6, 0], 6: [1, 2, 3, 4, 6, 0] };
 const KM_IN_MI = 1.609344;
 
@@ -1251,9 +1251,9 @@ async function exportCalendar(plan: Plan) {
   }
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, marginTop: -10, marginRight: -10 },
-  lockLine: { backgroundColor: '#ece5da', borderRadius: radius.md, paddingVertical: 12, paddingHorizontal: 14 },
+  lockLine: { backgroundColor: colors.sunk, borderRadius: radius.md, paddingVertical: 12, paddingHorizontal: 14 },
   lockLineText: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.inkSoft },
   scroll: { flex: 1, backgroundColor: colors.cream },
   screen: { padding: spacing.md, paddingTop: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
@@ -1338,4 +1338,4 @@ const styles = StyleSheet.create({
   stripShown: { borderWidth: 2, borderColor: colors.ink },
   stripFoot: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
   stripLabel: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', color: colors.muted },
-});
+}));

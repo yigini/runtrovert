@@ -4,9 +4,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { lastPlace } from '../place';
 import { useSettings } from '../settings';
-import { colors, fonts, radius, spacing } from '../theme';
+import { colors, fonts, radius, spacing, themedStyles } from '../theme';
 import type { LatLon } from '../types';
-import { askAboutTiles, MAP_STYLE } from './RouteMap';
+import { askAboutTiles, mapStyle } from './RouteMap';
 import { Button } from './Button';
 import { ui } from '../i18n/ui';
 
@@ -69,7 +69,7 @@ export function SpotSheet({ open, title, initial, onSave, onClose }: { open: boo
             <View style={styles.map}>
               <MapLibreMap
                 style={StyleSheet.absoluteFill}
-                mapStyle={MAP_STYLE}
+                mapStyle={mapStyle()}
                 logo={false}
                 attribution
                 compass={false}
@@ -111,10 +111,10 @@ export function SpotSheet({ open, title, initial, onSave, onClose }: { open: boo
   );
 }
 
-const styles = StyleSheet.create({
-  scrim: { flex: 1, backgroundColor: 'rgba(43,39,51,0.45)', justifyContent: 'flex-end' },
+const styles = themedStyles(() => ({
+  scrim: { flex: 1, backgroundColor: colors.scrim, justifyContent: 'flex-end' },
   sheet: { maxHeight: '92%', backgroundColor: colors.cream, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, padding: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
-  grabber: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(43,39,51,0.2)', marginTop: -8, marginBottom: 4 },
+  grabber: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.grabber, marginTop: -8, marginBottom: 4 },
   h2: { fontFamily: fonts.display, fontSize: 24, lineHeight: 30, color: colors.text },
   small: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.muted },
   note: { fontFamily: fonts.bodyMedium, fontSize: 13, lineHeight: 19, color: colors.peachDeep },
@@ -126,4 +126,4 @@ const styles = StyleSheet.create({
   hereText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.lilacDeep },
   cancel: { alignSelf: 'center', minHeight: 44, justifyContent: 'center' },
   cancelText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.muted, textDecorationLine: 'underline' },
-});
+}));

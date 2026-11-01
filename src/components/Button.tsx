@@ -1,6 +1,6 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
-import { colors, fonts, radius } from '../theme';
+import { Pressable, Text, ViewStyle } from 'react-native';
+import { colors, fonts, night, radius, themedStyles } from '../theme';
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'onInk';
 
@@ -12,21 +12,22 @@ export function Button({ title, onPress, variant = 'primary', disabled, style }:
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   // minHeight, not height: with a large system font the label wraps instead of being clipped.
   base: { minHeight: 58, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 10 },
   primary: { backgroundColor: colors.ink },
   secondary: { backgroundColor: colors.lilacSoft },
   danger: { backgroundColor: colors.peach },
-  onInk: { backgroundColor: colors.inkSoft },
+  // Over the countdown footage, dark in both palettes.
+  onInk: { backgroundColor: night.inkSoft },
   pressed: { opacity: 0.85 },
   disabled: { opacity: 0.4 },
   text: { fontFamily: fonts.bodySemi, fontSize: 17 },
-});
+}));
 
-const textStyles = StyleSheet.create({
+const textStyles = themedStyles(() => ({
   primary: { color: colors.cream },
   secondary: { color: colors.lilacDeep },
   danger: { color: colors.peachDeep },
-  onInk: { color: colors.cream },
-});
+  onInk: { color: night.cream },
+}));

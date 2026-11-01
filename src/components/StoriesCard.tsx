@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, Text, View } from 'react-native';
 import { listRuns } from '../db';
 import { useSettings } from '../settings';
 import { storiesFor, type RouteStories } from '../storySource';
 import type { StoryPt } from '../stories';
-import { colors, fonts, radius, spacing } from '../theme';
+import { colors, fonts, radius, spacing, themedStyles } from '../theme';
 import type { Mood } from '../types';
 import { ui } from '../i18n/ui';
 
@@ -134,7 +134,7 @@ function StoriesOffer({ moodBefore }: { moodBefore: Mood | null }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   card: { borderRadius: radius.lg, paddingVertical: 12, paddingHorizontal: 18, backgroundColor: colors.butter, gap: spacing.sm },
   head: { flexDirection: 'row', alignItems: 'center', minHeight: 44 },
   title: { flex: 1, fontFamily: fonts.bodySemi, fontSize: 15, lineHeight: 20, color: colors.butterDeep },
@@ -144,9 +144,9 @@ const styles = StyleSheet.create({
   text: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.inkSoft },
   link: { fontFamily: fonts.bodySemi, fontSize: 13, lineHeight: 19, color: colors.butterDeep, textDecorationLine: 'underline' },
   credit: { fontFamily: fonts.body, fontSize: 11, lineHeight: 15, color: colors.inkMuted },
-  offer: { borderTopWidth: 1, borderTopColor: '#e4dccf', paddingTop: 12, gap: 8 },
+  offer: { borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12, gap: 8 },
   offerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   yes: { backgroundColor: colors.butter, borderRadius: radius.lg, paddingVertical: 8, paddingHorizontal: 16, minHeight: 36, justifyContent: 'center' },
   yesText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.butterDeep },
   notNow: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.inkSoft, textDecorationLine: 'underline' },
-});
+}));

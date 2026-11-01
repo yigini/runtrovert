@@ -1,7 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import type { Change, Insight, Patterns } from '../patterns';
-import { colors, fonts, radius, spacing, type } from '../theme';
+import { colors, fonts, radius, spacing, type, themedStyles } from '../theme';
 import { useUnlocked } from '../unlockState';
 import { LockGlyph, LockRow } from './LockRow';
 import { ui } from '../i18n/ui';
@@ -90,14 +90,14 @@ export function patternFormat(km: boolean) {
   };
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   hero: { backgroundColor: colors.lilacSoft, borderRadius: radius.lg, padding: 20, gap: 12 },
   heroLine: { fontFamily: fonts.display, fontSize: 24, lineHeight: 30, color: colors.text },
   dots: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   dot: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   up: { backgroundColor: colors.lilacDeep },
   same: { backgroundColor: colors.lilac },
-  down: { backgroundColor: colors.white, borderWidth: 1.5, borderColor: colors.onInkMuted },
+  down: { backgroundColor: colors.white, borderWidth: 1.5, borderColor: colors.ring },
   dotText: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.lilacDeep },
   locked: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   lockedText: { fontFamily: fonts.body, fontSize: 15, color: colors.inkSoft, flex: 1 },
@@ -106,4 +106,4 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
   rowLabel: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text, flexShrink: 1 },
   rowValue: { fontFamily: fonts.body, fontSize: 14, color: colors.muted, flexShrink: 1, textAlign: 'right' },
-});
+}));

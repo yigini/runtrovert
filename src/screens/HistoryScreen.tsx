@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, SectionList, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, SectionList, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { spokenDistance, spokenDuration, spokenPace } from '../a11y';
 import { DeepMonthsView } from '../components/DeepStats';
@@ -13,7 +13,7 @@ import { loadYourRuns, patternRuns, type YourRunsData } from '../patternStore';
 import { BUSY_LABEL } from '../places';
 import type { Place } from '../placeStore';
 import { useSettings } from '../settings';
-import { colors, fonts, radius, spacing, type } from '../theme';
+import { colors, fonts, radius, spacing, type, themedStyles, themed } from '../theme';
 import type { Quiet, Run } from '../types';
 import type { CommuteDir } from '../commute';
 import { commuteTags, useCommute } from '../commuteStore';
@@ -22,8 +22,8 @@ import { AddRunSheet } from '../components/AddRunSheet';
 import { ui } from '../i18n/ui';
 import { dateLocale, monthName, upperFirst } from '../i18n/lang';
 
-const QUIET_BG: Record<Quiet, string> = { crowded: colors.peach, some: colors.butter, empty: colors.mint };
-const QUIET_FG: Record<Quiet, string> = { crowded: colors.peachDeep, some: colors.butterDeep, empty: colors.mintDeep };
+const QUIET_BG: Record<Quiet, string> = themed(() => ({ crowded: colors.peach, some: colors.butter, empty: colors.mint }));
+const QUIET_FG: Record<Quiet, string> = themed(() => ({ crowded: colors.peachDeep, some: colors.butterDeep, empty: colors.mintDeep }));
 
 /** Your runs is split in three: every run, the places you kept, and patterns in your own answers. */
 export type RunsSection = 'runs' | 'places' | 'patterns';
@@ -291,10 +291,10 @@ function shapeFor(id: number): string {
   return shapes[id % shapes.length];
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginRight: -10 },
   screen: { flex: 1, backgroundColor: colors.cream, padding: spacing.md, paddingTop: spacing.lg },
-  seg: { flexDirection: 'row', backgroundColor: '#ece5da', borderRadius: radius.pill, padding: 4, gap: 4 },
+  seg: { flexDirection: 'row', backgroundColor: colors.sunk, borderRadius: radius.pill, padding: 4, gap: 4 },
   segItem: { flex: 1, minHeight: 44, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   segOn: { backgroundColor: colors.white },
   segText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.muted },
@@ -317,4 +317,4 @@ const styles = StyleSheet.create({
   rowMeta: { fontFamily: fonts.bodySemi, fontSize: 12 },
   rowMain: { fontFamily: fonts.display, fontSize: 20, lineHeight: 24, color: colors.text },
   rowSub: { fontFamily: fonts.body, fontSize: 12, color: colors.text },
-});
+}));

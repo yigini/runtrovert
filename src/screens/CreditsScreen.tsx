@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
 import { PEXELS } from '../footage';
-import { colors, fonts, radius, spacing } from '../theme';
+import { colors, fonts, radius, spacing, themedStyles } from '../theme';
 import { ui } from '../i18n/ui';
 import credits from '../credits/libraries.json';
 
@@ -123,7 +123,7 @@ function Toggle({ label, open: isOpen, onPress }: { label: string; open: boolean
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   screen: { flex: 1, backgroundColor: colors.cream, padding: spacing.md, paddingTop: spacing.lg },
   h1: { fontFamily: fonts.display, fontSize: 34, lineHeight: 40, letterSpacing: -0.5, color: colors.text },
   body: { fontFamily: fonts.body, color: colors.text, fontSize: 15, lineHeight: 22 },
@@ -136,4 +136,4 @@ const styles = StyleSheet.create({
   lib: { backgroundColor: colors.cream, borderRadius: radius.md, padding: 14, gap: 4 },
   libName: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.text },
   licence: { fontFamily: fonts.body, color: colors.text, fontSize: 12, lineHeight: 18 },
-});
+}));

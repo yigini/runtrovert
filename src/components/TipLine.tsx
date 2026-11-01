@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, Text } from 'react-native';
 import { loadValue, saveValue } from '../db';
 import { TipsScreen } from '../screens/TipsScreen';
-import { colors, fonts } from '../theme';
+import { colors, fonts, themedStyles } from '../theme';
 import { contextsFor, pickTip, type Tip } from '../tips';
 import { localTips } from '../i18n/voice';
 import type { Run } from '../types';
@@ -88,8 +88,8 @@ function startOfDay(ms: number): number {
   return d.getTime();
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   wrap: { gap: 3, paddingVertical: 2 },
   label: { fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: colors.inkMuted },
   text: { fontFamily: fonts.displayItalic, fontSize: 15, lineHeight: 21, color: colors.ink },
-});
+}));

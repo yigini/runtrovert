@@ -1,6 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, spacing } from '../theme';
+import { Text, View } from 'react-native';
+import { colors, fonts, spacing, themedStyles } from '../theme';
 import { Button } from './Button';
 import { ui } from '../i18n/ui';
 
@@ -17,7 +17,7 @@ export function LoadFailed({ text, onRetry }: { text: string; onRetry: () => voi
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   box: { padding: spacing.lg, gap: spacing.md, alignItems: 'stretch', backgroundColor: colors.cream },
   text: { fontFamily: fonts.body, fontSize: 16, lineHeight: 22, color: colors.text, textAlign: 'center' },
-});
+}));
