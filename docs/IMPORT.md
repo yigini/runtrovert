@@ -18,10 +18,19 @@ Where people get the exports:
 - Strava: Settings › My account › Download or delete your account › Request your archive. An email with the zip follows.
 - Garmin Connect: Account › Data management › Export your data. An email with the zip follows.
 
+## From another app (the guide)
+
+Under Bring runs in, one link ("Strava, Garmin and other apps: how to bring runs over") opens **From another app**: one row per app, closed until tapped, each with its own few steps and one line on what comes in. Choose files sits at the bottom of the page, so the steps and the picker are in one place. No second import entry anywhere else.
+
+Apps listed (src/components/ImportGuide.tsx, text in `ui().importGuide.apps`): Strava, Garmin Connect, COROS, Polar Flow, Suunto, Nike Run Club, adidas Running, Runkeeper, Samsung Health, Fitbit, Apple Health (moving from an iPhone), Any other app. Apps with no file export point to Settings › Health Connect. The menu paths were written in November 2026 and not yet checked inside each app; apps rename menus, so fix a path when a runner says it has moved.
+
+What already comes in from those exports through the same zip walker: Strava and Garmin (above), adidas Running's `GPS-data/*.gpx`, Runkeeper's GPX files, Apple Health's `workout-routes/*.gpx` (no sport in those files, so walks can come in as runs; fast rides are left out by the speed check). Not read yet: Polar's whole-account JSON, adidas runs without GPS (JSON), Apple's `export.xml`.
+
 ## How it works (src/io)
 
 - `unzip.ts` reads a zip **without holding it**: the directory at the end first, then one entry at a time, inflated in 256 KB pieces with `fflate` (pure JS, no native code). Zip64 is read, so a 6 GB Strava export with photos is fine; photos, videos and every other file are never read.
 - `archive.ts` walks an export. Strava's `activities.csv` says what each activity was, so rides, walks, yoga and so on are left out **without opening the file**, and runs get their Strava name and id (`strava:<id>`, so a second import of the same export finds nothing new). Garmin's inner zips are written to the cache one at a time, walked, and deleted.
+- Runs typed in by hand on Strava have a line in `activities.csv` and no file. They come in from the list (`stravaTypedIn`): date (Strava writes UTC, "Oct 12, 2026, 7:31:00 AM"), distance (the later metres column when the list has two), elapsed and moving time, name and `strava:<id>`. Saved like a run added by hand (kind `manual`, no route).
 - `tcx.ts` reads TCX like `gpx.ts` reads GPX: tolerant patterns, no DOM. A treadmill TCX has laps and no positions; it comes in with its distance and time and no route.
 - `store.ts` does it in **two passes**. The first reads and counts, saving nothing, and keeps only start, end and distance of each new run plus a list of file keys. The second reads just those files again and saves them. Years of runs never sit in memory at once.
 
@@ -40,5 +49,4 @@ Nothing changes: the files come through the phone's own picker (no storage permi
 ## Not done
 
 - Strava's `media/` photos are not attached to runs.
-- Activities Strava lists with no file (typed-in runs) are not brought in; Add a run covers those.
 - Polar, Suunto and Coros whole-account exports are untested; their single files work.

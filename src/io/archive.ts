@@ -1,3 +1,4 @@
+import type { ImportedRun } from './types';
 import { gunzip, entryBytes, isZip, listZip, text, type ByteSource, type ZipEntry } from './unzip';
 
 // A whole export, as it comes: Strava's "Download your data" zip (activities/
@@ -21,6 +22,8 @@ export interface Activity {
   externalId: string | null;
   /** Whose export it came from, when the archive says. */
   origin: Origin | null;
+  /** A run typed in by hand on Strava: no file, only the list's numbers. bytes is empty. */
+  typed?: ImportedRun;
 }
 
 export interface WalkResult {
@@ -103,6 +106,76 @@ export function readStravaCsv(csv: string): Map<string, StravaLine> {
   return out;
 }
 
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+
+/** Strava's list dates, in UTC: "Oct 12, 2026, 7:31:00 AM". ISO too, for safety. null when it can't tell. */
+export function stravaDate(s: string): number | null {
+  const m = /^([A-Za-z]{3})[a-z]*\.? (\d{1,2}),? (\d{4}),? (\d{1,2}):(\d{2})(?::(\d{2}))? ?([AP]M)?$/i.exec(s.trim());
+  if (m) {
+    const mon = MONTHS.indexOf(m[1].toLowerCase());
+    if (mon < 0) return null;
+    let h = Number(m[4]);
+    const pm = m[7]?.toUpperCase();
+    if (pm === 'PM' && h < 12) h += 12;
+    if (pm === 'AM' && h === 12) h = 0;
+    return Date.UTC(Number(m[3]), mon, Number(m[2]), h, Number(m[5]), Number(m[6] ?? 0));
+  }
+  if (/^\d{4}-\d{2}-\d{2}/.test(s.trim())) {
+    const t = Date.parse(s.trim().replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(s.trim()) ? '' : 'Z'));
+    return Number.isFinite(t) ? t : null;
+  }
+  return null;
+}
+
+const num = (s: string | undefined): number | null => {
+  if (s == null || s.trim() === '') return null;
+  const n = Number(s.trim());
+  return Number.isFinite(n) ? n : null;
+};
+
+/**
+ * Runs in Strava's list with no file: typed in by hand there. They come in
+ * with their date, distance and time, like a run added here by hand. The list
+ * has two Distance columns in newer exports, km first and metres later; the
+ * metres one wins when it is there.
+ */
+export function stravaTypedIn(csv: string): Array<{ key: string; run: ImportedRun }> {
+  const rows = csvRows(csv.replace(/^﻿/, ''));
+  if (!rows.length) return [];
+  const head = rows[0].map((h) => h.trim().toLowerCase());
+  const first = (n: string) => head.indexOf(n);
+  const last = (n: string) => head.lastIndexOf(n);
+  const iId = first('activity id');
+  const iDate = first('activity date');
+  const iName = first('activity name');
+  const iType = first('activity type');
+  const iFile = first('filename');
+  const iElapsed = last('elapsed time');
+  const iMoving = last('moving time');
+  const iDistFirst = first('distance');
+  const iDistLast = last('distance');
+  if (iId < 0 || iDate < 0 || iFile < 0 || iElapsed < 0 || iDistFirst < 0) return [];
+  const out: Array<{ key: string; run: ImportedRun }> = [];
+  for (const r of rows.slice(1)) {
+    if (r.length < head.length / 2 || r[iFile]?.trim()) continue;
+    const type = iType >= 0 ? r[iType]?.trim() || null : null;
+    if (type == null || !stravaIsRun(type)) continue;
+    const startedAt = stravaDate(r[iDate] ?? '');
+    const elapsed = num(r[iElapsed]);
+    const moving = iMoving >= 0 ? num(r[iMoving]) : null;
+    const metres = iDistLast > iDistFirst ? num(r[iDistLast]) : null;
+    const km = num(r[iDistFirst]?.replace(',', '.'));
+    const distanceM = metres != null && metres > 0 ? metres : km != null ? km * 1000 : null;
+    const id = r[iId]?.trim();
+    if (startedAt == null || elapsed == null || !distanceM || !id) continue;
+    out.push({
+      key: `strava-typed:${id}`,
+      run: { segments: [], startedAt, endedAt: startedAt + elapsed * 1000, distanceM, movingS: moving && moving > 0 ? moving : elapsed, elevationGainM: null, sport: 'running', name: iName >= 0 ? r[iName]?.trim() || null : null, externalId: `strava:${id}` },
+    });
+  }
+  return out;
+}
+
 /** Strava's own word for a run: Run, Trail Run, Virtual Run (the treadmill). */
 export function stravaIsRun(type: string | null): boolean {
   return type == null || /run|jog/i.test(type);
@@ -118,9 +191,12 @@ export async function walkArchive(src: ByteSource, opts: WalkOptions, onActivity
   if (entries.some((e) => /(^|\/)DI_CONNECT\//.test(e.name))) result.origin = 'garmin';
   const csvEntry = entries.find((e) => /(^|\/)activities\.csv$/i.test(e.name));
   let strava = new Map<string, StravaLine>();
+  let typedIn: ReturnType<typeof stravaTypedIn> = [];
   if (csvEntry) {
     try {
-      strava = readStravaCsv(text(await entryBytes(src, csvEntry)));
+      const csv = text(await entryBytes(src, csvEntry));
+      strava = readStravaCsv(csv);
+      typedIn = stravaTypedIn(csv);
     } catch {
       // Without the list every file is opened and judged by what it says.
     }
@@ -177,6 +253,11 @@ export async function walkArchive(src: ByteSource, opts: WalkOptions, onActivity
       externalId: line?.id ? `strava:${line.id}` : null,
       origin: result.origin,
     });
+  }
+  // Runs typed in by hand on Strava: no file, so they come from the list itself.
+  for (const t of typedIn) {
+    if (opts.only && !opts.only.has(t.key)) continue;
+    await onActivity({ key: t.key, fileName: '', kind: 'gpx', bytes: new Uint8Array(0), sport: 'running', name: t.run.name, externalId: t.run.externalId, origin: result.origin, typed: t.run });
   }
   opts.onProgress?.(work.length, work.length);
   return result;

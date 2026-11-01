@@ -107,6 +107,7 @@ export interface ImportPreview {
 }
 
 function parseActivity(a: Activity): ParseResult {
+  if (a.typed) return { runs: [a.typed], skipped: [] };
   const result = a.kind === 'fit' ? parseFit(a.bytes) : a.kind === 'tcx' ? parseTcx(text(a.bytes)) : parseGpx(text(a.bytes));
   for (const r of result.runs) {
     // The archive's own list knows what the activity was, even when the file doesn't.
@@ -220,7 +221,7 @@ export async function commitImport(files: File[], preview: ImportPreview, onProg
   const known: KnownRun[] = await runSpans();
   // What stays out was counted in the first pass; this one only adds.
   const now: ImportTally = { ...EMPTY_TALLY };
-  await eachActivity(files, preview.keep, onProgress, { ...EMPTY_TALLY }, (_i, a) => importOne(parseActivity(a), a.fileName, a.origin ?? a.kind, known, now));
+  await eachActivity(files, preview.keep, onProgress, { ...EMPTY_TALLY }, (_i, a) => importOne(parseActivity(a), a.typed ? null : a.fileName, a.typed ? 'manual' : (a.origin ?? a.kind), known, now));
   return { ...preview.out, added: now.added, duplicate: preview.out.duplicate + now.duplicate };
 }
 
