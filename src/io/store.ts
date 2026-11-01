@@ -2,7 +2,6 @@ import { File, FileMode, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { addHeartRate, addImportedRun, getHeartRate, getPoints, getRun, listRuns, runSpans } from '../db';
 import { cleanHeart, type HeartSample } from '../heart';
-import { isUnlocked } from '../unlock';
 import { parseFit, writeFit } from './fit';
 import { parseGpx, writeGpx } from './gpx';
 import { EMPTY_TALLY, runFileName, sameRun, shapeRun, sniff, tallySkips, type ImportTally, type KnownRun } from './shape';
@@ -100,12 +99,11 @@ export async function shareRunGpx(runId: number): Promise<void> {
 }
 
 /**
- * Every run, one file each, in a single zip, through the share sheet. Part of
- * Everything, once: callers show a LockRow instead when it isn't unlocked.
+ * Every run, one file each, in a single zip, through the share sheet. Free,
+ * always: taking your own runs out is never part of the unlock.
  * Written run by run, so a long history never sits in memory at once.
  */
 export async function shareAllRuns(format: 'gpx' | 'fit', onProgress?: (done: number, total: number) => void): Promise<{ files: number; skipped: number }> {
-  if (!isUnlocked()) throw new Error('locked');
   const runs = (await listRuns()).sort((a, b) => a.startedAt - b.startedAt);
   const day = new Date().toISOString().slice(0, 10);
   const file = fresh(`runtrovert-runs-${format}-${day}.zip`);

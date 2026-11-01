@@ -20,6 +20,7 @@ export function UnlockHost() {
 
 const DOTS = themed(() => [colors.mint, colors.peach, colors.lilac, colors.sky, colors.butter]);
 const ADDS: string[] = live(() => ui().unlock.adds);
+const FREE: string[] = live(() => ui().unlock.free);
 
 /** Everything, once: what it adds, what stays free, one price, one plain line. Nothing else. */
 export function UnlockScreen({ onClose }: { onClose: () => void }) {
@@ -65,9 +66,17 @@ export function UnlockScreen({ onClose }: { onClose: () => void }) {
         ))}
       </View>
 
-      <View style={{ gap: 6, paddingHorizontal: 4 }}>
-        <Text style={type.eyebrow}>{ui().unlock.freeAlways}</Text>
-        <Text style={styles.free}>{ui().unlock.recordingEveryNumberFromEvery}</Text>
+      <View style={[styles.card, { backgroundColor: colors.mint }]}>
+        <Text style={[type.eyebrow, { color: colors.mintDeep }]}>{ui().unlock.freeAlways}</Text>
+        {FREE.map((text) => (
+          <View key={text} style={styles.item}>
+            <Text style={styles.tick} importantForAccessibility="no" accessibilityElementsHidden>
+              ✓
+            </Text>
+            <Text style={styles.itemText}>{text}</Text>
+          </View>
+        ))}
+        <Text style={styles.free}>{ui().unlock.nobodyPays}</Text>
       </View>
 
       <View style={{ flex: 1, minHeight: spacing.lg }} />
@@ -120,6 +129,7 @@ const styles = themedStyles(() => ({
   card: { backgroundColor: colors.white, borderRadius: radius.lg, padding: 18, gap: 10 },
   item: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   dot: { width: 10, height: 10, borderRadius: 5, marginTop: 6 },
+  tick: { fontFamily: fonts.bodySemi, fontSize: 14, lineHeight: 21, width: 10, color: colors.mintDeep },
   itemText: { fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.text, flexShrink: 1 },
   free: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.inkSoft },
   back: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center', paddingRight: spacing.md },
