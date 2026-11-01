@@ -21,7 +21,7 @@ import { live, ui } from '../i18n/ui';
 
 const HAPPENS: string[] = live(() => ui().everything.happens);
 
-const FROM: Record<SourceKind, string> = live(() => ui().everything.from);
+const FROM: Record<Exclude<SourceKind, 'manual'>, string> = live(() => ui().everything.from);
 
 export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; onChanged: () => void }) {
   const unlocked = useUnlocked();
@@ -157,7 +157,7 @@ export function EverythingScreen({ onBack, onChanged }: { onBack: () => void; on
         ) : null}
         {brought.map(([kind, n]) => (
           <View key={kind} style={[styles.kv, styles.kvLast]}>
-            <Text style={styles.k}>{ui().everything.broughtInX(FROM[kind as SourceKind])}</Text>
+            <Text style={styles.k}>{kind === 'manual' ? ui().addRun.typedIn : ui().everything.broughtInX(FROM[kind as Exclude<SourceKind, 'manual'>])}</Text>
             <Text style={styles.v}>{n}</Text>
           </View>
         ))}
