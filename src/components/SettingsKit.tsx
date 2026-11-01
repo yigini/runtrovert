@@ -161,7 +161,7 @@ export function Tag({ label }: { label: string }) {
   );
 }
 
-export type IconName = 'run' | 'battery' | 'map' | 'heart' | 'music' | 'bell' | 'home' | 'sun' | 'globe' | 'phone' | 'export' | 'info' | 'moon';
+export type IconName = 'run' | 'battery' | 'map' | 'heart' | 'music' | 'bell' | 'home' | 'sun' | 'globe' | 'phone' | 'export' | 'info' | 'moon' | 'route';
 
 const ICON_COLOURS: Record<IconName, [string, string]> = themed(() => ({
   run: [colors.lilac, colors.lilacDeep],
@@ -177,6 +177,7 @@ const ICON_COLOURS: Record<IconName, [string, string]> = themed(() => ({
   export: [colors.butter, colors.butterDeep],
   info: [colors.lilacSoft, colors.lilacDeep],
   moon: [colors.lilac, colors.lilacDeep],
+  route: [colors.butter, colors.butterDeep],
 }));
 
 function Icon({ name }: { name: IconName }) {
@@ -224,6 +225,13 @@ function Icon({ name }: { name: IconName }) {
           <>
             <Rect x={7} y={2} width={10} height={20} rx={2} {...p} />
             <Path d="M11 18h2" {...p} />
+          </>
+        )}
+        {name === 'route' && (
+          <>
+            <Circle cx={6} cy={19} r={2} {...p} />
+            <Circle cx={18} cy={5} r={2} {...p} />
+            <Path d="M8 19h7a3 3 0 000-6H9a3 3 0 010-6h7" {...p} />
           </>
         )}
         {name === 'moon' && <Path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z" {...p} />}

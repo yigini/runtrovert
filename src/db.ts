@@ -62,6 +62,14 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
           imported_at INTEGER NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_run_sources_ext ON run_sources(external_id);
+        CREATE TABLE IF NOT EXISTS routes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          distance_m REAL NOT NULL,
+          pts TEXT NOT NULL,
+          source TEXT
+        );
         CREATE TABLE IF NOT EXISTS route_sigs (
           run_id INTEGER PRIMARY KEY REFERENCES runs(id) ON DELETE CASCADE,
           v INTEGER NOT NULL,

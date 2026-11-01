@@ -276,7 +276,7 @@ function Shell() {
   function runAgain(p: Place) {
     setOpenPlace(null);
     setPlaceFrom(null);
-    setGhost({ placeId: p.id, name: p.name, path: p.sig.pts.map(([latitude, longitude]) => ({ latitude, longitude })) });
+    setGhost({ placeId: p.id, name: p.name, path: p.sig.pts.map(([latitude, longitude]) => ({ latitude, longitude })), follow: true });
     go('run');
   }
 
@@ -321,6 +321,10 @@ function Shell() {
               onOpenEverything={() => {
                 setEverythingFrom('settings');
                 setSub('everything');
+              }}
+              onFollow={(r) => {
+                setGhost({ name: r.name, path: r.path.map((p) => ({ latitude: p.lat, longitude: p.lon })), follow: true });
+                go('run');
               }}
             />
           )}
@@ -371,6 +375,12 @@ function Shell() {
               key={openRun}
               runId={openRun}
               shareOnOpen={shareOpen}
+              onFollow={(name, path) => {
+                setShareOpen(false);
+                setOpenRun(null);
+                setGhost({ name, path, follow: true });
+                go('run');
+              }}
               onBack={() => {
                 setShareOpen(false);
                 setOpenRun(null);

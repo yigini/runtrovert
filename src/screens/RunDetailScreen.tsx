@@ -34,6 +34,7 @@ export function RunDetailScreen({
   onOpenPlace,
   shareOnOpen,
   onChanged,
+  onFollow,
 }: {
   runId: number;
   onBack: () => void;
@@ -42,6 +43,8 @@ export function RunDetailScreen({
   shareOnOpen?: boolean;
   /** Distance or time was corrected. */
   onChanged?: () => void;
+  /** Run this route again, with a buzz when you leave it. */
+  onFollow?: (name: string, path: LatLon[]) => void;
 }) {
   const km = useSettings().settings.unitsKm;
   const [run, setRun] = useState<Run | null>(null);
@@ -358,6 +361,13 @@ export function RunDetailScreen({
         <Text style={styles.note}>{run.note}</Text>
       ) : null}
       {cmp && <Button title={ui().runDetail.shareWithSomeone} variant="secondary" onPress={() => setSharing(true)} style={{ marginTop: spacing.sm }} />}
+      {path.length > 1 && onFollow ? (
+        <Button
+          title={ui().routes.followThisRoute}
+          variant="secondary"
+          onPress={() => onFollow(new Date(run.startedAt).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' }), path)}
+        />
+      ) : null}
       {path.length > 1 ? <Button title={saving ? ui().runDetail.saving : ui().runDetail.saveAsGpx} variant="secondary" onPress={onSaveGpx} disabled={saving} /> : null}
       <Button title={ui().runDetail.deleteRun2} variant="danger" onPress={onDelete} style={{ marginTop: spacing.lg }} />
       {choice && !choice.match ? (

@@ -4,6 +4,9 @@ import { BackButton } from '../components/BackButton';
 import { CommuteSettings } from '../components/CommuteSettings';
 import { StrapSettings } from '../components/StrapSettings';
 import { PresetSheet } from '../components/PresetSheet';
+import { OfflineMaps } from '../components/OfflineMaps';
+import { RoutesSettings } from '../components/RoutesSettings';
+import type { SavedRoute } from '../routeStore';
 import { Group, kit, NavRow, Note, PlainRow, RadioList, Row, Segmented, Tag, WideButton } from '../components/SettingsKit';
 import { useCommute } from '../commuteStore';
 import { appByKey } from '../music';
@@ -28,7 +31,7 @@ const HOW_OFTEN: Array<{ key: NotifyPerWeek; label: string; hint: string }> = li
 const CUES: Array<{ key: CueMode; label: string; hint: string }> = live(() => (['silent', 'haptic', 'voice'] as const).map((key) => ({ key, ...ui().settings.cue[key] })));
 
 /** The pages behind the main list. Import/export and credits are screens of their own (App.tsx). */
-type Page = 'home' | 'run' | 'gps' | 'map' | 'watch' | 'music' | 'reminders' | 'commute' | 'extras' | 'language' | 'appearance' | 'privacy';
+type Page = 'home' | 'run' | 'gps' | 'map' | 'routes' | 'watch' | 'music' | 'reminders' | 'commute' | 'extras' | 'language' | 'appearance' | 'privacy';
 
 /** A new palette redraws every screen, Settings included: come back to the page it was picked on. */
 let reopen: Page | null = null;
@@ -50,7 +53,7 @@ export function fetchesOn(s: Pick<Settings, 'plainMap' | 'weather' | 'listenDown
  * and a small page behind each row with only that topic. The phone's back
  * gesture returns to the list first, then leaves.
  */
-export function SettingsScreen({ onOpenListen, onOpenEverything, onOpenCredits, onBack, runLive }: { onOpenListen: () => void; onOpenEverything: () => void; onOpenCredits: () => void; onBack?: () => void; runLive?: boolean }) {
+export function SettingsScreen({ onOpenListen, onOpenEverything, onOpenCredits, onBack, runLive, onFollow }: { onOpenListen: () => void; onOpenEverything: () => void; onOpenCredits: () => void; onBack?: () => void; runLive?: boolean; onFollow?: (r: SavedRoute) => void }) {
   const [page, setPage] = useState<Page>(() => {
     const p = reopen ?? 'home';
     reopen = null;
@@ -75,6 +78,7 @@ export function SettingsScreen({ onOpenListen, onOpenEverything, onOpenCredits, 
           {page === 'run' && <RunPage runLive={!!runLive} />}
           {page === 'gps' && <GpsPage />}
           {page === 'map' && <MapPage />}
+          {page === 'routes' && <RoutesSettings onFollow={(r) => onFollow?.(r)} />}
           {page === 'watch' && <WatchPage />}
           {page === 'music' && <MusicPage onOpenListen={onOpenListen} />}
           {page === 'reminders' && <RemindersPage />}
@@ -98,6 +102,8 @@ function titleOf(page: Page): string {
       return h.gpsBattery;
     case 'map':
       return ui().settings.map;
+    case 'routes':
+      return ui().routes.title;
     case 'watch':
       return h.watchHeart;
     case 'music':
@@ -155,6 +161,7 @@ function Home({ open, onOpenEverything, onOpenCredits }: { open: (p: Page) => vo
         <NavRow icon="run" label={h.duringARun} value={h.runValue(cue, s.autoPause, s.countdownS)} onPress={() => open('run')} />
         <NavRow icon="battery" label={h.gpsBattery} value={battery} onPress={() => open('gps')} />
         <NavRow icon="map" label={ui().settings.map} value={s.plainMap ? h.plain : h.streets} onPress={() => open('map')} />
+        <NavRow icon="route" label={ui().routes.title} value={ui().routes.navValue} onPress={() => open('routes')} />
       </Group>
       <Group title={hasWatchPage ? h.groupWatchMusic : h.groupMusic}>
         {hasWatchPage ? <NavRow icon="heart" label={h.watchHeart} value={h.watchValue(s.watch, strapName)} onPress={() => open('watch')} /> : null}
@@ -234,11 +241,14 @@ function GpsPage() {
 function MapPage() {
   const { settings, update } = useSettings();
   return (
-    <Group>
-      <Row label={ui().settings.plainMap} hint={ui().settings.yourRouteTheLiveDot}>
-        <Toggle value={settings.plainMap} onChange={(v) => update({ plainMap: v, mapNoticeSeen: true })} />
-      </Row>
-    </Group>
+    <>
+      <Group>
+        <Row label={ui().settings.plainMap} hint={ui().settings.yourRouteTheLiveDot}>
+          <Toggle value={settings.plainMap} onChange={(v) => update({ plainMap: v, mapNoticeSeen: true })} />
+        </Row>
+      </Group>
+      <OfflineMaps />
+    </>
   );
 }
 
